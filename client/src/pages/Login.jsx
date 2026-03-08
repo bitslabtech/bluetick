@@ -1,0 +1,101 @@
+import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { LayoutDashboard } from 'lucide-react';
+import { useUI } from '../context/UIContext';
+
+const Login = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const { login } = useAuth();
+    const { publicSettings } = useUI();
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        const res = await login(email, password);
+        if (res.success) {
+            // Check for admin role logic
+            if (res.user?.isAdmin || (res.token && JSON.parse(atob(res.token.split('.')[1])).user.isAdmin)) {
+                navigate('/superadmin');
+            } else {
+                navigate('/dashboard');
+            }
+        } else {
+            setError(res.error);
+        }
+    };
+
+    return (
+        <div className="flex min-h-screen items-center justify-center bg-slate-50">
+            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg border border-slate-100">
+                <div className="text-center space-y-2">
+                    <div className="flex justify-center mb-4">
+                        {publicSettings?.logoUrl ? (
+                            <img src={publicSettings.logoUrl} alt="Logo" className="h-16 w-auto object-contain rounded-xl" />
+                        ) : (
+                            <div className="p-3 bg-primary rounded-xl">
+                                <LayoutDashboard className="h-8 w-8 text-white" />
+                            </div>
+                        )}
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                        {publicSettings?.appName || 'WaManager'}
+                    </h2>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
+                        Welcome Back
+                    </h1>
+                    <p className="text-slate-500">Sign in to your account</p>
+                </div>
+
+                {error && (
+                    <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-slate-700">Email</label>
+                        <input
+                            type="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            placeholder="you@example.com"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-slate-700">Password</label>
+                        <input
+                            type="password"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            placeholder="••••••••"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        className="w-full py-2.5 bg-primary text-white rounded-lg hover:opacity-90 font-medium transition-colors shadow-sm shadow-blue-500/20"
+                    >
+                        Sign In
+                    </button>
+                </form>
+
+                <div className="text-center text-sm text-slate-500">
+                    Don't have an account?{' '}
+                    <Link to="/register" className="text-primary hover:opacity-80 font-medium">
+                        Sign up
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Login;

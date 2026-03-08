@@ -1,0 +1,1471 @@
+import { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Papa from 'papaparse';
+import { useUI } from '../context/UIContext';
+import ThemeToggle from '../components/ThemeToggle';
+import NotificationBell from '../components/NotificationBell';
+import UserDropdown from '../components/UserDropdown';
+import {
+    Search, Filter, Tag, LayoutGrid, List, Users, CheckCircle, Ban,
+    FolderCog, Upload, UserPlus, MoreVertical, Trash2, FolderPlus, Download,
+    ChevronLeft, ChevronRight, Menu, HelpCircle, Bell, User, UploadCloud, Plus,
+    X, MessageSquare, Clock, CheckCircle2, ChevronDown, AlertCircle, Tags, Lock, AlertTriangle, Phone
+} from 'lucide-react';
+import ManageLabelsModal from '../components/ManageLabelsModal';
+
+const Contacts = () => {
+    const location = useLocation();
+    const { showModal, showToast } = useUI();
+    // Mock Data matching the design
+    const [contacts, setContacts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [newContact, setNewContact] = useState({ name: '', phone: '', email: '', tags: '', labelId: '' });
+    const [showGroupsModal, setShowGroupsModal] = useState(false);
+    const [availableGroups, setAvailableGroups] = useState([]);
+    const [groupSearchTerm, setGroupSearchTerm] = useState('');
+    const [contactLimit, setContactLimit] = useState(-1);
+    const [editingContact, setEditingContact] = useState(null); // for edit modal
+    const navigate = useNavigate();
+
+    // Label & Group Picker States for Slide-over
+    const [availableLabels, setAvailableLabels] = useState([]);
+    const [showLabelsModal, setShowLabelsModal] = useState(false);
+    const [showLabelPickerFor, setShowLabelPickerFor] = useState(null); // contact id
+    const [showGroupPickerFor, setShowGroupPickerFor] = useState(null); // contact id
+    const [isUpdatingLabel, setIsUpdatingLabel] = useState(false);
+
+    // Filters
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [groupFilter, setGroupFilter] = useState('All');
+    const [labelFilter, setLabelFilter] = useState('All');
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+
+    // Filtered Contacts Logic
+    const filteredContacts = contacts.filter(contact => {
+        const matchesSearch = (contact.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (contact.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (contact.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'All' || contact.status === statusFilter;
+        const matchesGroup = groupFilter === 'All' || (contact.tags && contact.tags.includes(groupFilter));
+        const matchesLabel = labelFilter === 'All' || (contact.labels && contact.labels.some(l => String(l.id) === String(labelFilter)));
+        return matchesSearch && matchesStatus && matchesGroup && matchesLabel;
+    });
+
+    // Group Management States
+    const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+    const [editingGroup, setEditingGroup] = useState(null); // null = none, object = editing
+    const [groupForm, setGroupForm] = useState({ name: '', description: '' });
+
+    const fetchGroups = async () => {
+        try {
+            const res = await axios.get('http://localhost:5000/api/groups');
+            setAvailableGroups(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    // CRUD Handlers
+    const handleSaveGroup = async () => {
+        try {
+            if (editingGroup) {
+                await axios.put(`http://localhost:5000/api/groups/${editingGroup.id}`, groupForm);
+            } else {
+                await axios.post('http://localhost:5000/api/groups', groupForm);
+            }
+            fetchGroups();
+            setEditingGroup(null);
+            setIsCreatingGroup(false);
+            setGroupForm({ name: '', description: '' });
+        } catch (err) {
+            alert('Error saving group: ' + (err.response?.data?.error || err.message));
+        }
+    };
+
+    const handleDeleteGroup = async (id) => {
+        showModal({
+            type: 'warning',
+            title: 'Delete Group',
+            message: 'Are you sure? This will delete the group from the list, but not contacts.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            onConfirm: async () => {
+                try {
+                    await axios.delete(`http://localhost:5000/api/groups/${id}`);
+                    fetchGroups();
+                    showToast({ type: 'success', title: 'Group Deleted', message: 'Group deleted successfully' });
+                } catch (err) {
+                    showToast({ type: 'error', title: 'Error', message: err.message });
+                }
+            }
+        });
+    };
+
+    useEffect(() => {
+        if (showGroupsModal) {
+            fetchGroups();
+        }
+    }, [showGroupsModal]);
+
+    // Fetch Contacts, Groups, Labels
+    const fetchContacts = async () => {
+        try {
+            const res = await axios.get('http://localhost:5000/api/contacts', {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            const sorted = [...res.data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            setContacts(sorted);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchLabels = async () => {
+        try {
+            const res = await axios.get('http://localhost:5000/api/labels', {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            setAvailableLabels(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchBilling = async () => {
+        try {
+            const res = await axios.get('http://localhost:5000/api/billing');
+            setContactLimit(res.data?.usage?.contactLimit ?? -1);
+        } catch (err) {
+            console.error('Failed to fetch billing info:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchContacts();
+        fetchGroups();
+        fetchLabels();
+        fetchBilling();
+    }, []);
+
+    useEffect(() => {
+        if (!showLabelsModal) {
+            fetchLabels(); // Re-fetch on close
+            fetchContacts(); // Get updated labels for contacts
+        }
+    }, [showLabelsModal]);
+
+    useEffect(() => {
+        if (location.state?.openGroupManager) {
+            setShowGroupsModal(true);
+            window.history.replaceState({}, document.title);
+        }
+        if (location.state?.openAddContact) {
+            setShowAddModal(true);
+            window.history.replaceState({}, document.title);
+        }
+        if (location.state?.openImportModal) {
+            setShowImportModal(true);
+            window.history.replaceState({}, document.title);
+        }
+    }, [location]);
+
+    // Add/Edit Contact Handler
+    const handleAddContact = async (e) => {
+        e.preventDefault();
+        try {
+            const tagsArray = typeof newContact.tags === 'string'
+                ? newContact.tags.split(',').map(t => t.trim()).filter(t => t)
+                : newContact.tags;
+
+            let labelsArray = [];
+            if (newContact.labelId) {
+                const selectedLabel = availableLabels.find(l => l.id === newContact.labelId);
+                if (selectedLabel) {
+                    labelsArray = [{ id: selectedLabel.id, name: selectedLabel.name, color: selectedLabel.color }];
+                }
+            }
+
+            if (editingContact) {
+                await axios.put(`http://localhost:5000/api/contacts/${editingContact.id}`, {
+                    ...newContact,
+                    tags: tagsArray,
+                    labels: labelsArray
+                }, {
+                    headers: { 'x-auth-token': localStorage.getItem('token') }
+                });
+                showToast({ type: 'success', title: 'Contact Updated', message: 'Contact details updated successfully.' });
+            } else {
+                await axios.post('http://localhost:5000/api/contacts', {
+                    ...newContact,
+                    tags: tagsArray,
+                    labels: labelsArray
+                });
+                showToast({ type: 'success', title: 'Contact Added', message: 'New contact added successfully.' });
+            }
+
+            setShowAddModal(false);
+            setEditingContact(null);
+            setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' });
+            fetchContacts();
+        } catch (err) {
+            showToast({ type: 'error', title: 'Error', message: 'Error saving contact: ' + (err.response?.data?.error || err.message) });
+        }
+    };
+
+    const handleDeleteContact = async (contact) => {
+        showModal({
+            type: 'warning',
+            title: 'Delete Contact',
+            message: `Are you sure you want to delete ${contact.name}? This action cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            onConfirm: async () => {
+                try {
+                    await axios.delete(`http://localhost:5000/api/contacts/${contact.id}`, {
+                        headers: { 'x-auth-token': localStorage.getItem('token') }
+                    });
+                    setViewingContact(null);
+                    fetchContacts();
+                    showToast({ type: 'success', title: 'Contact Deleted', message: 'Contact has been removed.' });
+                } catch (err) {
+                    showToast({ type: 'error', title: 'Error', message: 'Failed to delete contact: ' + (err.message) });
+                }
+            }
+        });
+    };
+
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [viewingContact, setViewingContact] = useState(null);
+    const contactPanelRef = useRef(null);
+
+    // Handle ESC and Click-Outside for Contact details slide-over
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && viewingContact) {
+                setViewingContact(null);
+            }
+        };
+
+        const handleClickOutside = (e) => {
+            if (viewingContact && contactPanelRef.current && !contactPanelRef.current.contains(e.target)) {
+                // If they clicked on a contact row/card, let the onClick handle it to prevent open/close loops
+                if (!e.target.closest('.contact-trigger')) {
+                    setViewingContact(null);
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('mousedown', handleClickOutside, true);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('mousedown', handleClickOutside, true);
+        };
+    }, [viewingContact]);
+
+    // Individual Contact Update Handlers
+    const handleToggleLabel = async (contact, label) => {
+        setIsUpdatingLabel(true);
+        try {
+            const currentLabels = contact.labels || [];
+            const hasLabel = currentLabels.some(l => l.id === label.id);
+            const updatedLabels = hasLabel ? [] : [{ id: label.id, name: label.name, color: label.color }];
+
+            await axios.put(`http://localhost:5000/api/contacts/${contact.id}`, {
+                labels: updatedLabels
+            }, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+
+            setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, labels: updatedLabels } : c));
+            if (viewingContact && viewingContact.id === contact.id) {
+                setViewingContact({ ...viewingContact, labels: updatedLabels });
+            }
+        } catch (err) {
+            showToast({ type: 'error', title: 'Error', message: 'Failed to update label' });
+        } finally {
+            setIsUpdatingLabel(false);
+            setShowLabelPickerFor(null);
+        }
+    };
+
+    const handleToggleGroup = async (contact, groupName) => {
+        try {
+            const currentTags = contact.tags || [];
+            const hasGroup = currentTags.includes(groupName);
+            const updatedTags = hasGroup ? currentTags.filter(t => t !== groupName) : [...currentTags, groupName];
+
+            await axios.put(`http://localhost:5000/api/contacts/${contact.id}`, {
+                tags: updatedTags
+            }, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+
+            setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, tags: updatedTags } : c));
+            if (viewingContact && viewingContact.id === contact.id) {
+                setViewingContact({ ...viewingContact, tags: updatedTags });
+            }
+        } catch (err) {
+            showToast({ type: 'error', title: 'Error', message: 'Failed to update group' });
+        }
+    };
+
+    // Bulk Actions
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+
+        showModal({
+            type: 'warning',
+            title: 'Delete Contacts',
+            message: `Are you sure you want to delete ${selectedIds.length} contacts? This cannot be undone.`,
+            confirmText: 'Delete All',
+            cancelText: 'Cancel',
+            onConfirm: async () => {
+                try {
+                    await axios.post('http://localhost:5000/api/contacts/bulk-delete', { ids: selectedIds });
+                    fetchContacts();
+                    setSelectedIds([]);
+                    showToast({ type: 'success', title: 'Contacts Deleted', message: 'Selected contacts have been deleted.' });
+                } catch (err) {
+                    showToast({ type: 'error', title: 'Error', message: 'Error deleting contacts: ' + (err.response?.data?.error || err.message) });
+                }
+            }
+        });
+    };
+
+    const handleBulkAddToGroup = async (groupName) => {
+        try {
+            await axios.post('http://localhost:5000/api/contacts/bulk-tag', { ids: selectedIds, tag: groupName });
+            fetchContacts();
+            showToast({ type: 'success', title: 'Group Updated', message: `Added ${selectedIds.length} contacts to "${groupName}"` });
+            setShowGroupsModal(false);
+        } catch (err) {
+            showToast({ type: 'error', title: 'Error', message: 'Error adding to group: ' + (err.response?.data?.error || err.message) });
+        }
+    };
+
+    // Helper to open group picker for bulk action
+    const [showBulkGroupPicker, setShowBulkGroupPicker] = useState(false);
+
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedIds(contacts.map(c => c.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+
+    const handleSelectOne = (id) => {
+        if (selectedIds.includes(id)) {
+            setSelectedIds(selectedIds.filter(sid => sid !== id));
+        } else {
+            setSelectedIds([...selectedIds, id]);
+        }
+    };
+
+    return (
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
+            {/* Header */}
+            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
+                <div className="flex items-center gap-6 w-full">
+                    <button className="md:hidden text-slate-900 dark:text-white">
+                        <Menu className="w-6 h-6" />
+                    </button>
+                    {/* Search Bar in Header */}
+                    <div className="flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors hidden md:flex">
+                        <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
+                        <input
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary text-sm focus:outline-none ml-2"
+                            placeholder="Search contacts..."
+                        />
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+
+                    <ThemeToggle />
+                    <NotificationBell />
+                    <UserDropdown />
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <div className="flex-1 overflow-y-auto p-[46px] custom-scrollbar">
+                <div className="w-full flex flex-col gap-6">
+
+                    {/* Page Header */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-text-secondary mb-1">
+                                <span className="hover:text-slate-900 dark:hover:text-white cursor-pointer transition-colors">Dashboard</span>
+                                <span>/</span>
+                                <span className="text-slate-900 dark:text-white font-medium">Contacts</span>
+                            </div>
+                            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Manage Contacts</h1>
+                            <p className="text-slate-500 dark:text-text-secondary text-sm">View, filter and manage your subscriber list for campaigns.</p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowLabelsModal(true)} className="flex items-center justify-center h-10 px-4 rounded-lg bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-dark text-slate-700 dark:text-white text-sm font-medium hover:bg-slate-50 dark:hover:bg-[#2f455a] transition-colors gap-2 shadow-sm">
+                                <Tags className="w-5 h-5" />
+                                Manage Labels
+                            </button>
+                            <button onClick={() => setShowGroupsModal(true)} className="flex items-center justify-center h-10 px-4 rounded-lg bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-dark text-slate-700 dark:text-white text-sm font-medium hover:bg-slate-50 dark:hover:bg-[#2f455a] transition-colors gap-2 shadow-sm">
+                                <FolderCog className="w-5 h-5" />
+                                Manage Groups
+                            </button>
+                            <button
+                                onClick={() => contacts.length >= contactLimit && contactLimit !== -1 ? showToast({ type: 'warning', title: 'Limit Reached', message: 'You have reached your contact limit. Upgrade to add more.' }) : setShowImportModal(true)}
+                                className={`${contacts.length >= contactLimit && contactLimit !== -1 ? 'opacity-50 cursor-not-allowed' : ''} bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm`}
+                            >
+                                <UploadCloud className="w-5 h-5" />
+                                Upload CSV
+                            </button>
+                            <button
+                                onClick={() => contacts.length >= contactLimit && contactLimit !== -1 ? showToast({ type: 'warning', title: 'Limit Reached', message: 'You have reached your contact limit. Upgrade to add more.' }) : setShowAddModal(true)}
+                                className={`${contacts.length >= contactLimit && contactLimit !== -1 ? 'opacity-50 cursor-not-allowed shadow-none' : 'shadow-lg shadow-blue-500/20 active:scale-95'} bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all`}
+                            >
+                                <Plus className="w-5 h-5" />
+                                Add Contact
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Warning Banner */}
+                    {contactLimit !== -1 && contacts.length > contactLimit && (
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-center gap-3">
+                                <AlertTriangle className="w-6 h-6 text-amber-500" />
+                                <div>
+                                    <h4 className="text-amber-500 font-bold text-sm">Contact Limit Exceeded</h4>
+                                    <p className="text-amber-500/80 text-xs text-left">
+                                        You have <strong>{contacts.length}</strong> contacts but your plan allows <strong>{contactLimit}</strong>.
+                                        {contacts.length - contactLimit} contacts are currently locked and excluded from campaigns.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => navigate('/billing')}
+                                className="bg-amber-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-amber-600 transition-colors shrink-0"
+                            >
+                                ⚡ Upgrade Plan
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Stats Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-4 flex items-center gap-4 shadow-sm transition-colors duration-300">
+                            <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500 dark:text-blue-400">
+                                <Users className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Total Contacts</p>
+                                <p className="text-slate-900 dark:text-white text-xl font-bold">{contacts.length}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-4 flex items-center gap-4 shadow-sm transition-colors duration-300">
+                            <div className="p-3 rounded-lg bg-red-500/10 text-red-500 dark:text-red-400">
+                                <Ban className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Invalid WhatsApp </p>
+                                <p className="text-slate-900 dark:text-white text-xl font-bold">{contacts.filter(c => c.status === 'Invalid').length}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-4 flex items-center gap-4 shadow-sm transition-colors duration-300">
+                            <div className="p-3 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
+                                <Tags className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Labels</p>
+                                <p className="text-slate-900 dark:text-white text-xl font-bold">{availableLabels.length}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-4 flex items-center gap-4 shadow-sm transition-colors duration-300">
+                            <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500 dark:text-purple-400">
+                                <Tag className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Groups</p>
+                                <p className="text-slate-900 dark:text-white text-xl font-bold">{availableGroups.length}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Filters & Search */}
+                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm transition-colors duration-300">
+                        {/* Search removed from here, now in global header */}
+
+                        <div className="flex gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+                            <div className="relative">
+                                <Filter className="absolute left-3 top-2.5 text-slate-400 dark:text-text-secondary w-4 h-4 pointer-events-none" />
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-8 py-2.5 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
+                                >
+                                    <option value="All">All Statuses</option>
+                                    <option value="Valid">Valid</option>
+                                    <option value="Invalid">Invalid</option>
+                                    <option value="Unknown">Pending Check</option>
+                                </select>
+                            </div>
+
+                            <div className="relative">
+                                <Tag className="absolute left-3 top-2.5 text-slate-400 dark:text-text-secondary w-4 h-4 pointer-events-none" />
+                                <select
+                                    value={groupFilter}
+                                    onChange={(e) => setGroupFilter(e.target.value)}
+                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-8 py-2.5 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
+                                >
+                                    <option value="All">All Groups</option>
+                                    {availableGroups.map(g => (
+                                        <option key={g.id} value={g.name}>{g.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="relative">
+                                <Tags className="absolute left-3 top-2.5 text-slate-400 dark:text-text-secondary w-4 h-4 pointer-events-none" />
+                                <select
+                                    value={labelFilter}
+                                    onChange={(e) => setLabelFilter(e.target.value)}
+                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-8 py-2.5 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
+                                >
+                                    <option value="All">All Labels</option>
+                                    {availableLabels.map(l => (
+                                        <option key={l.id} value={l.id}>{l.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="h-6 w-px bg-slate-200 dark:bg-white/10 my-auto mx-1"></div>
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'bg-transparent text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                            >
+                                <LayoutGrid className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-2.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'bg-transparent text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                            >
+                                <List className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Contact List View */}
+                    {viewMode === 'list' ? (
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shadow-sm transition-colors duration-300">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50 dark:bg-background-dark/50 text-slate-500 dark:text-text-secondary font-semibold border-b border-slate-200 dark:border-white/5">
+                                        <tr>
+                                            <th className="px-6 py-4 w-12">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-slate-300 dark:border-gray-600 bg-white dark:bg-background-dark text-primary focus:ring-0 focus:ring-offset-0 size-4"
+                                                    checked={selectedIds.length === contacts.length && contacts.length > 0}
+                                                    onChange={handleSelectAll}
+                                                />
+                                            </th>
+                                            <th className="px-6 py-4">Name</th>
+                                            <th className="px-6 py-4">Phone Number</th>
+                                            <th className="px-6 py-4">Labels</th>
+                                            <th className="px-6 py-4">Group</th>
+                                            <th className="px-6 py-4">Status</th>
+                                            <th className="px-6 py-4 w-12 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-700 dark:text-gray-200">
+                                        {filteredContacts.map((contact) => {
+                                            const actualIndex = contacts.findIndex(c => c.id === contact.id);
+                                            const isLocked = contactLimit !== -1 && actualIndex >= contactLimit;
+                                            return (
+                                                <tr
+                                                    key={contact.id}
+                                                    onClick={() => {
+                                                        if (isLocked) return;
+                                                        if (viewingContact?.id === contact.id) setViewingContact(null);
+                                                        else setViewingContact(contact);
+                                                    }}
+                                                    className={`contact-trigger hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group ${isLocked ? 'cursor-default opacity-60 grayscale-[0.5]' : 'cursor-pointer'} ${selectedIds.includes(contact.id) ? 'bg-primary/5' : ''}`}
+                                                >
+                                                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                        {!isLocked && (
+                                                            <input
+                                                                type="checkbox"
+                                                                className="rounded border-slate-300 dark:border-gray-600 bg-white dark:bg-background-dark text-primary focus:ring-0 focus:ring-offset-0 size-4 cursor-pointer"
+                                                                checked={selectedIds.includes(contact.id)}
+                                                                onChange={() => handleSelectOne(contact.id)}
+                                                            />
+                                                        )}
+                                                        {isLocked && <Lock className="w-4 h-4 text-slate-400 mx-auto" />}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            {contact.avatarImage ? (
+                                                                <div
+                                                                    className="size-9 rounded-full bg-cover bg-center border border-slate-200 dark:border-white/10"
+                                                                    style={{ backgroundImage: `url('${contact.avatarImage}')` }}
+                                                                ></div>
+                                                            ) : (
+                                                                <div className={`size-9 rounded-full ${contact.avatarColor} flex items-center justify-center text-white font-bold text-xs`}>
+                                                                    {contact.initials}
+                                                                </div>
+                                                            )}
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium text-slate-900 dark:text-white">{contact.name}</span>
+                                                                {contact.email && <span className="text-slate-500 dark:text-text-secondary text-xs">{contact.email}</span>}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-mono text-slate-600 dark:text-gray-300">{contact.phone}</td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {(contact.labels && contact.labels.length > 0) ? contact.labels.map(l => (
+                                                                <span key={l.id} className="px-2 py-0.5 rounded text-xs font-medium border flex items-center gap-1" style={{ backgroundColor: `${l.color}15`, borderColor: `${l.color}30`, color: l.color }}>
+                                                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: l.color }}></div>
+                                                                    {l.name}
+                                                                </span>
+                                                            )) : (
+                                                                <span className="text-slate-400 dark:text-text-secondary text-xs italic opacity-60">No labels</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {(contact.tags && contact.tags.length > 0) ? contact.tags.map((tag, i) => (
+                                                                <span key={i} className="px-2 py-0.5 rounded text-xs font-medium bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                                                                    <Users className="w-3 h-3" />
+                                                                    {tag}
+                                                                </span>
+                                                            )) : (
+                                                                <span className="text-slate-400 dark:text-text-secondary text-xs">—</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-2">
+                                                            {contact.status === 'Valid' && (
+                                                                <>
+                                                                    <div className="size-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                                                    <span className="text-emerald-500 dark:text-emerald-400 font-medium text-xs">Valid</span>
+                                                                </>
+                                                            )}
+                                                            {contact.status === 'Unknown' && (
+                                                                <>
+                                                                    <div className="size-2 rounded-full bg-slate-400 dark:bg-gray-500"></div>
+                                                                    <span className="text-slate-500 dark:text-gray-400 font-medium text-xs">Pending Check</span>
+                                                                </>
+                                                            )}
+                                                            {contact.status === 'Opted Out' && (
+                                                                <>
+                                                                    <div className="size-2 rounded-full bg-rose-500"></div>
+                                                                    <span className="text-rose-500 dark:text-rose-400 font-medium text-xs">Opted Out</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <button className="text-slate-400 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                                                            <MoreVertical className="w-5 h-5" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {/* Pagination */}
+                            <div className="bg-slate-50 dark:bg-background-dark/30 border-t border-slate-200 dark:border-white/5 px-6 py-4 flex items-center justify-between">
+                                <div className="text-sm text-slate-500 dark:text-text-secondary">
+                                    Showing <span className="font-medium text-slate-900 dark:text-white">1</span> to <span className="font-medium text-slate-900 dark:text-white">{contacts.length}</span> of <span className="font-medium text-slate-900 dark:text-white">12,450</span> results
+                                </div>
+                                <div className="flex gap-2">
+                                    <button className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary text-sm hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white disabled:opacity-50 transition-colors" disabled>
+                                        Previous
+                                    </button>
+                                    <button className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary text-sm hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                            {filteredContacts.map((contact, fIndex) => {
+                                // We need actual index in the full sorted list for locking
+                                const actualIndex = contacts.findIndex(c => c.id === contact.id);
+                                const isLocked = contactLimit !== -1 && actualIndex >= contactLimit;
+
+                                return (
+                                    <div
+                                        key={contact.id}
+                                        onClick={() => {
+                                            if (isLocked) return;
+                                            if (viewingContact?.id === contact.id) setViewingContact(null);
+                                            else setViewingContact(contact);
+                                        }}
+                                        className={`contact-trigger group bg-white dark:bg-surface-dark border transition-all duration-200 rounded-xl p-4 flex flex-col items-center text-center gap-3 relative overflow-hidden ${isLocked ? 'cursor-default opacity-80 grayscale-[0.2] border-slate-200 dark:border-white/5' : 'cursor-pointer border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 hover:shadow-lg'} ${selectedIds.includes(contact.id) ? 'border-primary/50 shadow-[0_0_15px_rgba(37,99,235,0.1)]' : ''}`}
+                                    >
+                                        {/* Locked Overlay */}
+                                        {isLocked && (
+                                            <div className="absolute inset-0 z-20 bg-slate-100/40 dark:bg-background-dark/40 backdrop-blur-[1px] flex flex-col items-center justify-center p-4">
+                                                <div className="bg-white dark:bg-surface-dark p-2 rounded-full shadow-lg border border-slate-200 dark:border-white/10 mb-2">
+                                                    <Lock className="w-5 h-5 text-slate-500" />
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-600 dark:text-text-secondary uppercase tracking-tighter">Locked</span>
+                                            </div>
+                                        )}
+
+                                        {/* Selection Overlay/Checkbox */}
+                                        {!isLocked && (
+                                            <div className="absolute top-3 right-3 z-10">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-slate-300 dark:border-gray-600 bg-white dark:bg-background-dark text-primary focus:ring-0 focus:ring-offset-0 size-3.5 cursor-pointer"
+                                                    checked={selectedIds.includes(contact.id)}
+                                                    onChange={() => handleSelectOne(contact.id)}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Action Menu (Hover) */}
+                                        <button className="absolute top-3 left-3 z-10 text-text-secondary hover:text-white p-1 rounded-lg hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                            <MoreVertical className="w-4 h-4" />
+                                        </button>
+
+                                        {/* Centered Avatar */}
+                                        {contact.avatarImage ? (
+                                            <div
+                                                className="size-16 rounded-full bg-cover bg-center border-4 border-surface-dark shadow-lg ring-1 ring-white/10"
+                                                style={{ backgroundImage: `url('${contact.avatarImage}')` }}
+                                            ></div>
+                                        ) : (
+                                            <div className={`size-16 rounded-full ${contact.avatarColor || 'bg-gradient-to-br from-indigo-500 to-purple-600'} flex items-center justify-center text-white font-bold text-2xl border-4 border-surface-dark shadow-lg ring-1 ring-white/10`}>
+                                                {contact.initials || contact.name?.charAt(0) || 'U'}
+                                            </div>
+                                        )}
+
+                                        {/* Basic Info */}
+                                        <div className="flex flex-col gap-0.5 w-full z-0">
+                                            <h3 className="font-bold text-white text-base truncate w-full px-2" title={contact.name}>{contact.name}</h3>
+                                            <p className="text-gray-300 text-xs font-mono tracking-wide">{contact.phone}</p>
+                                            {contact.email && <p className="text-text-secondary text-[10px] truncate w-full px-4 text-opacity-80">{contact.email}</p>}
+                                        </div>
+
+                                        {/* Labels */}
+                                        <div className="flex flex-wrap justify-center gap-1 w-full px-1">
+                                            {(contact.labels && contact.labels.length > 0) ? contact.labels.map(l => (
+                                                <span key={l.id} className="px-1.5 py-0.5 rounded-md text-[9px] font-bold border flex items-center gap-1" style={{ backgroundColor: `${l.color}15`, borderColor: `${l.color}30`, color: l.color }}>
+                                                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: l.color }}></div>
+                                                    {l.name}
+                                                </span>
+                                            )) : (
+                                                <span className="text-text-secondary text-[10px] italic opacity-40">No labels</span>
+                                            )}
+                                        </div>
+
+                                        {/* Groups */}
+                                        <div className="flex flex-wrap justify-center gap-1 w-full px-1">
+                                            {(contact.tags && contact.tags.length > 0) ? contact.tags.map((tag, i) => (
+                                                <span key={i} className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center gap-1">
+                                                    <Users className="w-2.5 h-2.5" />
+                                                    {tag}
+                                                </span>
+                                            )) : (
+                                                <span className="text-text-secondary text-[10px] italic opacity-40">No group</span>
+                                            )}
+                                        </div>
+
+                                        <div className="h-px bg-white/5 w-3/4 my-1"></div>
+
+                                        {/* Status Badge */}
+                                        <div className="mt-auto">
+                                            {contact.status === 'Valid' && (
+                                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/10">
+                                                    <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                                    <span className="text-emerald-400 font-bold text-[10px] uppercase tracking-wide">Valid Number</span>
+                                                </div>
+                                            )}
+                                            {contact.status === 'Unknown' && (
+                                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-500/10 border border-gray-500/10">
+                                                    <div className="size-1.5 rounded-full bg-gray-500"></div>
+                                                    <span className="text-gray-400 font-bold text-[10px] uppercase tracking-wide">Pending Check</span>
+                                                </div>
+                                            )}
+                                            {contact.status === 'Invalid' && (
+                                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/10">
+                                                    <div className="size-1.5 rounded-full bg-rose-500"></div>
+                                                    <span className="text-rose-400 font-bold text-[10px] uppercase tracking-wide">Invalid Number</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Floating Action Bar */}
+            {
+                selectedIds.length > 0 && (
+                    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-primary text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 z-50 animate-in slide-in-from-bottom-5 duration-300">
+                        <div className="flex items-center gap-3 border-r border-white/20 pr-4">
+                            <span className="bg-white text-primary font-bold rounded-full size-6 flex items-center justify-center text-xs">{selectedIds.length}</span>
+                            <span className="font-medium text-sm">Selected</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={handleBulkDelete} className="p-2 hover:bg-white/20 rounded-full transition-colors" title="Delete">
+                                <Trash2 className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => setShowBulkGroupPicker(true)} className="p-2 hover:bg-white/20 rounded-full transition-colors" title="Add to Group">
+                                <FolderPlus className="w-5 h-5" />
+                            </button>
+                            <button className="p-2 hover:bg-white/20 rounded-full transition-colors" title="Export">
+                                <Download className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setSelectedIds([])}
+                            className="ml-2 text-xs font-semibold uppercase tracking-wider hover:text-white/80"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                )
+            }
+
+            {/* Bulk Group Picker Modal */}
+            {
+                showBulkGroupPicker && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+                            <h3 className="text-lg font-bold text-white mb-4">Add selection to group</h3>
+                            <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar mb-4">
+                                {availableGroups.map(g => (
+                                    <button
+                                        key={g.id}
+                                        onClick={() => { handleBulkAddToGroup(g.name); setShowBulkGroupPicker(false); }}
+                                        className="w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors flex items-center justify-between group"
+                                    >
+                                        <span>{g.name}</span>
+                                        <Plus className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </button>
+                                ))}
+                                {availableGroups.length === 0 && (
+                                    <p className="text-text-secondary text-sm text-center py-4">No groups available. Create one first.</p>
+                                )}
+                            </div>
+                            <button onClick={() => setShowBulkGroupPicker(false)} className="w-full py-2 text-text-secondary hover:text-white transition-colors">Cancel</button>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Contact Details Slide-over Redesign */}
+            <div ref={contactPanelRef} className={`fixed inset-y-0 right-0 w-96 bg-slate-50 dark:bg-[#111b21] shadow-[0_0_40px_rgba(0,0,0,0.1)] transform transition-transform duration-300 ease-in-out z-50 ${viewingContact ? 'translate-x-0' : 'translate-x-full'}`}>
+                {viewingContact && (
+                    <div className="h-full flex flex-col items-stretch overflow-hidden">
+
+                        {/* Clean Close Button (using requested color) */}
+                        <div className="flex justify-end p-4 shrink-0 bg-[#233648]">
+                            <button onClick={() => setViewingContact(null)} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Centered Profile Section (No Banner) */}
+                        <div className="px-6 pb-6 flex flex-col items-center bg-white dark:bg-surface-dark border-b border-slate-200 dark:border-white/5 rounded-b-3xl shadow-sm z-10 shrink-0 animate-in fade-in slide-in-from-top-4 duration-500">
+                            {viewingContact.avatarImage ? (
+                                <div className="w-24 h-24 rounded-3xl bg-cover bg-center border-4 border-slate-50 dark:border-[#111b21] shadow-md mb-4" style={{ backgroundImage: `url('${viewingContact.avatarImage}')` }}></div>
+                            ) : (
+                                <div className={`w-24 h-24 rounded-3xl ${viewingContact.avatarColor || 'bg-gradient-to-br from-indigo-500 to-purple-600'} flex items-center justify-center text-white text-3xl font-bold border-4 border-slate-50 dark:border-[#111b21] shadow-md mb-4`}>
+                                    {viewingContact.initials || viewingContact.name[0]}
+                                </div>
+                            )}
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1 text-center">{viewingContact.name}</h2>
+                            <p className="text-slate-500 dark:text-text-secondary font-mono flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 px-3 py-1 rounded-lg text-xs">
+                                <Phone className="w-3.5 h-3.5" />
+                                {viewingContact.phone}
+                            </p>
+
+                            {/* Quick Actions (Functional) */}
+                            <div className="flex w-full gap-3 mt-6">
+                                <button
+                                    onClick={() => navigate('/inbox', { state: { startChatWith: viewingContact } })}
+                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary hover:bg-blue-600 text-white rounded-xl font-bold shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5"
+                                >
+                                    <MessageSquare className="w-5 h-5" />
+                                    Message
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setEditingContact(viewingContact);
+                                        setNewContact({
+                                            name: viewingContact.name,
+                                            phone: viewingContact.phone,
+                                            email: viewingContact.email || '',
+                                            tags: (viewingContact.tags || []).join(', '),
+                                            labelId: viewingContact.labels?.[0]?.id || ''
+                                        });
+                                        setShowAddModal(true);
+                                    }}
+                                    className="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white rounded-xl transition-colors tooltip" title="Edit Contact"
+                                >
+                                    <FolderCog className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteContact(viewingContact)}
+                                    className="p-2.5 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-xl transition-colors tooltip" title="Delete Contact"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Scrollable Details Flow */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 dark:bg-[#111b21]">
+
+                            {/* Contact Info Card */}
+                            <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 border border-slate-200 dark:border-white/5 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 fill-mode-both">
+                                <div className="flex items-center gap-2 mb-4 text-slate-800 dark:text-white font-semibold">
+                                    <User className="w-4 h-4 text-primary" />
+                                    <h3>Information</h3>
+                                </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <p className="text-xs text-slate-500 dark:text-text-secondary uppercase tracking-wider mb-1">Email Address</p>
+                                        <p className="text-sm font-medium text-slate-900 dark:text-gray-200">
+                                            {viewingContact.email ? viewingContact.email : <span className="text-slate-400 italic">Not provided</span>}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 dark:text-text-secondary uppercase tracking-wider mb-1">Status</p>
+                                        {viewingContact.status === 'Valid' ? (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Valid Number
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 text-xs font-bold">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> Pending Check
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Groups Card */}
+                            <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 border border-slate-200 dark:border-white/5 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 fill-mode-both">
+                                <div className="flex items-center gap-2 mb-4 text-slate-800 dark:text-white font-semibold">
+                                    <Users className="w-4 h-4 text-indigo-500" />
+                                    <h3>Groups</h3>
+                                </div>
+
+                                {/* Selected Groups Pills */}
+                                <div className="flex flex-wrap gap-2 mb-4 min-h-[32px]">
+                                    {(viewingContact.tags && viewingContact.tags.length > 0) ? viewingContact.tags.map((tag, i) => (
+                                        <span key={i} className="pl-2.5 pr-1 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-400 text-xs font-bold flex items-center gap-1.5 group shadow-sm transition-all hover:border-indigo-300">
+                                            {tag}
+                                            <button
+                                                onClick={() => handleToggleGroup(viewingContact, tag)}
+                                                className="p-1 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-500/30 transition-colors opacity-60 hover:opacity-100 text-indigo-800 dark:text-indigo-300"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </span>
+                                    )) : (
+                                        <span className="text-xs text-slate-400 italic py-2">No groups assigned</span>
+                                    )}
+                                </div>
+
+                                {/* Group Selector (Inbox Style) */}
+                                <div className="relative" tabIndex={0} onBlur={(e) => {
+                                    if (!e.currentTarget.contains(e.relatedTarget)) {
+                                        setShowGroupPickerFor(null);
+                                    }
+                                }}>
+                                    <button
+                                        onClick={() => setShowGroupPickerFor(showGroupPickerFor === viewingContact.id ? null : viewingContact.id)}
+                                        className="w-full text-xs bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-bold cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20 flex items-center justify-between"
+                                    >
+                                        <span className="truncate">
+                                            {(viewingContact.tags && viewingContact.tags.length > 0) ? viewingContact.tags[0] : "+ Add to group..."}
+                                            {(viewingContact.tags && viewingContact.tags.length > 1) && ` (+${viewingContact.tags.length - 1})`}
+                                        </span>
+                                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                                    </button>
+
+                                    {showGroupPickerFor === viewingContact.id && (
+                                        <div className="absolute top-full left-0 right-0 pt-2 z-50">
+                                            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl py-2 animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
+                                                {availableGroups.length === 0 ? (
+                                                    <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 italic">No groups found</div>
+                                                ) : (
+                                                    availableGroups.map((g) => {
+                                                        const isSelected = (viewingContact.tags || []).includes(g.name);
+                                                        return (
+                                                            <button
+                                                                key={g.id}
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    handleToggleGroup(viewingContact, g.name);
+                                                                }}
+                                                                className="w-full text-left px-4 py-3 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex items-center justify-between"
+                                                            >
+                                                                <span className={isSelected ? 'font-bold text-indigo-600 dark:text-indigo-400' : 'font-medium'}>
+                                                                    {g.name}
+                                                                </span>
+                                                                {isSelected && <CheckCircle className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+                                                            </button>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Labels Card */}
+                            <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 border border-slate-200 dark:border-white/5 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2 text-slate-800 dark:text-white font-semibold">
+                                        <Tag className="w-4 h-4 text-purple-500" />
+                                        <h3>Labels</h3>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowLabelsModal(true)}
+                                        className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 px-2 py-1 rounded transition-colors"
+                                    >
+                                        Manage
+                                    </button>
+                                </div>
+
+                                {/* Selected Labels Pills */}
+                                <div className="flex flex-wrap gap-2 mb-4 min-h-[32px]">
+                                    {(viewingContact.labels && viewingContact.labels.length > 0) ? viewingContact.labels.map(l => (
+                                        <span key={l.id} className="pl-3 pr-1.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all" style={{ backgroundColor: `${l.color}15`, borderColor: `${l.color}30`, color: l.color }}>
+                                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: l.color }}></div>
+                                            {l.name}
+                                            <button
+                                                onClick={() => handleToggleLabel(viewingContact, l)}
+                                                className="p-1 rounded-md opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors ml-1"
+                                                style={{ color: l.color }}
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </span>
+                                    )) : (
+                                        <span className="text-xs text-slate-400 italic py-2">No labels assigned</span>
+                                    )}
+                                </div>
+
+                                {/* Label Selector (Inbox Style) */}
+                                <div className="relative" tabIndex={0} onBlur={(e) => {
+                                    if (!e.currentTarget.contains(e.relatedTarget)) {
+                                        setShowLabelPickerFor(null);
+                                    }
+                                }}>
+                                    <button
+                                        onClick={() => setShowLabelPickerFor(showLabelPickerFor === viewingContact.id ? null : viewingContact.id)}
+                                        className="w-full text-xs bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-bold cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20 flex items-center justify-between"
+                                        disabled={isUpdatingLabel}
+                                    >
+                                        <span className="truncate">
+                                            {(viewingContact.labels && viewingContact.labels.length > 0) ? viewingContact.labels[0].name : "+ Add label..."}
+                                            {(viewingContact.labels && viewingContact.labels.length > 1) && ` (+${viewingContact.labels.length - 1})`}
+                                        </span>
+                                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                                    </button>
+
+                                    {showLabelPickerFor === viewingContact.id && (
+                                        <div className="absolute top-full left-0 right-0 pt-2 z-50">
+                                            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl py-2 animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
+                                                {availableLabels.length === 0 ? (
+                                                    <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 italic text-center">No labels found</div>
+                                                ) : (
+                                                    availableLabels.map(label => {
+                                                        const isSelected = (viewingContact.labels || []).some(l => l.id === label.id);
+                                                        return (
+                                                            <button
+                                                                key={label.id}
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    handleToggleLabel(viewingContact, label);
+                                                                }}
+                                                                className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: label.color }}></div>
+                                                                    <span className={`text-sm ${isSelected ? 'font-bold text-purple-600 dark:text-purple-400' : 'text-slate-700 dark:text-white font-medium'}`}>
+                                                                        {label.name}
+                                                                    </span>
+                                                                </div>
+                                                                {isSelected && <CheckCircle className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+                                                            </button>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Import CSV Modal */}
+            {
+                showImportModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">Import Contacts</h3>
+                                    <p className="text-sm text-text-secondary mt-1">Upload a CSV file to bulk import contacts.</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const csvContent = "Name,Phone,Email\nJohn Doe,+1234567890,john@example.com\nJane Smith,+9876543210,jane@test.com";
+                                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                        const link = document.createElement("a");
+                                        if (link.download !== undefined) {
+                                            const url = URL.createObjectURL(blob);
+                                            link.setAttribute("href", url);
+                                            link.setAttribute("download", "contacts_template.csv");
+                                            link.style.visibility = 'hidden';
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-white transition-colors border border-white/10"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Sample Template
+                                </button>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-xl cursor-pointer bg-background-dark/50 hover:bg-background-dark hover:border-primary/50 transition-all group">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <UploadCloud className="w-8 h-8 text-text-secondary group-hover:text-primary mb-2 transition-colors" />
+                                        <p className="mb-1 text-sm text-text-secondary"><span className="font-semibold text-primary">Click to upload</span> or drag and drop</p>
+                                        <p className="text-xs text-text-secondary">CSV file (max 5MB)</p>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept=".csv"
+                                        onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                                Papa.parse(file, {
+                                                    header: true,
+                                                    skipEmptyLines: true,
+                                                    complete: (results) => {
+                                                        // Basic validation preview
+                                                        console.log("Parsed:", results.data);
+                                                        if (results.data.length > 0) {
+                                                            const validCount = results.data.filter(r => r.Name && r.Phone).length;
+
+                                                            showModal({
+                                                                type: 'info',
+                                                                title: 'Confirm Import',
+                                                                message: `Found ${results.data.length} rows (${validCount} valid). Do you want to import them now?`,
+                                                                confirmText: 'Import',
+                                                                cancelText: 'Cancel',
+                                                                onConfirm: () => {
+                                                                    const contactsToImport = results.data
+                                                                        .filter(r => r.Name && r.Phone) // Filter empty rows or missing required
+                                                                        .map(r => ({
+                                                                            name: r.Name,
+                                                                            phone: r.Phone,
+                                                                            email: r.Email || '',
+                                                                            tags: []
+                                                                        }));
+
+                                                                    if (contactsToImport.length === 0) {
+                                                                        showModal({
+                                                                            type: 'warning',
+                                                                            title: 'No Valid Contacts',
+                                                                            message: 'No valid contacts found. Please check required fields (Name, Phone).',
+                                                                            confirmText: 'Got it'
+                                                                        });
+                                                                        return;
+                                                                    }
+
+                                                                    axios.post('http://localhost:5000/api/contacts/import', { contacts: contactsToImport })
+                                                                        .then(res => {
+                                                                            showModal({
+                                                                                type: 'success',
+                                                                                title: 'Import Successful',
+                                                                                message: `Successfully imported ${res.data.count} contacts!`,
+                                                                                confirmText: 'Awesome'
+                                                                            });
+                                                                            setShowImportModal(false);
+                                                                            fetchContacts();
+                                                                        })
+                                                                        .catch(err => {
+                                                                            showModal({
+                                                                                type: 'error',
+                                                                                title: 'Import Failed',
+                                                                                message: err.response?.data?.error || err.message,
+                                                                                confirmText: 'Close'
+                                                                            });
+                                                                        });
+                                                                }
+                                                            });
+                                                        } else {
+                                                            showModal({
+                                                                type: 'warning',
+                                                                title: 'Empty File',
+                                                                message: 'The selected CSV file appears to be empty.',
+                                                                confirmText: 'Close'
+                                                            });
+                                                        }
+                                                    },
+                                                    error: (err) => {
+                                                        showModal({
+                                                            type: 'error',
+                                                            title: 'Parsing Error',
+                                                            message: "Could not parse CSV: " + err.message,
+                                                            confirmText: 'Close'
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        }}
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="flex justify-end pt-2">
+                                <button type="button" onClick={() => setShowImportModal(false)} className="px-4 py-2 rounded-lg text-text-secondary hover:text-white transition-colors">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Add/Edit Contact Modal */}
+            {
+                showAddModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
+                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-300">
+                            <h3 className="text-xl font-bold text-white mb-4">{editingContact ? 'Edit Contact' : 'Add New Contact'}</h3>
+                            <form onSubmit={handleAddContact} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm text-text-secondary mb-1">Name</label>
+                                    <input required value={newContact.name} onChange={e => setNewContact({ ...newContact, name: e.target.value })} className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none" placeholder="John Doe" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-text-secondary mb-1">Phone (with Country Code)</label>
+                                    <input required value={newContact.phone} onChange={e => setNewContact({ ...newContact, phone: e.target.value })} className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none" placeholder="+1234567890" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-text-secondary mb-1">Email (Optional)</label>
+                                    <input value={newContact.email} onChange={e => setNewContact({ ...newContact, email: e.target.value })} className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none" placeholder="john@example.com" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-text-secondary mb-1">Group (Optional)</label>
+                                    <select
+                                        value={newContact.tags}
+                                        onChange={e => setNewContact({ ...newContact, tags: e.target.value })}
+                                        className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none appearance-none cursor-pointer"
+                                    >
+                                        <option value="">Select Group (None)</option>
+                                        {availableGroups.map(group => (
+                                            <option key={group.id} value={group.name}>{group.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-text-secondary mb-1">Label (Optional)</label>
+                                    <select
+                                        value={newContact.labelId}
+                                        onChange={e => setNewContact({ ...newContact, labelId: e.target.value })}
+                                        className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none appearance-none cursor-pointer"
+                                    >
+                                        <option value="">Select Label (None)</option>
+                                        {availableLabels.map(label => (
+                                            <option key={label.id} value={label.id}>{label.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowAddModal(false); setEditingContact(null); }}
+                                        className="px-4 py-2 rounded-lg text-text-secondary hover:text-white transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="px-6 py-2 bg-primary rounded-lg text-white font-bold hover:bg-blue-600 transition-colors">
+                                        {editingContact ? 'Update Contact' : 'Save Contact'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Manage Groups Modal */}
+            {
+                showGroupsModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
+                            <div className="flex justify-between items-center mb-6 shrink-0">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">Manage Groups</h3>
+                                    <p className="text-sm text-text-secondary mt-1">Organize contacts into segments.</p>
+                                </div>
+                                {!isCreatingGroup && !editingGroup && (
+                                    <button
+                                        onClick={() => { setIsCreatingGroup(true); setGroupForm({ name: '', description: '' }); }}
+                                        className="px-3 py-1.5 bg-primary rounded-lg text-white text-xs font-bold hover:bg-blue-600 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        New Group
+                                    </button>
+                                )}
+                            </div>
+
+                            {(isCreatingGroup || editingGroup) ? (
+                                <div className="space-y-4 animate-in fade-in zoom-in duration-200">
+                                    <div>
+                                        <label className="block text-sm text-text-secondary mb-1">Group Name</label>
+                                        <input
+                                            autoFocus
+                                            value={groupForm.name}
+                                            onChange={e => setGroupForm({ ...groupForm, name: e.target.value })}
+                                            className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none"
+                                            placeholder="e.g. Early Adopters"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-text-secondary mb-1">Description (Optional)</label>
+                                        <input
+                                            value={groupForm.description}
+                                            onChange={e => setGroupForm({ ...groupForm, description: e.target.value })}
+                                            className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none"
+                                            placeholder="VIP customers from 2024"
+                                        />
+                                    </div>
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        <button
+                                            onClick={() => { setIsCreatingGroup(false); setEditingGroup(null); }}
+                                            className="px-4 py-2 rounded-lg text-text-secondary hover:text-white transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleSaveGroup}
+                                            disabled={!groupForm.name}
+                                            className="px-6 py-2 bg-primary rounded-lg text-white font-bold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {editingGroup ? 'Update Group' : 'Create Group'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-4 overflow-hidden">
+                                    {/* Search Bar */}
+                                    <div className="relative shrink-0">
+                                        <Search className="absolute left-3 top-2.5 text-text-secondary w-4 h-4" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search groups..."
+                                            value={groupSearchTerm}
+                                            onChange={(e) => setGroupSearchTerm(e.target.value)}
+                                            className="w-full bg-background-dark border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-primary outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto border border-white/5 rounded-lg bg-background-dark/50 custom-scrollbar min-h-[300px]">
+                                        {availableGroups.filter(g => g.name.toLowerCase().includes(groupSearchTerm.toLowerCase())).length > 0 ? (
+                                            <ul className="divide-y divide-white/5">
+                                                {availableGroups
+                                                    .filter(g => g.name.toLowerCase().includes(groupSearchTerm.toLowerCase()))
+                                                    .map(group => {
+                                                        const memberCount = contacts.filter(c => c.tags && c.tags.includes(group.name)).length;
+                                                        return (
+                                                            <li key={group.id} className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors group">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="bg-surface-dark p-2 rounded-lg text-primary border border-white/5 mt-0.5">
+                                                                        <Users className="w-4 h-4" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="text-white font-bold text-sm">{group.name}</p>
+                                                                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white/5 text-text-secondary border border-white/5">
+                                                                                {memberCount} members
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-text-secondary text-xs mt-0.5 line-clamp-1">{group.description || 'No description'}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        onClick={() => { setEditingGroup(group); setGroupForm({ name: group.name, description: group.description || '' }); }}
+                                                                        className="p-1.5 text-text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                                                        title="Edit"
+                                                                    >
+                                                                        <FolderCog className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteGroup(group.id)}
+                                                                        className="p-1.5 text-text-secondary hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </li>
+                                                        );
+                                                    })}
+                                            </ul>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center h-full py-12 text-center px-4">
+                                                <div className="p-3 rounded-full bg-surface-dark mb-3">
+                                                    <Search className="w-6 h-6 text-text-secondary" />
+                                                </div>
+                                                <p className="text-white font-medium text-sm">No groups found</p>
+                                                <p className="text-text-secondary text-xs mt-1">Try adjusting your search or create a new group.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex justify-end pt-2 shrink-0">
+                                        <button onClick={() => { setShowGroupsModal(false); setGroupSearchTerm(''); }} className="px-4 py-2 rounded-lg bg-surface-dark text-white text-sm font-medium hover:bg-white/5 transition-colors border border-white/10">Close</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            {showLabelsModal && (
+                <ManageLabelsModal onClose={() => setShowLabelsModal(false)} />
+            )}
+        </div>
+    );
+};
+
+export default Contacts;

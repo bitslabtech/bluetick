@@ -1,0 +1,628 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useUI } from '../../context/UIContext';
+import {
+    FileText, User, ChevronDown, Clock, Send, Signal, Wifi, Battery,
+    CheckCheck, Check, ArrowLeft, Calendar, Zap, Sparkles,
+    Image as ImageIcon, Link2, Phone, CreditCard, Layers
+} from 'lucide-react';
+
+// ─── Carousel Card Config Panel ───────────────────────────────────────────────
+const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, onCardImageChange }) => {
+    const variables = card.content ? (card.content.match(/\{\{([^}]+)\}\}/g) || []).map(v => v.replace(/\{\{|\}\}/g, '')) : [];
+
+    return (
+        <div className="bg-slate-50 dark:bg-background-dark/60 rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
+            {/* Card Header */}
+            <div className="px-5 py-3 border-b border-slate-200 dark:border-white/10 flex items-center gap-3 bg-white dark:bg-surface-dark">
+                <div className="bg-purple-500/20 p-2 rounded-lg">
+                    <Layers className="w-4 h-4 text-purple-400" />
+                </div>
+                <h4 className="text-slate-900 dark:text-white font-bold text-sm">Card {cardIndex + 1}</h4>
+                {card.content && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-xs">— {card.content.substring(0, 60)}</p>
+                )}
+            </div>
+
+            <div className="p-5 space-y-5">
+                {/* Image Upload for card header */}
+                {(card.headerType === 'IMAGE' || card.headerType === 'VIDEO') && (
+                    <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-white mb-2 uppercase tracking-wider">
+                            {card.headerType === 'IMAGE' ? '🖼️ Card Image' : '🎬 Card Video'}
+                            <span className="text-red-400 ml-1">*</span>
+                        </label>
+                        <div className="relative flex items-center gap-3">
+                            <label
+                                htmlFor={`card-img-${cardIndex}`}
+                                className="flex-1 flex items-center gap-3 bg-white dark:bg-background-dark border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl p-3 cursor-pointer hover:border-primary/50 hover:bg-blue-50/30 dark:hover:bg-blue-950/10 transition-all group"
+                            >
+                                <div className="bg-blue-500/10 p-2 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                                    <ImageIcon className="w-4 h-4 text-blue-500" />
+                                </div>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">
+                                    {cardParams[`__file_${cardIndex}`]?.name
+                                        ? <span className="text-green-600 dark:text-green-400 font-medium">✓ {cardParams[`__file_${cardIndex}`].name}</span>
+                                        : 'Click to upload image / video'}
+                                </span>
+                                <input
+                                    id={`card-img-${cardIndex}`}
+                                    type="file"
+                                    accept={card.headerType === 'IMAGE' ? 'image/*' : 'video/*'}
+                                    className="hidden"
+                                    onChange={(e) => onCardImageChange(cardIndex, e.target.files[0])}
+                                />
+                            </label>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1.5">This media will be uploaded to Meta before sending.</p>
+                    </div>
+                )}
+
+                {/* Body Variables */}
+                {variables.length > 0 && (
+                    <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-white mb-3 uppercase tracking-wider">📝 Body Variables</label>
+                        <div className="space-y-3">
+                            {variables.map((varName, vIdx) => (
+                                <div key={vIdx} className="flex items-center gap-3">
+                                    <span className="text-xs font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg border border-blue-200 dark:border-blue-800 whitespace-nowrap">{`{{${varName}}}`}</span>
+                                    <input
+                                        className="flex-1 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                        placeholder={`Value for {{${varName}}}`}
+                                        value={cardParams[`card_${cardIndex}_var_${varName}`] || ''}
+                                        onChange={(e) => onCardParamChange(cardIndex, `var_${varName}`, e.target.value)}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Button URL overrides */}
+                {card.buttons && card.buttons.filter(b => b.type === 'URL').length > 0 && (
+                    <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-white mb-3 uppercase tracking-wider">🔗 Button URLs</label>
+                        <div className="space-y-3">
+                            {card.buttons.filter(b => b.type === 'URL').map((btn, bIdx) => (
+                                <div key={bIdx} className="flex items-center gap-3">
+                                    <div className="bg-green-500/10 p-2 rounded-lg flex-shrink-0">
+                                        <Link2 className="w-4 h-4 text-green-500" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">"{btn.text}" URL</p>
+                                        <input
+                                            className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            placeholder={btn.url || 'https://...'}
+                                            value={cardParams[`card_${cardIndex}_btn_${bIdx}_url`] || btn.url || ''}
+                                            onChange={(e) => onCardParamChange(cardIndex, `btn_${bIdx}_url`, e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {variables.length === 0 && (!card.buttons || card.buttons.filter(b => b.type === 'URL').length === 0) && (!card.headerType || card.headerType === 'NONE') && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500 italic">No configurable inputs for this card.</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ─── Main CampaignStep3 ────────────────────────────────────────────────────────
+const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
+    const { showModal, settings } = useUI();
+    const [sending, setSending] = useState(false);
+
+    const [scheduleType, setScheduleType] = useState('now');
+    const [scheduledDate, setScheduledDate] = useState('');
+
+    // For carousel card images & params (keyed by `card_${i}_var_x` or `card_${i}_btn_x_url`)
+    const [cardParams, setCardParams] = useState({});
+    // Actual File objects for upload, keyed by card index
+    const [cardFiles, setCardFiles] = useState({});
+
+    const selectedTemplate = data.template || {};
+    const isCarousel = selectedTemplate.archetype === 'carousel' && Array.isArray(selectedTemplate.cards) && selectedTemplate.cards.length > 0;
+
+    // Extract variables from template content
+    const variables = selectedTemplate.content ? (selectedTemplate.content.match(/\{\{([^}]+)\}\}/g) || []).map(v => v.replace(/\{\{|\}\}/g, '')) : [];
+
+    // --- Dynamic Cost Calculation State ---
+    const [totalRecipientsCount, setTotalRecipientsCount] = useState(0);
+    const [calculatingCost, setCalculatingCost] = useState(false);
+    const manualCount = (data.manualRecipients || []).length;
+
+    // Prices as per Meta approximate standard pricing (in USD)
+    const PRICING = {
+        MARKETING: 0.08,
+        UTILITY: 0.04,
+        AUTHENTICATION: 0.03,
+        DEFAULT: 0.05
+    };
+
+    // Use effect to precisely count targets instead of guestimating
+    useEffect(() => {
+        const calculateRecipients = async () => {
+            setCalculatingCost(true);
+            try {
+                let dbCount = 0;
+                if (data.recipients?.includes('all')) {
+                    // Fetch total count (optimizable later with a dedicated count endpoint)
+                    const res = await axios.get('http://localhost:5000/api/contacts', {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    dbCount = res.data.length;
+                } else if (data.recipients?.length > 0) {
+                    const res = await axios.get('http://localhost:5000/api/contacts', {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    const filtered = res.data.filter(c =>
+                        c.tags && c.tags.some(tag => data.recipients.includes(tag))
+                    );
+                    dbCount = filtered.length;
+                }
+
+                setTotalRecipientsCount(dbCount + manualCount);
+            } catch (err) {
+                console.error("Failed to calculate recipients count:", err);
+            } finally {
+                setCalculatingCost(false);
+            }
+        };
+
+        calculateRecipients();
+    }, [data.recipients, manualCount]);
+
+    const costPerMessage = PRICING[selectedTemplate?.category] || PRICING.DEFAULT;
+    const estCostNum = totalRecipientsCount * costPerMessage;
+    const currency = settings?.currencySymbol || '$';
+    const estCost = `~ ${currency}${estCostNum.toFixed(2)}`;
+    const totalEst = `${totalRecipientsCount} Contact${totalRecipientsCount !== 1 ? 's' : ''}`;
+
+    const handleParamChange = (variable, value) => {
+        const newParams = { ...data.params, [variable]: value };
+        updateData({ params: newParams });
+    };
+
+    const handleCardParamChange = (cardIndex, key, value) => {
+        setCardParams(prev => ({ ...prev, [`card_${cardIndex}_${key}`]: value }));
+    };
+
+    const handleCardImageChange = (cardIndex, file) => {
+        if (file) {
+            setCardFiles(prev => ({ ...prev, [cardIndex]: file }));
+            setCardParams(prev => ({ ...prev, [`__file_${cardIndex}`]: { name: file.name } }));
+        }
+    };
+
+    const getPreviewText = () => {
+        let text = selectedTemplate.content || '';
+        variables.forEach(v => {
+            const val = data.params?.[v] || `{{${v}}}`;
+            text = text.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), val);
+        });
+        return text;
+    };
+
+    const uploadMedia = async (file) => {
+        const fd = new FormData();
+        fd.append('file', file);
+        const token = localStorage.getItem('token');
+        const res = await axios.post('http://localhost:5000/api/templates/upload-message-media', fd, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        // Return both mediaId (for Meta API) and localUrl (for inbox image display)
+        return { mediaId: res.data.mediaId, localUrl: res.data.localUrl };
+    };
+
+    const handleSend = async () => {
+        setSending(true);
+        try {
+            if (scheduleType === 'later') {
+                if (!scheduledDate) throw new Error('Please select a date and time for the scheduled campaign.');
+                if (new Date(scheduledDate) <= new Date()) throw new Error('Scheduled date must be in the future.');
+            }
+
+            let contactIds = [];
+            if (data.recipients?.includes('all')) {
+                contactIds = 'all';
+            } else if (data.recipients?.length > 0) {
+                const res = await axios.get('http://localhost:5000/api/contacts', {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                const allContacts = res.data;
+                const filteredContacts = allContacts.filter(c =>
+                    c.tags && c.tags.some(tag => data.recipients.includes(tag))
+                );
+                contactIds = filteredContacts.map(c => c.id);
+            }
+
+            const manualRecipients = data.manualRecipients || [];
+            if (contactIds.length === 0 && contactIds !== 'all' && manualRecipients.length === 0) {
+                throw new Error('Please select at least one recipient group or enter manual recipients.');
+            }
+
+            // --- Handle Carousel card media uploads ---
+            let resolvedCardParams = { ...cardParams };
+            if (isCarousel) {
+                // Validation: Ensure all required media for cards are uploaded before proceeding
+                for (let i = 0; i < selectedTemplate.cards.length; i++) {
+                    const card = selectedTemplate.cards[i];
+                    if (card.headerType === 'IMAGE' || card.headerType === 'VIDEO') {
+                        if (!cardFiles[i]) {
+                            throw new Error(`Media is missing for Card ${i + 1}. Please upload all required images/videos for the carousel before sending.`);
+                        }
+                    }
+                }
+
+                for (let i = 0; i < selectedTemplate.cards.length; i++) {
+                    const file = cardFiles[i];
+                    if (file) {
+                        showModal({ type: 'info', title: 'Uploading', message: `Uploading media for Card ${i + 1}...` });
+                        const { mediaId, localUrl } = await uploadMedia(file);
+                        resolvedCardParams[`card_${i}_headerMediaId`] = mediaId;
+                        if (localUrl) resolvedCardParams[`card_${i}_headerLocalUrl`] = localUrl;
+                    }
+                }
+            }
+
+            const payload = {
+                templateId: data.templateId,
+                contactIds,
+                manualRecipients,
+                params: { ...data.params, ...resolvedCardParams },
+                campaignName: data.name,
+                description: data.description,
+                tag: data.tag,
+                scheduledFor: scheduleType === 'later' ? scheduledDate : null
+            };
+            await onSubmit(payload);
+        } catch (err) {
+            console.error('Campaign send error:', err);
+            showModal({
+                type: 'error',
+                title: 'Error',
+                message: err.response?.data?.error || err.message || 'Failed to prepare campaign.',
+                confirmText: 'Close'
+            });
+        } finally {
+            setSending(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-8 h-full fade-in">
+            {/* Step Header */}
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-200 dark:border-surface-dark pb-6 transition-colors duration-300">
+                <div className="w-full md:w-auto z-10">
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Customize &amp; Schedule</h1>
+                    <p className="text-slate-500 dark:text-text-secondary mt-1">Fill in dynamic parameters and schedule your message.</p>
+                </div>
+
+                {/* Stepper */}
+                <div className="w-full md:w-auto md:absolute md:left-1/2 md:-translate-x-1/2 flex justify-center z-0">
+                    <div className="bg-white/80 dark:bg-surface-dark/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 p-1.5 rounded-2xl flex items-center gap-1 shadow-sm dark:shadow-2xl ring-1 ring-slate-100 dark:ring-white/5 transition-colors duration-300">
+                        {['Info', 'Template', 'Schedule'].map((label, i) => (
+                            <div key={i} className="flex items-center">
+                                {i > 0 && <div className="w-8 h-[2px] bg-primary/50 rounded-full mx-1" />}
+                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all ${i < 2 ? 'bg-primary/10 border border-primary/20 text-primary' : 'bg-primary shadow-lg shadow-primary/20 ring-1 ring-primary/50'}`}>
+                                    <span className={`flex items-center justify-center size-5 rounded-full text-[10px] font-bold ${i < 2 ? 'bg-primary text-white' : 'bg-white text-primary'}`}>
+                                        {i < 2 ? <Check className="w-3 h-3 stroke-[3]" /> : '3'}
+                                    </span>
+                                    <span className={`text-xs font-bold hidden sm:block ${i === 2 ? 'text-white' : ''}`}>{label}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <div className="xl:col-span-2 flex flex-col gap-8">
+                    {/* Selected Template Info */}
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
+                        <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-slate-900 dark:text-white font-bold text-lg">Selected Template</h3>
+                                    <p className="text-xs text-slate-500 dark:text-text-secondary">
+                                        {selectedTemplate.name || 'No Template Selected'}
+                                        {isCarousel && <span className="ml-2 text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium border border-purple-500/20">Carousel</span>}
+                                        {selectedTemplate.status === 'APPROVED' && <span className="ml-2 text-green-500 dark:text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium border border-green-500/20">Approved</span>}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={onBack} className="text-xs font-bold text-primary hover:text-blue-400 underline decoration-primary/30 underline-offset-4 transition-colors">
+                                Change Template
+                            </button>
+                        </div>
+                        <div className="p-6 bg-slate-50 dark:bg-background-dark/50">
+                            <p className="text-sm text-slate-600 dark:text-gray-300 leading-relaxed font-mono bg-white dark:bg-background-dark p-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 whitespace-pre-wrap">
+                                {selectedTemplate.content || 'Please select a template in the previous step.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* ── Standard Body Parameters (non-carousel or master body) ── */}
+                    {variables.length > 0 && (
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
+                            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                                <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400">
+                                    <User className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-slate-900 dark:text-white font-bold text-lg">Body Parameters</h3>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                {variables.map((variable, idx) => (
+                                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start border-b border-slate-100 dark:border-white/5 pb-5 last:border-0 last:pb-0">
+                                        <div className="md:col-span-4">
+                                            <label className="block text-sm font-bold text-slate-900 dark:text-white mb-1">Variable {'{{'}{variable}{'}}'}</label>
+                                            <span className="text-xs text-slate-500 dark:text-text-secondary block">Replace with...</span>
+                                        </div>
+                                        <div className="md:col-span-8 flex gap-3">
+                                            <select className="bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-3 text-slate-900 dark:text-white text-sm focus:border-primary outline-none w-1/3 cursor-pointer">
+                                                <option value="static">Static Text</option>
+                                                <option value="column">Contact Column</option>
+                                            </select>
+                                            <input
+                                                className="flex-1 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                                type="text"
+                                                placeholder={`Value for {{${variable}}}`}
+                                                value={data.params?.[variable] || ''}
+                                                onChange={(e) => handleParamChange(variable, e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Carousel Card Configuration ── */}
+                    {isCarousel && (
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
+                            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                                <div className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 p-2 rounded-lg">
+                                    <CreditCard className="w-5 h-5 text-pink-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-slate-900 dark:text-white font-bold text-lg">Carousel Cards</h3>
+                                    <p className="text-xs text-slate-500 dark:text-text-secondary">Configure each card's image, variables, and buttons</p>
+                                </div>
+                                <span className="ml-auto text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-1 rounded-full">
+                                    {selectedTemplate.cards.length} Cards
+                                </span>
+                            </div>
+                            <div className="p-6 space-y-5">
+                                {selectedTemplate.cards.map((card, idx) => (
+                                    <CarouselCardConfig
+                                        key={idx}
+                                        card={card}
+                                        cardIndex={idx}
+                                        cardParams={cardParams}
+                                        onCardParamChange={handleCardParamChange}
+                                        onCardImageChange={handleCardImageChange}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Standard template — show "no variables" placeholder */}
+                    {!isCarousel && variables.length === 0 && (
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
+                            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                                <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400"><User className="w-5 h-5" /></div>
+                                <h3 className="text-slate-900 dark:text-white font-bold text-lg">Template Parameters</h3>
+                            </div>
+                            <div className="p-8 text-center text-slate-500 dark:text-text-secondary">
+                                No dynamic variables found in this template.
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Scheduling */}
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-visible shadow-sm transition-colors duration-300 ring-1 ring-slate-100 dark:ring-white/5">
+                        <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-gradient-to-br from-orange-400 to-red-500 p-2 rounded-lg text-white shadow-lg shadow-orange-500/20">
+                                    <Clock className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-slate-900 dark:text-white font-bold text-lg">Scheduling</h3>
+                                    <p className="text-xs text-slate-500 dark:text-text-secondary">When should this campaign be sent?</p>
+                                </div>
+                            </div>
+                            <div className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2 py-1 rounded-md">
+                                UTC {new Date().getTimezoneOffset() / -60 > 0 ? '+' : ''}{new Date().getTimezoneOffset() / -60}
+                            </div>
+                        </div>
+
+                        <div className="p-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <label
+                                    className={`relative flex items-center gap-4 cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 ${scheduleType === 'now' ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-xl shadow-indigo-500/10' : 'border-slate-100 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/30 bg-slate-50 dark:bg-white/5'}`}
+                                    onClick={() => setScheduleType('now')}
+                                >
+                                    <div className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors ${scheduleType === 'now' ? 'border-indigo-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                        {scheduleType === 'now' && <div className="size-2.5 rounded-full bg-indigo-500 animate-in zoom-in duration-200" />}
+                                    </div>
+                                    <div>
+                                        <span className={`block text-lg font-bold transition-colors ${scheduleType === 'now' ? 'text-indigo-900 dark:text-indigo-100' : 'text-slate-700 dark:text-slate-300'}`}>Send Immediately</span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">Start processing campaign right now</span>
+                                    </div>
+                                    {scheduleType === 'now' && <div className="absolute top-4 right-4 text-indigo-500 animate-in fade-in"><Zap className="w-5 h-5" /></div>}
+                                </label>
+
+                                <label
+                                    className={`relative flex items-center gap-4 cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 ${scheduleType === 'later' ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-xl shadow-indigo-500/10' : 'border-slate-100 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/30 bg-slate-50 dark:bg-white/5'}`}
+                                    onClick={() => setScheduleType('later')}
+                                >
+                                    <div className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors ${scheduleType === 'later' ? 'border-indigo-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                        {scheduleType === 'later' && <div className="size-2.5 rounded-full bg-indigo-500 animate-in zoom-in duration-200" />}
+                                    </div>
+                                    <div>
+                                        <span className={`block text-lg font-bold transition-colors ${scheduleType === 'later' ? 'text-indigo-900 dark:text-indigo-100' : 'text-slate-700 dark:text-slate-300'}`}>Schedule for Later</span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">Pick a future date &amp; time</span>
+                                    </div>
+                                    {scheduleType === 'later' && <div className="absolute top-4 right-4 text-indigo-500 animate-in fade-in"><Calendar className="w-5 h-5" /></div>}
+                                </label>
+                            </div>
+
+                            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${scheduleType === 'later' ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center gap-6">
+                                    <div className="flex-1 w-full">
+                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 ml-1">Select Date &amp; Time</label>
+                                        <div className="relative group">
+                                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
+                                            <input
+                                                type="datetime-local"
+                                                value={scheduledDate}
+                                                onChange={(e) => setScheduledDate(e.target.value)}
+                                                onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                                                className="w-full bg-white dark:bg-background-dark border-2 border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-slate-900 dark:text-white font-medium focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm cursor-pointer"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 md:max-w-xs leading-relaxed bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-500/20 text-center md:text-left">
+                                        <p className="font-bold text-indigo-700 dark:text-indigo-300 mb-1 flex items-center gap-1.5 justify-center md:justify-start">
+                                            <Sparkles className="w-3 h-3" /> Note
+                                        </p>
+                                        Campaign will be queued and automatically processed at the selected time.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Sidebar: Preview & Actions */}
+                <div className="xl:col-span-1 space-y-6">
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 sticky top-6 shadow-lg transition-colors duration-300">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-slate-900 dark:text-white font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-text-secondary">Message Preview</h3>
+                        </div>
+
+                        <div className="bg-slate-100 dark:bg-background-dark rounded-[2.5rem] border-[8px] border-white dark:border-surface-dark p-3 relative h-[520px] overflow-hidden shadow-2xl flex flex-col mx-auto w-full max-w-[300px] ring-1 ring-slate-200 dark:ring-white/5 transition-colors duration-300">
+                            {/* StatusBar */}
+                            <div className="flex justify-between items-center text-[10px] text-gray-400 mb-4 px-2 shrink-0 mt-1.5">
+                                <span>9:41</span>
+                                <div className="flex gap-1.5">
+                                    <Signal className="w-3 h-3" />
+                                    <Wifi className="w-3 h-3" />
+                                    <Battery className="w-3 h-3" />
+                                </div>
+                            </div>
+
+                            {/* Chat Header */}
+                            <div className="bg-white dark:bg-surface-dark p-2.5 rounded-xl flex items-center gap-2.5 mb-2 shrink-0 mx-[-4px] shadow-sm">
+                                <ArrowLeft className="w-4 h-4 text-primary" />
+                                <div className="size-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">B</div>
+                                <div className="flex flex-col">
+                                    <p className="text-slate-900 dark:text-white text-xs font-bold leading-none">Business Name</p>
+                                    <p className="text-[9px] text-slate-500 dark:text-text-secondary leading-none mt-0.5">Official Business</p>
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div className="space-y-3 px-1 overflow-y-auto flex-1 custom-scrollbar relative">
+                                <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000000 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                                <div className="flex justify-center mt-2 relative z-10">
+                                    <span className="bg-white dark:bg-surface-dark text-gray-400 text-[9px] px-2 py-1 rounded shadow-sm border border-slate-200 dark:border-white/5">Today</span>
+                                </div>
+
+                                {isCarousel ? (
+                                    <div className="relative z-10 mt-2 ml-1">
+                                        {/* Carousel preview card */}
+                                        <div className="bg-white dark:bg-[#2f455a] rounded-xl rounded-tl-none p-2 max-w-[90%] shadow-sm mb-2">
+                                            <p className="text-slate-800 dark:text-white text-[11px] leading-snug">{selectedTemplate.content}</p>
+                                            <span className="text-[9px] text-gray-400 block text-right mt-1">10:30 AM</span>
+                                        </div>
+                                        {/* Carousel cards strip */}
+                                        <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                                            {selectedTemplate.cards.map((card, idx) => (
+                                                <div key={idx} className="flex-shrink-0 w-28 bg-white dark:bg-[#2f455a] rounded-xl shadow-sm border border-slate-100 dark:border-white/10 overflow-hidden">
+                                                    <div className="h-14 bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
+                                                        <ImageIcon className="w-5 h-5 text-white/60" />
+                                                    </div>
+                                                    <div className="p-1.5">
+                                                        <p className="text-[9px] text-slate-700 dark:text-white leading-tight line-clamp-2">{card.content}</p>
+                                                        {card.buttons?.[0] && (
+                                                            <div className="mt-1 bg-blue-500/10 text-blue-600 dark:text-blue-300 text-[8px] font-bold text-center px-1 py-0.5 rounded">
+                                                                {card.buttons[0].text}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-white dark:bg-[#2f455a] rounded-xl rounded-tl-none p-1 max-w-[90%] relative shadow-sm mt-2 ml-1">
+                                        {selectedTemplate.type === 'IMAGE' && (
+                                            <div className="w-full aspect-video bg-black rounded-lg overflow-hidden mb-1.5">
+                                                <img className="w-full h-full object-cover opacity-90" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400" alt="Header" />
+                                            </div>
+                                        )}
+                                        <div className="px-2 pb-2 pt-1">
+                                            <p className="text-slate-800 dark:text-white text-[13px] leading-snug whitespace-pre-wrap">
+                                                {getPreviewText() || 'No content'}
+                                            </p>
+                                            <div className="flex justify-end items-center gap-1 mt-1">
+                                                <span className="text-[9px] text-gray-400">10:30 AM</span>
+                                                <CheckCheck className="w-3 h-3 text-blue-400" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="mt-8 space-y-4">
+                            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-text-secondary bg-slate-50 dark:bg-background-dark p-4 rounded-xl border border-slate-200 dark:border-white/5">
+                                <div className="flex flex-col">
+                                    <span>Target Audience</span>
+                                    <strong className="text-slate-900 dark:text-white text-sm">
+                                        {calculatingCost ? 'Calculating...' : totalEst}
+                                    </strong>
+                                </div>
+                                <div className="text-right">
+                                    <span>Est. Cost ({selectedTemplate?.category || 'MIXED'})</span>
+                                    <div className="text-slate-900 dark:text-white font-bold text-sm">
+                                        {calculatingCost ? '...' : estCost}
+                                    </div>
+                                    <span className="text-[9px] text-slate-400">@ {currency}{costPerMessage}/msg</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleSend}
+                                disabled={sending}
+                                className="w-full py-4 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                <Send className="w-4 h-4" />
+                                {sending ? 'Processing...' : 'Send Campaign'}
+                            </button>
+                            <button
+                                onClick={onBack}
+                                className="w-full py-3 bg-transparent border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                            >
+                                Back
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default CampaignStep3;

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Compose Message - Campaign Info &amp; Recipients</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111a22",
+                        "surface-dark": "#233648",
+                        "text-secondary": "#92adc9"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111a22; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #233648; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2f455a; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden">
+<div class="flex h-screen w-full overflow-hidden">
+<aside class="flex w-72 flex-col justify-between border-r border-[#233648] bg-[#111a22] p-4 hidden md:flex">
+<div class="flex flex-col gap-8">
+<div class="flex gap-3 items-center px-2">
+<div class="flex items-center justify-center rounded-lg bg-primary size-10 text-white">
+<span class="material-symbols-outlined text-[24px]">chat</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-normal">WaManager</h1>
+<p class="text-text-secondary text-xs font-normal leading-normal">Business API</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg bg-primary text-white" href="#">
+<span class="material-symbols-outlined text-[22px]">send</span>
+<p class="text-sm font-medium leading-normal">Send Message</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">people</span>
+<p class="text-sm font-medium leading-normal">Contacts</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">description</span>
+<p class="text-sm font-medium leading-normal">Templates</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-3 py-3 rounded-lg bg-[#233648]/50 border border-[#233648]">
+<div class="size-2 rounded-full bg-green-500 animate-pulse"></div>
+<div class="flex flex-col">
+<span class="text-xs font-medium text-white">API Connected</span>
+<span class="text-[10px] text-text-secondary">Latency: 24ms</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex flex-1 flex-col h-full overflow-hidden bg-[#111a22] relative">
+<header class="flex items-center justify-between border-b border-[#233648] px-6 py-4 bg-[#111a22] shrink-0">
+<div class="flex items-center gap-6">
+<button class="md:hidden text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex flex-col">
+<h2 class="text-white text-lg font-bold">New Campaign</h2>
+<span class="text-[11px] text-text-secondary">Setup your campaign details</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden sm:flex items-center justify-center h-10 px-4 rounded-lg bg-[#233648] text-white text-sm font-bold hover:bg-[#2f455a] transition-colors gap-2">
+<span class="material-symbols-outlined text-[20px]">help</span>
+                    Help
+                </button>
+<button class="relative flex items-center justify-center size-10 rounded-lg bg-[#233648] text-white hover:bg-[#2f455a] transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-[#233648]"></span>
+</button>
+<div class="size-10 rounded-full bg-cover bg-center border border-[#233648] cursor-pointer" data-alt="User profile picture showing a smiling professional man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB-83iqu2ekHNgnN_1FCibBlvLwRY6Hu_bliR3cN2cX-s1so_2lXHsXeR-C1taI2i3ojcEMH9y1UlgwQB6L7q2vCXgIvVVR4AIm5mb_KIJjPR_c1mxjB3uBaKQrQb7enXq4l2m5nNxA3ebeVOBjocVXBSxBctk9uSM-5N41LzuI0pYz5aUm02fQYdtT9ZPmNTXs0eQDY-XVNt3chB3psjhLL701i9gQcrCa_kt3kLxAV4wfmnUsbJk3sVfDtBFXlKVHbECk2bUnLeAd');"></div>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+<div class="max-w-6xl mx-auto flex flex-col gap-6">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#233648] pb-6">
+<div>
+<h1 class="text-3xl font-bold text-white tracking-tight">Compose Message</h1>
+<p class="text-text-secondary mt-1">Define campaign details and select your target audience.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex flex-col items-end">
+<span class="text-sm font-bold text-white">Step 1 of 3</span>
+<span class="text-xs text-text-secondary">Info &amp; Recipients</span>
+</div>
+<div class="h-10 w-10 rounded-full border-4 border-[#233648] border-t-primary flex items-center justify-center bg-[#1a2632]">
+<span class="text-xs font-bold text-white">1</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+<div class="lg:col-span-2 flex flex-col gap-6">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center gap-3 bg-[#1e2d3b]">
+<div class="bg-primary/20 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined">edit</span>
+</div>
+<div>
+<h3 class="text-white font-bold text-lg">Campaign Info</h3>
+<p class="text-xs text-text-secondary">Basic details for internal tracking</p>
+</div>
+</div>
+<div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="col-span-1 md:col-span-2">
+<label class="block text-sm font-medium text-text-secondary mb-2">Campaign Name <span class="text-red-400">*</span></label>
+<input autofocus="" class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg px-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 placeholder:text-gray-600 transition-colors" placeholder="e.g. Summer Sale Announcement 2024" type="text"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-2">Category</label>
+<div class="relative">
+<select class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg px-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 appearance-none">
+<option>Marketing</option>
+<option>Utility</option>
+<option>Authentication</option>
+<option>Service</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-[20px]">expand_more</span>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-2">Tag (Optional)</label>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg px-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 placeholder:text-gray-600 transition-colors" placeholder="e.g. #summer, #promo" type="text"/>
+</div>
+</div>
+</div>
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden flex flex-col flex-1">
+<div class="p-4 border-b border-[#2f455a] flex items-center gap-3 bg-[#1e2d3b]">
+<div class="bg-purple-500/20 p-2 rounded-lg text-purple-400">
+<span class="material-symbols-outlined">group</span>
+</div>
+<div>
+<h3 class="text-white font-bold text-lg">Recipients</h3>
+<p class="text-xs text-text-secondary">Select who will receive this message</p>
+</div>
+</div>
+<div class="px-6 pt-6 pb-2">
+<div class="flex space-x-1 bg-[#111a22] p-1.5 rounded-lg w-full sm:w-fit border border-[#2f455a]">
+<button class="flex-1 sm:flex-none px-4 py-2 rounded text-sm font-medium text-white bg-[#233648] shadow-sm ring-1 ring-[#2f455a] flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">folder_open</span>
+                                        Saved Groups
+                                    </button>
+<button class="flex-1 sm:flex-none px-4 py-2 rounded text-sm font-medium text-text-secondary hover:text-white hover:bg-[#233648]/50 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">upload_file</span>
+                                        Upload CSV
+                                    </button>
+<button class="flex-1 sm:flex-none px-4 py-2 rounded text-sm font-medium text-text-secondary hover:text-white hover:bg-[#233648]/50 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+                                        Paste Numbers
+                                    </button>
+</div>
+</div>
+<div class="p-6 space-y-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-500 text-[20px]">search</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 placeholder:text-gray-600 transition-colors" placeholder="Search for contact groups..." type="text"/>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+<label class="flex items-start gap-3 p-4 rounded-lg border border-[#2f455a] bg-[#111a22] cursor-pointer hover:border-primary hover:bg-[#1a2632] transition-all group relative">
+<div class="flex items-center h-5">
+<input class="rounded bg-[#233648] border-gray-600 text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+<div class="flex flex-col w-full">
+<div class="flex justify-between items-start">
+<span class="text-white font-medium text-sm group-hover:text-primary transition-colors">All Customers</span>
+<span class="text-[10px] font-bold bg-[#233648] text-text-secondary px-2 py-0.5 rounded-full border border-[#2f455a]">12.4k</span>
+</div>
+<span class="text-xs text-text-secondary mt-1">Updated: 2 hrs ago</span>
+</div>
+</label>
+<label class="flex items-start gap-3 p-4 rounded-lg border border-[#2f455a] bg-[#111a22] cursor-pointer hover:border-primary hover:bg-[#1a2632] transition-all group relative">
+<div class="flex items-center h-5">
+<input class="rounded bg-[#233648] border-gray-600 text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+<div class="flex flex-col w-full">
+<div class="flex justify-between items-start">
+<span class="text-white font-medium text-sm group-hover:text-primary transition-colors">VIP Clients</span>
+<span class="text-[10px] font-bold bg-[#233648] text-text-secondary px-2 py-0.5 rounded-full border border-[#2f455a]">850</span>
+</div>
+<span class="text-xs text-text-secondary mt-1">Updated: 1 day ago</span>
+</div>
+</label>
+<label class="flex items-start gap-3 p-4 rounded-lg border border-[#2f455a] bg-[#111a22] cursor-pointer hover:border-primary hover:bg-[#1a2632] transition-all group relative">
+<div class="flex items-center h-5">
+<input class="rounded bg-[#233648] border-gray-600 text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+<div class="flex flex-col w-full">
+<div class="flex justify-between items-start">
+<span class="text-white font-medium text-sm group-hover:text-primary transition-colors">Newsletter Subs</span>
+<span class="text-[10px] font-bold bg-[#233648] text-text-secondary px-2 py-0.5 rounded-full border border-[#2f455a]">5.2k</span>
+</div>
+<span class="text-xs text-text-secondary mt-1">Updated: 3 days ago</span>
+</div>
+</label>
+<label class="flex items-start gap-3 p-4 rounded-lg border border-[#2f455a] bg-[#111a22] cursor-pointer hover:border-primary hover:bg-[#1a2632] transition-all group relative">
+<div class="flex items-center h-5">
+<input class="rounded bg-[#233648] border-gray-600 text-primary focus:ring-0 focus:ring-offset-0 size-4" type="checkbox"/>
+</div>
+<div class="flex flex-col w-full">
+<div class="flex justify-between items-start">
+<span class="text-white font-medium text-sm group-hover:text-primary transition-colors">Pending Payments</span>
+<span class="text-[10px] font-bold bg-[#233648] text-text-secondary px-2 py-0.5 rounded-full border border-[#2f455a]">142</span>
+</div>
+<span class="text-xs text-text-secondary mt-1">Updated: 5 hrs ago</span>
+</div>
+</label>
+<button class="flex items-center justify-center gap-2 p-4 rounded-lg border border-dashed border-[#2f455a] bg-transparent cursor-pointer hover:bg-[#2f455a]/50 hover:text-white text-text-secondary transition-colors h-full min-h-[80px]">
+<span class="material-symbols-outlined text-[24px]">add_circle</span>
+<span class="font-medium text-sm">Create New Group</span>
+</button>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-[#2f455a]">
+<div class="flex items-center gap-2 text-xs text-text-secondary">
+<span class="material-symbols-outlined text-[16px]">info</span>
+<p>Total recipients selected: <span class="text-white font-bold text-sm">0</span> contacts</p>
+</div>
+<button class="text-primary text-xs font-bold hover:underline">Manage Segments</button>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-1 space-y-6">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] p-5 shadow-lg">
+<h3 class="text-white font-bold text-sm mb-4">Actions</h3>
+<div class="space-y-3">
+<button class="w-full py-3.5 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 group">
+                                    Next: Select Template
+                                    <span class="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+<button class="w-full py-3 bg-transparent border border-[#2f455a] hover:bg-[#2f455a] text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                                    Save as Draft
+                                </button>
+</div>
+<div class="mt-4 pt-4 border-t border-[#2f455a]">
+<div class="flex justify-between items-center text-xs text-text-secondary">
+<span>Estimated Audience</span>
+<span class="text-white font-bold">0</span>
+</div>
+</div>
+</div>
+<div class="sticky top-6">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-white font-bold text-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">visibility</span> 
+                                    Live Preview
+                                </h3>
+<span class="text-[10px] text-text-secondary bg-[#233648] px-2 py-0.5 rounded">Mobile View</span>
+</div>
+<div class="bg-[#111a22] rounded-[2.5rem] border-[6px] border-[#1a2632] p-3 relative h-[540px] overflow-hidden shadow-2xl flex flex-col">
+<div class="flex justify-between items-center text-[10px] text-gray-400 mb-4 px-3 mt-1">
+<span>9:41</span>
+<div class="flex gap-1">
+<span class="material-symbols-outlined text-[12px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[12px]">wifi</span>
+<span class="material-symbols-outlined text-[12px]">battery_full</span>
+</div>
+</div>
+<div class="bg-[#233648] p-3 -mx-3 mb-2 flex items-center gap-3 shadow-sm z-10">
+<div class="flex items-center text-primary">
+<span class="material-symbols-outlined text-[20px]">arrow_back_ios</span>
+</div>
+<div class="size-9 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold border-2 border-[#111a22]">
+                                        B
+                                    </div>
+<div class="flex flex-col">
+<p class="text-white text-sm font-bold leading-none">Business Name</p>
+<p class="text-[10px] text-gray-400 mt-0.5">Official Business Account</p>
+</div>
+</div>
+<div class="flex-1 px-2 relative flex flex-col bg-[#0b141a]">
+<div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(#2f455a 1px, transparent 1px); background-size: 20px 20px;"></div>
+<div class="relative z-10 flex flex-col h-full">
+<div class="flex justify-center my-4">
+<span class="bg-[#1a2632] text-gray-400 text-[10px] px-2.5 py-1 rounded-lg shadow-sm border border-[#2f455a]/30">Today</span>
+</div>
+<div class="flex justify-center items-center my-auto px-4 py-8 border-2 border-dashed border-[#2f455a] rounded-xl bg-[#233648]/20">
+<div class="text-center">
+<span class="material-symbols-outlined text-[#2f455a] text-[40px] mb-2">format_shapes</span>
+<p class="text-text-secondary text-xs">
+                                                    Your message content will appear here after selecting a template in the next step.
+                                                </p>
+</div>
+</div>
+<div class="text-center mt-auto mb-4">
+<p class="text-[10px] text-gray-600 flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[10px]">lock</span>
+                                                End-to-end encrypted
+                                            </p>
+</div>
+</div>
+</div>
+<div class="bg-[#233648] p-2 -mx-3 mt-auto flex items-center gap-2 opacity-50">
+<span class="material-symbols-outlined text-gray-400 text-[20px]">add</span>
+<div class="flex-1 bg-[#111a22] h-8 rounded-full border border-[#2f455a]"></div>
+<span class="material-symbols-outlined text-gray-400 text-[20px]">mic</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

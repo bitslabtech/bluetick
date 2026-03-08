@@ -1,0 +1,1232 @@
+Starting Fix...
+Connected.
+Found Indexes: ["Contacts_pkey","Contacts_phone_key6","Contacts_phone_key7","Contacts_phone_key8","Contacts_phone_key9","Contacts_phone_key11","Contacts_phone_key224","Contacts_phone_key225","Contacts_phone_key228","Contacts_phone_key232","Contacts_phone_key239","Contacts_phone_key240","Contacts_phone_key243","Contacts_phone_key244","Contacts_phone_key248","Contacts_phone_key250","Contacts_phone_key253","Contacts_phone_key256","Contacts_phone_key258","Contacts_phone_key260","Contacts_phone_key262","Contacts_phone_key265","Contacts_phone_key267","Contacts_phone_key269","Contacts_phone_key272","Contacts_phone_key275","Contacts_phone_key278","Contacts_phone_key279","Contacts_phone_key281","Contacts_phone_key290","Contacts_phone_key292","Contacts_phone_key298","Contacts_phone_key300","Contacts_phone_key301","Contacts_phone_key302","Contacts_phone_key304","Contacts_phone_key307","Contacts_phone_key311","Contacts_phone_key317","Contacts_phone_key321","Contacts_phone_key323","Contacts_phone_key330","Contacts_phone_key331","Contacts_phone_key337","Contacts_phone_key338","Contacts_phone_key342","Contacts_phone_key344","Contacts_phone_key354","Contacts_phone_key356","Contacts_phone_key358","Contacts_phone_key359","Contacts_phone_key360","Contacts_phone_key361","Contacts_phone_key362","Contacts_phone_key363","Contacts_phone_key364","Contacts_phone_key365","Contacts_phone_key367","Contacts_phone_key368","Contacts_phone_key369","Contacts_phone_key370","Contacts_phone_key371","Contacts_phone_key372","Contacts_phone_key374","Contacts_phone_key375","Contacts_phone_key376","Contacts_phone_key377","Contacts_phone_key378","Contacts_phone_key381","Contacts_phone_key387","Contacts_phone_key388","Contacts_phone_key389","Contacts_phone_key391","Contacts_phone_key393","Contacts_phone_key395","Contacts_phone_key398","Contacts_phone_key401","Contacts_phone_key404","Contacts_phone_key405","Contacts_phone_key406","Contacts_phone_key408","Contacts_phone_key409","Contacts_phone_key407","Contacts_phone_key403","Contacts_phone_key402","Contacts_phone_key400","Contacts_phone_key399","Contacts_phone_key397","Contacts_phone_key396","Contacts_phone_key394","Contacts_phone_key392","Contacts_phone_key390","Contacts_phone_key345","Contacts_phone_key343","Contacts_phone_key297","Contacts_phone_key296","Contacts_phone_key295","Contacts_phone_key294","Contacts_phone_key293","Contacts_phone_key299","Contacts_phone_key48","Contacts_phone_key153","Contacts_phone_key149","Contacts_phone_key32","Contacts_phone_key33","Contacts_phone_key31","Contacts_phone_key28","Contacts_phone_key27","Contacts_phone_key24","Contacts_phone_key22","Contacts_phone_key20","Contacts_phone_key105","Contacts_phone_key121","Contacts_phone_key171","Contacts_phone_key223","Contacts_phone_key289","Contacts_phone_key288","Contacts_phone_key287","Contacts_phone_key286","Contacts_phone_key285","Contacts_phone_key341","Contacts_phone_key340","Contacts_phone_key339","Contacts_phone_key83","Contacts_phone_key85","Contacts_phone_key86","Contacts_phone_key84","Contacts_phone_key82","Contacts_phone_key80","Contacts_phone_key79","Contacts_phone_key386","Contacts_phone_key385","Contacts_phone_key384","Contacts_phone_key383","Contacts_phone_key382","Contacts_phone_key380","Contacts_phone_key379","Contacts_phone_key373","Contacts_phone_key366","Contacts_phone_key357","Contacts_phone_key355","Contacts_phone_key353","Contacts_phone_key352","Contacts_phone_key351","Contacts_phone_key350","Contacts_phone_key349","Contacts_phone_key348","Contacts_phone_key347","Contacts_phone_key346","Contacts_phone_key76","Contacts_phone_key74","Contacts_phone_key72","Contacts_phone_key70","Contacts_phone_key68","Contacts_phone_key66","Contacts_phone_key222","Contacts_phone_key221","Contacts_phone_key172","Contacts_phone_key173","Contacts_phone_key174","Contacts_phone_key175","Contacts_phone_key176","Contacts_phone_key177","Contacts_phone_key179","Contacts_phone_key180","Contacts_phone_key181","Contacts_phone_key183","Contacts_phone_key184","Contacts_phone_key185","Contacts_phone_key187","Contacts_phone_key188","Contacts_phone_key270","Contacts_phone_key268","Contacts_phone_key266","Contacts_phone_key336","Contacts_phone_key335","Contacts_phone_key334","Contacts_phone_key333","Contacts_phone_key332","Contacts_phone_key291","Contacts_phone_key46","Contacts_phone_key45","Contacts_phone_key43","Contacts_phone_key40","Contacts_phone_key37","Contacts_phone_key23","Contacts_phone_key25","Contacts_phone_key26","Contacts_phone_key29","Contacts_phone_key167","Contacts_phone_key168","Contacts_phone_key329","Contacts_phone_key328","Contacts_phone_key327","Contacts_phone_key326","Contacts_phone_key325","Contacts_phone_key324","Contacts_phone_key322","Contacts_phone_key320","Contacts_phone_key319","Contacts_phone_key318","Contacts_phone_key47","Contacts_phone_key49","Contacts_phone_key51","Contacts_phone_key50","Contacts_phone_key34","Contacts_phone_key35","Contacts_phone_key36","Contacts_phone_key38","Contacts_phone_key157","Contacts_phone_key39","Contacts_phone_key41","Contacts_phone_key126","Contacts_phone_key127","Contacts_phone_key189","Contacts_phone_key193","Contacts_phone_key195","Contacts_phone_key205","Contacts_phone_key208","Contacts_phone_key209","Contacts_phone_key213","Contacts_phone_key217","Contacts_phone_key220","Contacts_phone_key219","Contacts_phone_key218","Contacts_phone_key216","Contacts_phone_key215","Contacts_phone_key214","Contacts_phone_key316","Contacts_phone_key315","Contacts_phone_key314","Contacts_phone_key313","Contacts_phone_key312","Contacts_phone_key310","Contacts_phone_key309","Contacts_phone_key308","Contacts_phone_key306","Contacts_phone_key305","Contacts_phone_key303","Contacts_phone_key122","Contacts_phone_key123","Contacts_phone_key124","Contacts_phone_key125","Contacts_phone_key242","Contacts_phone_key241","Contacts_phone_key238","Contacts_phone_key237","Contacts_phone_key236","Contacts_phone_key235","Contacts_phone_key234","Contacts_phone_key233","Contacts_phone_key158","Contacts_phone_key159","Contacts_phone_key160","Contacts_phone_key162","Contacts_phone_key163","Contacts_phone_key164","Contacts_phone_key165","Contacts_phone_key227","Contacts_phone_key226","Contacts_phone_key12","Contacts_phone_key13","Contacts_phone_key14","Contacts_phone_key16","Contacts_phone_key19","Contacts_phone_key21","Contacts_phone_key284","Contacts_phone_key283","Contacts_phone_key282","Contacts_phone_key280","Contacts_phone_key277","Contacts_phone_key276","Contacts_phone_key274","Contacts_phone_key273","Contacts_phone_key271","Contacts_phone_key128","Contacts_phone_key130","Contacts_phone_key131","Contacts_phone_key132","Contacts_phone_key134","Contacts_phone_key231","Contacts_phone_key230","Contacts_phone_key229","Contacts_phone_key67","Contacts_phone_key69","Contacts_phone_key71","Contacts_phone_key73","Contacts_phone_key75","Contacts_phone_key77","Contacts_phone_key78","Contacts_phone_key81","Contacts_phone_key264","Contacts_phone_key263","Contacts_phone_key261","Contacts_phone_key259","Contacts_phone_key257","Contacts_phone_key255","Contacts_phone_key254","Contacts_phone_key252","Contacts_phone_key251","Contacts_phone_key249","Contacts_phone_key247","Contacts_phone_key246","Contacts_phone_key245","Contacts_phone_key42","Contacts_phone_key44","Contacts_phone_key212","Contacts_phone_key211","Contacts_phone_key210","Contacts_phone_key207","Contacts_phone_key206","Contacts_phone_key204","Contacts_phone_key203","Contacts_phone_key202","Contacts_phone_key201","Contacts_phone_key200","Contacts_phone_key199","Contacts_phone_key198","Contacts_phone_key197","Contacts_phone_key196","Contacts_phone_key194","Contacts_phone_key192","Contacts_phone_key191","Contacts_phone_key190","Contacts_phone_key186","Contacts_phone_key182","Contacts_phone_key178","Contacts_phone_key170","Contacts_phone_key169","Contacts_phone_key90","Contacts_phone_key93","Contacts_phone_key95","Contacts_phone_key96","Contacts_phone_key98","Contacts_phone_key106","Contacts_phone_key107","Contacts_phone_key108","Contacts_phone_key110","Contacts_phone_key111","Contacts_phone_key112","Contacts_phone_key114","Contacts_phone_key115","Contacts_phone_key116","Contacts_phone_key118","Contacts_phone_key144","Contacts_phone_key145","Contacts_phone_key146","Contacts_phone_key147","Contacts_phone_key148","Contacts_phone_key150","Contacts_phone_key151","Contacts_phone_key152","Contacts_phone_key154","Contacts_phone_key155","Contacts_phone_key156","Contacts_phone_key135","Contacts_phone_key136","Contacts_phone_key138","Contacts_phone_key139","Contacts_phone_key140","Contacts_phone_key141","Contacts_phone_key142","Contacts_phone_key143","Contacts_phone_key137","Contacts_phone_key133","Contacts_phone_key129","Contacts_phone_key119","Contacts_phone_key120","Contacts_phone_key117","Contacts_phone_key113","Contacts_phone_key109","Contacts_phone_key64","Contacts_phone_key166","Contacts_phone_key161","Contacts_phone_key65","Contacts_phone_key63","Contacts_phone_key61","Contacts_phone_key59","Contacts_phone_key104","Contacts_phone_key103","Contacts_phone_key102","Contacts_phone_key101","Contacts_phone_key100","Contacts_phone_key99","Contacts_phone_key97","Contacts_phone_key94","Contacts_phone_key92","Contacts_phone_key91","Contacts_phone_key89","Contacts_phone_key87","Contacts_phone_key56","Contacts_phone_key54","Contacts_phone_key52","Contacts_phone_key1","Contacts_phone_key30","Contacts_phone_key60","Contacts_phone_key62","Contacts_phone_key18","Contacts_phone_key17","Contacts_phone_key15","Contacts_phone_key10","Contacts_phone_key53","Contacts_phone_key55","Contacts_phone_key57","Contacts_phone_key58","Contacts_phone_key88","Contacts_phone_key2","Contacts_phone_key3","Contacts_phone_key4","Contacts_phone_key5"]
+Targeting for Drop: ["Contacts_phone_key6","Contacts_phone_key7","Contacts_phone_key8","Contacts_phone_key9","Contacts_phone_key11","Contacts_phone_key224","Contacts_phone_key225","Contacts_phone_key228","Contacts_phone_key232","Contacts_phone_key239","Contacts_phone_key240","Contacts_phone_key243","Contacts_phone_key244","Contacts_phone_key248","Contacts_phone_key250","Contacts_phone_key253","Contacts_phone_key256","Contacts_phone_key258","Contacts_phone_key260","Contacts_phone_key262","Contacts_phone_key265","Contacts_phone_key267","Contacts_phone_key269","Contacts_phone_key272","Contacts_phone_key275","Contacts_phone_key278","Contacts_phone_key279","Contacts_phone_key281","Contacts_phone_key290","Contacts_phone_key292","Contacts_phone_key298","Contacts_phone_key300","Contacts_phone_key301","Contacts_phone_key302","Contacts_phone_key304","Contacts_phone_key307","Contacts_phone_key311","Contacts_phone_key317","Contacts_phone_key321","Contacts_phone_key323","Contacts_phone_key330","Contacts_phone_key331","Contacts_phone_key337","Contacts_phone_key338","Contacts_phone_key342","Contacts_phone_key344","Contacts_phone_key354","Contacts_phone_key356","Contacts_phone_key358","Contacts_phone_key359","Contacts_phone_key360","Contacts_phone_key361","Contacts_phone_key362","Contacts_phone_key363","Contacts_phone_key364","Contacts_phone_key365","Contacts_phone_key367","Contacts_phone_key368","Contacts_phone_key369","Contacts_phone_key370","Contacts_phone_key371","Contacts_phone_key372","Contacts_phone_key374","Contacts_phone_key375","Contacts_phone_key376","Contacts_phone_key377","Contacts_phone_key378","Contacts_phone_key381","Contacts_phone_key387","Contacts_phone_key388","Contacts_phone_key389","Contacts_phone_key391","Contacts_phone_key393","Contacts_phone_key395","Contacts_phone_key398","Contacts_phone_key401","Contacts_phone_key404","Contacts_phone_key405","Contacts_phone_key406","Contacts_phone_key408","Contacts_phone_key409","Contacts_phone_key407","Contacts_phone_key403","Contacts_phone_key402","Contacts_phone_key400","Contacts_phone_key399","Contacts_phone_key397","Contacts_phone_key396","Contacts_phone_key394","Contacts_phone_key392","Contacts_phone_key390","Contacts_phone_key345","Contacts_phone_key343","Contacts_phone_key297","Contacts_phone_key296","Contacts_phone_key295","Contacts_phone_key294","Contacts_phone_key293","Contacts_phone_key299","Contacts_phone_key48","Contacts_phone_key153","Contacts_phone_key149","Contacts_phone_key32","Contacts_phone_key33","Contacts_phone_key31","Contacts_phone_key28","Contacts_phone_key27","Contacts_phone_key24","Contacts_phone_key22","Contacts_phone_key20","Contacts_phone_key105","Contacts_phone_key121","Contacts_phone_key171","Contacts_phone_key223","Contacts_phone_key289","Contacts_phone_key288","Contacts_phone_key287","Contacts_phone_key286","Contacts_phone_key285","Contacts_phone_key341","Contacts_phone_key340","Contacts_phone_key339","Contacts_phone_key83","Contacts_phone_key85","Contacts_phone_key86","Contacts_phone_key84","Contacts_phone_key82","Contacts_phone_key80","Contacts_phone_key79","Contacts_phone_key386","Contacts_phone_key385","Contacts_phone_key384","Contacts_phone_key383","Contacts_phone_key382","Contacts_phone_key380","Contacts_phone_key379","Contacts_phone_key373","Contacts_phone_key366","Contacts_phone_key357","Contacts_phone_key355","Contacts_phone_key353","Contacts_phone_key352","Contacts_phone_key351","Contacts_phone_key350","Contacts_phone_key349","Contacts_phone_key348","Contacts_phone_key347","Contacts_phone_key346","Contacts_phone_key76","Contacts_phone_key74","Contacts_phone_key72","Contacts_phone_key70","Contacts_phone_key68","Contacts_phone_key66","Contacts_phone_key222","Contacts_phone_key221","Contacts_phone_key172","Contacts_phone_key173","Contacts_phone_key174","Contacts_phone_key175","Contacts_phone_key176","Contacts_phone_key177","Contacts_phone_key179","Contacts_phone_key180","Contacts_phone_key181","Contacts_phone_key183","Contacts_phone_key184","Contacts_phone_key185","Contacts_phone_key187","Contacts_phone_key188","Contacts_phone_key270","Contacts_phone_key268","Contacts_phone_key266","Contacts_phone_key336","Contacts_phone_key335","Contacts_phone_key334","Contacts_phone_key333","Contacts_phone_key332","Contacts_phone_key291","Contacts_phone_key46","Contacts_phone_key45","Contacts_phone_key43","Contacts_phone_key40","Contacts_phone_key37","Contacts_phone_key23","Contacts_phone_key25","Contacts_phone_key26","Contacts_phone_key29","Contacts_phone_key167","Contacts_phone_key168","Contacts_phone_key329","Contacts_phone_key328","Contacts_phone_key327","Contacts_phone_key326","Contacts_phone_key325","Contacts_phone_key324","Contacts_phone_key322","Contacts_phone_key320","Contacts_phone_key319","Contacts_phone_key318","Contacts_phone_key47","Contacts_phone_key49","Contacts_phone_key51","Contacts_phone_key50","Contacts_phone_key34","Contacts_phone_key35","Contacts_phone_key36","Contacts_phone_key38","Contacts_phone_key157","Contacts_phone_key39","Contacts_phone_key41","Contacts_phone_key126","Contacts_phone_key127","Contacts_phone_key189","Contacts_phone_key193","Contacts_phone_key195","Contacts_phone_key205","Contacts_phone_key208","Contacts_phone_key209","Contacts_phone_key213","Contacts_phone_key217","Contacts_phone_key220","Contacts_phone_key219","Contacts_phone_key218","Contacts_phone_key216","Contacts_phone_key215","Contacts_phone_key214","Contacts_phone_key316","Contacts_phone_key315","Contacts_phone_key314","Contacts_phone_key313","Contacts_phone_key312","Contacts_phone_key310","Contacts_phone_key309","Contacts_phone_key308","Contacts_phone_key306","Contacts_phone_key305","Contacts_phone_key303","Contacts_phone_key122","Contacts_phone_key123","Contacts_phone_key124","Contacts_phone_key125","Contacts_phone_key242","Contacts_phone_key241","Contacts_phone_key238","Contacts_phone_key237","Contacts_phone_key236","Contacts_phone_key235","Contacts_phone_key234","Contacts_phone_key233","Contacts_phone_key158","Contacts_phone_key159","Contacts_phone_key160","Contacts_phone_key162","Contacts_phone_key163","Contacts_phone_key164","Contacts_phone_key165","Contacts_phone_key227","Contacts_phone_key226","Contacts_phone_key12","Contacts_phone_key13","Contacts_phone_key14","Contacts_phone_key16","Contacts_phone_key19","Contacts_phone_key21","Contacts_phone_key284","Contacts_phone_key283","Contacts_phone_key282","Contacts_phone_key280","Contacts_phone_key277","Contacts_phone_key276","Contacts_phone_key274","Contacts_phone_key273","Contacts_phone_key271","Contacts_phone_key128","Contacts_phone_key130","Contacts_phone_key131","Contacts_phone_key132","Contacts_phone_key134","Contacts_phone_key231","Contacts_phone_key230","Contacts_phone_key229","Contacts_phone_key67","Contacts_phone_key69","Contacts_phone_key71","Contacts_phone_key73","Contacts_phone_key75","Contacts_phone_key77","Contacts_phone_key78","Contacts_phone_key81","Contacts_phone_key264","Contacts_phone_key263","Contacts_phone_key261","Contacts_phone_key259","Contacts_phone_key257","Contacts_phone_key255","Contacts_phone_key254","Contacts_phone_key252","Contacts_phone_key251","Contacts_phone_key249","Contacts_phone_key247","Contacts_phone_key246","Contacts_phone_key245","Contacts_phone_key42","Contacts_phone_key44","Contacts_phone_key212","Contacts_phone_key211","Contacts_phone_key210","Contacts_phone_key207","Contacts_phone_key206","Contacts_phone_key204","Contacts_phone_key203","Contacts_phone_key202","Contacts_phone_key201","Contacts_phone_key200","Contacts_phone_key199","Contacts_phone_key198","Contacts_phone_key197","Contacts_phone_key196","Contacts_phone_key194","Contacts_phone_key192","Contacts_phone_key191","Contacts_phone_key190","Contacts_phone_key186","Contacts_phone_key182","Contacts_phone_key178","Contacts_phone_key170","Contacts_phone_key169","Contacts_phone_key90","Contacts_phone_key93","Contacts_phone_key95","Contacts_phone_key96","Contacts_phone_key98","Contacts_phone_key106","Contacts_phone_key107","Contacts_phone_key108","Contacts_phone_key110","Contacts_phone_key111","Contacts_phone_key112","Contacts_phone_key114","Contacts_phone_key115","Contacts_phone_key116","Contacts_phone_key118","Contacts_phone_key144","Contacts_phone_key145","Contacts_phone_key146","Contacts_phone_key147","Contacts_phone_key148","Contacts_phone_key150","Contacts_phone_key151","Contacts_phone_key152","Contacts_phone_key154","Contacts_phone_key155","Contacts_phone_key156","Contacts_phone_key135","Contacts_phone_key136","Contacts_phone_key138","Contacts_phone_key139","Contacts_phone_key140","Contacts_phone_key141","Contacts_phone_key142","Contacts_phone_key143","Contacts_phone_key137","Contacts_phone_key133","Contacts_phone_key129","Contacts_phone_key119","Contacts_phone_key120","Contacts_phone_key117","Contacts_phone_key113","Contacts_phone_key109","Contacts_phone_key64","Contacts_phone_key166","Contacts_phone_key161","Contacts_phone_key65","Contacts_phone_key63","Contacts_phone_key61","Contacts_phone_key59","Contacts_phone_key104","Contacts_phone_key103","Contacts_phone_key102","Contacts_phone_key101","Contacts_phone_key100","Contacts_phone_key99","Contacts_phone_key97","Contacts_phone_key94","Contacts_phone_key92","Contacts_phone_key91","Contacts_phone_key89","Contacts_phone_key87","Contacts_phone_key56","Contacts_phone_key54","Contacts_phone_key52","Contacts_phone_key1","Contacts_phone_key30","Contacts_phone_key60","Contacts_phone_key62","Contacts_phone_key18","Contacts_phone_key17","Contacts_phone_key15","Contacts_phone_key10","Contacts_phone_key53","Contacts_phone_key55","Contacts_phone_key57","Contacts_phone_key58","Contacts_phone_key88","Contacts_phone_key2","Contacts_phone_key3","Contacts_phone_key4","Contacts_phone_key5"]
+Dropping Index: Contacts_phone_key6
+x Failed to drop Contacts_phone_key6: cannot drop index "Contacts_phone_key6" because constraint Contacts_phone_key6 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key6
+Dropping Index: Contacts_phone_key7
+x Failed to drop Contacts_phone_key7: cannot drop index "Contacts_phone_key7" because constraint Contacts_phone_key7 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key7
+Dropping Index: Contacts_phone_key8
+x Failed to drop Contacts_phone_key8: cannot drop index "Contacts_phone_key8" because constraint Contacts_phone_key8 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key8
+Dropping Index: Contacts_phone_key9
+x Failed to drop Contacts_phone_key9: cannot drop index "Contacts_phone_key9" because constraint Contacts_phone_key9 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key9
+Dropping Index: Contacts_phone_key11
+x Failed to drop Contacts_phone_key11: cannot drop index "Contacts_phone_key11" because constraint Contacts_phone_key11 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key11
+Dropping Index: Contacts_phone_key224
+x Failed to drop Contacts_phone_key224: cannot drop index "Contacts_phone_key224" because constraint Contacts_phone_key224 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key224
+Dropping Index: Contacts_phone_key225
+x Failed to drop Contacts_phone_key225: cannot drop index "Contacts_phone_key225" because constraint Contacts_phone_key225 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key225
+Dropping Index: Contacts_phone_key228
+x Failed to drop Contacts_phone_key228: cannot drop index "Contacts_phone_key228" because constraint Contacts_phone_key228 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key228
+Dropping Index: Contacts_phone_key232
+x Failed to drop Contacts_phone_key232: cannot drop index "Contacts_phone_key232" because constraint Contacts_phone_key232 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key232
+Dropping Index: Contacts_phone_key239
+x Failed to drop Contacts_phone_key239: cannot drop index "Contacts_phone_key239" because constraint Contacts_phone_key239 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key239
+Dropping Index: Contacts_phone_key240
+x Failed to drop Contacts_phone_key240: cannot drop index "Contacts_phone_key240" because constraint Contacts_phone_key240 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key240
+Dropping Index: Contacts_phone_key243
+x Failed to drop Contacts_phone_key243: cannot drop index "Contacts_phone_key243" because constraint Contacts_phone_key243 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key243
+Dropping Index: Contacts_phone_key244
+x Failed to drop Contacts_phone_key244: cannot drop index "Contacts_phone_key244" because constraint Contacts_phone_key244 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key244
+Dropping Index: Contacts_phone_key248
+x Failed to drop Contacts_phone_key248: cannot drop index "Contacts_phone_key248" because constraint Contacts_phone_key248 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key248
+Dropping Index: Contacts_phone_key250
+x Failed to drop Contacts_phone_key250: cannot drop index "Contacts_phone_key250" because constraint Contacts_phone_key250 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key250
+Dropping Index: Contacts_phone_key253
+x Failed to drop Contacts_phone_key253: cannot drop index "Contacts_phone_key253" because constraint Contacts_phone_key253 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key253
+Dropping Index: Contacts_phone_key256
+x Failed to drop Contacts_phone_key256: cannot drop index "Contacts_phone_key256" because constraint Contacts_phone_key256 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key256
+Dropping Index: Contacts_phone_key258
+x Failed to drop Contacts_phone_key258: cannot drop index "Contacts_phone_key258" because constraint Contacts_phone_key258 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key258
+Dropping Index: Contacts_phone_key260
+x Failed to drop Contacts_phone_key260: cannot drop index "Contacts_phone_key260" because constraint Contacts_phone_key260 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key260
+Dropping Index: Contacts_phone_key262
+x Failed to drop Contacts_phone_key262: cannot drop index "Contacts_phone_key262" because constraint Contacts_phone_key262 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key262
+Dropping Index: Contacts_phone_key265
+x Failed to drop Contacts_phone_key265: cannot drop index "Contacts_phone_key265" because constraint Contacts_phone_key265 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key265
+Dropping Index: Contacts_phone_key267
+x Failed to drop Contacts_phone_key267: cannot drop index "Contacts_phone_key267" because constraint Contacts_phone_key267 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key267
+Dropping Index: Contacts_phone_key269
+x Failed to drop Contacts_phone_key269: cannot drop index "Contacts_phone_key269" because constraint Contacts_phone_key269 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key269
+Dropping Index: Contacts_phone_key272
+x Failed to drop Contacts_phone_key272: cannot drop index "Contacts_phone_key272" because constraint Contacts_phone_key272 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key272
+Dropping Index: Contacts_phone_key275
+x Failed to drop Contacts_phone_key275: cannot drop index "Contacts_phone_key275" because constraint Contacts_phone_key275 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key275
+Dropping Index: Contacts_phone_key278
+x Failed to drop Contacts_phone_key278: cannot drop index "Contacts_phone_key278" because constraint Contacts_phone_key278 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key278
+Dropping Index: Contacts_phone_key279
+x Failed to drop Contacts_phone_key279: cannot drop index "Contacts_phone_key279" because constraint Contacts_phone_key279 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key279
+Dropping Index: Contacts_phone_key281
+x Failed to drop Contacts_phone_key281: cannot drop index "Contacts_phone_key281" because constraint Contacts_phone_key281 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key281
+Dropping Index: Contacts_phone_key290
+x Failed to drop Contacts_phone_key290: cannot drop index "Contacts_phone_key290" because constraint Contacts_phone_key290 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key290
+Dropping Index: Contacts_phone_key292
+x Failed to drop Contacts_phone_key292: cannot drop index "Contacts_phone_key292" because constraint Contacts_phone_key292 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key292
+Dropping Index: Contacts_phone_key298
+x Failed to drop Contacts_phone_key298: cannot drop index "Contacts_phone_key298" because constraint Contacts_phone_key298 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key298
+Dropping Index: Contacts_phone_key300
+x Failed to drop Contacts_phone_key300: cannot drop index "Contacts_phone_key300" because constraint Contacts_phone_key300 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key300
+Dropping Index: Contacts_phone_key301
+x Failed to drop Contacts_phone_key301: cannot drop index "Contacts_phone_key301" because constraint Contacts_phone_key301 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key301
+Dropping Index: Contacts_phone_key302
+x Failed to drop Contacts_phone_key302: cannot drop index "Contacts_phone_key302" because constraint Contacts_phone_key302 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key302
+Dropping Index: Contacts_phone_key304
+x Failed to drop Contacts_phone_key304: cannot drop index "Contacts_phone_key304" because constraint Contacts_phone_key304 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key304
+Dropping Index: Contacts_phone_key307
+x Failed to drop Contacts_phone_key307: cannot drop index "Contacts_phone_key307" because constraint Contacts_phone_key307 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key307
+Dropping Index: Contacts_phone_key311
+x Failed to drop Contacts_phone_key311: cannot drop index "Contacts_phone_key311" because constraint Contacts_phone_key311 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key311
+Dropping Index: Contacts_phone_key317
+x Failed to drop Contacts_phone_key317: cannot drop index "Contacts_phone_key317" because constraint Contacts_phone_key317 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key317
+Dropping Index: Contacts_phone_key321
+x Failed to drop Contacts_phone_key321: cannot drop index "Contacts_phone_key321" because constraint Contacts_phone_key321 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key321
+Dropping Index: Contacts_phone_key323
+x Failed to drop Contacts_phone_key323: cannot drop index "Contacts_phone_key323" because constraint Contacts_phone_key323 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key323
+Dropping Index: Contacts_phone_key330
+x Failed to drop Contacts_phone_key330: cannot drop index "Contacts_phone_key330" because constraint Contacts_phone_key330 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key330
+Dropping Index: Contacts_phone_key331
+x Failed to drop Contacts_phone_key331: cannot drop index "Contacts_phone_key331" because constraint Contacts_phone_key331 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key331
+Dropping Index: Contacts_phone_key337
+x Failed to drop Contacts_phone_key337: cannot drop index "Contacts_phone_key337" because constraint Contacts_phone_key337 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key337
+Dropping Index: Contacts_phone_key338
+x Failed to drop Contacts_phone_key338: cannot drop index "Contacts_phone_key338" because constraint Contacts_phone_key338 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key338
+Dropping Index: Contacts_phone_key342
+x Failed to drop Contacts_phone_key342: cannot drop index "Contacts_phone_key342" because constraint Contacts_phone_key342 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key342
+Dropping Index: Contacts_phone_key344
+x Failed to drop Contacts_phone_key344: cannot drop index "Contacts_phone_key344" because constraint Contacts_phone_key344 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key344
+Dropping Index: Contacts_phone_key354
+x Failed to drop Contacts_phone_key354: cannot drop index "Contacts_phone_key354" because constraint Contacts_phone_key354 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key354
+Dropping Index: Contacts_phone_key356
+x Failed to drop Contacts_phone_key356: cannot drop index "Contacts_phone_key356" because constraint Contacts_phone_key356 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key356
+Dropping Index: Contacts_phone_key358
+x Failed to drop Contacts_phone_key358: cannot drop index "Contacts_phone_key358" because constraint Contacts_phone_key358 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key358
+Dropping Index: Contacts_phone_key359
+x Failed to drop Contacts_phone_key359: cannot drop index "Contacts_phone_key359" because constraint Contacts_phone_key359 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key359
+Dropping Index: Contacts_phone_key360
+x Failed to drop Contacts_phone_key360: cannot drop index "Contacts_phone_key360" because constraint Contacts_phone_key360 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key360
+Dropping Index: Contacts_phone_key361
+x Failed to drop Contacts_phone_key361: cannot drop index "Contacts_phone_key361" because constraint Contacts_phone_key361 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key361
+Dropping Index: Contacts_phone_key362
+x Failed to drop Contacts_phone_key362: cannot drop index "Contacts_phone_key362" because constraint Contacts_phone_key362 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key362
+Dropping Index: Contacts_phone_key363
+x Failed to drop Contacts_phone_key363: cannot drop index "Contacts_phone_key363" because constraint Contacts_phone_key363 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key363
+Dropping Index: Contacts_phone_key364
+x Failed to drop Contacts_phone_key364: cannot drop index "Contacts_phone_key364" because constraint Contacts_phone_key364 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key364
+Dropping Index: Contacts_phone_key365
+x Failed to drop Contacts_phone_key365: cannot drop index "Contacts_phone_key365" because constraint Contacts_phone_key365 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key365
+Dropping Index: Contacts_phone_key367
+x Failed to drop Contacts_phone_key367: cannot drop index "Contacts_phone_key367" because constraint Contacts_phone_key367 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key367
+Dropping Index: Contacts_phone_key368
+x Failed to drop Contacts_phone_key368: cannot drop index "Contacts_phone_key368" because constraint Contacts_phone_key368 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key368
+Dropping Index: Contacts_phone_key369
+x Failed to drop Contacts_phone_key369: cannot drop index "Contacts_phone_key369" because constraint Contacts_phone_key369 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key369
+Dropping Index: Contacts_phone_key370
+x Failed to drop Contacts_phone_key370: cannot drop index "Contacts_phone_key370" because constraint Contacts_phone_key370 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key370
+Dropping Index: Contacts_phone_key371
+x Failed to drop Contacts_phone_key371: cannot drop index "Contacts_phone_key371" because constraint Contacts_phone_key371 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key371
+Dropping Index: Contacts_phone_key372
+x Failed to drop Contacts_phone_key372: cannot drop index "Contacts_phone_key372" because constraint Contacts_phone_key372 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key372
+Dropping Index: Contacts_phone_key374
+x Failed to drop Contacts_phone_key374: cannot drop index "Contacts_phone_key374" because constraint Contacts_phone_key374 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key374
+Dropping Index: Contacts_phone_key375
+x Failed to drop Contacts_phone_key375: cannot drop index "Contacts_phone_key375" because constraint Contacts_phone_key375 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key375
+Dropping Index: Contacts_phone_key376
+x Failed to drop Contacts_phone_key376: cannot drop index "Contacts_phone_key376" because constraint Contacts_phone_key376 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key376
+Dropping Index: Contacts_phone_key377
+x Failed to drop Contacts_phone_key377: cannot drop index "Contacts_phone_key377" because constraint Contacts_phone_key377 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key377
+Dropping Index: Contacts_phone_key378
+x Failed to drop Contacts_phone_key378: cannot drop index "Contacts_phone_key378" because constraint Contacts_phone_key378 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key378
+Dropping Index: Contacts_phone_key381
+x Failed to drop Contacts_phone_key381: cannot drop index "Contacts_phone_key381" because constraint Contacts_phone_key381 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key381
+Dropping Index: Contacts_phone_key387
+x Failed to drop Contacts_phone_key387: cannot drop index "Contacts_phone_key387" because constraint Contacts_phone_key387 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key387
+Dropping Index: Contacts_phone_key388
+x Failed to drop Contacts_phone_key388: cannot drop index "Contacts_phone_key388" because constraint Contacts_phone_key388 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key388
+Dropping Index: Contacts_phone_key389
+x Failed to drop Contacts_phone_key389: cannot drop index "Contacts_phone_key389" because constraint Contacts_phone_key389 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key389
+Dropping Index: Contacts_phone_key391
+x Failed to drop Contacts_phone_key391: cannot drop index "Contacts_phone_key391" because constraint Contacts_phone_key391 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key391
+Dropping Index: Contacts_phone_key393
+x Failed to drop Contacts_phone_key393: cannot drop index "Contacts_phone_key393" because constraint Contacts_phone_key393 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key393
+Dropping Index: Contacts_phone_key395
+x Failed to drop Contacts_phone_key395: cannot drop index "Contacts_phone_key395" because constraint Contacts_phone_key395 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key395
+Dropping Index: Contacts_phone_key398
+x Failed to drop Contacts_phone_key398: cannot drop index "Contacts_phone_key398" because constraint Contacts_phone_key398 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key398
+Dropping Index: Contacts_phone_key401
+x Failed to drop Contacts_phone_key401: cannot drop index "Contacts_phone_key401" because constraint Contacts_phone_key401 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key401
+Dropping Index: Contacts_phone_key404
+x Failed to drop Contacts_phone_key404: cannot drop index "Contacts_phone_key404" because constraint Contacts_phone_key404 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key404
+Dropping Index: Contacts_phone_key405
+x Failed to drop Contacts_phone_key405: cannot drop index "Contacts_phone_key405" because constraint Contacts_phone_key405 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key405
+Dropping Index: Contacts_phone_key406
+x Failed to drop Contacts_phone_key406: cannot drop index "Contacts_phone_key406" because constraint Contacts_phone_key406 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key406
+Dropping Index: Contacts_phone_key408
+x Failed to drop Contacts_phone_key408: cannot drop index "Contacts_phone_key408" because constraint Contacts_phone_key408 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key408
+Dropping Index: Contacts_phone_key409
+x Failed to drop Contacts_phone_key409: cannot drop index "Contacts_phone_key409" because constraint Contacts_phone_key409 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key409
+Dropping Index: Contacts_phone_key407
+x Failed to drop Contacts_phone_key407: cannot drop index "Contacts_phone_key407" because constraint Contacts_phone_key407 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key407
+Dropping Index: Contacts_phone_key403
+x Failed to drop Contacts_phone_key403: cannot drop index "Contacts_phone_key403" because constraint Contacts_phone_key403 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key403
+Dropping Index: Contacts_phone_key402
+x Failed to drop Contacts_phone_key402: cannot drop index "Contacts_phone_key402" because constraint Contacts_phone_key402 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key402
+Dropping Index: Contacts_phone_key400
+x Failed to drop Contacts_phone_key400: cannot drop index "Contacts_phone_key400" because constraint Contacts_phone_key400 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key400
+Dropping Index: Contacts_phone_key399
+x Failed to drop Contacts_phone_key399: cannot drop index "Contacts_phone_key399" because constraint Contacts_phone_key399 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key399
+Dropping Index: Contacts_phone_key397
+x Failed to drop Contacts_phone_key397: cannot drop index "Contacts_phone_key397" because constraint Contacts_phone_key397 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key397
+Dropping Index: Contacts_phone_key396
+x Failed to drop Contacts_phone_key396: cannot drop index "Contacts_phone_key396" because constraint Contacts_phone_key396 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key396
+Dropping Index: Contacts_phone_key394
+x Failed to drop Contacts_phone_key394: cannot drop index "Contacts_phone_key394" because constraint Contacts_phone_key394 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key394
+Dropping Index: Contacts_phone_key392
+x Failed to drop Contacts_phone_key392: cannot drop index "Contacts_phone_key392" because constraint Contacts_phone_key392 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key392
+Dropping Index: Contacts_phone_key390
+x Failed to drop Contacts_phone_key390: cannot drop index "Contacts_phone_key390" because constraint Contacts_phone_key390 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key390
+Dropping Index: Contacts_phone_key345
+x Failed to drop Contacts_phone_key345: cannot drop index "Contacts_phone_key345" because constraint Contacts_phone_key345 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key345
+Dropping Index: Contacts_phone_key343
+x Failed to drop Contacts_phone_key343: cannot drop index "Contacts_phone_key343" because constraint Contacts_phone_key343 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key343
+Dropping Index: Contacts_phone_key297
+x Failed to drop Contacts_phone_key297: cannot drop index "Contacts_phone_key297" because constraint Contacts_phone_key297 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key297
+Dropping Index: Contacts_phone_key296
+x Failed to drop Contacts_phone_key296: cannot drop index "Contacts_phone_key296" because constraint Contacts_phone_key296 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key296
+Dropping Index: Contacts_phone_key295
+x Failed to drop Contacts_phone_key295: cannot drop index "Contacts_phone_key295" because constraint Contacts_phone_key295 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key295
+Dropping Index: Contacts_phone_key294
+x Failed to drop Contacts_phone_key294: cannot drop index "Contacts_phone_key294" because constraint Contacts_phone_key294 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key294
+Dropping Index: Contacts_phone_key293
+x Failed to drop Contacts_phone_key293: cannot drop index "Contacts_phone_key293" because constraint Contacts_phone_key293 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key293
+Dropping Index: Contacts_phone_key299
+x Failed to drop Contacts_phone_key299: cannot drop index "Contacts_phone_key299" because constraint Contacts_phone_key299 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key299
+Dropping Index: Contacts_phone_key48
+x Failed to drop Contacts_phone_key48: cannot drop index "Contacts_phone_key48" because constraint Contacts_phone_key48 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key48
+Dropping Index: Contacts_phone_key153
+x Failed to drop Contacts_phone_key153: cannot drop index "Contacts_phone_key153" because constraint Contacts_phone_key153 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key153
+Dropping Index: Contacts_phone_key149
+x Failed to drop Contacts_phone_key149: cannot drop index "Contacts_phone_key149" because constraint Contacts_phone_key149 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key149
+Dropping Index: Contacts_phone_key32
+x Failed to drop Contacts_phone_key32: cannot drop index "Contacts_phone_key32" because constraint Contacts_phone_key32 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key32
+Dropping Index: Contacts_phone_key33
+x Failed to drop Contacts_phone_key33: cannot drop index "Contacts_phone_key33" because constraint Contacts_phone_key33 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key33
+Dropping Index: Contacts_phone_key31
+x Failed to drop Contacts_phone_key31: cannot drop index "Contacts_phone_key31" because constraint Contacts_phone_key31 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key31
+Dropping Index: Contacts_phone_key28
+x Failed to drop Contacts_phone_key28: cannot drop index "Contacts_phone_key28" because constraint Contacts_phone_key28 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key28
+Dropping Index: Contacts_phone_key27
+x Failed to drop Contacts_phone_key27: cannot drop index "Contacts_phone_key27" because constraint Contacts_phone_key27 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key27
+Dropping Index: Contacts_phone_key24
+x Failed to drop Contacts_phone_key24: cannot drop index "Contacts_phone_key24" because constraint Contacts_phone_key24 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key24
+Dropping Index: Contacts_phone_key22
+x Failed to drop Contacts_phone_key22: cannot drop index "Contacts_phone_key22" because constraint Contacts_phone_key22 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key22
+Dropping Index: Contacts_phone_key20
+x Failed to drop Contacts_phone_key20: cannot drop index "Contacts_phone_key20" because constraint Contacts_phone_key20 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key20
+Dropping Index: Contacts_phone_key105
+x Failed to drop Contacts_phone_key105: cannot drop index "Contacts_phone_key105" because constraint Contacts_phone_key105 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key105
+Dropping Index: Contacts_phone_key121
+x Failed to drop Contacts_phone_key121: cannot drop index "Contacts_phone_key121" because constraint Contacts_phone_key121 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key121
+Dropping Index: Contacts_phone_key171
+x Failed to drop Contacts_phone_key171: cannot drop index "Contacts_phone_key171" because constraint Contacts_phone_key171 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key171
+Dropping Index: Contacts_phone_key223
+x Failed to drop Contacts_phone_key223: cannot drop index "Contacts_phone_key223" because constraint Contacts_phone_key223 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key223
+Dropping Index: Contacts_phone_key289
+x Failed to drop Contacts_phone_key289: cannot drop index "Contacts_phone_key289" because constraint Contacts_phone_key289 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key289
+Dropping Index: Contacts_phone_key288
+x Failed to drop Contacts_phone_key288: cannot drop index "Contacts_phone_key288" because constraint Contacts_phone_key288 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key288
+Dropping Index: Contacts_phone_key287
+x Failed to drop Contacts_phone_key287: cannot drop index "Contacts_phone_key287" because constraint Contacts_phone_key287 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key287
+Dropping Index: Contacts_phone_key286
+x Failed to drop Contacts_phone_key286: cannot drop index "Contacts_phone_key286" because constraint Contacts_phone_key286 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key286
+Dropping Index: Contacts_phone_key285
+x Failed to drop Contacts_phone_key285: cannot drop index "Contacts_phone_key285" because constraint Contacts_phone_key285 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key285
+Dropping Index: Contacts_phone_key341
+x Failed to drop Contacts_phone_key341: cannot drop index "Contacts_phone_key341" because constraint Contacts_phone_key341 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key341
+Dropping Index: Contacts_phone_key340
+x Failed to drop Contacts_phone_key340: cannot drop index "Contacts_phone_key340" because constraint Contacts_phone_key340 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key340
+Dropping Index: Contacts_phone_key339
+x Failed to drop Contacts_phone_key339: cannot drop index "Contacts_phone_key339" because constraint Contacts_phone_key339 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key339
+Dropping Index: Contacts_phone_key83
+x Failed to drop Contacts_phone_key83: cannot drop index "Contacts_phone_key83" because constraint Contacts_phone_key83 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key83
+Dropping Index: Contacts_phone_key85
+x Failed to drop Contacts_phone_key85: cannot drop index "Contacts_phone_key85" because constraint Contacts_phone_key85 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key85
+Dropping Index: Contacts_phone_key86
+x Failed to drop Contacts_phone_key86: cannot drop index "Contacts_phone_key86" because constraint Contacts_phone_key86 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key86
+Dropping Index: Contacts_phone_key84
+x Failed to drop Contacts_phone_key84: cannot drop index "Contacts_phone_key84" because constraint Contacts_phone_key84 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key84
+Dropping Index: Contacts_phone_key82
+x Failed to drop Contacts_phone_key82: cannot drop index "Contacts_phone_key82" because constraint Contacts_phone_key82 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key82
+Dropping Index: Contacts_phone_key80
+x Failed to drop Contacts_phone_key80: cannot drop index "Contacts_phone_key80" because constraint Contacts_phone_key80 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key80
+Dropping Index: Contacts_phone_key79
+x Failed to drop Contacts_phone_key79: cannot drop index "Contacts_phone_key79" because constraint Contacts_phone_key79 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key79
+Dropping Index: Contacts_phone_key386
+x Failed to drop Contacts_phone_key386: cannot drop index "Contacts_phone_key386" because constraint Contacts_phone_key386 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key386
+Dropping Index: Contacts_phone_key385
+x Failed to drop Contacts_phone_key385: cannot drop index "Contacts_phone_key385" because constraint Contacts_phone_key385 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key385
+Dropping Index: Contacts_phone_key384
+x Failed to drop Contacts_phone_key384: cannot drop index "Contacts_phone_key384" because constraint Contacts_phone_key384 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key384
+Dropping Index: Contacts_phone_key383
+x Failed to drop Contacts_phone_key383: cannot drop index "Contacts_phone_key383" because constraint Contacts_phone_key383 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key383
+Dropping Index: Contacts_phone_key382
+x Failed to drop Contacts_phone_key382: cannot drop index "Contacts_phone_key382" because constraint Contacts_phone_key382 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key382
+Dropping Index: Contacts_phone_key380
+x Failed to drop Contacts_phone_key380: cannot drop index "Contacts_phone_key380" because constraint Contacts_phone_key380 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key380
+Dropping Index: Contacts_phone_key379
+x Failed to drop Contacts_phone_key379: cannot drop index "Contacts_phone_key379" because constraint Contacts_phone_key379 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key379
+Dropping Index: Contacts_phone_key373
+x Failed to drop Contacts_phone_key373: cannot drop index "Contacts_phone_key373" because constraint Contacts_phone_key373 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key373
+Dropping Index: Contacts_phone_key366
+x Failed to drop Contacts_phone_key366: cannot drop index "Contacts_phone_key366" because constraint Contacts_phone_key366 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key366
+Dropping Index: Contacts_phone_key357
+x Failed to drop Contacts_phone_key357: cannot drop index "Contacts_phone_key357" because constraint Contacts_phone_key357 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key357
+Dropping Index: Contacts_phone_key355
+x Failed to drop Contacts_phone_key355: cannot drop index "Contacts_phone_key355" because constraint Contacts_phone_key355 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key355
+Dropping Index: Contacts_phone_key353
+x Failed to drop Contacts_phone_key353: cannot drop index "Contacts_phone_key353" because constraint Contacts_phone_key353 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key353
+Dropping Index: Contacts_phone_key352
+x Failed to drop Contacts_phone_key352: cannot drop index "Contacts_phone_key352" because constraint Contacts_phone_key352 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key352
+Dropping Index: Contacts_phone_key351
+x Failed to drop Contacts_phone_key351: cannot drop index "Contacts_phone_key351" because constraint Contacts_phone_key351 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key351
+Dropping Index: Contacts_phone_key350
+x Failed to drop Contacts_phone_key350: cannot drop index "Contacts_phone_key350" because constraint Contacts_phone_key350 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key350
+Dropping Index: Contacts_phone_key349
+x Failed to drop Contacts_phone_key349: cannot drop index "Contacts_phone_key349" because constraint Contacts_phone_key349 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key349
+Dropping Index: Contacts_phone_key348
+x Failed to drop Contacts_phone_key348: cannot drop index "Contacts_phone_key348" because constraint Contacts_phone_key348 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key348
+Dropping Index: Contacts_phone_key347
+x Failed to drop Contacts_phone_key347: cannot drop index "Contacts_phone_key347" because constraint Contacts_phone_key347 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key347
+Dropping Index: Contacts_phone_key346
+x Failed to drop Contacts_phone_key346: cannot drop index "Contacts_phone_key346" because constraint Contacts_phone_key346 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key346
+Dropping Index: Contacts_phone_key76
+x Failed to drop Contacts_phone_key76: cannot drop index "Contacts_phone_key76" because constraint Contacts_phone_key76 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key76
+Dropping Index: Contacts_phone_key74
+x Failed to drop Contacts_phone_key74: cannot drop index "Contacts_phone_key74" because constraint Contacts_phone_key74 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key74
+Dropping Index: Contacts_phone_key72
+x Failed to drop Contacts_phone_key72: cannot drop index "Contacts_phone_key72" because constraint Contacts_phone_key72 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key72
+Dropping Index: Contacts_phone_key70
+x Failed to drop Contacts_phone_key70: cannot drop index "Contacts_phone_key70" because constraint Contacts_phone_key70 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key70
+Dropping Index: Contacts_phone_key68
+x Failed to drop Contacts_phone_key68: cannot drop index "Contacts_phone_key68" because constraint Contacts_phone_key68 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key68
+Dropping Index: Contacts_phone_key66
+x Failed to drop Contacts_phone_key66: cannot drop index "Contacts_phone_key66" because constraint Contacts_phone_key66 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key66
+Dropping Index: Contacts_phone_key222
+x Failed to drop Contacts_phone_key222: cannot drop index "Contacts_phone_key222" because constraint Contacts_phone_key222 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key222
+Dropping Index: Contacts_phone_key221
+x Failed to drop Contacts_phone_key221: cannot drop index "Contacts_phone_key221" because constraint Contacts_phone_key221 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key221
+Dropping Index: Contacts_phone_key172
+x Failed to drop Contacts_phone_key172: cannot drop index "Contacts_phone_key172" because constraint Contacts_phone_key172 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key172
+Dropping Index: Contacts_phone_key173
+x Failed to drop Contacts_phone_key173: cannot drop index "Contacts_phone_key173" because constraint Contacts_phone_key173 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key173
+Dropping Index: Contacts_phone_key174
+x Failed to drop Contacts_phone_key174: cannot drop index "Contacts_phone_key174" because constraint Contacts_phone_key174 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key174
+Dropping Index: Contacts_phone_key175
+x Failed to drop Contacts_phone_key175: cannot drop index "Contacts_phone_key175" because constraint Contacts_phone_key175 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key175
+Dropping Index: Contacts_phone_key176
+x Failed to drop Contacts_phone_key176: cannot drop index "Contacts_phone_key176" because constraint Contacts_phone_key176 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key176
+Dropping Index: Contacts_phone_key177
+x Failed to drop Contacts_phone_key177: cannot drop index "Contacts_phone_key177" because constraint Contacts_phone_key177 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key177
+Dropping Index: Contacts_phone_key179
+x Failed to drop Contacts_phone_key179: cannot drop index "Contacts_phone_key179" because constraint Contacts_phone_key179 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key179
+Dropping Index: Contacts_phone_key180
+x Failed to drop Contacts_phone_key180: cannot drop index "Contacts_phone_key180" because constraint Contacts_phone_key180 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key180
+Dropping Index: Contacts_phone_key181
+x Failed to drop Contacts_phone_key181: cannot drop index "Contacts_phone_key181" because constraint Contacts_phone_key181 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key181
+Dropping Index: Contacts_phone_key183
+x Failed to drop Contacts_phone_key183: cannot drop index "Contacts_phone_key183" because constraint Contacts_phone_key183 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key183
+Dropping Index: Contacts_phone_key184
+x Failed to drop Contacts_phone_key184: cannot drop index "Contacts_phone_key184" because constraint Contacts_phone_key184 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key184
+Dropping Index: Contacts_phone_key185
+x Failed to drop Contacts_phone_key185: cannot drop index "Contacts_phone_key185" because constraint Contacts_phone_key185 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key185
+Dropping Index: Contacts_phone_key187
+x Failed to drop Contacts_phone_key187: cannot drop index "Contacts_phone_key187" because constraint Contacts_phone_key187 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key187
+Dropping Index: Contacts_phone_key188
+x Failed to drop Contacts_phone_key188: cannot drop index "Contacts_phone_key188" because constraint Contacts_phone_key188 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key188
+Dropping Index: Contacts_phone_key270
+x Failed to drop Contacts_phone_key270: cannot drop index "Contacts_phone_key270" because constraint Contacts_phone_key270 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key270
+Dropping Index: Contacts_phone_key268
+x Failed to drop Contacts_phone_key268: cannot drop index "Contacts_phone_key268" because constraint Contacts_phone_key268 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key268
+Dropping Index: Contacts_phone_key266
+x Failed to drop Contacts_phone_key266: cannot drop index "Contacts_phone_key266" because constraint Contacts_phone_key266 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key266
+Dropping Index: Contacts_phone_key336
+x Failed to drop Contacts_phone_key336: cannot drop index "Contacts_phone_key336" because constraint Contacts_phone_key336 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key336
+Dropping Index: Contacts_phone_key335
+x Failed to drop Contacts_phone_key335: cannot drop index "Contacts_phone_key335" because constraint Contacts_phone_key335 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key335
+Dropping Index: Contacts_phone_key334
+x Failed to drop Contacts_phone_key334: cannot drop index "Contacts_phone_key334" because constraint Contacts_phone_key334 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key334
+Dropping Index: Contacts_phone_key333
+x Failed to drop Contacts_phone_key333: cannot drop index "Contacts_phone_key333" because constraint Contacts_phone_key333 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key333
+Dropping Index: Contacts_phone_key332
+x Failed to drop Contacts_phone_key332: cannot drop index "Contacts_phone_key332" because constraint Contacts_phone_key332 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key332
+Dropping Index: Contacts_phone_key291
+x Failed to drop Contacts_phone_key291: cannot drop index "Contacts_phone_key291" because constraint Contacts_phone_key291 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key291
+Dropping Index: Contacts_phone_key46
+x Failed to drop Contacts_phone_key46: cannot drop index "Contacts_phone_key46" because constraint Contacts_phone_key46 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key46
+Dropping Index: Contacts_phone_key45
+x Failed to drop Contacts_phone_key45: cannot drop index "Contacts_phone_key45" because constraint Contacts_phone_key45 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key45
+Dropping Index: Contacts_phone_key43
+x Failed to drop Contacts_phone_key43: cannot drop index "Contacts_phone_key43" because constraint Contacts_phone_key43 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key43
+Dropping Index: Contacts_phone_key40
+x Failed to drop Contacts_phone_key40: cannot drop index "Contacts_phone_key40" because constraint Contacts_phone_key40 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key40
+Dropping Index: Contacts_phone_key37
+x Failed to drop Contacts_phone_key37: cannot drop index "Contacts_phone_key37" because constraint Contacts_phone_key37 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key37
+Dropping Index: Contacts_phone_key23
+x Failed to drop Contacts_phone_key23: cannot drop index "Contacts_phone_key23" because constraint Contacts_phone_key23 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key23
+Dropping Index: Contacts_phone_key25
+x Failed to drop Contacts_phone_key25: cannot drop index "Contacts_phone_key25" because constraint Contacts_phone_key25 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key25
+Dropping Index: Contacts_phone_key26
+x Failed to drop Contacts_phone_key26: cannot drop index "Contacts_phone_key26" because constraint Contacts_phone_key26 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key26
+Dropping Index: Contacts_phone_key29
+x Failed to drop Contacts_phone_key29: cannot drop index "Contacts_phone_key29" because constraint Contacts_phone_key29 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key29
+Dropping Index: Contacts_phone_key167
+x Failed to drop Contacts_phone_key167: cannot drop index "Contacts_phone_key167" because constraint Contacts_phone_key167 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key167
+Dropping Index: Contacts_phone_key168
+x Failed to drop Contacts_phone_key168: cannot drop index "Contacts_phone_key168" because constraint Contacts_phone_key168 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key168
+Dropping Index: Contacts_phone_key329
+x Failed to drop Contacts_phone_key329: cannot drop index "Contacts_phone_key329" because constraint Contacts_phone_key329 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key329
+Dropping Index: Contacts_phone_key328
+x Failed to drop Contacts_phone_key328: cannot drop index "Contacts_phone_key328" because constraint Contacts_phone_key328 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key328
+Dropping Index: Contacts_phone_key327
+x Failed to drop Contacts_phone_key327: cannot drop index "Contacts_phone_key327" because constraint Contacts_phone_key327 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key327
+Dropping Index: Contacts_phone_key326
+x Failed to drop Contacts_phone_key326: cannot drop index "Contacts_phone_key326" because constraint Contacts_phone_key326 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key326
+Dropping Index: Contacts_phone_key325
+x Failed to drop Contacts_phone_key325: cannot drop index "Contacts_phone_key325" because constraint Contacts_phone_key325 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key325
+Dropping Index: Contacts_phone_key324
+x Failed to drop Contacts_phone_key324: cannot drop index "Contacts_phone_key324" because constraint Contacts_phone_key324 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key324
+Dropping Index: Contacts_phone_key322
+x Failed to drop Contacts_phone_key322: cannot drop index "Contacts_phone_key322" because constraint Contacts_phone_key322 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key322
+Dropping Index: Contacts_phone_key320
+x Failed to drop Contacts_phone_key320: cannot drop index "Contacts_phone_key320" because constraint Contacts_phone_key320 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key320
+Dropping Index: Contacts_phone_key319
+x Failed to drop Contacts_phone_key319: cannot drop index "Contacts_phone_key319" because constraint Contacts_phone_key319 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key319
+Dropping Index: Contacts_phone_key318
+x Failed to drop Contacts_phone_key318: cannot drop index "Contacts_phone_key318" because constraint Contacts_phone_key318 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key318
+Dropping Index: Contacts_phone_key47
+x Failed to drop Contacts_phone_key47: cannot drop index "Contacts_phone_key47" because constraint Contacts_phone_key47 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key47
+Dropping Index: Contacts_phone_key49
+x Failed to drop Contacts_phone_key49: cannot drop index "Contacts_phone_key49" because constraint Contacts_phone_key49 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key49
+Dropping Index: Contacts_phone_key51
+x Failed to drop Contacts_phone_key51: cannot drop index "Contacts_phone_key51" because constraint Contacts_phone_key51 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key51
+Dropping Index: Contacts_phone_key50
+x Failed to drop Contacts_phone_key50: cannot drop index "Contacts_phone_key50" because constraint Contacts_phone_key50 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key50
+Dropping Index: Contacts_phone_key34
+x Failed to drop Contacts_phone_key34: cannot drop index "Contacts_phone_key34" because constraint Contacts_phone_key34 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key34
+Dropping Index: Contacts_phone_key35
+x Failed to drop Contacts_phone_key35: cannot drop index "Contacts_phone_key35" because constraint Contacts_phone_key35 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key35
+Dropping Index: Contacts_phone_key36
+x Failed to drop Contacts_phone_key36: cannot drop index "Contacts_phone_key36" because constraint Contacts_phone_key36 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key36
+Dropping Index: Contacts_phone_key38
+x Failed to drop Contacts_phone_key38: cannot drop index "Contacts_phone_key38" because constraint Contacts_phone_key38 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key38
+Dropping Index: Contacts_phone_key157
+x Failed to drop Contacts_phone_key157: cannot drop index "Contacts_phone_key157" because constraint Contacts_phone_key157 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key157
+Dropping Index: Contacts_phone_key39
+x Failed to drop Contacts_phone_key39: cannot drop index "Contacts_phone_key39" because constraint Contacts_phone_key39 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key39
+Dropping Index: Contacts_phone_key41
+x Failed to drop Contacts_phone_key41: cannot drop index "Contacts_phone_key41" because constraint Contacts_phone_key41 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key41
+Dropping Index: Contacts_phone_key126
+x Failed to drop Contacts_phone_key126: cannot drop index "Contacts_phone_key126" because constraint Contacts_phone_key126 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key126
+Dropping Index: Contacts_phone_key127
+x Failed to drop Contacts_phone_key127: cannot drop index "Contacts_phone_key127" because constraint Contacts_phone_key127 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key127
+Dropping Index: Contacts_phone_key189
+x Failed to drop Contacts_phone_key189: cannot drop index "Contacts_phone_key189" because constraint Contacts_phone_key189 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key189
+Dropping Index: Contacts_phone_key193
+x Failed to drop Contacts_phone_key193: cannot drop index "Contacts_phone_key193" because constraint Contacts_phone_key193 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key193
+Dropping Index: Contacts_phone_key195
+x Failed to drop Contacts_phone_key195: cannot drop index "Contacts_phone_key195" because constraint Contacts_phone_key195 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key195
+Dropping Index: Contacts_phone_key205
+x Failed to drop Contacts_phone_key205: cannot drop index "Contacts_phone_key205" because constraint Contacts_phone_key205 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key205
+Dropping Index: Contacts_phone_key208
+x Failed to drop Contacts_phone_key208: cannot drop index "Contacts_phone_key208" because constraint Contacts_phone_key208 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key208
+Dropping Index: Contacts_phone_key209
+x Failed to drop Contacts_phone_key209: cannot drop index "Contacts_phone_key209" because constraint Contacts_phone_key209 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key209
+Dropping Index: Contacts_phone_key213
+x Failed to drop Contacts_phone_key213: cannot drop index "Contacts_phone_key213" because constraint Contacts_phone_key213 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key213
+Dropping Index: Contacts_phone_key217
+x Failed to drop Contacts_phone_key217: cannot drop index "Contacts_phone_key217" because constraint Contacts_phone_key217 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key217
+Dropping Index: Contacts_phone_key220
+x Failed to drop Contacts_phone_key220: cannot drop index "Contacts_phone_key220" because constraint Contacts_phone_key220 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key220
+Dropping Index: Contacts_phone_key219
+x Failed to drop Contacts_phone_key219: cannot drop index "Contacts_phone_key219" because constraint Contacts_phone_key219 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key219
+Dropping Index: Contacts_phone_key218
+x Failed to drop Contacts_phone_key218: cannot drop index "Contacts_phone_key218" because constraint Contacts_phone_key218 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key218
+Dropping Index: Contacts_phone_key216
+x Failed to drop Contacts_phone_key216: cannot drop index "Contacts_phone_key216" because constraint Contacts_phone_key216 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key216
+Dropping Index: Contacts_phone_key215
+x Failed to drop Contacts_phone_key215: cannot drop index "Contacts_phone_key215" because constraint Contacts_phone_key215 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key215
+Dropping Index: Contacts_phone_key214
+x Failed to drop Contacts_phone_key214: cannot drop index "Contacts_phone_key214" because constraint Contacts_phone_key214 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key214
+Dropping Index: Contacts_phone_key316
+x Failed to drop Contacts_phone_key316: cannot drop index "Contacts_phone_key316" because constraint Contacts_phone_key316 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key316
+Dropping Index: Contacts_phone_key315
+x Failed to drop Contacts_phone_key315: cannot drop index "Contacts_phone_key315" because constraint Contacts_phone_key315 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key315
+Dropping Index: Contacts_phone_key314
+x Failed to drop Contacts_phone_key314: cannot drop index "Contacts_phone_key314" because constraint Contacts_phone_key314 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key314
+Dropping Index: Contacts_phone_key313
+x Failed to drop Contacts_phone_key313: cannot drop index "Contacts_phone_key313" because constraint Contacts_phone_key313 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key313
+Dropping Index: Contacts_phone_key312
+x Failed to drop Contacts_phone_key312: cannot drop index "Contacts_phone_key312" because constraint Contacts_phone_key312 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key312
+Dropping Index: Contacts_phone_key310
+x Failed to drop Contacts_phone_key310: cannot drop index "Contacts_phone_key310" because constraint Contacts_phone_key310 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key310
+Dropping Index: Contacts_phone_key309
+x Failed to drop Contacts_phone_key309: cannot drop index "Contacts_phone_key309" because constraint Contacts_phone_key309 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key309
+Dropping Index: Contacts_phone_key308
+x Failed to drop Contacts_phone_key308: cannot drop index "Contacts_phone_key308" because constraint Contacts_phone_key308 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key308
+Dropping Index: Contacts_phone_key306
+x Failed to drop Contacts_phone_key306: cannot drop index "Contacts_phone_key306" because constraint Contacts_phone_key306 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key306
+Dropping Index: Contacts_phone_key305
+x Failed to drop Contacts_phone_key305: cannot drop index "Contacts_phone_key305" because constraint Contacts_phone_key305 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key305
+Dropping Index: Contacts_phone_key303
+x Failed to drop Contacts_phone_key303: cannot drop index "Contacts_phone_key303" because constraint Contacts_phone_key303 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key303
+Dropping Index: Contacts_phone_key122
+x Failed to drop Contacts_phone_key122: cannot drop index "Contacts_phone_key122" because constraint Contacts_phone_key122 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key122
+Dropping Index: Contacts_phone_key123
+x Failed to drop Contacts_phone_key123: cannot drop index "Contacts_phone_key123" because constraint Contacts_phone_key123 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key123
+Dropping Index: Contacts_phone_key124
+x Failed to drop Contacts_phone_key124: cannot drop index "Contacts_phone_key124" because constraint Contacts_phone_key124 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key124
+Dropping Index: Contacts_phone_key125
+x Failed to drop Contacts_phone_key125: cannot drop index "Contacts_phone_key125" because constraint Contacts_phone_key125 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key125
+Dropping Index: Contacts_phone_key242
+x Failed to drop Contacts_phone_key242: cannot drop index "Contacts_phone_key242" because constraint Contacts_phone_key242 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key242
+Dropping Index: Contacts_phone_key241
+x Failed to drop Contacts_phone_key241: cannot drop index "Contacts_phone_key241" because constraint Contacts_phone_key241 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key241
+Dropping Index: Contacts_phone_key238
+x Failed to drop Contacts_phone_key238: cannot drop index "Contacts_phone_key238" because constraint Contacts_phone_key238 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key238
+Dropping Index: Contacts_phone_key237
+x Failed to drop Contacts_phone_key237: cannot drop index "Contacts_phone_key237" because constraint Contacts_phone_key237 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key237
+Dropping Index: Contacts_phone_key236
+x Failed to drop Contacts_phone_key236: cannot drop index "Contacts_phone_key236" because constraint Contacts_phone_key236 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key236
+Dropping Index: Contacts_phone_key235
+x Failed to drop Contacts_phone_key235: cannot drop index "Contacts_phone_key235" because constraint Contacts_phone_key235 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key235
+Dropping Index: Contacts_phone_key234
+x Failed to drop Contacts_phone_key234: cannot drop index "Contacts_phone_key234" because constraint Contacts_phone_key234 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key234
+Dropping Index: Contacts_phone_key233
+x Failed to drop Contacts_phone_key233: cannot drop index "Contacts_phone_key233" because constraint Contacts_phone_key233 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key233
+Dropping Index: Contacts_phone_key158
+x Failed to drop Contacts_phone_key158: cannot drop index "Contacts_phone_key158" because constraint Contacts_phone_key158 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key158
+Dropping Index: Contacts_phone_key159
+x Failed to drop Contacts_phone_key159: cannot drop index "Contacts_phone_key159" because constraint Contacts_phone_key159 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key159
+Dropping Index: Contacts_phone_key160
+x Failed to drop Contacts_phone_key160: cannot drop index "Contacts_phone_key160" because constraint Contacts_phone_key160 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key160
+Dropping Index: Contacts_phone_key162
+x Failed to drop Contacts_phone_key162: cannot drop index "Contacts_phone_key162" because constraint Contacts_phone_key162 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key162
+Dropping Index: Contacts_phone_key163
+x Failed to drop Contacts_phone_key163: cannot drop index "Contacts_phone_key163" because constraint Contacts_phone_key163 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key163
+Dropping Index: Contacts_phone_key164
+x Failed to drop Contacts_phone_key164: cannot drop index "Contacts_phone_key164" because constraint Contacts_phone_key164 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key164
+Dropping Index: Contacts_phone_key165
+x Failed to drop Contacts_phone_key165: cannot drop index "Contacts_phone_key165" because constraint Contacts_phone_key165 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key165
+Dropping Index: Contacts_phone_key227
+x Failed to drop Contacts_phone_key227: cannot drop index "Contacts_phone_key227" because constraint Contacts_phone_key227 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key227
+Dropping Index: Contacts_phone_key226
+x Failed to drop Contacts_phone_key226: cannot drop index "Contacts_phone_key226" because constraint Contacts_phone_key226 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key226
+Dropping Index: Contacts_phone_key12
+x Failed to drop Contacts_phone_key12: cannot drop index "Contacts_phone_key12" because constraint Contacts_phone_key12 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key12
+Dropping Index: Contacts_phone_key13
+x Failed to drop Contacts_phone_key13: cannot drop index "Contacts_phone_key13" because constraint Contacts_phone_key13 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key13
+Dropping Index: Contacts_phone_key14
+x Failed to drop Contacts_phone_key14: cannot drop index "Contacts_phone_key14" because constraint Contacts_phone_key14 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key14
+Dropping Index: Contacts_phone_key16
+x Failed to drop Contacts_phone_key16: cannot drop index "Contacts_phone_key16" because constraint Contacts_phone_key16 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key16
+Dropping Index: Contacts_phone_key19
+x Failed to drop Contacts_phone_key19: cannot drop index "Contacts_phone_key19" because constraint Contacts_phone_key19 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key19
+Dropping Index: Contacts_phone_key21
+x Failed to drop Contacts_phone_key21: cannot drop index "Contacts_phone_key21" because constraint Contacts_phone_key21 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key21
+Dropping Index: Contacts_phone_key284
+x Failed to drop Contacts_phone_key284: cannot drop index "Contacts_phone_key284" because constraint Contacts_phone_key284 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key284
+Dropping Index: Contacts_phone_key283
+x Failed to drop Contacts_phone_key283: cannot drop index "Contacts_phone_key283" because constraint Contacts_phone_key283 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key283
+Dropping Index: Contacts_phone_key282
+x Failed to drop Contacts_phone_key282: cannot drop index "Contacts_phone_key282" because constraint Contacts_phone_key282 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key282
+Dropping Index: Contacts_phone_key280
+x Failed to drop Contacts_phone_key280: cannot drop index "Contacts_phone_key280" because constraint Contacts_phone_key280 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key280
+Dropping Index: Contacts_phone_key277
+x Failed to drop Contacts_phone_key277: cannot drop index "Contacts_phone_key277" because constraint Contacts_phone_key277 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key277
+Dropping Index: Contacts_phone_key276
+x Failed to drop Contacts_phone_key276: cannot drop index "Contacts_phone_key276" because constraint Contacts_phone_key276 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key276
+Dropping Index: Contacts_phone_key274
+x Failed to drop Contacts_phone_key274: cannot drop index "Contacts_phone_key274" because constraint Contacts_phone_key274 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key274
+Dropping Index: Contacts_phone_key273
+x Failed to drop Contacts_phone_key273: cannot drop index "Contacts_phone_key273" because constraint Contacts_phone_key273 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key273
+Dropping Index: Contacts_phone_key271
+x Failed to drop Contacts_phone_key271: cannot drop index "Contacts_phone_key271" because constraint Contacts_phone_key271 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key271
+Dropping Index: Contacts_phone_key128
+x Failed to drop Contacts_phone_key128: cannot drop index "Contacts_phone_key128" because constraint Contacts_phone_key128 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key128
+Dropping Index: Contacts_phone_key130
+x Failed to drop Contacts_phone_key130: cannot drop index "Contacts_phone_key130" because constraint Contacts_phone_key130 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key130
+Dropping Index: Contacts_phone_key131
+x Failed to drop Contacts_phone_key131: cannot drop index "Contacts_phone_key131" because constraint Contacts_phone_key131 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key131
+Dropping Index: Contacts_phone_key132
+x Failed to drop Contacts_phone_key132: cannot drop index "Contacts_phone_key132" because constraint Contacts_phone_key132 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key132
+Dropping Index: Contacts_phone_key134
+x Failed to drop Contacts_phone_key134: cannot drop index "Contacts_phone_key134" because constraint Contacts_phone_key134 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key134
+Dropping Index: Contacts_phone_key231
+x Failed to drop Contacts_phone_key231: cannot drop index "Contacts_phone_key231" because constraint Contacts_phone_key231 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key231
+Dropping Index: Contacts_phone_key230
+x Failed to drop Contacts_phone_key230: cannot drop index "Contacts_phone_key230" because constraint Contacts_phone_key230 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key230
+Dropping Index: Contacts_phone_key229
+x Failed to drop Contacts_phone_key229: cannot drop index "Contacts_phone_key229" because constraint Contacts_phone_key229 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key229
+Dropping Index: Contacts_phone_key67
+x Failed to drop Contacts_phone_key67: cannot drop index "Contacts_phone_key67" because constraint Contacts_phone_key67 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key67
+Dropping Index: Contacts_phone_key69
+x Failed to drop Contacts_phone_key69: cannot drop index "Contacts_phone_key69" because constraint Contacts_phone_key69 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key69
+Dropping Index: Contacts_phone_key71
+x Failed to drop Contacts_phone_key71: cannot drop index "Contacts_phone_key71" because constraint Contacts_phone_key71 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key71
+Dropping Index: Contacts_phone_key73
+x Failed to drop Contacts_phone_key73: cannot drop index "Contacts_phone_key73" because constraint Contacts_phone_key73 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key73
+Dropping Index: Contacts_phone_key75
+x Failed to drop Contacts_phone_key75: cannot drop index "Contacts_phone_key75" because constraint Contacts_phone_key75 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key75
+Dropping Index: Contacts_phone_key77
+x Failed to drop Contacts_phone_key77: cannot drop index "Contacts_phone_key77" because constraint Contacts_phone_key77 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key77
+Dropping Index: Contacts_phone_key78
+x Failed to drop Contacts_phone_key78: cannot drop index "Contacts_phone_key78" because constraint Contacts_phone_key78 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key78
+Dropping Index: Contacts_phone_key81
+x Failed to drop Contacts_phone_key81: cannot drop index "Contacts_phone_key81" because constraint Contacts_phone_key81 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key81
+Dropping Index: Contacts_phone_key264
+x Failed to drop Contacts_phone_key264: cannot drop index "Contacts_phone_key264" because constraint Contacts_phone_key264 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key264
+Dropping Index: Contacts_phone_key263
+x Failed to drop Contacts_phone_key263: cannot drop index "Contacts_phone_key263" because constraint Contacts_phone_key263 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key263
+Dropping Index: Contacts_phone_key261
+x Failed to drop Contacts_phone_key261: cannot drop index "Contacts_phone_key261" because constraint Contacts_phone_key261 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key261
+Dropping Index: Contacts_phone_key259
+x Failed to drop Contacts_phone_key259: cannot drop index "Contacts_phone_key259" because constraint Contacts_phone_key259 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key259
+Dropping Index: Contacts_phone_key257
+x Failed to drop Contacts_phone_key257: cannot drop index "Contacts_phone_key257" because constraint Contacts_phone_key257 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key257
+Dropping Index: Contacts_phone_key255
+x Failed to drop Contacts_phone_key255: cannot drop index "Contacts_phone_key255" because constraint Contacts_phone_key255 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key255
+Dropping Index: Contacts_phone_key254
+x Failed to drop Contacts_phone_key254: cannot drop index "Contacts_phone_key254" because constraint Contacts_phone_key254 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key254
+Dropping Index: Contacts_phone_key252
+x Failed to drop Contacts_phone_key252: cannot drop index "Contacts_phone_key252" because constraint Contacts_phone_key252 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key252
+Dropping Index: Contacts_phone_key251
+x Failed to drop Contacts_phone_key251: cannot drop index "Contacts_phone_key251" because constraint Contacts_phone_key251 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key251
+Dropping Index: Contacts_phone_key249
+x Failed to drop Contacts_phone_key249: cannot drop index "Contacts_phone_key249" because constraint Contacts_phone_key249 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key249
+Dropping Index: Contacts_phone_key247
+x Failed to drop Contacts_phone_key247: cannot drop index "Contacts_phone_key247" because constraint Contacts_phone_key247 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key247
+Dropping Index: Contacts_phone_key246
+x Failed to drop Contacts_phone_key246: cannot drop index "Contacts_phone_key246" because constraint Contacts_phone_key246 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key246
+Dropping Index: Contacts_phone_key245
+x Failed to drop Contacts_phone_key245: cannot drop index "Contacts_phone_key245" because constraint Contacts_phone_key245 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key245
+Dropping Index: Contacts_phone_key42
+x Failed to drop Contacts_phone_key42: cannot drop index "Contacts_phone_key42" because constraint Contacts_phone_key42 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key42
+Dropping Index: Contacts_phone_key44
+x Failed to drop Contacts_phone_key44: cannot drop index "Contacts_phone_key44" because constraint Contacts_phone_key44 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key44
+Dropping Index: Contacts_phone_key212
+x Failed to drop Contacts_phone_key212: cannot drop index "Contacts_phone_key212" because constraint Contacts_phone_key212 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key212
+Dropping Index: Contacts_phone_key211
+x Failed to drop Contacts_phone_key211: cannot drop index "Contacts_phone_key211" because constraint Contacts_phone_key211 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key211
+Dropping Index: Contacts_phone_key210
+x Failed to drop Contacts_phone_key210: cannot drop index "Contacts_phone_key210" because constraint Contacts_phone_key210 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key210
+Dropping Index: Contacts_phone_key207
+x Failed to drop Contacts_phone_key207: cannot drop index "Contacts_phone_key207" because constraint Contacts_phone_key207 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key207
+Dropping Index: Contacts_phone_key206
+x Failed to drop Contacts_phone_key206: cannot drop index "Contacts_phone_key206" because constraint Contacts_phone_key206 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key206
+Dropping Index: Contacts_phone_key204
+x Failed to drop Contacts_phone_key204: cannot drop index "Contacts_phone_key204" because constraint Contacts_phone_key204 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key204
+Dropping Index: Contacts_phone_key203
+x Failed to drop Contacts_phone_key203: cannot drop index "Contacts_phone_key203" because constraint Contacts_phone_key203 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key203
+Dropping Index: Contacts_phone_key202
+x Failed to drop Contacts_phone_key202: cannot drop index "Contacts_phone_key202" because constraint Contacts_phone_key202 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key202
+Dropping Index: Contacts_phone_key201
+x Failed to drop Contacts_phone_key201: cannot drop index "Contacts_phone_key201" because constraint Contacts_phone_key201 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key201
+Dropping Index: Contacts_phone_key200
+x Failed to drop Contacts_phone_key200: cannot drop index "Contacts_phone_key200" because constraint Contacts_phone_key200 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key200
+Dropping Index: Contacts_phone_key199
+x Failed to drop Contacts_phone_key199: cannot drop index "Contacts_phone_key199" because constraint Contacts_phone_key199 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key199
+Dropping Index: Contacts_phone_key198
+x Failed to drop Contacts_phone_key198: cannot drop index "Contacts_phone_key198" because constraint Contacts_phone_key198 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key198
+Dropping Index: Contacts_phone_key197
+x Failed to drop Contacts_phone_key197: cannot drop index "Contacts_phone_key197" because constraint Contacts_phone_key197 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key197
+Dropping Index: Contacts_phone_key196
+x Failed to drop Contacts_phone_key196: cannot drop index "Contacts_phone_key196" because constraint Contacts_phone_key196 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key196
+Dropping Index: Contacts_phone_key194
+x Failed to drop Contacts_phone_key194: cannot drop index "Contacts_phone_key194" because constraint Contacts_phone_key194 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key194
+Dropping Index: Contacts_phone_key192
+x Failed to drop Contacts_phone_key192: cannot drop index "Contacts_phone_key192" because constraint Contacts_phone_key192 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key192
+Dropping Index: Contacts_phone_key191
+x Failed to drop Contacts_phone_key191: cannot drop index "Contacts_phone_key191" because constraint Contacts_phone_key191 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key191
+Dropping Index: Contacts_phone_key190
+x Failed to drop Contacts_phone_key190: cannot drop index "Contacts_phone_key190" because constraint Contacts_phone_key190 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key190
+Dropping Index: Contacts_phone_key186
+x Failed to drop Contacts_phone_key186: cannot drop index "Contacts_phone_key186" because constraint Contacts_phone_key186 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key186
+Dropping Index: Contacts_phone_key182
+x Failed to drop Contacts_phone_key182: cannot drop index "Contacts_phone_key182" because constraint Contacts_phone_key182 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key182
+Dropping Index: Contacts_phone_key178
+x Failed to drop Contacts_phone_key178: cannot drop index "Contacts_phone_key178" because constraint Contacts_phone_key178 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key178
+Dropping Index: Contacts_phone_key170
+x Failed to drop Contacts_phone_key170: cannot drop index "Contacts_phone_key170" because constraint Contacts_phone_key170 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key170
+Dropping Index: Contacts_phone_key169
+x Failed to drop Contacts_phone_key169: cannot drop index "Contacts_phone_key169" because constraint Contacts_phone_key169 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key169
+Dropping Index: Contacts_phone_key90
+x Failed to drop Contacts_phone_key90: cannot drop index "Contacts_phone_key90" because constraint Contacts_phone_key90 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key90
+Dropping Index: Contacts_phone_key93
+x Failed to drop Contacts_phone_key93: cannot drop index "Contacts_phone_key93" because constraint Contacts_phone_key93 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key93
+Dropping Index: Contacts_phone_key95
+x Failed to drop Contacts_phone_key95: cannot drop index "Contacts_phone_key95" because constraint Contacts_phone_key95 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key95
+Dropping Index: Contacts_phone_key96
+x Failed to drop Contacts_phone_key96: cannot drop index "Contacts_phone_key96" because constraint Contacts_phone_key96 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key96
+Dropping Index: Contacts_phone_key98
+x Failed to drop Contacts_phone_key98: cannot drop index "Contacts_phone_key98" because constraint Contacts_phone_key98 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key98
+Dropping Index: Contacts_phone_key106
+x Failed to drop Contacts_phone_key106: cannot drop index "Contacts_phone_key106" because constraint Contacts_phone_key106 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key106
+Dropping Index: Contacts_phone_key107
+x Failed to drop Contacts_phone_key107: cannot drop index "Contacts_phone_key107" because constraint Contacts_phone_key107 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key107
+Dropping Index: Contacts_phone_key108
+x Failed to drop Contacts_phone_key108: cannot drop index "Contacts_phone_key108" because constraint Contacts_phone_key108 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key108
+Dropping Index: Contacts_phone_key110
+x Failed to drop Contacts_phone_key110: cannot drop index "Contacts_phone_key110" because constraint Contacts_phone_key110 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key110
+Dropping Index: Contacts_phone_key111
+x Failed to drop Contacts_phone_key111: cannot drop index "Contacts_phone_key111" because constraint Contacts_phone_key111 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key111
+Dropping Index: Contacts_phone_key112
+x Failed to drop Contacts_phone_key112: cannot drop index "Contacts_phone_key112" because constraint Contacts_phone_key112 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key112
+Dropping Index: Contacts_phone_key114
+x Failed to drop Contacts_phone_key114: cannot drop index "Contacts_phone_key114" because constraint Contacts_phone_key114 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key114
+Dropping Index: Contacts_phone_key115
+x Failed to drop Contacts_phone_key115: cannot drop index "Contacts_phone_key115" because constraint Contacts_phone_key115 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key115
+Dropping Index: Contacts_phone_key116
+x Failed to drop Contacts_phone_key116: cannot drop index "Contacts_phone_key116" because constraint Contacts_phone_key116 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key116
+Dropping Index: Contacts_phone_key118
+x Failed to drop Contacts_phone_key118: cannot drop index "Contacts_phone_key118" because constraint Contacts_phone_key118 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key118
+Dropping Index: Contacts_phone_key144
+x Failed to drop Contacts_phone_key144: cannot drop index "Contacts_phone_key144" because constraint Contacts_phone_key144 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key144
+Dropping Index: Contacts_phone_key145
+x Failed to drop Contacts_phone_key145: cannot drop index "Contacts_phone_key145" because constraint Contacts_phone_key145 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key145
+Dropping Index: Contacts_phone_key146
+x Failed to drop Contacts_phone_key146: cannot drop index "Contacts_phone_key146" because constraint Contacts_phone_key146 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key146
+Dropping Index: Contacts_phone_key147
+x Failed to drop Contacts_phone_key147: cannot drop index "Contacts_phone_key147" because constraint Contacts_phone_key147 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key147
+Dropping Index: Contacts_phone_key148
+x Failed to drop Contacts_phone_key148: cannot drop index "Contacts_phone_key148" because constraint Contacts_phone_key148 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key148
+Dropping Index: Contacts_phone_key150
+x Failed to drop Contacts_phone_key150: cannot drop index "Contacts_phone_key150" because constraint Contacts_phone_key150 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key150
+Dropping Index: Contacts_phone_key151
+x Failed to drop Contacts_phone_key151: cannot drop index "Contacts_phone_key151" because constraint Contacts_phone_key151 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key151
+Dropping Index: Contacts_phone_key152
+x Failed to drop Contacts_phone_key152: cannot drop index "Contacts_phone_key152" because constraint Contacts_phone_key152 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key152
+Dropping Index: Contacts_phone_key154
+x Failed to drop Contacts_phone_key154: cannot drop index "Contacts_phone_key154" because constraint Contacts_phone_key154 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key154
+Dropping Index: Contacts_phone_key155
+x Failed to drop Contacts_phone_key155: cannot drop index "Contacts_phone_key155" because constraint Contacts_phone_key155 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key155
+Dropping Index: Contacts_phone_key156
+x Failed to drop Contacts_phone_key156: cannot drop index "Contacts_phone_key156" because constraint Contacts_phone_key156 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key156
+Dropping Index: Contacts_phone_key135
+x Failed to drop Contacts_phone_key135: cannot drop index "Contacts_phone_key135" because constraint Contacts_phone_key135 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key135
+Dropping Index: Contacts_phone_key136
+x Failed to drop Contacts_phone_key136: cannot drop index "Contacts_phone_key136" because constraint Contacts_phone_key136 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key136
+Dropping Index: Contacts_phone_key138
+x Failed to drop Contacts_phone_key138: cannot drop index "Contacts_phone_key138" because constraint Contacts_phone_key138 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key138
+Dropping Index: Contacts_phone_key139
+x Failed to drop Contacts_phone_key139: cannot drop index "Contacts_phone_key139" because constraint Contacts_phone_key139 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key139
+Dropping Index: Contacts_phone_key140
+x Failed to drop Contacts_phone_key140: cannot drop index "Contacts_phone_key140" because constraint Contacts_phone_key140 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key140
+Dropping Index: Contacts_phone_key141
+x Failed to drop Contacts_phone_key141: cannot drop index "Contacts_phone_key141" because constraint Contacts_phone_key141 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key141
+Dropping Index: Contacts_phone_key142
+x Failed to drop Contacts_phone_key142: cannot drop index "Contacts_phone_key142" because constraint Contacts_phone_key142 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key142
+Dropping Index: Contacts_phone_key143
+x Failed to drop Contacts_phone_key143: cannot drop index "Contacts_phone_key143" because constraint Contacts_phone_key143 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key143
+Dropping Index: Contacts_phone_key137
+x Failed to drop Contacts_phone_key137: cannot drop index "Contacts_phone_key137" because constraint Contacts_phone_key137 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key137
+Dropping Index: Contacts_phone_key133
+x Failed to drop Contacts_phone_key133: cannot drop index "Contacts_phone_key133" because constraint Contacts_phone_key133 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key133
+Dropping Index: Contacts_phone_key129
+x Failed to drop Contacts_phone_key129: cannot drop index "Contacts_phone_key129" because constraint Contacts_phone_key129 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key129
+Dropping Index: Contacts_phone_key119
+x Failed to drop Contacts_phone_key119: cannot drop index "Contacts_phone_key119" because constraint Contacts_phone_key119 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key119
+Dropping Index: Contacts_phone_key120
+x Failed to drop Contacts_phone_key120: cannot drop index "Contacts_phone_key120" because constraint Contacts_phone_key120 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key120
+Dropping Index: Contacts_phone_key117
+x Failed to drop Contacts_phone_key117: cannot drop index "Contacts_phone_key117" because constraint Contacts_phone_key117 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key117
+Dropping Index: Contacts_phone_key113
+x Failed to drop Contacts_phone_key113: cannot drop index "Contacts_phone_key113" because constraint Contacts_phone_key113 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key113
+Dropping Index: Contacts_phone_key109
+x Failed to drop Contacts_phone_key109: cannot drop index "Contacts_phone_key109" because constraint Contacts_phone_key109 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key109
+Dropping Index: Contacts_phone_key64
+x Failed to drop Contacts_phone_key64: cannot drop index "Contacts_phone_key64" because constraint Contacts_phone_key64 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key64
+Dropping Index: Contacts_phone_key166
+x Failed to drop Contacts_phone_key166: cannot drop index "Contacts_phone_key166" because constraint Contacts_phone_key166 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key166
+Dropping Index: Contacts_phone_key161
+x Failed to drop Contacts_phone_key161: cannot drop index "Contacts_phone_key161" because constraint Contacts_phone_key161 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key161
+Dropping Index: Contacts_phone_key65
+x Failed to drop Contacts_phone_key65: cannot drop index "Contacts_phone_key65" because constraint Contacts_phone_key65 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key65
+Dropping Index: Contacts_phone_key63
+x Failed to drop Contacts_phone_key63: cannot drop index "Contacts_phone_key63" because constraint Contacts_phone_key63 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key63
+Dropping Index: Contacts_phone_key61
+x Failed to drop Contacts_phone_key61: cannot drop index "Contacts_phone_key61" because constraint Contacts_phone_key61 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key61
+Dropping Index: Contacts_phone_key59
+x Failed to drop Contacts_phone_key59: cannot drop index "Contacts_phone_key59" because constraint Contacts_phone_key59 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key59
+Dropping Index: Contacts_phone_key104
+x Failed to drop Contacts_phone_key104: cannot drop index "Contacts_phone_key104" because constraint Contacts_phone_key104 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key104
+Dropping Index: Contacts_phone_key103
+x Failed to drop Contacts_phone_key103: cannot drop index "Contacts_phone_key103" because constraint Contacts_phone_key103 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key103
+Dropping Index: Contacts_phone_key102
+x Failed to drop Contacts_phone_key102: cannot drop index "Contacts_phone_key102" because constraint Contacts_phone_key102 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key102
+Dropping Index: Contacts_phone_key101
+x Failed to drop Contacts_phone_key101: cannot drop index "Contacts_phone_key101" because constraint Contacts_phone_key101 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key101
+Dropping Index: Contacts_phone_key100
+x Failed to drop Contacts_phone_key100: cannot drop index "Contacts_phone_key100" because constraint Contacts_phone_key100 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key100
+Dropping Index: Contacts_phone_key99
+x Failed to drop Contacts_phone_key99: cannot drop index "Contacts_phone_key99" because constraint Contacts_phone_key99 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key99
+Dropping Index: Contacts_phone_key97
+x Failed to drop Contacts_phone_key97: cannot drop index "Contacts_phone_key97" because constraint Contacts_phone_key97 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key97
+Dropping Index: Contacts_phone_key94
+x Failed to drop Contacts_phone_key94: cannot drop index "Contacts_phone_key94" because constraint Contacts_phone_key94 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key94
+Dropping Index: Contacts_phone_key92
+x Failed to drop Contacts_phone_key92: cannot drop index "Contacts_phone_key92" because constraint Contacts_phone_key92 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key92
+Dropping Index: Contacts_phone_key91
+x Failed to drop Contacts_phone_key91: cannot drop index "Contacts_phone_key91" because constraint Contacts_phone_key91 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key91
+Dropping Index: Contacts_phone_key89
+x Failed to drop Contacts_phone_key89: cannot drop index "Contacts_phone_key89" because constraint Contacts_phone_key89 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key89
+Dropping Index: Contacts_phone_key87
+x Failed to drop Contacts_phone_key87: cannot drop index "Contacts_phone_key87" because constraint Contacts_phone_key87 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key87
+Dropping Index: Contacts_phone_key56
+x Failed to drop Contacts_phone_key56: cannot drop index "Contacts_phone_key56" because constraint Contacts_phone_key56 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key56
+Dropping Index: Contacts_phone_key54
+x Failed to drop Contacts_phone_key54: cannot drop index "Contacts_phone_key54" because constraint Contacts_phone_key54 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key54
+Dropping Index: Contacts_phone_key52
+x Failed to drop Contacts_phone_key52: cannot drop index "Contacts_phone_key52" because constraint Contacts_phone_key52 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key52
+Dropping Index: Contacts_phone_key1
+x Failed to drop Contacts_phone_key1: cannot drop index "Contacts_phone_key1" because constraint Contacts_phone_key1 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key1
+Dropping Index: Contacts_phone_key30
+x Failed to drop Contacts_phone_key30: cannot drop index "Contacts_phone_key30" because constraint Contacts_phone_key30 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key30
+Dropping Index: Contacts_phone_key60
+x Failed to drop Contacts_phone_key60: cannot drop index "Contacts_phone_key60" because constraint Contacts_phone_key60 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key60
+Dropping Index: Contacts_phone_key62
+x Failed to drop Contacts_phone_key62: cannot drop index "Contacts_phone_key62" because constraint Contacts_phone_key62 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key62
+Dropping Index: Contacts_phone_key18
+x Failed to drop Contacts_phone_key18: cannot drop index "Contacts_phone_key18" because constraint Contacts_phone_key18 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key18
+Dropping Index: Contacts_phone_key17
+x Failed to drop Contacts_phone_key17: cannot drop index "Contacts_phone_key17" because constraint Contacts_phone_key17 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key17
+Dropping Index: Contacts_phone_key15
+x Failed to drop Contacts_phone_key15: cannot drop index "Contacts_phone_key15" because constraint Contacts_phone_key15 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key15
+Dropping Index: Contacts_phone_key10
+x Failed to drop Contacts_phone_key10: cannot drop index "Contacts_phone_key10" because constraint Contacts_phone_key10 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key10
+Dropping Index: Contacts_phone_key53
+x Failed to drop Contacts_phone_key53: cannot drop index "Contacts_phone_key53" because constraint Contacts_phone_key53 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key53
+Dropping Index: Contacts_phone_key55
+x Failed to drop Contacts_phone_key55: cannot drop index "Contacts_phone_key55" because constraint Contacts_phone_key55 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key55
+Dropping Index: Contacts_phone_key57
+x Failed to drop Contacts_phone_key57: cannot drop index "Contacts_phone_key57" because constraint Contacts_phone_key57 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key57
+Dropping Index: Contacts_phone_key58
+x Failed to drop Contacts_phone_key58: cannot drop index "Contacts_phone_key58" because constraint Contacts_phone_key58 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key58
+Dropping Index: Contacts_phone_key88
+x Failed to drop Contacts_phone_key88: cannot drop index "Contacts_phone_key88" because constraint Contacts_phone_key88 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key88
+Dropping Index: Contacts_phone_key2
+x Failed to drop Contacts_phone_key2: cannot drop index "Contacts_phone_key2" because constraint Contacts_phone_key2 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key2
+Dropping Index: Contacts_phone_key3
+x Failed to drop Contacts_phone_key3: cannot drop index "Contacts_phone_key3" because constraint Contacts_phone_key3 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key3
+Dropping Index: Contacts_phone_key4
+x Failed to drop Contacts_phone_key4: cannot drop index "Contacts_phone_key4" because constraint Contacts_phone_key4 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key4
+Dropping Index: Contacts_phone_key5
+x Failed to drop Contacts_phone_key5: cannot drop index "Contacts_phone_key5" because constraint Contacts_phone_key5 on table "Contacts" requires it
+✓ Dropped constraint Contacts_phone_key5
+Done.

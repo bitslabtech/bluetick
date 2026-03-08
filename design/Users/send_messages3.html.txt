@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Customize Template &amp; Schedule - WhatsApp Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111a22",
+                        "surface-dark": "#233648",
+                        "text-secondary": "#92adc9"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111a22; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #233648; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2f455a; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden">
+<div class="flex h-screen w-full overflow-hidden">
+<aside class="flex w-72 flex-col justify-between border-r border-[#233648] bg-[#111a22] p-4 hidden md:flex">
+<div class="flex flex-col gap-8">
+<div class="flex gap-3 items-center px-2">
+<div class="flex items-center justify-center rounded-lg bg-primary size-10 text-white">
+<span class="material-symbols-outlined text-[24px]">chat</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-normal">WaManager</h1>
+<p class="text-text-secondary text-xs font-normal leading-normal">Business API</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg bg-primary text-white" href="#">
+<span class="material-symbols-outlined text-[22px]">send</span>
+<p class="text-sm font-medium leading-normal">Send Message</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">people</span>
+<p class="text-sm font-medium leading-normal">Contacts</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">description</span>
+<p class="text-sm font-medium leading-normal">Templates</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-3 py-3 rounded-lg bg-[#233648]/50 border border-[#233648]">
+<div class="size-2 rounded-full bg-green-500 animate-pulse"></div>
+<div class="flex flex-col">
+<span class="text-xs font-medium text-white">API Connected</span>
+<span class="text-[10px] text-text-secondary">Latency: 24ms</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex flex-1 flex-col h-full overflow-hidden bg-[#111a22] relative">
+<header class="flex items-center justify-between border-b border-[#233648] px-6 py-4 bg-[#111a22] shrink-0">
+<div class="flex items-center gap-6">
+<button class="md:hidden text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="text-white text-lg font-bold">New Campaign</h2>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden sm:flex items-center justify-center h-10 px-4 rounded-lg bg-[#233648] text-white text-sm font-bold hover:bg-[#2f455a] transition-colors gap-2">
+<span class="material-symbols-outlined text-[20px]">help</span>
+                    Help
+                </button>
+<button class="relative flex items-center justify-center size-10 rounded-lg bg-[#233648] text-white hover:bg-[#2f455a] transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-[#233648]"></span>
+</button>
+<div class="size-10 rounded-full bg-cover bg-center border border-[#233648] cursor-pointer" data-alt="User profile picture showing a smiling professional man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB-83iqu2ekHNgnN_1FCibBlvLwRY6Hu_bliR3cN2cX-s1so_2lXHsXeR-C1taI2i3ojcEMH9y1UlgwQB6L7q2vCXgIvVVR4AIm5mb_KIJjPR_c1mxjB3uBaKQrQb7enXq4l2m5nNxA3ebeVOBjocVXBSxBctk9uSM-5N41LzuI0pYz5aUm02fQYdtT9ZPmNTXs0eQDY-XVNt3chB3psjhLL701i9gQcrCa_kt3kLxAV4wfmnUsbJk3sVfDtBFXlKVHbECk2bUnLeAd');"></div>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+<div class="max-w-6xl mx-auto flex flex-col gap-6">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div>
+<h1 class="text-3xl font-bold text-white tracking-tight">Customize Template</h1>
+<p class="text-text-secondary mt-1">Fill in dynamic parameters and schedule your message.</p>
+</div>
+<div class="flex items-center gap-2">
+<div class="h-1 w-8 bg-primary rounded-full"></div>
+<div class="h-1 w-8 bg-primary rounded-full"></div>
+<div class="h-1 w-8 bg-primary rounded-full"></div>
+<span class="ml-2 text-xs font-semibold text-white bg-primary px-3 py-1 rounded-full shadow-lg shadow-primary/20">Step 3 of 3</span>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 flex flex-col gap-6">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-purple-500/20 p-2 rounded-lg text-purple-400">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div>
+<h3 class="text-white font-bold text-lg">Selected Template</h3>
+<p class="text-xs text-text-secondary">summer_sale_promo_v2 <span class="ml-2 text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium border border-green-500/20">Approved</span></p>
+</div>
+</div>
+<button class="text-xs font-medium text-text-secondary hover:text-white underline decoration-[#2f455a] hover:decoration-white underline-offset-4 transition-colors">
+                                    Change Template
+                                </button>
+</div>
+<div class="p-6 bg-[#1a2632]">
+<p class="text-sm text-gray-300 leading-relaxed font-mono">
+                                    Hi <span class="bg-primary/20 text-primary border border-primary/30 px-1 rounded">{{name}}</span>! 👋 <br/><br/>
+                                    Don't miss our exclusive summer deal. Get <span class="bg-primary/20 text-primary border border-primary/30 px-1 rounded">{{discount}}</span> off on all <span class="bg-primary/20 text-primary border border-primary/30 px-1 rounded">{{product_category}}</span> this week only!<br/><br/>
+                                    Shop now at: https://store.com/summer-sale
+                                </p>
+</div>
+</div>
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center gap-3">
+<div class="bg-primary/20 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined">tune</span>
+</div>
+<h3 class="text-white font-bold text-lg">Template Parameters</h3>
+</div>
+<div class="p-6 space-y-6">
+<p class="text-sm text-text-secondary">Map the template variables to your contact data or enter static values.</p>
+<div class="space-y-5">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center border-b border-[#2f455a] pb-5 last:border-0 last:pb-0">
+<div class="md:col-span-3">
+<label class="block text-sm font-medium text-white mb-1">Variable {{name}}</label>
+<span class="text-xs text-text-secondary">Recipient's First Name</span>
+</div>
+<div class="md:col-span-9 flex gap-3">
+<select class="bg-[#111a22] border border-[#2f455a] rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-0 w-1/3">
+<option value="column">Contact Column</option>
+<option value="static">Static Text</option>
+</select>
+<div class="relative flex-1">
+<span class="absolute left-3 top-2.5 text-text-secondary material-symbols-outlined text-[18px]">person</span>
+<select class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2 text-white text-sm focus:border-primary focus:ring-0 appearance-none">
+<option>First Name</option>
+<option>Full Name</option>
+<option>Phone Number</option>
+</select>
+<span class="absolute right-3 top-2.5 text-text-secondary pointer-events-none material-symbols-outlined text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center border-b border-[#2f455a] pb-5 last:border-0 last:pb-0">
+<div class="md:col-span-3">
+<label class="block text-sm font-medium text-white mb-1">Variable {{discount}}</label>
+<span class="text-xs text-text-secondary">Discount Value</span>
+</div>
+<div class="md:col-span-9 flex gap-3">
+<select class="bg-[#111a22] border border-[#2f455a] rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-0 w-1/3">
+<option value="static">Static Text</option>
+<option value="column">Contact Column</option>
+</select>
+<input class="flex-1 bg-[#111a22] border border-[#2f455a] rounded-lg px-4 py-2 text-white text-sm focus:border-primary focus:ring-0 placeholder:text-gray-600" type="text" value="50%"/>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center border-b border-[#2f455a] pb-5 last:border-0 last:pb-0">
+<div class="md:col-span-3">
+<label class="block text-sm font-medium text-white mb-1">Variable {{product_category}}</label>
+<span class="text-xs text-text-secondary">Product Category</span>
+</div>
+<div class="md:col-span-9 flex gap-3">
+<select class="bg-[#111a22] border border-[#2f455a] rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-0 w-1/3">
+<option value="static">Static Text</option>
+<option value="column">Contact Column</option>
+</select>
+<input class="flex-1 bg-[#111a22] border border-[#2f455a] rounded-lg px-4 py-2 text-white text-sm focus:border-primary focus:ring-0 placeholder:text-gray-600" type="text" value="Summer Shoes"/>
+</div>
+</div>
+</div>
+</div>
+<div class="p-6 border-t border-[#2f455a] bg-[#1a2632]/50">
+<div class="flex flex-col gap-3">
+<label class="block text-sm font-medium text-white">Header Image (Media Template)</label>
+<div class="flex items-center gap-4">
+<div class="flex-1 border-2 border-dashed border-[#2f455a] rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#1a2632] hover:border-primary transition-colors group">
+<span class="material-symbols-outlined text-[#2f455a] group-hover:text-primary mb-2 text-[28px]">cloud_upload</span>
+<p class="text-sm text-white font-medium">Click to upload image</p>
+<p class="text-xs text-text-secondary mt-1">SVG, PNG, JPG or GIF (max. 800x400px)</p>
+</div>
+<div class="size-20 bg-[#111a22] border border-[#2f455a] rounded-lg flex items-center justify-center overflow-hidden relative">
+<img alt="Preview" class="w-full h-full object-cover opacity-70" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOTzekd03af2IT2ScS60_XoEWHacLpohVpD4bbK5jyTho6O-EcJYbh8mH7rr-6rCay1-UWZ5OLUVuXet8azgYqQgdpa4nwn7Yj1CBQIjckaQwv06iyo13Im3Lh3O5kf7oA3X2X6KAqv4uNWL3dF-g5qLB7TVpSOuz6g-lpc1JNGFQHXJvMQj5lY67J9nmZ6ij2OGSHBYHKRCE90rlCk5GUAMjQboZ3KhI6ATIrlka5D4-j8bybXVS0OmAyOSOsHjiVTv_mlexkdLvK"/>
+<button class="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center gap-3">
+<div class="bg-orange-500/20 p-2 rounded-lg text-orange-400">
+<span class="material-symbols-outlined">schedule</span>
+</div>
+<h3 class="text-white font-bold text-lg">Scheduling</h3>
+</div>
+<div class="p-6">
+<div class="flex flex-col space-y-4">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<input checked="" class="bg-transparent border-gray-600 text-primary focus:ring-primary" id="sendNow" name="schedule" type="radio"/>
+<label class="text-white text-sm font-medium" for="sendNow">Send Immediately</label>
+</div>
+<div class="flex items-center gap-2">
+<input class="bg-transparent border-gray-600 text-primary focus:ring-primary" id="sendLater" name="schedule" type="radio"/>
+<label class="text-white text-sm font-medium" for="sendLater">Schedule for Later</label>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-4 border-t border-[#2f455a] mt-2">
+<div>
+<label class="block text-xs font-medium text-text-secondary mb-1.5">Date</label>
+<div class="relative">
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg px-4 py-2 text-white text-sm focus:border-primary focus:ring-0 [&amp;::-webkit-calendar-picker-indicator]:invert" type="date"/>
+</div>
+</div>
+<div>
+<label class="block text-xs font-medium text-text-secondary mb-1.5">Time</label>
+<div class="relative">
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg px-4 py-2 text-white text-sm focus:border-primary focus:ring-0 [&amp;::-webkit-calendar-picker-indicator]:invert" type="time"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-1 space-y-6">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] p-4 sticky top-6">
+<h3 class="text-white font-bold text-sm mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">visibility</span> Preview
+                            </h3>
+<div class="bg-[#111a22] rounded-[2rem] border-[6px] border-[#1a2632] p-3 relative h-[520px] overflow-hidden shadow-2xl flex flex-col">
+<div class="flex justify-between items-center text-[10px] text-gray-400 mb-4 px-2 shrink-0">
+<span>9:41</span>
+<div class="flex gap-1">
+<span class="material-symbols-outlined text-[12px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[12px]">wifi</span>
+<span class="material-symbols-outlined text-[12px]">battery_full</span>
+</div>
+</div>
+<div class="bg-[#233648] p-2 rounded-t-lg flex items-center gap-2 mb-2 shrink-0">
+<div class="size-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">B</div>
+<div>
+<p class="text-white text-xs font-bold">Business Name</p>
+<p class="text-[9px] text-gray-400">Business Account</p>
+</div>
+</div>
+<div class="space-y-3 px-1 overflow-y-auto flex-1 custom-scrollbar">
+<div class="flex justify-center">
+<span class="bg-[#1a2632] text-gray-400 text-[9px] px-2 py-1 rounded shadow-sm">Today</span>
+</div>
+<div class="bg-[#2f455a] rounded-lg rounded-tl-none p-1 max-w-[90%] relative shadow-sm">
+<div class="w-full aspect-video bg-black rounded-lg overflow-hidden mb-1.5 relative">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXr_hDQtCMiChtBZwVxTJRrAu3vhvru4KHUmNwyNdtiSZp7youw2k2uZA2CZKIVB870AJIW8cfbNDgZdorkyu7I2s5K3FKOpVK0zAP-fly8n2UfzYyMuLMOJw0sF2FTtZOrcYQ-04uRhu81l09Aj9W1Bm-QUfpd4GhwqsKa_N2hFJVOI6wf0-133EzhG04VmupTuQ2XYiktJk7bZH81sgusaBJcTg0IivmXLAeGlo5cCyw6VynviZyW9Q_8Ca2dGiOQN7Zjs4EI--Z"/>
+</div>
+<div class="px-2 pb-2 pt-1">
+<p class="text-white text-[13px] leading-snug">
+                                                Hi <strong>Alex</strong>! 👋<br/><br/>
+                                                Don't miss our exclusive summer deal. Get <strong>50%</strong> off on all <strong>Summer Shoes</strong> this week only!<br/><br/>
+                                                Shop now at: <a class="text-blue-300 underline" href="#">https://store.com/summer-sale</a>
+</p>
+<div class="flex justify-end items-center gap-1 mt-1">
+<span class="text-[9px] text-gray-400">10:30 AM</span>
+<span class="material-symbols-outlined text-[10px] text-blue-400">done_all</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-2 flex items-center gap-2 px-1 pt-2 border-t border-[#233648]">
+<span class="material-symbols-outlined text-gray-500 text-[20px]">add</span>
+<div class="flex-1 bg-[#233648] h-8 rounded-full"></div>
+<span class="material-symbols-outlined text-gray-500 text-[20px]">mic</span>
+</div>
+</div>
+<div class="mt-6 space-y-3">
+<div class="flex items-center justify-between text-xs text-text-secondary mb-2 bg-[#111a22] p-3 rounded-lg border border-[#2f455a]">
+<div class="flex flex-col">
+<span>Target Audience</span>
+<strong class="text-white text-sm">12,450 Contacts</strong>
+</div>
+<div class="text-right">
+<span>Est. Cost</span>
+<div class="text-white font-bold text-sm">~ $24.50</div>
+</div>
+</div>
+<button class="w-full py-3 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 group">
+<span class="material-symbols-outlined text-[20px] group-hover:animate-ping">send</span>
+                                    Send Campaign
+                                </button>
+<button class="w-full py-3 bg-transparent border border-[#2f455a] hover:bg-[#2f455a] text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[20px]">save</span>
+                                    Save as Draft
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

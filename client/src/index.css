@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+@config "../tailwind.config.js";
+
+@theme {
+  /* Default fallbacks if JS hasn't injected them yet */
+  --fallback-primary: #137fec;
+  --fallback-secondary: #0ea5e9;
+
+  /* Theme colors map to the injected CSS variables from UIContext */
+  --color-primary: var(--color-primary, var(--fallback-primary));
+  --color-secondary: var(--color-secondary, var(--fallback-secondary));
+  
+  --color-background-light: #f6f7f8;
+  --color-background-dark: #111a22;
+  --color-surface-dark: #233648;
+  --color-text-secondary: #92adc9;
+
+  --font-display: 'Inter', sans-serif;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-white;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111a22;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #233648;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2f455a;
+}

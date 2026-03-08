@@ -1,0 +1,37 @@
+[
+  {
+    "id": "45244fa1-1990-438f-be92-c957f060e1de",
+    "status": "SENT",
+    "messageId": "wamid.HBgMOTE2Mzc0MjgwNzE2FQIAERgSQjM3MzFBOTc3RUYwRUEwQ0UzAA==",
+    "campaignId": "83f13ba9-1263-46c4-8097-96471cee3e90",
+    "createdAt": "2026-01-08T13:39:03.774Z"
+  },
+  {
+    "id": "684a60de-a5ce-4ead-9695-3e58f0b32c24",
+    "status": "SENT",
+    "messageId": "wamid.HBgMOTE5MDAzMTY5Njk5FQIAERgSMkUwQTM0QjBENTQ4OTZBRTVDAA==",
+    "campaignId": "83f13ba9-1263-46c4-8097-96471cee3e90",
+    "createdAt": "2026-01-08T13:39:03.624Z"
+  },
+  {
+    "id": "c0d8184c-e7dd-4c84-a5cf-a430c9bf2c7d",
+    "status": "SENT",
+    "messageId": "wamid.HBgMOTE2Mzc0MjgwNzE2FQIAERgSRkFGMzExRUMwNTMxMTMyMTRGAA==",
+    "campaignId": "aa93983e-f53d-4638-8d27-44b190730ac0",
+    "createdAt": "2026-01-08T13:35:03.796Z"
+  },
+  {
+    "id": "ef4247cf-34b3-40f9-920b-746db0f33e06",
+    "status": "SENT",
+    "messageId": "wamid.HBgMOTE5MDAzMTY5Njk5FQIAERgSNDk2NjMxNDBGNzJERUI5QTU0AA==",
+    "campaignId": "aa93983e-f53d-4638-8d27-44b190730ac0",
+    "createdAt": "2026-01-08T13:35:03.664Z"
+  },
+  {
+    "id": "b6ad6766-0e4b-4f0a-b17b-a014c50ee3ea",
+    "status": "SENT",
+    "messageId": "wamid.HBgMOTE2Mzc0MjgwNzE2FQIAERgSOUE0NERCMDcwOTcwMTgyMjdFAA==",
+    "campaignId": "48547252-422a-4b40-8a59-e320f049d61f",
+    "createdAt": "2026-01-08T12:59:28.696Z"
+  }
+]

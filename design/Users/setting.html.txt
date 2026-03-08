@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Account Settings - WhatsApp Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111a22",
+                        "surface-dark": "#233648",
+                        "text-secondary": "#92adc9"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111a22; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #233648; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2f455a; 
+        }.toggle-checkbox:checked {
+            right: 0;
+            border-color: #137fec;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #137fec;
+        }.tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }.sub-tab-button {
+            @apply flex-1 text-center py-2 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer;
+        }
+        .sub-tab-button.active {
+            @apply bg-[#233648] text-white;
+        }
+        .sub-tab-button:not(.active) {
+            @apply text-text-secondary hover:bg-[#2f455a];
+        }
+        .sub-tab-content {
+            display: none;
+        }
+        .sub-tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden">
+<div class="flex h-screen w-full overflow-hidden">
+<aside class="flex w-72 flex-col justify-between border-r border-[#233648] bg-[#111a22] p-4 hidden md:flex shrink-0">
+<div class="flex flex-col gap-8">
+<div class="flex gap-3 items-center px-2">
+<div class="flex items-center justify-center rounded-lg bg-primary size-10 text-white">
+<span class="material-symbols-outlined text-[24px]">chat</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-normal">WaManager</h1>
+<p class="text-text-secondary text-xs font-normal leading-normal">Business API</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">send</span>
+<p class="text-sm font-medium leading-normal">Send Message</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">people</span>
+<p class="text-sm font-medium leading-normal">Contacts</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">description</span>
+<p class="text-sm font-medium leading-normal">Templates</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg bg-primary text-white" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-3 py-3 rounded-lg bg-[#233648]/50 border border-[#233648]">
+<div class="size-2 rounded-full bg-green-500 animate-pulse"></div>
+<div class="flex flex-col">
+<span class="text-xs font-medium text-white">API Connected</span>
+<span class="text-[10px] text-text-secondary">Latency: 24ms</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex flex-1 flex-col h-full overflow-hidden bg-[#111a22] relative">
+<header class="flex items-center justify-between border-b border-[#233648] px-6 py-4 bg-[#111a22] shrink-0">
+<div class="flex items-center gap-6">
+<button class="md:hidden text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="text-white text-lg font-bold">Settings</h2>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden sm:flex items-center justify-center h-10 px-4 rounded-lg bg-[#233648] text-white text-sm font-bold hover:bg-[#2f455a] transition-colors gap-2">
+<span class="material-symbols-outlined text-[20px]">help</span>
+                        Help
+                    </button>
+<button class="relative flex items-center justify-center size-10 rounded-lg bg-[#233648] text-white hover:bg-[#2f455a] transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-[#233648]"></span>
+</button>
+<div class="size-10 rounded-full bg-cover bg-center border border-[#233648] cursor-pointer" data-alt="User profile picture showing a smiling professional man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB-83iqu2ekHNgnN_1FCibBlvLwRY6Hu_bliR3cN2cX-s1so_2lXHsXeR-C1taI2i3ojcEMH9y1UlgwQB6L7q2vCXgIvVVR4AIm5mb_KIJjPR_c1mxjB3uBaKQrQb7enXq4l2m5nNxA3ebeVOBjocVXBSxBctk9uSM-5N41LzuI0pYz5aUm02fQYdtT9ZPmNTXs0eQDY-XVNt3chB3psjhLL701i9gQcrCa_kt3kLxAV4wfmnUsbJk3sVfDtBFXlKVHbECk2bUnLeAd');"></div>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+<div class="max-w-6xl mx-auto flex flex-col gap-8 h-full">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
+<div>
+<h1 class="text-3xl font-bold text-white tracking-tight">Account Settings</h1>
+<p class="text-text-secondary mt-1">Manage your profile, API configuration, and preferences.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 text-sm font-medium text-text-secondary bg-[#233648] border border-[#2f455a] rounded-lg hover:text-white transition-colors">Cancel</button>
+<button class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-colors">Save Changes</button>
+</div>
+</div>
+<div class="flex flex-col lg:flex-row gap-8 items-start h-full">
+<div class="w-full lg:w-64 flex-shrink-0">
+<nav class="flex flex-col gap-1">
+<button class="group flex items-center gap-3 px-4 py-3 rounded-lg bg-[#233648] text-white font-medium border-l-4 border-primary transition-all" data-tab="general">
+<span class="material-symbols-outlined text-[20px] text-primary">person</span>
+                                    General Settings
+                                </button>
+<button class="group flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-all border-l-4 border-transparent hover:border-[#2f455a]" data-tab="configurations">
+<span class="material-symbols-outlined text-[20px] group-hover:text-white">settings_applications</span>
+                                    Configurations
+                                </button>
+<button class="group flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-all border-l-4 border-transparent hover:border-[#2f455a]" data-tab="notifications">
+<span class="material-symbols-outlined text-[20px] group-hover:text-white">notifications</span>
+                                    Notifications
+                                </button>
+<button class="group flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-all border-l-4 border-transparent hover:border-[#2f455a]" data-tab="billing">
+<span class="material-symbols-outlined text-[20px] group-hover:text-white">credit_card</span>
+                                    Billing
+                                </button>
+</nav>
+</div>
+<div class="flex-1 w-full space-y-8">
+<div class="space-y-6 tab-content active" id="general-tab">
+<div class="flex space-x-2 p-2 bg-[#1a2632] rounded-lg border border-[#2f455a] mb-6">
+<button class="sub-tab-button active" data-sub-tab="profile">Profile</button>
+<button class="sub-tab-button" data-sub-tab="account">Account</button>
+<button class="sub-tab-button" data-sub-tab="security">Security</button>
+</div>
+<div class="sub-tab-content active" id="profile-sub-tab">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center gap-3">
+<h3 class="text-white font-bold text-lg">Profile Information</h3>
+</div>
+<div class="p-6">
+<div class="flex flex-col md:flex-row gap-8 items-start">
+<div class="flex flex-col items-center gap-4 min-w-[160px]">
+<div class="size-32 rounded-full bg-cover bg-center border-4 border-[#1a2632]" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB-83iqu2ekHNgnN_1FCibBlvLwRY6Hu_bliR3cN2cX-s1so_2lXHsXeR-C1taI2i3ojcEMH9y1UlgwQB6L7q2vCXgIvVVR4AIm5mb_KIJjPR_c1mxjB3uBaKQrQb7enXq4l2m5nNxA3ebeVOBjocVXBSxBctk9uSM-5N41LzuI0pYz5aUm02fQYdtT9ZPmNTXs0eQDY-XVNt3chB3psjhLL701i9gQcrCa_kt3kLxAV4wfmnUsbJk3sVfDtBFXlKVHbECk2bUnLeAd');"></div>
+<button class="text-sm text-primary font-medium hover:text-blue-400 transition-colors">Change Avatar</button>
+</div>
+<div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary">Full Name</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">badge</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" type="text" value="Alex Morgan"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary">Email Address</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">mail</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" type="email" value="alex.morgan@company.com"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary">Phone Number</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">call</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" type="tel" value="+1 (555) 123-4567"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary">Company Name</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">business</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" type="text" value="Tech Solutions Ltd."/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary">Job Title</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">work</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" type="text" value="Product Manager"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary">Company Website</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">language</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" type="url" value="https://www.techsolutions.com"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sub-tab-content" id="account-sub-tab">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center gap-3">
+<h3 class="text-white font-bold text-lg">Account Preferences</h3>
+</div>
+<div class="p-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary" for="timezone">Time Zone</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">schedule</span>
+<select class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" id="timezone">
+<option value="EST">Eastern Standard Time (EST) -5:00</option>
+<option value="CST">Central Standard Time (CST) -6:00</option>
+<option value="MST">Mountain Standard Time (MST) -7:00</option>
+<option selected="" value="PST">Pacific Standard Time (PST) -8:00</option>
+</select>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary" for="date_format">Date Format</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">calendar_month</span>
+<select class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" id="date_format">
+<option value="MM/DD/YYYY">MM/DD/YYYY</option>
+<option selected="" value="DD/MM/YYYY">DD/MM/YYYY</option>
+<option value="YYYY-MM-DD">YYYY-MM-DD</option>
+</select>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary" for="language">Language Preference</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">language</span>
+<select class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" id="language">
+<option selected="" value="en">English</option>
+<option value="es">Spanish</option>
+<option value="fr">French</option>
+<option value="de">German</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sub-tab-content" id="security-sub-tab">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center gap-3">
+<h3 class="text-white font-bold text-lg">Password &amp; Security</h3>
+</div>
+<div class="p-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary">Current Password</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">lock</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary">New Password</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">vpn_key</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-text-secondary">Confirm New Password</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 material-symbols-outlined text-[20px]">vpn_key_off</span>
+<input class="w-full bg-[#111a22] border border-[#2f455a] rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary focus:ring-0 transition-colors" placeholder="••••••••" type="password"/>
+</div>
+</div>
+</div>
+<div class="mt-8 border-t border-[#2f455a] pt-6 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-white text-sm font-medium">Two-Factor Authentication (2FA)</span>
+<span class="text-xs text-text-secondary">Add an extra layer of security to your account.</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-[#111a22] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary border border-[#2f455a]"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-red-500/5 rounded-xl border border-red-500/20 overflow-hidden">
+<div class="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+<div>
+<h3 class="text-red-500 font-bold text-lg mb-1">Delete Account</h3>
+<p class="text-xs text-text-secondary">Permanently remove your Personal Account and all of its contents from the WaManager platform.</p>
+</div>
+<button class="shrink-0 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-lg transition-colors">
+                                            Delete Account
+                                        </button>
+</div>
+</div>
+</div>
+<div class="space-y-6 tab-content" id="configurations-tab">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center gap-3">
+<div class="bg-orange-500/20 p-2 rounded-lg text-orange-400">
+<span class="material-symbols-outlined">settings_applications</span>
+</div>
+<h3 class="text-white font-bold text-lg">Configurations</h3>
+</div>
+<div class="p-6">
+<h4 class="text-white font-semibold mb-4">API Key Management</h4>
+<p class="text-sm text-text-secondary mb-6">Use this key to authenticate your requests to the WhatsApp Business API. <span class="text-orange-400">Do not share this key with anyone.</span></p>
+<div class="bg-[#111a22] border border-[#2f455a] rounded-lg p-4 mb-6">
+<div class="flex items-center justify-between gap-4">
+<div class="flex-1 font-mono text-sm text-gray-400 truncate tracking-wider">
+                                                sk_live_51Mx************************************xYz
+                                            </div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="p-2 hover:bg-[#2f455a] rounded-lg text-text-secondary hover:text-white transition-colors" title="Reveal Key">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+<button class="p-2 hover:bg-[#2f455a] rounded-lg text-text-secondary hover:text-white transition-colors" title="Copy Key">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="px-4 py-2 bg-[#2f455a] hover:bg-[#3a5269] text-white text-sm font-medium rounded-lg transition-colors border border-[#3a5269] flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+                                            Regenerate Key
+                                        </button>
+<button class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-medium rounded-lg transition-colors border border-red-500/20 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">block</span>
+                                            Revoke Key
+                                        </button>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-6 tab-content" id="notifications-tab">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center gap-3">
+<div class="bg-purple-500/20 p-2 rounded-lg text-purple-400">
+<span class="material-symbols-outlined">notifications</span>
+</div>
+<h3 class="text-white font-bold text-lg">Notifications</h3>
+</div>
+<div class="p-6">
+<div class="space-y-6">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-white text-sm font-medium">Campaign Completion</span>
+<span class="text-xs text-text-secondary">Receive an email when a bulk message campaign finishes sending.</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-[#111a22] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary border border-[#2f455a]"></div>
+</label>
+</div>
+<div class="flex items-center justify-between border-t border-[#2f455a] pt-6">
+<div class="flex flex-col">
+<span class="text-white text-sm font-medium">Low Balance Alert</span>
+<span class="text-xs text-text-secondary">Get notified when your message credits drop below 1000.</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-[#111a22] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary border border-[#2f455a]"></div>
+</label>
+</div>
+<div class="flex items-center justify-between border-t border-[#2f455a] pt-6">
+<div class="flex flex-col">
+<span class="text-white text-sm font-medium">Weekly Reports</span>
+<span class="text-xs text-text-secondary">Receive a weekly summary of your messaging statistics.</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-[#111a22] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary border border-[#2f455a]"></div>
+</label>
+</div>
+<div class="flex items-center justify-between border-t border-[#2f455a] pt-6">
+<div class="flex flex-col">
+<span class="text-white text-sm font-medium">Product Updates</span>
+<span class="text-xs text-text-secondary">Stay informed about new features and improvements.</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-[#111a22] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary border border-[#2f455a]"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-6 tab-content" id="billing-tab">
+<div class="bg-[#233648] rounded-xl border border-[#2f455a] overflow-hidden">
+<div class="p-4 border-b border-[#2f455a] flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-green-500/20 p-2 rounded-lg text-green-400">
+<span class="material-symbols-outlined">credit_card</span>
+</div>
+<h3 class="text-white font-bold text-lg">Billing &amp; Subscription</h3>
+</div>
+<span class="bg-green-500/10 text-green-400 text-xs font-bold px-3 py-1 rounded-full border border-green-500/20">Active</span>
+</div>
+<div class="p-6 space-y-8">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div>
+<h4 class="text-sm font-semibold text-text-secondary uppercase mb-4 tracking-wider">Current Plan</h4>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="text-3xl font-bold text-white">Professional</span>
+<span class="text-lg text-text-secondary font-medium">/ $49 mo</span>
+</div>
+<p class="text-xs text-text-secondary mb-4">Renews automatically on <span class="text-white">Sep 24, 2023</span></p>
+<button class="text-sm bg-[#111a22] border border-[#2f455a] hover:bg-[#2f455a] text-white px-4 py-2 rounded-lg transition-colors font-medium">Manage Plan</button>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-text-secondary uppercase mb-4 tracking-wider">Payment Method</h4>
+<div class="flex items-center gap-3 mb-4">
+<div class="h-8 w-12 bg-white rounded flex items-center justify-center">
+<img alt="Mastercard" class="h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0v0JsI6hGVROO2m0lXb9CHvuAJLHtwhxt3QW1w4DNvSNPoGgxgXYlWT4cOsTWSR_xmNutBFkjgIMmi8m-YKrtUp66rfDucJLP3Mi3a2Vrqdn61ilB4iFO3NgtZWI3A1Sj0vfNEtGwy_lLRlxVtd3ui9RBkHHfwjuZps6KfI0jD7Y4Z11DEukW5A3yTZsmxFOdJFQRLHtd7rJuCp6s4yDuBYDH6ZwhJQFo9thD6Spw-bYtcXfMAyXx6IAotj5KnTwC8GUvDifvkWIA"/>
+</div>
+<div class="flex flex-col">
+<span class="text-white text-sm font-medium">Mastercard ending in 8842</span>
+<span class="text-xs text-text-secondary">Expires 12/25</span>
+</div>
+</div>
+<button class="text-sm text-primary font-medium hover:underline">Update Payment Method</button>
+</div>
+</div>
+<div class="border-t border-[#2f455a] pt-6">
+<div class="flex justify-between items-center mb-2">
+<span class="text-sm text-white font-medium">Monthly Message Usage</span>
+<span class="text-sm text-text-secondary"><span class="text-white font-bold">8,420</span> / 10,000 messages</span>
+</div>
+<div class="w-full bg-[#111a22] rounded-full h-2.5 mb-1">
+<div class="bg-primary h-2.5 rounded-full" style="width: 84%"></div>
+</div>
+<p class="text-[11px] text-text-secondary">You have used 84% of your monthly quota. <a class="text-primary hover:underline" href="#">Upgrade</a> for more.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mainNavButtons = document.querySelectorAll('nav.flex-col button[data-tab]');
+            const mainTabContents = document.querySelectorAll('.tab-content');
+            const subTabButtons = document.querySelectorAll('.sub-tab-button');
+            const subTabContents = document.querySelectorAll('.sub-tab-content');
+            function activateTab(tabId) {
+                mainTabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(tabId + '-tab').classList.add('active');
+                mainNavButtons.forEach(button => {
+                    if (button.dataset.tab === tabId) {
+                        button.classList.add('bg-[#233648]', 'text-white', 'border-primary');
+                        button.classList.remove('text-text-secondary', 'hover:bg-[#233648]', 'hover:text-white', 'border-transparent', 'hover:border-[#2f455a]');
+                        button.querySelector('.material-symbols-outlined').classList.add('text-primary');
+                        button.querySelector('.material-symbols-outlined').classList.remove('group-hover:text-white');
+                    } else {
+                        button.classList.remove('bg-[#233648]', 'text-white', 'border-primary');
+                        button.classList.add('text-text-secondary', 'hover:bg-[#233648]', 'hover:text-white', 'border-transparent', 'hover:border-[#2f455a]');
+                        button.querySelector('.material-symbols-outlined').classList.remove('text-primary');
+                        button.querySelector('.material-symbols-outlined').classList.add('group-hover:text-white');
+                    }
+                });
+            }
+            function activateSubTab(subTabId) {
+                subTabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(subTabId + '-sub-tab').classList.add('active');
+                subTabButtons.forEach(button => {
+                    if (button.dataset.subTab === subTabId) {
+                        button.classList.add('active');
+                    } else {
+                        button.classList.remove('active');
+                    }
+                });
+            }
+            mainNavButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    activateTab(button.dataset.tab);
+                });
+            });
+            subTabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    activateSubTab(button.dataset.subTab);
+                });
+            });
+            // Initial activation
+            activateTab('general');
+            activateSubTab('profile');
+        });
+    </script>
+</main></div></body></html>

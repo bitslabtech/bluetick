@@ -1,0 +1,12 @@
+1. Option to edit /configure the WhatsApp business profile (name, profile pic, etc,etc)
+2. Option to Set welcome / Away messages
+3. Add click tracking option to track users interaction those who have clicked after they received the campaign message.
+4. Add feature where users opt out (STOP) will be marked opted out and they can be excluded from campaign is users want to.
+5. Exchange rewards for feedback and reviews like google reviews, video review
+6. Enhance campaign detail page to add more details like appx charges of this campaign, add total click rate , total replied rate, etc and more informative. add filter to separate read and unread (optional)
+7. Ability to select the replied users/clicked users/read users to send new campaign to only those numbers directly from campaign detail page.
+8. Team Management with live online status of members, analysis/reports
+9. Enhance WhatsApp inbox and show tabs like active chats which ai is handling, requesting (users requesting for human agent), intervened (here human agents are assigned / transferred to other team members (with their active/online status green dot) and have convo with users), etc
+10. Meta Ads WhatsApp
+11. Referral system / Channel partner 30% commission
+12. 

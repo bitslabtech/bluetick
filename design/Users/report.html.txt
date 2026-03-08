@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Campaign Reports - WaManager</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111a22",
+                        "surface-dark": "#233648",
+                        "text-secondary": "#92adc9"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111a22; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #233648; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2f455a; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden">
+<div class="flex h-screen w-full overflow-hidden">
+<aside class="flex w-72 flex-col justify-between border-r border-[#233648] bg-[#111a22] p-4 hidden md:flex">
+<div class="flex flex-col gap-8">
+<div class="flex gap-3 items-center px-2">
+<div class="flex items-center justify-center rounded-lg bg-primary size-10 text-white">
+<span class="material-symbols-outlined text-[24px]">chat</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-normal">WaManager</h1>
+<p class="text-text-secondary text-xs font-normal leading-normal">Business API</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">send</span>
+<p class="text-sm font-medium leading-normal">Send Message</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">people</span>
+<p class="text-sm font-medium leading-normal">Contacts</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">description</span>
+<p class="text-sm font-medium leading-normal">Templates</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg bg-primary text-white" href="#">
+<span class="material-symbols-outlined text-[22px]">bar_chart</span>
+<p class="text-sm font-medium leading-normal">Reports</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:bg-[#233648] hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-3 py-3 rounded-lg bg-[#233648]/50 border border-[#233648]">
+<div class="size-2 rounded-full bg-green-500 animate-pulse"></div>
+<div class="flex flex-col">
+<span class="text-xs font-medium text-white">API Connected</span>
+<span class="text-[10px] text-text-secondary">Latency: 24ms</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex flex-1 flex-col h-full overflow-hidden bg-[#111a22] relative">
+<header class="flex items-center justify-between border-b border-[#233648] px-6 py-4 bg-[#111a22] shrink-0">
+<div class="flex items-center gap-6">
+<button class="md:hidden text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex items-center rounded-lg bg-[#233648] h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-text-secondary">search</span>
+<input class="w-full bg-transparent border-none text-white placeholder-text-secondary text-sm focus:ring-0 ml-2" placeholder="Search reports, metrics..."/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden sm:flex items-center justify-center h-10 px-4 rounded-lg bg-[#233648] text-white text-sm font-bold hover:bg-[#2f455a] transition-colors gap-2">
+<span class="material-symbols-outlined text-[20px]">help</span>
+                        Help
+                    </button>
+<button class="relative flex items-center justify-center size-10 rounded-lg bg-[#233648] text-white hover:bg-[#2f455a] transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-[#233648]"></span>
+</button>
+<div class="size-10 rounded-full bg-cover bg-center border border-[#233648] cursor-pointer" data-alt="User profile picture showing a smiling professional man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB-83iqu2ekHNgnN_1FCibBlvLwRY6Hu_bliR3cN2cX-s1so_2lXHsXeR-C1taI2i3ojcEMH9y1UlgwQB6L7q2vCXgIvVVR4AIm5mb_KIJjPR_c1mxjB3uBaKQrQb7enXq4l2m5nNxA3ebeVOBjocVXBSxBctk9uSM-5N41LzuI0pYz5aUm02fQYdtT9ZPmNTXs0eQDY-XVNt3chB3psjhLL701i9gQcrCa_kt3kLxAV4wfmnUsbJk3sVfDtBFXlKVHbECk2bUnLeAd');"></div>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
+<div class="max-w-7xl mx-auto flex flex-col gap-8">
+<div class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
+<div class="flex flex-col gap-1">
+<h2 class="text-white text-3xl font-bold tracking-tight">Campaign Reports</h2>
+<p class="text-text-secondary text-base">Detailed analytics and performance metrics for your messaging campaigns.</p>
+</div>
+<div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+<div class="relative">
+<select class="appearance-none bg-[#233648] border border-[#2f455a] text-white text-sm rounded-lg pl-3 pr-10 py-2.5 focus:outline-none focus:border-primary cursor-pointer min-w-[160px]">
+<option>All Campaigns</option>
+<option>Summer Sale Promo</option>
+<option>New Feature Update</option>
+<option>Feedback Request</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-secondary">
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</div>
+</div>
+<button class="flex items-center gap-2 bg-[#233648] border border-[#2f455a] text-white text-sm rounded-lg px-4 py-2.5 hover:bg-[#2f455a] transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                                Last 30 Days
+                            </button>
+<button class="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg px-4 py-2.5 transition-colors shadow-lg shadow-blue-500/20 whitespace-nowrap">
+<span class="material-symbols-outlined text-[20px]">download</span>
+                                Export CSV
+                            </button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="bg-[#233648] rounded-xl p-5 border border-[#2f455a] group hover:border-primary/50 transition-colors">
+<div class="flex items-start justify-between mb-4">
+<div class="p-2 rounded-lg bg-[#111a22] text-primary group-hover:text-white group-hover:bg-primary transition-colors">
+<span class="material-symbols-outlined">mark_chat_read</span>
+</div>
+<span class="text-text-secondary text-xs">Total</span>
+</div>
+<p class="text-text-secondary text-sm font-medium mb-1">Messages Sent</p>
+<p class="text-white text-2xl font-bold">148,200</p>
+</div>
+<div class="bg-[#233648] rounded-xl p-5 border border-[#2f455a] group hover:border-green-500/50 transition-colors">
+<div class="flex items-start justify-between mb-4">
+<div class="p-2 rounded-lg bg-[#111a22] text-green-400 group-hover:text-white group-hover:bg-green-500 transition-colors">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<span class="text-[#0bda5b] text-xs font-bold bg-[#0bda5b]/10 px-2 py-1 rounded">+2.4%</span>
+</div>
+<p class="text-text-secondary text-sm font-medium mb-1">Delivery Rate</p>
+<p class="text-white text-2xl font-bold">98.5%</p>
+</div>
+<div class="bg-[#233648] rounded-xl p-5 border border-[#2f455a] group hover:border-blue-500/50 transition-colors">
+<div class="flex items-start justify-between mb-4">
+<div class="p-2 rounded-lg bg-[#111a22] text-blue-400 group-hover:text-white group-hover:bg-blue-500 transition-colors">
+<span class="material-symbols-outlined">visibility</span>
+</div>
+<span class="text-[#0bda5b] text-xs font-bold bg-[#0bda5b]/10 px-2 py-1 rounded">+5.1%</span>
+</div>
+<p class="text-text-secondary text-sm font-medium mb-1">Read Rate</p>
+<p class="text-white text-2xl font-bold">82.4%</p>
+</div>
+<div class="bg-[#233648] rounded-xl p-5 border border-[#2f455a] group hover:border-red-500/50 transition-colors">
+<div class="flex items-start justify-between mb-4">
+<div class="p-2 rounded-lg bg-[#111a22] text-red-400 group-hover:text-white group-hover:bg-red-500 transition-colors">
+<span class="material-symbols-outlined">error</span>
+</div>
+<span class="text-red-400 text-xs font-bold bg-red-500/10 px-2 py-1 rounded">-0.2%</span>
+</div>
+<p class="text-text-secondary text-sm font-medium mb-1">Failed</p>
+<p class="text-white text-2xl font-bold">1.5%</p>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 bg-[#233648] rounded-xl p-6 border border-[#2f455a] flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h3 class="text-white text-lg font-bold">Message Traffic</h3>
+<p class="text-text-secondary text-xs mt-1">Daily volume of messages sent over the selected period.</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="size-3 rounded-full bg-primary"></span>
+<span class="text-xs text-text-secondary">Sent</span>
+</div>
+</div>
+<div class="flex-1 flex items-end justify-between gap-2 h-64 px-2 pt-8">
+<div class="flex flex-col items-center gap-2 w-full group cursor-pointer">
+<div class="w-full bg-primary/20 rounded-t-sm h-[40%] group-hover:bg-primary transition-all relative">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-[#111a22] border border-[#2f455a] text-white text-xs py-1.5 px-3 rounded shadow-xl whitespace-nowrap z-10">4.2k msgs</div>
+</div>
+<span class="text-[10px] text-text-secondary">01</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full group cursor-pointer">
+<div class="w-full bg-primary/20 rounded-t-sm h-[55%] group-hover:bg-primary transition-all relative">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-[#111a22] border border-[#2f455a] text-white text-xs py-1.5 px-3 rounded shadow-xl whitespace-nowrap z-10">5.8k msgs</div>
+</div>
+<span class="text-[10px] text-text-secondary">05</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full group cursor-pointer">
+<div class="w-full bg-primary/20 rounded-t-sm h-[45%] group-hover:bg-primary transition-all relative">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-[#111a22] border border-[#2f455a] text-white text-xs py-1.5 px-3 rounded shadow-xl whitespace-nowrap z-10">4.9k msgs</div>
+</div>
+<span class="text-[10px] text-text-secondary">10</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full group cursor-pointer">
+<div class="w-full bg-primary/20 rounded-t-sm h-[70%] group-hover:bg-primary transition-all relative">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-[#111a22] border border-[#2f455a] text-white text-xs py-1.5 px-3 rounded shadow-xl whitespace-nowrap z-10">8.1k msgs</div>
+</div>
+<span class="text-[10px] text-text-secondary">15</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full group cursor-pointer">
+<div class="w-full bg-primary rounded-t-sm h-[85%] relative shadow-[0_0_15px_rgba(19,127,236,0.3)]">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-slate-900 text-xs py-1.5 px-3 rounded font-bold shadow-xl whitespace-nowrap z-10">
+                                            10.2k
+                                            <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white"></div>
+</div>
+</div>
+<span class="text-[10px] text-white font-bold">20</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full group cursor-pointer">
+<div class="w-full bg-primary/20 rounded-t-sm h-[60%] group-hover:bg-primary transition-all relative">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-[#111a22] border border-[#2f455a] text-white text-xs py-1.5 px-3 rounded shadow-xl whitespace-nowrap z-10">6.5k msgs</div>
+</div>
+<span class="text-[10px] text-text-secondary">25</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full group cursor-pointer">
+<div class="w-full bg-primary/20 rounded-t-sm h-[30%] group-hover:bg-primary transition-all relative">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-[#111a22] border border-[#2f455a] text-white text-xs py-1.5 px-3 rounded shadow-xl whitespace-nowrap z-10">3.1k msgs</div>
+</div>
+<span class="text-[10px] text-text-secondary">30</span>
+</div>
+</div>
+</div>
+<div class="bg-[#233648] rounded-xl p-6 border border-[#2f455a] flex flex-col">
+<h3 class="text-white text-lg font-bold mb-6">Delivery Funnel</h3>
+<div class="flex flex-col gap-6 flex-1 justify-center">
+<div class="flex flex-col gap-2">
+<div class="flex justify-between text-sm">
+<span class="text-text-secondary">Delivered</span>
+<span class="text-white font-medium">98.5%</span>
+</div>
+<div class="h-2 w-full bg-[#111a22] rounded-full overflow-hidden">
+<div class="h-full bg-green-500 rounded-full" style="width: 98.5%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between text-sm">
+<span class="text-text-secondary">Read</span>
+<span class="text-white font-medium">82.4%</span>
+</div>
+<div class="h-2 w-full bg-[#111a22] rounded-full overflow-hidden">
+<div class="h-full bg-blue-500 rounded-full" style="width: 82.4%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between text-sm">
+<span class="text-text-secondary">Replied / Clicked</span>
+<span class="text-white font-medium">15.2%</span>
+</div>
+<div class="h-2 w-full bg-[#111a22] rounded-full overflow-hidden">
+<div class="h-full bg-purple-500 rounded-full" style="width: 15.2%"></div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-[#2f455a]">
+<div class="flex items-center gap-3">
+<div class="flex items-center justify-center size-10 rounded-full bg-red-500/10 text-red-400">
+<span class="material-symbols-outlined text-[20px]">block</span>
+</div>
+<div>
+<p class="text-white font-bold">2,140</p>
+<p class="text-text-secondary text-xs">Undelivered Messages</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-white text-lg font-bold">Campaign Performance</h3>
+<button class="text-primary text-sm font-medium hover:text-blue-400 flex items-center gap-1">
+                                View All Reports
+                                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="overflow-x-auto rounded-xl border border-[#233648]">
+<table class="w-full text-left border-collapse bg-[#233648]">
+<thead class="bg-[#111a22] text-text-secondary text-xs uppercase font-medium">
+<tr>
+<th class="px-6 py-4">Campaign Name</th>
+<th class="px-6 py-4">Sent Date</th>
+<th class="px-6 py-4">Audience</th>
+<th class="px-6 py-4">Delivered</th>
+<th class="px-6 py-4">Read Rate</th>
+<th class="px-6 py-4">Status</th>
+<th class="px-6 py-4 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="text-sm divide-y divide-[#111a22]">
+<tr class="hover:bg-[#2f455a] transition-colors group">
+<td class="px-6 py-4 font-medium text-white">Summer Sale Promo</td>
+<td class="px-6 py-4 text-text-secondary">Oct 24, 2023</td>
+<td class="px-6 py-4 text-text-secondary">15,000</td>
+<td class="px-6 py-4 text-white">14,850 <span class="text-xs text-text-secondary">(99%)</span></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="text-white">92%</span>
+<div class="h-1.5 w-16 bg-[#111a22] rounded-full overflow-hidden">
+<div class="h-full bg-blue-500 rounded-full" style="width: 92%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                                                Completed
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-text-secondary hover:text-white p-2 rounded hover:bg-[#111a22] transition-colors">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-[#2f455a] transition-colors group">
+<td class="px-6 py-4 font-medium text-white">New Feature Update</td>
+<td class="px-6 py-4 text-text-secondary">Oct 22, 2023</td>
+<td class="px-6 py-4 text-text-secondary">3,000</td>
+<td class="px-6 py-4 text-white">2,900 <span class="text-xs text-text-secondary">(96%)</span></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="text-white">78%</span>
+<div class="h-1.5 w-16 bg-[#111a22] rounded-full overflow-hidden">
+<div class="h-full bg-blue-500 rounded-full" style="width: 78%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                                                Completed
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-text-secondary hover:text-white p-2 rounded hover:bg-[#111a22] transition-colors">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-[#2f455a] transition-colors group">
+<td class="px-6 py-4 font-medium text-white">Black Friday Teaser</td>
+<td class="px-6 py-4 text-text-secondary">Today, 09:00 AM</td>
+<td class="px-6 py-4 text-text-secondary">50,000</td>
+<td class="px-6 py-4 text-white">12,400 <span class="text-xs text-text-secondary">(25%)</span></td>
+<td class="px-6 py-4 text-text-secondary">-</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+<div class="size-1.5 rounded-full bg-blue-400 animate-pulse"></div>
+                                                Sending
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-text-secondary hover:text-white p-2 rounded hover:bg-[#111a22] transition-colors">
+<span class="material-symbols-outlined text-[20px]">pause</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-[#2f455a] transition-colors group">
+<td class="px-6 py-4 font-medium text-white">Feedback Request</td>
+<td class="px-6 py-4 text-text-secondary">Oct 15, 2023</td>
+<td class="px-6 py-4 text-text-secondary">890</td>
+<td class="px-6 py-4 text-white">880 <span class="text-xs text-text-secondary">(99%)</span></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="text-white">45%</span>
+<div class="h-1.5 w-16 bg-[#111a22] rounded-full overflow-hidden">
+<div class="h-full bg-yellow-500 rounded-full" style="width: 45%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                                                Completed
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-text-secondary hover:text-white p-2 rounded hover:bg-[#111a22] transition-colors">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>
