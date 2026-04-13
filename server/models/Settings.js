@@ -85,6 +85,23 @@ const Settings = sequelize.define('Settings', {
         type: DataTypes.JSON,
         defaultValue: {}
     },
+    // WhatsApp Specific Settings
+    whatsappProfile: {
+        type: DataTypes.JSON,
+        defaultValue: { description: '', address: '', email: '', websites: [], vertical: '' }
+    },
+    whatsappAutomations: {
+        type: DataTypes.JSON,
+        defaultValue: { welcomeMessage: { enabled: false, text: '' }, offHoursMessage: { enabled: false, text: '', timezone: 'UTC', schedule: [] } }
+    },
+    // Team Policy: Controls inbox visibility + phone privacy for team members
+    teamPolicy: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            inboxVisibility: 'see_all',  // 'see_all' | 'see_assigned' | 'see_all_reply_assigned'
+            phonePrivacy: 'visible'       // 'visible' | 'blurred' | 'masked'
+        }
+    },
     userId: {
         type: DataTypes.UUID,
         allowNull: false

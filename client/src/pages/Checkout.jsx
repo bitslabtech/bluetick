@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle } from 'lucide-react';
+import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
 // Dynamically load Razorpay checkout script
 const loadRazorpayScript = () =>
@@ -25,6 +25,12 @@ const Checkout = () => {
     const [upgradeData, setUpgradeData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+
+    // Coupons
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [validatingCoupon, setValidatingCoupon] = useState(false);
+
     const { showToast } = useUI();
     const navigate = useNavigate();
 
@@ -35,8 +41,8 @@ const Checkout = () => {
             const parsedPlan = JSON.parse(pendingPlanStr);
             setPlan(parsedPlan);
 
-            // Calculate Upgrade Math
-            axios.get(`${API}/api/billing/calculate-upgrade/${parsedPlan.name}`, {
+            // Calculate Upgrade Math whenever interval changes
+            axios.get(`${API}/api/billing/calculate-upgrade/${parsedPlan.name}?interval=${parsedPlan.interval || 'month'}`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             }).then(res => {
                 setUpgradeData(res.data);
@@ -50,7 +56,35 @@ const Checkout = () => {
             navigate('/dashboard');
             setLoading(false);
         }
-    }, [navigate]);
+    }, [navigate, plan?.interval]);
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setValidatingCoupon(true);
+        try {
+            const currentTotal = upgradeData ? upgradeData.finalPayableAmount : plan.price;
+            const res = await axios.post(`${API}/api/coupons/validate`, {
+                code: couponCode.trim(),
+                planName: plan.name,
+                planPrice: currentTotal,
+                isUpgrade: upgradeData?.creditAmount > 0,
+                interval: plan.interval
+            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+
+            setAppliedCoupon(res.data);
+            showToast({ type: 'success', title: 'Coupon Applied', message: res.data.message });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Invalid Coupon', message: err.response?.data?.error || 'Failed to apply coupon.' });
+            setAppliedCoupon(null);
+        } finally {
+            setValidatingCoupon(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponCode('');
+    };
 
     const handlePayment = async () => {
         setProcessing(true);
@@ -68,7 +102,9 @@ const Checkout = () => {
             // Pass isUpgrade flag if we have a credit, so backend recalculates securely
             const { data: orderData } = await axios.post(`${API}/api/billing/create-order`, {
                 planName: plan.name,
-                isUpgrade: upgradeData?.creditAmount > 0
+                isUpgrade: upgradeData?.creditAmount > 0,
+                couponCode: appliedCoupon ? appliedCoupon.code : null,
+                interval: plan.interval || 'month'
             }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
@@ -99,7 +135,9 @@ const Checkout = () => {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
-                            planName: plan.name
+                            planName: plan.name,
+                            couponCode: appliedCoupon ? appliedCoupon.code : null,
+                            discountApplied: appliedCoupon ? appliedCoupon.calculatedDiscount : 0
                         }, {
                             headers: { 'x-auth-token': localStorage.getItem('token') }
                         });
@@ -168,6 +206,24 @@ const Checkout = () => {
                         {/* Plan Card */}
                         <div className="bg-white dark:bg-slate-800 rounded-2xl p-7 border border-slate-200 dark:border-white/10 shadow-sm">
                             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-5">Order Summary</h2>
+                            
+                            {/* Interval Switcher */}
+                            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-white/10 mb-6">
+                                {['month', 'half-year', 'year'].map(int => (
+                                    <button
+                                        key={int}
+                                        onClick={() => {
+                                            const newPlan = { ...plan, interval: int };
+                                            setPlan(newPlan);
+                                            localStorage.setItem('pendingPlan', JSON.stringify(newPlan));
+                                            setLoading(true);
+                                        }}
+                                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${plan.interval === int ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                                    >
+                                        {int === 'month' ? 'Monthly' : int === 'year' ? 'Yearly' : 'Half-Yearly'}
+                                    </button>
+                                ))}
+                            </div>
 
                             <div className="flex items-start justify-between mb-6">
                                 <div>
@@ -175,7 +231,7 @@ const Checkout = () => {
                                         <Tag className="w-3 h-3" /> {plan.name} Plan
                                     </div>
                                     <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-                                        {sym}{upgradeData ? upgradeData.finalPayableAmount.toLocaleString() : parseFloat(plan.price).toLocaleString()}
+                                        {sym}{upgradeData ? (appliedCoupon ? upgradeData.finalPayableAmount.toLocaleString() : upgradeData.targetPlanPrice.toLocaleString()) : parseFloat(plan.price).toLocaleString()}
                                     </h3>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">{intLabel}</p>
                                 </div>
@@ -229,6 +285,18 @@ const Checkout = () => {
                                     </div>
                                 )}
 
+                                {appliedCoupon && (
+                                    <div className="flex justify-between items-center text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/10 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-800/20">
+                                        <div className="flex flex-col">
+                                            <span>Coupon Applied ({appliedCoupon.code})</span>
+                                            <span className="text-[10px] text-indigo-500/80 dark:text-indigo-300/60 leading-none mt-0.5">
+                                                {appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}% off` : 'Fixed discount'}
+                                            </span>
+                                        </div>
+                                        <span>-{sym}{appliedCoupon.calculatedDiscount.toLocaleString()}</span>
+                                    </div>
+                                )}
+
                                 <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400 pt-1">
                                     <span>Tax / GST</span>
                                     <span>Included</span>
@@ -236,8 +304,55 @@ const Checkout = () => {
 
                                 <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white pt-3 border-t border-slate-100 dark:border-white/10 mt-3">
                                     <span>Total Due Today</span>
-                                    <span>{sym}{upgradeData ? upgradeData.finalPayableAmount.toLocaleString() : parseFloat(plan.price).toLocaleString()}</span>
+                                    <span>{sym}{appliedCoupon ? appliedCoupon.finalPrice.toLocaleString() : (upgradeData ? upgradeData.finalPayableAmount.toLocaleString() : parseFloat(plan.price).toLocaleString())}</span>
                                 </div>
+                            </div>
+
+                            {/* Coupon Section */}
+                            <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/10">
+                                {!appliedCoupon ? (
+                                    <div className="space-y-3">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                            <Gift className="w-3.5 h-3.5" /> Have a Promo Code?
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                value={couponCode}
+                                                onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                                                placeholder="Enter coupon code"
+                                                className="flex-1 px-4 py-2 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none uppercase font-mono text-sm dark:text-white transition-all"
+                                                disabled={validatingCoupon}
+                                                onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                                            />
+                                            <button
+                                                onClick={handleApplyCoupon}
+                                                disabled={validatingCoupon || !couponCode.trim()}
+                                                className="px-4 py-2 bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-700 text-white font-bold rounded-xl disabled:opacity-50 transition-all text-sm flex items-center"
+                                            >
+                                                {validatingCoupon ? <Loader className="w-4 h-4 animate-spin" /> : 'Apply'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded-xl">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-1.5 bg-green-100 dark:bg-green-800/50 rounded-lg">
+                                                <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-green-800 dark:text-green-300">{appliedCoupon.code} applied!</div>
+                                                <div className="text-xs text-green-600 dark:text-green-400">Total updated successfully</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleRemoveCoupon}
+                                            className="p-1.5 text-green-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            title="Remove Coupon"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -274,16 +389,27 @@ const Checkout = () => {
                                 {processing ? (
                                     <><Loader className="w-5 h-5 animate-spin" /> Opening Payment...</>
                                 ) : (
-                                    <><Shield className="w-5 h-5" /> Pay {sym}{upgradeData ? upgradeData.finalPayableAmount.toLocaleString() : parseFloat(plan.price).toLocaleString()}</>
+                                    <><Shield className="w-5 h-5" /> Pay {sym}{appliedCoupon ? appliedCoupon.finalPrice.toLocaleString() : (upgradeData ? upgradeData.finalPayableAmount.toLocaleString() : parseFloat(plan.price).toLocaleString())}</>
                                 )}
                             </button>
 
                             <button
-                                onClick={() => { localStorage.removeItem('pendingPlan'); navigate('/billing'); }}
+                                onClick={async () => {
+                                    setProcessing(true);
+                                    try {
+                                        await axios.post(`${API}/api/billing/downgrade-to-free`, {}, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                        localStorage.removeItem('pendingPlan');
+                                        // A hard reload is safest to reset AuthContext user data immediately
+                                        window.location.href = '/dashboard';
+                                    } catch (err) {
+                                        console.error(err);
+                                        setProcessing(false);
+                                    }
+                                }}
                                 disabled={processing}
-                                className="w-full mt-3 py-3 bg-transparent text-slate-500 dark:text-slate-400 rounded-xl font-medium hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-sm disabled:opacity-50"
+                                className="w-full mt-3 py-3.5 bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 rounded-xl font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors text-sm disabled:opacity-50 border border-rose-200 dark:border-rose-800/30 shadow-sm flex items-center justify-center"
                             >
-                                Cancel & go back
+                                Downgrade to Free or Choose a Different Plan
                             </button>
 
                             {/* Razorpay disclaimer */}

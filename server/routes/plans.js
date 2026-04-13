@@ -59,7 +59,12 @@ router.use(auth, admin);
 // POST Create Plan
 router.post('/', async (req, res) => {
     try {
-        const { name, description, price, currency, interval, features, color, isPopular, isActive, isDefault, isPublic, messageLimit, contactLimit, templateLimit } = req.body;
+        const { 
+            name, description, price, monthlyPrice, halfYearlyPrice, yearlyPrice, currency, interval, 
+            features, color, isPopular, isActive, isDefault, isPublic, messageLimit, contactLimit, 
+            templateLimit, aiTokensAllowance, includedAddons, teamMemberLimit, allowApiAccess, trialDays,
+            quickReplyLimit, tagLimit, groupLimit
+        } = req.body;
 
         if (!name) return res.status(400).json({ error: 'Plan name is required' });
 
@@ -75,15 +80,26 @@ router.post('/', async (req, res) => {
             name,
             description,
             price,
+            monthlyPrice,
+            halfYearlyPrice,
+            yearlyPrice,
             currency,
             interval,
             messageLimit,
             contactLimit,
             templateLimit,
+            quickReplyLimit: quickReplyLimit || 10,
+            tagLimit: tagLimit || 10,
+            groupLimit: groupLimit || 5,
+            teamMemberLimit: teamMemberLimit || 0,
+            aiTokensAllowance: aiTokensAllowance || 0,
+            includedAddons: includedAddons || [],
+            trialDays: trialDays || 0,
             features,
             color,
             isPopular,
             isActive,
+            allowApiAccess: allowApiAccess || false,
             isDefault: isDefault || false,
             isPublic: isPublic !== undefined ? isPublic : true
         });

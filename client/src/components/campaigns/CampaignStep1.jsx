@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useUI } from '../../context/UIContext';
-import { Edit2, Folder, UploadCloud, Clipboard, Search, Plus, ArrowRight, Lightbulb, ShieldCheck, X, AlertTriangle, TrendingUp, Zap, Lock } from 'lucide-react';
+import { Edit2, Folder, UploadCloud, Clipboard, Search, Plus, ArrowRight, Lightbulb, ShieldCheck, X, AlertTriangle, TrendingUp, Zap, Lock, Tag, Users } from 'lucide-react';
 
 const CampaignStep1 = ({ data, updateData, onNext }) => {
     const navigate = useNavigate();
@@ -22,33 +22,47 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
     const [accountStats, setAccountStats] = useState({ usage: 0, limit: -1, planName: '', contactLimit: -1 });
     const [loadingStats, setLoadingStats] = useState(true);
     const [showLockedWarning, setShowLockedWarning] = useState(false);
-    const [allContacts, setAllContacts] = useState([]);
+    const [totalContactsCount, setTotalContactsCount] = useState(0);
+    const [retargetCount, setRetargetCount] = useState(0);
+
+    // Fetch retargeting stats if needed
+    useEffect(() => {
+        if (data.retargetLogIds) {
+            // Subset selected
+            setRetargetCount(data.retargetLogIds.length);
+        } else if (data.retargetCampaignId && data.retargetStatus) {
+            axios.get(`http://127.0.0.1:5000/api/messages/${data.retargetCampaignId}`)
+                .then(res => {
+                    const logs = res.data.logs || [];
+                    let count = 0;
+                    if (data.retargetStatus === 'ALL' || data.retargetStatus === 'all') {
+                        count = logs.length;
+                    } else {
+                        count = logs.filter(l => (l.status || '').toUpperCase() === data.retargetStatus.toUpperCase()).length;
+                    }
+                    setRetargetCount(count);
+                })
+                .catch(err => console.error("Error fetching retarget info", err));
+        }
+    }, [data.retargetCampaignId, data.retargetStatus, data.retargetLogIds]);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoadingStats(true);
             try {
-                // Fetch all contacts
-                const contactsRes = await axios.get('http://localhost:5000/api/contacts');
-                const allContacts = contactsRes.data;
-                const totalCount = allContacts.length;
+                // Fetch summary (total count + groups with counts)
+                const summaryRes = await axios.get('http://127.0.0.1:5000/api/contacts/campaign-summary');
+                const { totalContacts, groups } = summaryRes.data;
 
-                // Fetch groups (tags)
-                const groupsRes = await axios.get('http://localhost:5000/api/contacts/groups');
-                const groups = Array.isArray(groupsRes.data) ? groupsRes.data.map(tag => ({
-                    id: tag,
-                    name: tag,
-                    count: allContacts.filter(c => c.tags && c.tags.includes(tag)).length.toString(),
-                    updated: 'Just now'
-                })) : [];
+                setTotalContactsCount(parseInt(totalContacts, 10));
 
                 setRecipientGroups([
-                    { id: 'all', name: 'All Contacts', count: totalCount.toString(), updated: 'Just now' },
-                    ...groups
+                    { id: 'all', name: 'All Contacts', count: totalContacts, updated: 'Just now' },
+                    ...(groups || [])
                 ]);
 
                 // Fetch real plan limits from billing API
-                const billingRes = await axios.get('http://localhost:5000/api/billing');
+                const billingRes = await axios.get('http://127.0.0.1:5000/api/billing');
                 const usage = billingRes.data?.usage;
                 setAccountStats({
                     usage: usage?.messagesSent ?? 0,
@@ -56,7 +70,6 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                     planName: billingRes.data?.plan?.name ?? '',
                     contactLimit: usage?.contactLimit ?? -1
                 });
-                setAllContacts(allContacts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)));
 
             } catch (err) {
                 console.error('Failed to fetch data', err);
@@ -69,6 +82,8 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
 
     // --- Derived: how many recipients does the current selection represent? ---
     const selectedCount = useMemo(() => {
+        if (data.retargetCampaignId) return retargetCount;
+        
         let count = 0;
         const recipients = data.recipients || [];
         if (recipients.includes('all')) {
@@ -82,7 +97,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
         }
         count += (data.manualRecipients || []).length;
         return count;
-    }, [data.recipients, data.manualRecipients, recipientGroups]);
+    }, [data.recipients, data.manualRecipients, recipientGroups, data.retargetCampaignId, retargetCount]);
 
     // --- Derived: limit status for progress bar ---
     const limitCalc = useMemo(() => {
@@ -105,29 +120,17 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
     const lockedInfo = useMemo(() => {
         if (accountStats.contactLimit === -1) return { count: 0, hasLocked: false };
 
-        let selectedContactObjects = [];
-        const recipientIds = data.recipients || [];
-
-        if (recipientIds.includes('all')) {
-            selectedContactObjects = allContacts;
-        } else {
-            // Get contacts from selected groups
-            selectedContactObjects = allContacts.filter(c =>
-                c.tags && c.tags.some(tag => recipientIds.includes(tag))
-            );
+        // If total contacts is greater than the limit, any selection might include locked contacts.
+        // We use an approximation: if totalContactsCount > limit, show warning if they select anything.
+        if (totalContactsCount > accountStats.contactLimit) {
+            return {
+                count: totalContactsCount - accountStats.contactLimit,
+                hasLocked: selectedCount > 0
+            };
         }
 
-        // A contact is locked if its index in sorted allContacts is >= contactLimit
-        const lockedContacts = selectedContactObjects.filter(c => {
-            const index = allContacts.findIndex(ac => ac.id === c.id);
-            return index >= accountStats.contactLimit;
-        });
-
-        return {
-            count: lockedContacts.length,
-            hasLocked: lockedContacts.length > 0
-        };
-    }, [allContacts, data.recipients, accountStats.contactLimit]);
+        return { count: 0, hasLocked: false };
+    }, [totalContactsCount, accountStats.contactLimit, selectedCount]);
 
     const handleNext = () => {
         if (lockedInfo.hasLocked) {
@@ -141,7 +144,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
         if (!manualInput.trim()) return;
 
         // Check for contact limit IF adding to contacts
-        if (addToContacts && accountStats.contactLimit !== -1 && allContacts.length >= accountStats.contactLimit) {
+        if (addToContacts && accountStats.contactLimit !== -1 && totalContactsCount >= accountStats.contactLimit) {
             showToast({
                 type: 'warning',
                 title: 'Limit Reached',
@@ -165,7 +168,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                 let addedCount = 0;
                 for (const rec of newRecipients) {
                     try {
-                        await axios.post('http://localhost:5000/api/contacts', {
+                        await axios.post('http://127.0.0.1:5000/api/contacts', {
                             name: rec.name,
                             phone: rec.phone,
                             tags: 'Manual Import'
@@ -307,7 +310,39 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                     </div>
 
                     {/* Recipients Card */}
-                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+                    {data.retargetCampaignId ? (
+                        <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 dark:from-blue-500/5 dark:to-indigo-500/5 rounded-2xl border border-blue-200 dark:border-blue-500/20 overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+                            <div className="px-6 py-4 border-b border-blue-200 dark:border-blue-500/20 flex items-center gap-3 bg-blue-50 dark:bg-blue-500/10">
+                                <div className="bg-blue-500 p-2 rounded-lg text-white">
+                                    <Tag className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-blue-900 dark:text-blue-100 font-bold text-lg">Retargeting Mode</h3>
+                                        <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">{data.retargetStatus}</span>
+                                        {data.retargetLogIds && (
+                                            <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Custom Subset</span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-blue-600 dark:text-blue-300 mt-0.5">This campaign will automatically be sent to the {data.retargetStatus.toLowerCase()} audience from the selected original campaign.</p>
+                                </div>
+                            </div>
+                            <div className="p-8 flex flex-col items-center justify-center text-center">
+                                <div className="bg-blue-100 dark:bg-blue-900/30 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                                    <Users className="w-8 h-8 text-blue-500" />
+                                </div>
+                                <h4 className="text-2xl font-bold text-slate-900 dark:text-white">{retargetCount === 0 && loadingStats && !data.retargetLogIds ? 'Calculating...' : retargetCount} Recipients</h4>
+                                <p className="text-sm text-slate-500 dark:text-text-secondary mt-2 max-w-sm">The exact recipient list is locked. You can proceed to the next step to select your message template.</p>
+                                <button
+                                    onClick={() => updateData({ retargetCampaignId: null, retargetStatus: null, retargetLogIds: null, name: '' })}
+                                    className="mt-6 text-xs font-bold text-red-500 hover:text-red-600 hover:underline px-4 py-2 rounded-lg transition-colors border border-transparent hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-500/10"
+                                >
+                                    Cancel Retargeting & Select Audience Manually
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
                         <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
                             <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
                                 <Folder className="w-5 h-5" />
@@ -392,8 +427,9 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                     <span className="font-medium text-sm">Create New Group</span>
                                 </button>
                             </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Right Column: Actions & Preview */}
@@ -549,10 +585,10 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                 onClick={handleNext}
                                 disabled={
                                     !data.name ||
-                                    ((data.recipients || []).length === 0 && (data.manualRecipients || []).length === 0) ||
+                                    (!data.retargetCampaignId && (data.recipients || []).length === 0 && (data.manualRecipients || []).length === 0) ||
                                     (!limitCalc.isUnlimited && limitCalc.wouldExceed)
                                 }
-                                className={`w-full py-4 text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 group ${(!data.name || ((data.recipients || []).length === 0 && (data.manualRecipients || []).length === 0) || (!limitCalc.isUnlimited && limitCalc.wouldExceed))
+                                className={`w-full py-4 text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 group ${(!data.name || (!data.retargetCampaignId && (data.recipients || []).length === 0 && (data.manualRecipients || []).length === 0) || (!limitCalc.isUnlimited && limitCalc.wouldExceed))
                                     ? 'bg-slate-300 dark:bg-gray-700/50 cursor-not-allowed text-slate-500 dark:text-gray-400 shadow-none'
                                     : 'bg-primary hover:bg-blue-600 shadow-blue-500/20 active:scale-95'
                                     }`}

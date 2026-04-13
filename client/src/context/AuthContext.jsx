@@ -9,6 +9,8 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isImpersonating, setIsImpersonating] = useState(false);
+    // Prevents route guards from firing during mid-swap auth transitions (impersonation)
+    const [isTransitioning, setIsTransitioning] = useState(false);
 
     // Initialize Auth State from LocalStorage
     useEffect(() => {
@@ -17,7 +19,6 @@ export const AuthProvider = ({ children }) => {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
                 const userStr = localStorage.getItem('user');
-                // Simple validation to ensure it's not "undefined" string
                 if (userStr && userStr !== "undefined") {
                     const savedUser = JSON.parse(userStr);
                     if (savedUser) setUser(savedUser);
@@ -31,44 +32,51 @@ export const AuthProvider = ({ children }) => {
             const adminToken = localStorage.getItem('adminToken');
             if (adminToken) {
                 setIsImpersonating(true);
-                // Ensure the admin header is set if we reload the page during impersonation
                 axios.defaults.headers.common['x-admin-token'] = adminToken;
             }
+
+            // Sync fresh data from server
+            fetchUser();
         }
         setLoading(false);
     }, []);
 
     const login = async (email, password) => {
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+            const res = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
             const { token, user } = res.data;
 
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
+            localStorage.removeItem('adminToken');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            delete axios.defaults.headers.common['x-admin-token']; // Clear any residue
+            delete axios.defaults.headers.common['x-admin-token'];
 
             setUser(user);
+            setIsImpersonating(false);
             return { success: true };
         } catch (err) {
             return { success: false, error: err.response?.data?.error || 'Login failed' };
         }
     };
 
-    const register = async (name, email, password, selectedPlan = null) => {
+    const register = async (name, email, password, selectedPlan = null, referralCode = null, partnerCode = null, phone = '') => {
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/register', {
+            const res = await axios.post('http://127.0.0.1:5000/api/auth/register', {
                 name,
                 email,
                 password,
-                selectedPlan
+                selectedPlan,
+                ref: referralCode,
+                partnerCode: partnerCode || undefined,
+                phone
             });
             const { token, user } = res.data;
 
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            delete axios.defaults.headers.common['x-admin-token']; // Clear any residue
+            delete axios.defaults.headers.common['x-admin-token'];
 
             setUser(user);
             return { success: true, user };
@@ -80,16 +88,15 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        localStorage.removeItem('adminToken'); // Clear admin token too
+        localStorage.removeItem('adminToken');
         delete axios.defaults.headers.common['Authorization'];
         delete axios.defaults.headers.common['x-admin-token'];
         setUser(null);
         setIsImpersonating(false);
     };
 
-    const impersonate = (token, targetUser) => {
+    const impersonate = async (token, targetUser) => {
         // 1. Save Admin Token ONLY if we are not already impersonating
-        // This prevents overwriting the admin token with a user token if called twice
         let adminTokenToUse = localStorage.getItem('adminToken');
         if (!adminTokenToUse) {
             const currentToken = localStorage.getItem('token');
@@ -99,45 +106,46 @@ export const AuthProvider = ({ children }) => {
             }
         }
 
-        // 2. Set Target Token
+        // 2. Swap tokens and user in localStorage + axios headers
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(targetUser));
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-        // --- NEW: Set Header for Tracking ---
         if (adminTokenToUse) {
             axios.defaults.headers.common['x-admin-token'] = adminTokenToUse;
         }
 
-        // 3. Update State
-        setUser(targetUser);
-        setIsImpersonating(true);
+        // 3. Hard-navigate to dashboard — avoids all React render race conditions
+        //    between React Router state and AuthContext state that cause
+        //    admin guards to briefly fire with the swapped non-admin user.
+        //    On reload, AuthContext initializes from localStorage (already correct).
+        window.location.href = '/dashboard';
     };
 
     const exitImpersonation = async () => {
+        // 1. Lock UI during exit transition
+        setIsTransitioning(true);
+
         const adminToken = localStorage.getItem('adminToken');
         if (!adminToken) {
             console.warn("No admin token found to restore.");
+            setIsTransitioning(false);
             logout();
             return;
         }
 
-        // 1. Restore Admin Token
+        // 2. Restore Admin Token
         localStorage.setItem('token', adminToken);
         localStorage.removeItem('adminToken');
         axios.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`;
-
-        // --- NEW: Clear Header ---
         delete axios.defaults.headers.common['x-admin-token'];
 
-        // 2. Fetch Admin User Profile
+        // 3. Fetch Admin User Profile
         try {
-            // We MUST fetch fresh admin data to ensure UI updates correctly
-            const res = await axios.get('http://localhost:5000/api/auth/me');
+            const res = await axios.get('http://127.0.0.1:5000/api/auth/me');
             if (res && res.data) {
                 localStorage.setItem('user', JSON.stringify(res.data));
                 setUser(res.data);
-                setIsImpersonating(false); // Only unset this AFTER success
+                setIsImpersonating(false); // Clear impersonation AFTER user state is set to prevent flash
             } else {
                 console.error("Failed to fetch admin profile, logging out for safety.");
                 logout();
@@ -146,10 +154,25 @@ export const AuthProvider = ({ children }) => {
             console.error("Failed to restore admin profile:", err);
             logout();
         }
+
+        // 4. Unlock UI
+        setIsTransitioning(false);
+    };
+
+    const fetchUser = async () => {
+        try {
+            const res = await axios.get('http://127.0.0.1:5000/api/auth/me');
+            if (res && res.data) {
+                localStorage.setItem('user', JSON.stringify(res.data));
+                setUser(res.data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch user profile:", err);
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading, impersonate, exitImpersonation, isImpersonating }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading, impersonate, exitImpersonation, isImpersonating, isTransitioning, fetchUser }}>
             {!loading && children}
         </AuthContext.Provider>
     );

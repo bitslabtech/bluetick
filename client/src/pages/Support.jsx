@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Ticket, Book, Map, Plus, Send, Search, ChevronRight, ThumbsUp, Paperclip, X, CreditCard, Laptop, HelpCircle, User, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -44,7 +45,27 @@ const ConfettiExplosion = ({ trigger }) => {
 
 const Support = () => {
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState('home'); // home | tickets | roadmap
+    const [searchParams, setSearchParams] = useSearchParams();
+    
+    // Read from URL e.g. ?tab=tickets&action=create-ticket
+    const initialTab = searchParams.get('tab') || 'home';
+    const action = searchParams.get('action');
+
+    const [activeTab, setActiveTabState] = useState(['home', 'tickets', 'roadmap'].includes(initialTab) ? initialTab : 'home');
+
+    // Keep URL in sync with tabs to allow copy-pasting the link
+    const setActiveTab = (tab) => {
+        setActiveTabState(tab);
+        setSearchParams(prev => { prev.set('tab', tab); return prev; }, { replace: true });
+    };
+
+    // Sync tab state if URL changes externally
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['home', 'tickets', 'roadmap'].includes(tab) && tab !== activeTab) {
+            setActiveTabState(tab);
+        }
+    }, [searchParams]);
     const [kbArticles, setKbArticles] = useState([]);
     const [roadmap, setRoadmap] = useState([]);
     const [tickets, setTickets] = useState([]);
@@ -53,10 +74,10 @@ const Support = () => {
     const [selectedArticle, setSelectedArticle] = useState(null);
     const [activeConfettiId, setActiveConfettiId] = useState(null);
 
-    const fetchKB = async () => { try { const res = await axios.get('http://localhost:5000/api/support/kb'); setKbArticles(res.data); } catch (e) { console.error(e); } };
-    const fetchCategories = async () => { try { const res = await axios.get('http://localhost:5000/api/support/kb/categories'); setCategories(res.data); } catch (e) { console.error(e); } };
-    const fetchRoadmap = async () => { try { const res = await axios.get('http://localhost:5000/api/support/roadmap'); setRoadmap(res.data); } catch (e) { console.error(e); } };
-    const fetchTickets = async () => { try { const res = await axios.get('http://localhost:5000/api/support/tickets'); setTickets(res.data); } catch (e) { console.error(e); } };
+    const fetchKB = async () => { try { const res = await axios.get('http://127.0.0.1:5000/api/support/kb'); setKbArticles(res.data); } catch (e) { console.error(e); } };
+    const fetchCategories = async () => { try { const res = await axios.get('http://127.0.0.1:5000/api/support/kb/categories'); setCategories(res.data); } catch (e) { console.error(e); } };
+    const fetchRoadmap = async () => { try { const res = await axios.get('http://127.0.0.1:5000/api/support/roadmap'); setRoadmap(res.data); } catch (e) { console.error(e); } };
+    const fetchTickets = async () => { try { const res = await axios.get('http://127.0.0.1:5000/api/support/tickets'); setTickets(res.data); } catch (e) { console.error(e); } };
 
     useEffect(() => {
         fetchKB();
@@ -73,14 +94,10 @@ const Support = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-hidden fade-in transition-colors duration-300">
             {/* Standard Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
-                    <button className="md:hidden text-slate-900 dark:text-white">
-                        <Menu className="w-6 h-6" />
-                    </button>
-
                     {/* Search Bar */}
-                    <div className="hidden md:flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors">
+                    <div className="flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors">
                         <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
                         <input
                             type="text"
@@ -98,7 +115,7 @@ const Support = () => {
             </header>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 scroll-smooth">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 scroll-smooth">
                 <div className="max-w-6xl mx-auto">
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Hello, {user?.name} 👋</h1>
                     <p className="text-slate-500 dark:text-text-secondary mb-8">How can we help you today?</p>
@@ -228,7 +245,7 @@ const Support = () => {
                         </div>
                     )}
 
-                    {activeTab === 'tickets' && <UserTicketManager tickets={tickets} refresh={fetchTickets} />}
+                    {activeTab === 'tickets' && <UserTicketManager tickets={tickets} refresh={fetchTickets} initialView={action === 'create-ticket' ? 'create' : 'list'} />}
 
                     {activeTab === 'roadmap' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -241,7 +258,7 @@ const Support = () => {
                                     <h3 className="text-xl font-bold mb-1">Have an idea?</h3>
                                     <p className="text-slate-300 text-sm">Suggest a new feature and help us improve the product.</p>
                                 </div>
-                                <RoadmapSuggestionForm refresh={fetchRoadmap} />
+                                <RoadmapSuggestionForm refresh={fetchRoadmap} initiallyOpen={action === 'suggest'} />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto md:overflow-visible scrollbar-hide pb-2">
@@ -298,7 +315,7 @@ const Support = () => {
                                                                         whileTap={{ scale: 0.9 }}
                                                                         onClick={async () => {
                                                                             const wasVoted = item.voters?.includes(user?.id);
-                                                                            await axios.post(`http://localhost:5000/api/support/roadmap/${item.id}/upvote`);
+                                                                            await axios.post(`http://127.0.0.1:5000/api/support/roadmap/${item.id}/upvote`);
                                                                             if (!wasVoted) {
                                                                                 setActiveConfettiId(item.id);
                                                                                 setTimeout(() => setActiveConfettiId(null), 1000);
@@ -456,14 +473,14 @@ const RoadmapStats = ({ roadmap, userId }) => {
     );
 };
 
-const RoadmapSuggestionForm = ({ refresh }) => {
+const RoadmapSuggestionForm = ({ refresh, initiallyOpen }) => {
     const [title, setTitle] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(initiallyOpen || false);
 
     const handleSubmit = async () => {
         if (!title.trim()) return;
         try {
-            await axios.post('http://localhost:5000/api/support/roadmap', { title, status: 'Requested' });
+            await axios.post('http://127.0.0.1:5000/api/support/roadmap', { title, status: 'Requested' });
             setTitle('');
             setIsModalOpen(false);
             refresh();
@@ -507,8 +524,8 @@ const RoadmapSuggestionForm = ({ refresh }) => {
     );
 };
 
-const UserTicketManager = ({ tickets, refresh }) => {
-    const [view, setView] = useState('list'); // list | create
+const UserTicketManager = ({ tickets, refresh, initialView }) => {
+    const [view, setView] = useState(initialView || 'list'); // list | create
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [category, setCategory] = useState('General');
@@ -521,7 +538,7 @@ const UserTicketManager = ({ tickets, refresh }) => {
         if (!subject.trim() || !message.trim()) return alert("Please fill in all details");
         setIsSubmitting(true);
         try {
-            await axios.post('http://localhost:5000/api/support/tickets', { subject, category, priority, message });
+            await axios.post('http://127.0.0.1:5000/api/support/tickets', { subject, category, priority, message });
             setSubject(''); setMessage(''); setCategory('General'); setPriority('Medium');
             refresh(); setView('list');
         } catch (e) { alert("Failed to create ticket"); } finally { setIsSubmitting(false); }
@@ -530,21 +547,21 @@ const UserTicketManager = ({ tickets, refresh }) => {
     const handleReply = async () => {
         if (!replyMessage.trim()) return;
         try {
-            const res = await axios.post(`http://localhost:5000/api/support/tickets/${selectedTicket.id}/reply`, { text: replyMessage });
+            const res = await axios.post(`http://127.0.0.1:5000/api/support/tickets/${selectedTicket.id}/reply`, { text: replyMessage });
             setSelectedTicket(res.data); setReplyMessage(''); refresh();
         } catch (e) { alert("Failed to send reply"); }
     };
 
     const handleResolve = async () => {
         try {
-            const res = await axios.post(`http://localhost:5000/api/support/tickets/${selectedTicket.id}/reply`, { text: "Ticket marked as resolved.", status: 'Resolved' });
+            const res = await axios.post(`http://127.0.0.1:5000/api/support/tickets/${selectedTicket.id}/reply`, { text: "Ticket marked as resolved.", status: 'Resolved' });
             setSelectedTicket(res.data); refresh();
         } catch (e) { alert("Failed to resolve ticket"); }
     };
 
     const handleReopen = async () => {
         try {
-            const res = await axios.post(`http://localhost:5000/api/support/tickets/${selectedTicket.id}/reply`, { text: "Ticket reopened by user.", status: 'Open' });
+            const res = await axios.post(`http://127.0.0.1:5000/api/support/tickets/${selectedTicket.id}/reply`, { text: "Ticket reopened by user.", status: 'Open' });
             setSelectedTicket(res.data); refresh();
         } catch (e) { alert("Failed to reopen ticket"); }
     };

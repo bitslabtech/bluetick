@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import {
     CheckCircle2,
@@ -22,21 +23,109 @@ import {
     Tag,
     Tags
 } from 'lucide-react';
+import { 
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, 
+    BarChart, Bar 
+} from 'recharts';
 
 export default function CampaignDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const teamPolicy = user?.teamPolicy || { inboxVisibility: 'see_all', phonePrivacy: 'visible' };
+    const isSubMember = !!user?.parentUserId;
     const { showModal, showToast } = useUI();
     const [campaign, setCampaign] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [selectedLogs, setSelectedLogs] = useState([]);
+    const [visibleLines, setVisibleLines] = useState({
+        delivered: true,
+        read: true,
+        clicked: true,
+        failed: true
+    });
+    
+    // Calculate Chart Data
+    const generateChartData = () => {
+        if (!campaign || !campaign.processedLogs || campaign.processedLogs.length === 0) return { timeSeries: [], readDistribution: [], peakSummary: null };
+        
+        // 1. Time Series Data (group by hour)
+        const timeseriesMap = new Map();
+        
+        campaign.processedLogs.forEach(log => {
+            if (!log.timestamp) return;
+            const date = new Date(parseInt(log.timestamp) * 1000);
+            
+            // Format label: MM/DD HH:00
+            const label = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:00`;
+            
+            if (!timeseriesMap.has(label)) {
+                timeseriesMap.set(label, { timeLabel: label, delivered: 0, read: 0, clicked: 0, failed: 0, sortKey: Math.floor(date.getTime() / 3600000) * 3600000 });
+            }
+            const bucket = timeseriesMap.get(label);
+            
+            if (['DELIVERED', 'READ', 'CLICKED'].includes(log.status)) bucket.delivered++;
+            if (['READ', 'CLICKED'].includes(log.status)) bucket.read++;
+            if (log.status === 'CLICKED') bucket.clicked++;
+            if (log.status === 'FAILED') bucket.failed++;
+        });
+
+        const timeSeries = Array.from(timeseriesMap.values()).sort((a,b) => a.sortKey - b.sortKey);
+
+        // 2. Read Distribution Data (peak hours)
+        const readHoursMap = new Map();
+        let totalReads = 0;
+        let peakHour = null;
+        let peakCount = -1;
+
+        campaign.processedLogs.forEach(log => {
+            if (['READ', 'CLICKED'].includes(log.status) && log.timestamp) {
+                const date = new Date(parseInt(log.timestamp) * 1000);
+                const hour = date.getHours();
+                const hourLabel = `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour} ${hour >= 12 ? 'PM' : 'AM'}`;
+                
+                if (!readHoursMap.has(hourLabel)) readHoursMap.set(hourLabel, { hourLabel, count: 0, sortKey: hour });
+                readHoursMap.get(hourLabel).count++;
+                totalReads++;
+            }
+        });
+
+        const readDistribution = Array.from(readHoursMap.values()).sort((a,b) => a.sortKey - b.sortKey);
+        
+        readDistribution.forEach(item => {
+            if (item.count > peakCount) {
+                peakCount = item.count;
+                peakHour = item.hourLabel;
+            }
+        });
+
+        let peakSummary = null;
+        if (peakHour) {
+            const percentage = totalReads > 0 ? Math.round((peakCount / totalReads) * 100) : 0;
+            peakSummary = `Peak read activity occurred around ${peakHour} with ${peakCount} messages read. ${percentage}% of your readers interacted during this hour.`;
+        } else {
+            peakSummary = "Not enough read data to determine peak time.";
+        }
+
+        return { timeSeries, readDistribution, peakSummary };
+    };
+
+    const renderName = (name, phone) => {
+        const isActuallyPhone = !name || name === phone || /^\d+$/.test(name.replace(/\D/g, ''));
+        if (isActuallyPhone && isSubMember) {
+            if (teamPolicy.phonePrivacy === 'blurred') return <span className="blur-sm select-none">{phone || name}</span>;
+            if (teamPolicy.phonePrivacy === 'masked') return `****${(phone || name)?.slice(-4)}`;
+        }
+        return name || phone;
+    };
 
     useEffect(() => {
         const fetchCampaign = async () => {
             try {
-                const res = await axios.get(`http://localhost:5000/api/messages/${id}`);
+                const res = await axios.get(`http://127.0.0.1:5000/api/messages/${id}`);
                 const msg = res.data;
 
                 // Process logs with SAME STRICT LOGIC as Campaign List
@@ -48,9 +137,10 @@ export default function CampaignDetails() {
                     timestamp: l.metaTimestamp || l.updatedAt || msg.createdAt
                 }));
 
-                const sentCount = normalizedLogs.filter(l => ['SENT', 'DELIVERED', 'READ'].includes(l.status)).length;
-                const deliveredCount = normalizedLogs.filter(l => ['DELIVERED', 'READ'].includes(l.status)).length;
-                const readCount = normalizedLogs.filter(l => ['READ'].includes(l.status)).length;
+                const sentCount = normalizedLogs.filter(l => ['SENT', 'DELIVERED', 'READ', 'CLICKED'].includes(l.status)).length;
+                const deliveredCount = normalizedLogs.filter(l => ['DELIVERED', 'READ', 'CLICKED'].includes(l.status)).length;
+                const readCount = normalizedLogs.filter(l => ['READ', 'CLICKED'].includes(l.status)).length;
+                const clickedCount = normalizedLogs.filter(l => l.status === 'CLICKED').length;
                 const failedCount = normalizedLogs.filter(l => l.status === 'FAILED').length;
 
                 setCampaign({
@@ -60,6 +150,7 @@ export default function CampaignDetails() {
                         sent: sentCount,
                         delivered: deliveredCount,
                         read: readCount,
+                        clicked: clickedCount,
                         failed: failedCount,
                         total: msg.recipientCount
                     }
@@ -79,6 +170,7 @@ export default function CampaignDetails() {
 
     const getStatusIcon = (status) => {
         switch (status) {
+            case 'CLICKED': return <CheckCheck className="w-4 h-4 text-purple-500" />;
             case 'READ': return <CheckCheck className="w-4 h-4 text-blue-500" />;
             case 'DELIVERED': return <CheckCheck className="w-4 h-4 text-gray-400" />;
             case 'SENT': return <Check className="w-4 h-4 text-gray-400" />;
@@ -89,12 +181,12 @@ export default function CampaignDetails() {
 
     const getStatusBadge = (status) => {
         const styles = {
+            CLICKED: "bg-purple-500/10 text-purple-500 border-purple-500/20",
             READ: "bg-blue-500/10 text-blue-500 border-blue-500/20",
             DELIVERED: "bg-green-500/10 text-green-500 border-green-500/20",
             SENT: "bg-gray-500/10 text-gray-500 border-gray-500/20",
             FAILED: "bg-red-500/10 text-red-500 border-red-500/20",
             PENDING: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-            // CRITICAL: Make COMPLETED green as requested
             COMPLETED: "bg-green-500/10 text-green-500 border-green-500/20"
         };
         return styles[status] || styles[status.toUpperCase()] || styles.PENDING;
@@ -119,9 +211,77 @@ export default function CampaignDetails() {
     const filteredLogs = campaign.processedLogs.filter(log => {
         const matchesSearch = (log.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (log.phone || '').includes(searchTerm);
-        const matchesStatus = statusFilter === 'all' || log.status === statusFilter;
+        let matchesStatus = false;
+        if (statusFilter === 'all') matchesStatus = true;
+        else if (statusFilter.startsWith('btn_')) matchesStatus = log.clickedButton === statusFilter.substring(4);
+        // Hierarchical matching: DELIVERED includes READ & CLICKED; READ includes CLICKED
+        else if (statusFilter === 'DELIVERED') matchesStatus = ['DELIVERED', 'READ', 'CLICKED'].includes(log.status);
+        else if (statusFilter === 'READ') matchesStatus = ['READ', 'CLICKED'].includes(log.status);
+        else matchesStatus = log.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
+
+    const getTabsConfigs = () => {
+        const baseTabs = [
+            { id: 'all', label: 'All Recipients', icon: Users, count: campaign.stats.total || 0, color: 'text-slate-600' },
+            { id: 'DELIVERED', label: 'Delivered', icon: CheckCheck, count: campaign.stats.delivered || 0, color: 'text-green-500' },
+            { id: 'READ', label: 'Read', icon: CheckCheck, count: campaign.stats.read || 0, color: 'text-blue-500' },
+            { id: 'FAILED', label: 'Failed', icon: X, count: campaign.stats.failed || 0, color: 'text-red-500' }
+        ];
+
+        // Compute unique clicked buttons
+        const buttonCounts = {};
+        let totalClicks = 0;
+        campaign.processedLogs.forEach(l => {
+            if (l.status === 'CLICKED') {
+                totalClicks++;
+                if (l.clickedButton) {
+                    buttonCounts[l.clickedButton] = (buttonCounts[l.clickedButton] || 0) + 1;
+                }
+            }
+        });
+
+        const dynamicTabs = Object.entries(buttonCounts).map(([btnName, count]) => ({
+            id: `btn_${btnName}`,
+            label: `👆 ${btnName}`,
+            icon: Tag,
+            count: count,
+            color: 'text-purple-600 dark:text-purple-400',
+            isDynamic: true
+        }));
+        
+        // Add a generic Clicked tab if there are any clicks
+        if (totalClicks > 0) {
+             baseTabs.splice(3, 0, { id: 'CLICKED', label: 'Clicked', icon: Tags, count: totalClicks, color: 'text-purple-500' });
+        }
+
+        return [...baseTabs, ...dynamicTabs];
+    };
+
+    const { timeSeries, readDistribution, peakSummary } = generateChartData();
+    const enableCharts = timeSeries.length > 0;
+    
+    const toggleLine = (dataKey) => {
+        setVisibleLines(prev => ({ ...prev, [dataKey]: !prev[dataKey] }));
+    };
+
+    const renderChartLegend = (props) => {
+        const { payload } = props;
+        return (
+            <div className="flex justify-center gap-6 mt-2">
+                {payload.map((entry, index) => (
+                    <div 
+                        key={`item-${index}`} 
+                        className={`flex items-center gap-2 cursor-pointer transition-opacity duration-200 hover:opacity-80 ${visibleLines[entry.dataKey] ? 'opacity-100' : 'opacity-40 grayscale'}`}
+                        onClick={() => toggleLine(entry.dataKey)}
+                    >
+                        <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{entry.value}</span>
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-y-auto transition-colors duration-300">
@@ -152,54 +312,125 @@ export default function CampaignDetails() {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* KPI Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-5 relative overflow-hidden group hover:border-slate-300 dark:hover:border-white/10 transition-all shadow-sm">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Check className="w-12 h-12 text-slate-400 dark:text-gray-400" />
-                        </div>
-                        <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-text-secondary font-medium mb-1">Sent</p>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{campaign.stats.sent}</h3>
-                            <span className="text-xs text-green-500 dark:text-green-400 font-medium">
-                                {Math.round((campaign.stats.sent / campaign.recipientCount) * 100)}%
-                            </span>
-                        </div>
+            {/* Insights Dashboard */}
+            <div className="px-8 mt-6 shrink-0">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Main Engagement Graph */}
+                    <div className="lg:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex flex-col">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Engagement Over Time</h3>
+                        {enableCharts ? (
+                            <div className="h-64 w-full mt-2">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={timeSeries} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                        <defs>
+                                            <linearGradient id="colorDelivered" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorRead" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorClicked" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
+                                        <XAxis dataKey="timeLabel" tick={{fontSize: 10}} axisLine={false} tickLine={false} tickMargin={10} stroke="#64748b" />
+                                        <YAxis tick={{fontSize: 10}} axisLine={false} tickLine={false} tickMargin={10} stroke="#64748b" />
+                                        <Tooltip 
+                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                            labelStyle={{ fontWeight: 'bold', color: '#64748b', marginBottom: '4px' }}
+                                        />
+                                        <Legend content={renderChartLegend} />
+                                        
+                                        <Area type="monotone" dataKey="delivered" name="Delivered" stroke="#22c55e" strokeWidth={3} fill="url(#colorDelivered)" animationDuration={1500} fillOpacity={visibleLines.delivered ? 1 : 0} strokeOpacity={visibleLines.delivered ? 1 : 0} activeDot={visibleLines.delivered ? {r: 6} : false} dot={visibleLines.delivered ? {r: 4, strokeWidth: 2} : false} />
+                                        <Area type="monotone" dataKey="read" name="Read" stroke="#3b82f6" strokeWidth={3} fill="url(#colorRead)" animationDuration={1500} fillOpacity={visibleLines.read ? 1 : 0} strokeOpacity={visibleLines.read ? 1 : 0} activeDot={visibleLines.read ? {r: 6} : false} dot={visibleLines.read ? {r: 4, strokeWidth: 2} : false} />
+                                        <Area type="monotone" dataKey="clicked" name="Clicked" stroke="#a855f7" strokeWidth={3} fill="url(#colorClicked)" animationDuration={1500} fillOpacity={visibleLines.clicked ? 1 : 0} strokeOpacity={visibleLines.clicked ? 1 : 0} activeDot={visibleLines.clicked ? {r: 6} : false} dot={visibleLines.clicked ? {r: 4, strokeWidth: 2} : false} />
+                                        <Area type="monotone" dataKey="failed" name="Failed" stroke="#ef4444" strokeWidth={3} fill="url(#colorFailed)" animationDuration={1500} fillOpacity={visibleLines.failed ? 1 : 0} strokeOpacity={visibleLines.failed ? 1 : 0} activeDot={visibleLines.failed ? {r: 6} : false} dot={visibleLines.failed ? {r: 4, strokeWidth: 2} : false} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : (
+                            <div className="h-64 w-full flex flex-col items-center justify-center text-slate-400 opacity-50">
+                                <Clock className="w-10 h-10 mb-2" />
+                                <span className="text-sm">Awaiting engagement data...</span>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-5 relative overflow-hidden group hover:border-slate-300 dark:hover:border-white/10 transition-all shadow-sm">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <CheckCheck className="w-12 h-12 text-slate-400 dark:text-gray-400" />
+                    {/* Peak Read Times & Health */}
+                    <div className="flex flex-col gap-6">
+                        {/* Peak Time Graph */}
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex-1 flex flex-col">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2 flex items-center justify-between">
+                                Peak Read Times
+                                <Clock className="w-4 h-4 text-primary" />
+                            </h3>
+                            {readDistribution.length > 0 ? (
+                                <>
+                                    <div className="h-28 w-full mt-2 -ml-2">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={readDistribution} margin={{top: 5, right: 5, left: -25, bottom: 0}}>
+                                                <XAxis dataKey="hourLabel" tick={{fontSize: 9}} axisLine={false} tickLine={false} stroke="#64748b" />
+                                                <YAxis tick={{fontSize: 9}} axisLine={false} tickLine={false} stroke="#64748b" />
+                                                <Tooltip 
+                                                    cursor={{fill: 'rgba(59, 130, 246, 0.1)'}} 
+                                                    contentStyle={{ borderRadius: '8px', border: 'none', padding: '8px' }}
+                                                />
+                                                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Reads" />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="mt-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl p-3 border border-blue-100 dark:border-blue-900/20">
+                                        <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed font-medium">
+                                            {peakSummary}
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 opacity-50">
+                                    <span className="text-xs">No read data recorded yet.</span>
+                                </div>
+                            )}
                         </div>
-                        <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-text-secondary font-medium mb-1">Delivered</p>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{campaign.stats.delivered}</h3>
-                            <span className="text-xs text-slate-500 dark:text-text-secondary opacity-60">Success</span>
-                        </div>
-                    </div>
 
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-5 relative overflow-hidden group hover:border-slate-300 dark:hover:border-white/10 transition-all shadow-sm">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <CheckCheck className="w-12 h-12 text-blue-500" />
-                        </div>
-                        <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-text-secondary font-medium mb-1">Read</p>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-blue-500 dark:text-blue-400">{campaign.stats.read}</h3>
-                            <span className="text-xs text-blue-500/60 dark:text-blue-400/60 font-medium">
-                                {campaign.stats.delivered > 0 ? Math.round((campaign.stats.read / campaign.stats.delivered) * 100) : 0}% Rate
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-5 relative overflow-hidden group hover:border-slate-300 dark:hover:border-white/10 transition-all shadow-sm">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <AlertCircle className="w-12 h-12 text-red-500" />
-                        </div>
-                        <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-text-secondary font-medium mb-1">Failed</p>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-red-500">{campaign.stats.failed}</h3>
-                            {campaign.stats.failed > 0 && <span className="text-xs text-red-500/60 font-medium">Alert</span>}
+                        {/* Health Diagnostics - Minified */}
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 shadow-sm flex items-center justify-between relative overflow-hidden group">
+                            {campaign.stats.failed > 0 ? (
+                                <>
+                                    <div>
+                                        <div className="flex items-center gap-2 text-red-500 mb-1">
+                                            <AlertCircle className="w-4 h-4" />
+                                            <h3 className="font-bold text-xs uppercase tracking-wider">Action Required</h3>
+                                        </div>
+                                        <h4 className="text-xl font-bold text-slate-900 dark:text-white">{campaign.stats.failed} <span className="text-sm font-normal text-slate-500">Failures</span></h4>
+                                    </div>
+                                    <div className="p-3 bg-red-50 dark:bg-red-500/10 rounded-full">
+                                        <X className="w-5 h-5 text-red-500" />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div>
+                                        <div className="flex items-center gap-2 text-green-500 mb-1">
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            <h3 className="font-bold text-xs uppercase tracking-wider">Perfect Health</h3>
+                                        </div>
+                                        <h4 className="text-xl font-bold text-slate-900 dark:text-white">0 <span className="text-sm font-normal text-slate-500">Failures</span></h4>
+                                    </div>
+                                    <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-full">
+                                        <Check className="w-5 h-5 text-green-500" />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -210,64 +441,78 @@ export default function CampaignDetails() {
 
                 {/* Main: Message Logs */}
                 <div className="flex-1 bg-white dark:bg-surface-dark/50 border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden flex flex-col h-[600px] shadow-sm transition-colors duration-300">
-                    {/* Log Filters */}
-                    <div className="p-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between gap-4">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 dark:text-text-secondary" />
-                            <input
-                                type="text"
-                                placeholder="Search by name or phone..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-slate-100 dark:bg-background-dark border border-transparent focus:border-primary rounded-lg pl-9 pr-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none transition-colors duration-300"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="relative">
-                                <button
-                                    onClick={() => setIsFilterOpen(!isFilterOpen)}
-                                    // Close when clicking outside is ideal, but for now simple toggle
-                                    className="flex items-center gap-2 bg-slate-100 dark:bg-background-dark border border-transparent dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-white focus:outline-none hover:bg-slate-200 dark:hover:bg-white/5 transition-colors min-w-[150px] justify-between"
-                                >
-                                    <span className="capitalize flex items-center gap-2">
-                                        {statusFilter === 'all' && <Filter className="w-3.5 h-3.5 text-slate-500 dark:text-text-secondary" />}
-                                        {statusFilter === 'SENT' && <Check className="w-3.5 h-3.5 text-gray-400" />}
-                                        {statusFilter === 'DELIVERED' && <CheckCheck className="w-3.5 h-3.5 text-gray-400" />}
-                                        {statusFilter === 'READ' && <CheckCheck className="w-3.5 h-3.5 text-blue-500" />}
-                                        {statusFilter === 'FAILED' && <X className="w-3.5 h-3.5 text-red-500" />}
-                                        {statusFilter === 'all' ? 'All Statuses' : statusFilter.toLowerCase()}
-                                    </span>
-                                    <ChevronDown className={`w-4 h-4 text-slate-500 dark:text-text-secondary transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
-                                </button>
-
-                                {isFilterOpen && (
-                                    <>
-                                        <div className="fixed inset-0 z-10" onClick={() => setIsFilterOpen(false)} />
-                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-200">
-                                            {[
-                                                { val: 'all', label: 'All Statuses', icon: <Filter className="w-3.5 h-3.5" /> },
-                                                { val: 'SENT', label: 'Sent', icon: <Check className="w-3.5 h-3.5 text-gray-400" /> },
-                                                { val: 'DELIVERED', label: 'Delivered', icon: <CheckCheck className="w-3.5 h-3.5 text-gray-400" /> },
-                                                { val: 'READ', label: 'Read', icon: <CheckCheck className="w-3.5 h-3.5 text-blue-500" /> },
-                                                { val: 'FAILED', label: 'Failed', icon: <X className="w-3.5 h-3.5 text-red-500" /> }
-                                            ].map((opt) => (
-                                                <button
-                                                    key={opt.val}
-                                                    onClick={() => {
-                                                        setStatusFilter(opt.val);
-                                                        setIsFilterOpen(false);
-                                                    }}
-                                                    className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-left ${statusFilter === opt.val ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-text-secondary'
-                                                        }`}
-                                                >
-                                                    {opt.icon}
-                                                    <span>{opt.label}</span>
-                                                    {statusFilter === opt.val && <Check className="w-3.5 h-3.5 ml-auto opacity-50" />}
-                                                </button>
-                                            ))}
+                    {/* Log Filters & Retargeting Tabs */}
+                    <div className="p-4 border-b border-slate-200 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-2 sm:pb-0 w-full sm:w-auto">
+                            {getTabsConfigs().map(tab => {
+                                const pct = campaign.stats.total > 0 ? ((tab.count / campaign.stats.total) * 100).toFixed(0) : 0;
+                                const isActive = statusFilter === tab.id;
+                                const Icon = tab.icon;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => { setStatusFilter(tab.id); setSelectedLogs([]); }}
+                                        className={`flex-shrink-0 flex flex-col items-start gap-1 p-3 rounded-xl min-w-[130px] transition-all border ${isActive
+                                            ? tab.isDynamic 
+                                                ? 'bg-purple-500/10 border-purple-500 shadow-sm ring-1 ring-purple-500/20' 
+                                                : 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20'
+                                            : 'bg-slate-50 dark:bg-background-dark border-transparent hover:border-slate-200 dark:hover:border-white/10'}`}
+                                    >
+                                        <div className="flex items-center justify-between w-full">
+                                            <span className={`text-xs font-bold uppercase tracking-wider ${isActive ? (tab.isDynamic ? 'text-purple-600 dark:text-purple-400' : 'text-primary') : 'text-slate-500 dark:text-text-secondary'}`}>
+                                                {tab.label}
+                                            </span>
+                                            <Icon className={`w-4 h-4 ${isActive ? (tab.isDynamic ? 'text-purple-600 dark:text-purple-400' : 'text-primary') : 'text-slate-400'}`} />
                                         </div>
-                                    </>
-                                )}
+                                        <div className="flex items-baseline gap-2 mt-1 w-full relative">
+                                            <span className="text-xl font-bold text-slate-900 dark:text-white">{tab.count}</span>
+                                            {!tab.isDynamic && (
+                                                <div className="flex items-center gap-1 flex-1 absolute right-0">
+                                                    <div className="w-8 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                                                        <div className={`h-full ${tab.id === 'all' ? 'bg-slate-500' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
+                                                    </div>
+                                                    <span className="text-[10px] font-medium text-slate-500">{pct}%</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="flex items-center justify-end gap-3 self-end sm:self-auto shrink-0 mt-2 sm:mt-0 w-full sm:w-auto">
+                            {statusFilter !== 'all' && (
+                                <button
+                                    onClick={() => {
+                                        let retStatus = statusFilter;
+                                        if (statusFilter === 'CLICKED') retStatus = 'CLICKED';
+                                        else if (statusFilter.startsWith('btn_')) retStatus = 'ALL'; // Handle subset properly below
+                                        
+                                        // If retargeting a specific button, pass exactly those logs to subset lock.
+                                        let explicitlySelectedLogIds = selectedLogs.length > 0 ? selectedLogs : null;
+                                        if (statusFilter.startsWith('btn_') && !explicitlySelectedLogIds) {
+                                             explicitlySelectedLogIds = filteredLogs.map(l => l.id);
+                                             retStatus = 'CLICKED';
+                                        }
+
+                                        navigate(`/campaigns?retargetCampaignId=${campaign.id}&retargetStatus=${retStatus}&sourceName=${encodeURIComponent(campaign.campaignName || '')}`, {
+                                            state: { retargetLogIds: explicitlySelectedLogIds }
+                                        });
+                                    }}
+                                    className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-blue-500/30 transition-all active:scale-95 whitespace-nowrap"
+                                >
+                                    <Tag className="w-4 h-4" />
+                                    Retarget {statusFilter.startsWith('btn_') ? 'Selection' : statusFilter.toLowerCase()} ({selectedLogs.length > 0 ? selectedLogs.length : filteredLogs.length})
+                                </button>
+                            )}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400 dark:text-text-secondary" />
+                                <input
+                                    type="text"
+                                    placeholder="Search details..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full sm:w-48 bg-slate-100 dark:bg-background-dark border border-transparent focus:border-primary rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none transition-colors duration-300 shadow-sm"
+                                />
                             </div>
                         </div>
                     </div>
@@ -277,6 +522,19 @@ export default function CampaignDetails() {
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-slate-50 dark:bg-white/5 sticky top-0 backdrop-blur-sm z-10">
                                 <tr>
+                                    <th className="px-6 py-3 w-10">
+                                        {statusFilter !== 'all' && (
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 rounded border-gray-600 text-primary focus:ring-0 cursor-pointer accent-primary"
+                                                checked={filteredLogs.length > 0 && selectedLogs.length === filteredLogs.length}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) setSelectedLogs(filteredLogs.map(l => l.id));
+                                                    else setSelectedLogs([]);
+                                                }}
+                                            />
+                                        )}
+                                    </th>
                                     <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Recipient</th>
                                     <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Time</th>
@@ -288,9 +546,32 @@ export default function CampaignDetails() {
                                     filteredLogs.map((log, index) => (
                                         <tr key={index} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                             <td className="px-6 py-4">
+                                                {statusFilter !== 'all' && (
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 rounded border-gray-600 text-primary focus:ring-0 cursor-pointer accent-primary"
+                                                        checked={selectedLogs.includes(log.id)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedLogs(prev => [...prev, log.id]);
+                                                            } else {
+                                                                setSelectedLogs(prev => prev.filter(id => id !== log.id));
+                                                            }
+                                                        }}
+                                                    />
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium text-slate-900 dark:text-white">{log.name || 'Unknown'}</span>
-                                                    <span className="text-xs text-slate-500 dark:text-text-secondary font-mono mt-0.5">{log.phone}</span>
+                                                    <span className="font-medium text-slate-900 dark:text-white">{renderName(log.name, log.phone)}</span>
+                                                    <span className="text-xs text-slate-500 dark:text-text-secondary font-mono mt-0.5">
+                                                        <span className={isSubMember && teamPolicy.phonePrivacy === 'blurred' ? 'blur-sm select-none' : ''}>
+                                                            {isSubMember && teamPolicy.phonePrivacy === 'masked'
+                                                                ? `****${log.phone?.slice(-4) || ''}`
+                                                                : log.phone
+                                                            }
+                                                        </span>
+                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -322,7 +603,7 @@ export default function CampaignDetails() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="4" className="px-6 py-12 text-center text-slate-500 dark:text-text-secondary">
+                                        <td colSpan="5" className="px-6 py-12 text-center text-slate-500 dark:text-text-secondary">
                                             <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" />
                                             No messages found matching your filters.
                                         </td>
@@ -396,7 +677,7 @@ export default function CampaignDetails() {
                                 cancelText: 'Cancel',
                                 onConfirm: async () => {
                                     try {
-                                        await axios.delete(`http://localhost:5000/api/messages/${id}`);
+                                        await axios.delete(`http://127.0.0.1:5000/api/messages/${id}`);
                                         showToast({ type: 'success', title: 'Deleted', message: 'Campaign deleted successfully' });
                                         navigate('/campaigns');
                                     } catch (err) {

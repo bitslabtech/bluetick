@@ -17,10 +17,10 @@ const BillingTab = () => {
     const fetchBillingData = async () => {
         try {
             const [infoRes, invoicesRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/billing', {
+                axios.get('http://127.0.0.1:5000/api/billing', {
                     headers: { 'x-auth-token': localStorage.getItem('token') }
                 }),
-                axios.get('http://localhost:5000/api/billing/invoices', {
+                axios.get('http://127.0.0.1:5000/api/billing/invoices', {
                     headers: { 'x-auth-token': localStorage.getItem('token') }
                 })
             ]);
@@ -227,7 +227,7 @@ const BillingTab = () => {
                                         <td className="px-6 py-4 font-mono text-xs text-slate-500">#{inv.id.slice(0, 8)}</td>
                                         <td className="px-6 py-4">{new Date(inv.createdAt).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 font-bold">{inv.planName}</td>
-                                        <td className="px-6 py-4">${inv.amount}</td>
+                                        <td className="px-6 py-4">{currencySymbol(inv.currency || plan?.currency)}{inv.amount}</td>
                                         <td className="px-6 py-4">
                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                                                 <CheckCircle2 className="w-3 h-3" /> {inv.status}

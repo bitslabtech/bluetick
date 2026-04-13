@@ -8,7 +8,7 @@ const AdminNotification = sequelize.define('AdminNotification', {
         primaryKey: true
     },
     type: {
-        type: DataTypes.ENUM('USER_REGISTER', 'PLAN_CHANGE', 'SUPPORT_TICKET'),
+        type: DataTypes.ENUM('USER_REGISTER', 'PLAN_CHANGE', 'SUPPORT_TICKET', 'TECH_PARTNER_APP'),
         allowNull: false
     },
     message: {

@@ -113,7 +113,7 @@ const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, on
 
 // ─── Main CampaignStep3 ────────────────────────────────────────────────────────
 const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
-    const { showModal, settings } = useUI();
+    const { showModal, settings, publicSettings } = useUI();
     const [sending, setSending] = useState(false);
 
     const [scheduleType, setScheduleType] = useState('now');
@@ -135,12 +135,36 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     const [calculatingCost, setCalculatingCost] = useState(false);
     const manualCount = (data.manualRecipients || []).length;
 
-    // Prices as per Meta approximate standard pricing (in USD)
-    const PRICING = {
-        MARKETING: 0.08,
-        UTILITY: 0.04,
-        AUTHENTICATION: 0.03,
-        DEFAULT: 0.05
+    // Meta WhatsApp Business API Approximate Pricing (Per Message, by Currency)
+    const PRICING_RATES = {
+        INR: {
+            MARKETING: 0.7265,
+            UTILITY: 0.3082,
+            AUTHENTICATION: 0.1106,
+            SERVICE: 0.2906,
+            DEFAULT: 0.30
+        },
+        USD: {
+            MARKETING: 0.025,
+            UTILITY: 0.015,
+            AUTHENTICATION: 0.0135,
+            SERVICE: 0.0088,
+            DEFAULT: 0.02
+        },
+        EUR: {
+            MARKETING: 0.05,
+            UTILITY: 0.03,
+            AUTHENTICATION: 0.02,
+            SERVICE: 0.015,
+            DEFAULT: 0.03
+        },
+        GBP: {
+            MARKETING: 0.05,
+            UTILITY: 0.03,
+            AUTHENTICATION: 0.02,
+            SERVICE: 0.015,
+            DEFAULT: 0.03
+        }
     };
 
     // Use effect to precisely count targets instead of guestimating
@@ -150,19 +174,20 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
             try {
                 let dbCount = 0;
                 if (data.recipients?.includes('all')) {
-                    // Fetch total count (optimizable later with a dedicated count endpoint)
-                    const res = await axios.get('http://localhost:5000/api/contacts', {
+                    const res = await axios.get('http://127.0.0.1:5000/api/contacts/campaign-summary', {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                     });
-                    dbCount = res.data.length;
+                    dbCount = parseInt(res.data.totalContacts, 10) || 0;
                 } else if (data.recipients?.length > 0) {
-                    const res = await axios.get('http://localhost:5000/api/contacts', {
+                    const res = await axios.get('http://127.0.0.1:5000/api/contacts/campaign-summary', {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                     });
-                    const filtered = res.data.filter(c =>
-                        c.tags && c.tags.some(tag => data.recipients.includes(tag))
-                    );
-                    dbCount = filtered.length;
+                    let sum = 0;
+                    for (const groupId of data.recipients) {
+                        const group = res.data.groups?.find(g => g.id === groupId);
+                        if (group) sum += parseInt(group.count, 10);
+                    }
+                    dbCount = sum;
                 }
 
                 setTotalRecipientsCount(dbCount + manualCount);
@@ -176,10 +201,18 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         calculateRecipients();
     }, [data.recipients, manualCount]);
 
-    const costPerMessage = PRICING[selectedTemplate?.category] || PRICING.DEFAULT;
+    // Determine Global Currency
+    const currencyCode = publicSettings?.currency || settings?.currency || 'USD';
+    const currencyMap = { USD: '$', INR: '₹', EUR: '€', GBP: '£', AUD: 'A$', SGD: 'S$' };
+    const currencySymbol = currencyMap[currencyCode] || currencyCode || '$';
+
+    const activeRates = PRICING_RATES[currencyCode] || PRICING_RATES.USD;
+    const templateCategory = selectedTemplate?.category?.toUpperCase() || 'DEFAULT';
+    // Meta default varies by category, default to MARKETING if unknown since it is the most common.
+    const costPerMessage = activeRates[templateCategory] || activeRates.MARKETING || activeRates.DEFAULT;
     const estCostNum = totalRecipientsCount * costPerMessage;
-    const currency = settings?.currencySymbol || '$';
-    const estCost = `~ ${currency}${estCostNum.toFixed(2)}`;
+
+    const estCost = `~ ${currencySymbol}${estCostNum.toFixed(2)}`;
     const totalEst = `${totalRecipientsCount} Contact${totalRecipientsCount !== 1 ? 's' : ''}`;
 
     const handleParamChange = (variable, value) => {
@@ -211,7 +244,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         const fd = new FormData();
         fd.append('file', file);
         const token = localStorage.getItem('token');
-        const res = await axios.post('http://localhost:5000/api/templates/upload-message-media', fd, {
+        const res = await axios.post('http://127.0.0.1:5000/api/templates/upload-message-media', fd, {
             headers: {
                 'Content-Type': 'multipart/form-data',
                 'Authorization': `Bearer ${token}`
@@ -230,21 +263,15 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
             }
 
             let contactIds = [];
+            let targetGroups = [];
             if (data.recipients?.includes('all')) {
                 contactIds = 'all';
             } else if (data.recipients?.length > 0) {
-                const res = await axios.get('http://localhost:5000/api/contacts', {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                });
-                const allContacts = res.data;
-                const filteredContacts = allContacts.filter(c =>
-                    c.tags && c.tags.some(tag => data.recipients.includes(tag))
-                );
-                contactIds = filteredContacts.map(c => c.id);
+                targetGroups = data.recipients;
             }
 
             const manualRecipients = data.manualRecipients || [];
-            if (contactIds.length === 0 && contactIds !== 'all' && manualRecipients.length === 0) {
+            if (contactIds.length === 0 && contactIds !== 'all' && targetGroups.length === 0 && manualRecipients.length === 0) {
                 throw new Error('Please select at least one recipient group or enter manual recipients.');
             }
 
@@ -275,6 +302,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
             const payload = {
                 templateId: data.templateId,
                 contactIds,
+                targetGroups,
                 manualRecipients,
                 params: { ...data.params, ...resolvedCardParams },
                 campaignName: data.name,
@@ -568,7 +596,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                     </div>
                                 ) : (
                                     <div className="bg-white dark:bg-[#2f455a] rounded-xl rounded-tl-none p-1 max-w-[90%] relative shadow-sm mt-2 ml-1">
-                                        {selectedTemplate.type === 'IMAGE' && (
+                                        {(selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE') && (
                                             <div className="w-full aspect-video bg-black rounded-lg overflow-hidden mb-1.5">
                                                 <img className="w-full h-full object-cover opacity-90" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400" alt="Header" />
                                             </div>
@@ -582,6 +610,20 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                                 <CheckCheck className="w-3 h-3 text-blue-400" />
                                             </div>
                                         </div>
+                                        {/* Standard Buttons Preview */}
+                                        {selectedTemplate.buttons && selectedTemplate.buttons.length > 0 && (
+                                            <div className="border-t border-slate-100 dark:border-white/10 mt-1 flex flex-col">
+                                                {selectedTemplate.buttons.map((btn, idx) => (
+                                                    <div key={idx} className="text-center py-2 border-b border-slate-100 dark:border-white/10 last:border-0 text-[#00a884] dark:text-[#00a884] font-medium text-[12px] hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex justify-center items-center gap-1.5">
+                                                        {btn.type === 'URL' ? <Link2 className="w-3.5 h-3.5 opacity-70" /> 
+                                                        : btn.type === 'PHONE_NUMBER' ? <Phone className="w-3.5 h-3.5 opacity-70" /> 
+                                                        : btn.type === 'COPY_CODE' ? <Zap className="w-3.5 h-3.5 opacity-70 text-amber-500" />
+                                                        : <span className="opacity-70 font-bold scale-[1.2]">↲</span>}
+                                                        {btn.text}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -600,7 +642,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                     <div className="text-slate-900 dark:text-white font-bold text-sm">
                                         {calculatingCost ? '...' : estCost}
                                     </div>
-                                    <span className="text-[9px] text-slate-400">@ {currency}{costPerMessage}/msg</span>
+                                    <span className="text-[9px] text-slate-400">@ {currencySymbol}{costPerMessage}/msg</span>
                                 </div>
                             </div>
                             <button

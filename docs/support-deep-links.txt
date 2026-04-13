@@ -1,0 +1,88 @@
+===========================================================
+  SUPPORT PAGE — DEEP LINK REFERENCE
+  Project: BBM Cloud (WhatsApp Cloud)
+  Last Updated: 2026-04-05
+===========================================================
+
+The Support page supports URL query parameters to open
+specific tabs and trigger actions directly on page load.
+This is useful for marketing messages, WhatsApp broadcasts,
+email campaigns, or any external links.
+
+-----------------------------------------------------------
+QUERY PARAMETERS
+-----------------------------------------------------------
+
+  ?tab=<tab_name>
+    Opens a specific tab on the Support page.
+    Valid values:
+      - home       → Knowledge Base (default)
+      - tickets    → My Tickets list
+      - roadmap    → Product Roadmap & Feature Voting
+
+  ?action=<action_name>
+    Triggers a specific UI action within the loaded tab.
+    Valid values:
+      - create-ticket  → Opens the "New Ticket" form directly (use with tab=tickets)
+      - suggest        → Auto-opens the "Suggest a Feature" modal (use with tab=roadmap)
+
+-----------------------------------------------------------
+DEEP LINK EXAMPLES
+-----------------------------------------------------------
+
+  Knowledge Base:
+    /support?tab=home
+
+  My Tickets:
+    /support?tab=tickets
+
+  Create New Ticket (direct form):
+    /support?tab=tickets&action=create-ticket
+
+  Product Roadmap:
+    /support?tab=roadmap
+
+  Suggest a Feature (modal opens automatically):
+    /support?tab=roadmap&action=suggest
+
+-----------------------------------------------------------
+FULL URL EXAMPLES (replace domain accordingly)
+-----------------------------------------------------------
+
+  https://app.yourdomain.com/support?tab=home
+  https://app.yourdomain.com/support?tab=tickets
+  https://app.yourdomain.com/support?tab=tickets&action=create-ticket
+  https://app.yourdomain.com/support?tab=roadmap
+  https://app.yourdomain.com/support?tab=roadmap&action=suggest
+
+-----------------------------------------------------------
+MARKETING MESSAGE TEMPLATES
+-----------------------------------------------------------
+
+  WhatsApp Broadcast — Feature Request:
+  "💡 Have an idea to improve the platform? Suggest a feature
+   and vote on others! → https://app.yourdomain.com/support?tab=roadmap&action=suggest"
+
+  WhatsApp Broadcast — Support Ticket:
+  "🎫 Need help? Create a support ticket directly:
+   → https://app.yourdomain.com/support?tab=tickets&action=create-ticket"
+
+  WhatsApp Broadcast — View My Tickets:
+  "🔍 Track your open support requests here:
+   → https://app.yourdomain.com/support?tab=tickets"
+
+  WhatsApp Broadcast — Knowledge Base:
+  "📖 Find answers in our Knowledge Base:
+   → https://app.yourdomain.com/support?tab=home"
+
+-----------------------------------------------------------
+NOTES
+-----------------------------------------------------------
+
+  - The URL stays synced when the user switches tabs manually,
+    so they can bookmark or share any section.
+  - If an invalid tab value is provided, defaults to 'home'.
+  - 'action' params only fire on initial load. Once the user
+    navigates away, the action state resets.
+
+===========================================================

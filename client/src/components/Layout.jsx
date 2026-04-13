@@ -2,20 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Info, AlertTriangle } from 'lucide-react';
+import { useUI } from '../context/UIContext';
+import { LogOut, Info, AlertTriangle, Menu, X } from 'lucide-react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function Layout() {
     const { isImpersonating, exitImpersonation, user } = useAuth();
+    const { publicSettings, publicSettingsLoading } = useUI();
     const [systemStatus, setSystemStatus] = useState(null);
     const [isMaintenance, setIsMaintenance] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         const fetchSystemConfig = async () => {
             try {
                 // Use the new public status endpoint
-                const res = await axios.get('http://localhost:5000/api/system/status');
+                const res = await axios.get('http://127.0.0.1:5000/api/system/status');
 
                 setSystemStatus(res.data);
 
@@ -31,9 +34,40 @@ export default function Layout() {
 
 
     return (
-        <div className="flex h-screen bg-background-light dark:bg-background-dark transition-colors duration-300">
-            <Sidebar />
-            <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex h-screen bg-background-light dark:bg-background-dark transition-colors duration-300 relative">
+            {/* Mobile Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm transition-opacity"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
+            <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+
+                {/* Mobile Header */}
+                <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-background-dark border-b border-slate-200 dark:border-surface-dark shrink-0 z-30 shadow-sm relative">
+                    <div className="flex items-center gap-3">
+                        {publicSettings?.logoUrl ? (
+                            <img src={publicSettings.logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-lg" />
+                        ) : (
+                            <div className="flex items-center justify-center rounded-lg bg-indigo-600 size-8 text-white shadow-sm">
+                                <span className="font-bold text-sm">Wa</span>
+                            </div>
+                        )}
+                        <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px] min-h-[1.5rem]">
+                            {!publicSettingsLoading && (publicSettings?.appName || 'WhatsApp Cloud')}
+                        </h1>
+                    </div>
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 -mr-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+                    >
+                        <Menu className="w-6 h-6" />
+                    </button>
+                </div>
+
                 {/* Global Announcement Banner */}
                 <AnimatePresence>
                     {systemStatus?.globalAnnouncement?.active && (

@@ -28,6 +28,14 @@ const SystemNotification = sequelize.define('SystemNotification', {
         type: DataTypes.STRING, // e.g. "Single User", "All Users" - for UI display
         defaultValue: 'All Users'
     },
+    buttonName: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    buttonUrl: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     status: {
         type: DataTypes.STRING,
         defaultValue: 'Sent'

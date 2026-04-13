@@ -8,6 +8,7 @@ const Contact = require('../models/Contact');
 const Transaction = require('../models/Transaction');
 const ActivityLog = require('../models/ActivityLog');
 const SystemNotification = require('../models/SystemNotification');
+const AiTokenLog = require('../models/AiTokenLog');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const bcrypt = require('bcryptjs'); // Needed for password hashing
@@ -55,9 +56,12 @@ router.get('/stats', async (req, res) => {
         let dateFilter = {};
 
         if (startDate && endDate) {
+            const end = new Date(endDate);
+            // Extend to end of day so the full last selected day is included
+            end.setHours(23, 59, 59, 999);
             dateFilter = {
                 createdAt: {
-                    [Op.between]: [new Date(startDate), new Date(endDate)] // endDate should probably include end of day, handled by frontend or cast
+                    [Op.between]: [new Date(startDate), end]
                 }
             };
         } else {
@@ -73,42 +77,75 @@ router.get('/stats', async (req, res) => {
         // Users & Active Plans usually represent "Current State", so we might keep them all-time.
         // But let's filter NEW users if requested? No, usually "Total Users" is the current base.
         // Let's keep Total Users and Active Plans ALL TIME for now, unless specific "New Users" metric is needed.
-        const totalUsers = await User.count();
-        const activePlans = await User.count({ where: { planStatus: 'Active' } });
+        // Run aggregate queries concurrently to prevent waterfall delays
+        const [
+            totalUsers,
+            activePlans,
+            revenueResult,
+            totalMessages,
+            deliveredCount,
+            failedCount,
+            messagesForGraph,
+            revenueForGraph,
+            recentPurchases,
+            planDistribution,
+            recentLogs,
+            aiTokensForGraph,
+            topTokenUsers
+        ] = await Promise.all([
+            User.count(),
+            User.count({ where: { planStatus: 'Active' } }),
+            Transaction.aggregate('amount', 'sum', { where: { status: 'COMPLETED', ...dateFilter } }),
+            MessageLog.count({ where: dateFilter }),
+            MessageLog.count({ where: { status: { [Op.in]: ['DELIVERED', 'READ'] }, ...dateFilter } }),
+            MessageLog.count({ where: { status: 'FAILED', ...dateFilter } }),
+            MessageLog.findAll({ attributes: ['createdAt'], where: dateFilter, order: [['createdAt', 'ASC']], raw: true }),
+            Transaction.findAll({ attributes: ['createdAt', 'amount'], where: { status: 'COMPLETED', ...dateFilter }, order: [['createdAt', 'ASC']], raw: true }),
+            Transaction.findAll({ limit: 5, order: [['createdAt', 'DESC']], where: { status: 'COMPLETED', ...dateFilter } }),
+            User.findAll({ attributes: ['plan', [sequelize.fn('count', sequelize.col('id')), 'count']], group: ['plan'], raw: true }),
+            ActivityLog.findAll({ limit: 7, order: [['createdAt', 'DESC']], where: dateFilter }),
+            AiTokenLog.findAll({ attributes: ['createdAt', 'tokensUsed'], where: dateFilter, order: [['createdAt', 'ASC']], raw: true }),
+            AiTokenLog.findAll({
+                attributes: [
+                    'userId',
+                    [sequelize.fn('sum', sequelize.col('tokensUsed')), 'totalTokens']
+                ],
+                include: [{ model: User, attributes: ['name', 'email', 'company'] }],
+                where: dateFilter,
+                group: ['userId', 'User.id'],
+                order: [[sequelize.literal('"totalTokens"'), 'DESC']],
+                limit: 5,
+                raw: true,
+                nest: true
+            })
+        ]);
 
-        // Total Revenue (Filtered by Date)
-        const revenueResult = await Transaction.aggregate('amount', 'sum', {
-            where: {
-                status: 'COMPLETED',
-                ...dateFilter
-            }
-        });
         const totalRevenue = revenueResult || 0;
-
-        // Message Stats (Filtered by Date)
-        const totalMessages = await MessageLog.count({ where: dateFilter });
-
-        // Delivery & Failure Rates (Filtered by Date)
-        const deliveredCount = await MessageLog.count({ where: { status: { [Op.in]: ['DELIVERED', 'READ'] }, ...dateFilter } });
-        const failedCount = await MessageLog.count({ where: { status: 'FAILED', ...dateFilter } });
-
         const deliveryRate = totalMessages > 0 ? ((deliveredCount / totalMessages) * 100).toFixed(1) : 0;
         const failedRate = totalMessages > 0 ? ((failedCount / totalMessages) * 100).toFixed(1) : 0;
 
+        // --- B. GRAPHS (Filtered & Gap-Filled) ---
+        const generateDailyBuckets = (start, end) => {
+            const buckets = {};
+            const current = new Date(start);
+            const stop = new Date(end);
+            current.setHours(0, 0, 0, 0);
+            stop.setHours(0, 0, 0, 0);
+            const diffDays = Math.ceil((stop - current) / (1000 * 60 * 60 * 24));
+            if (diffDays > 366) return null; 
+            while (current <= stop) {
+                const key = current.toISOString().split('T')[0];
+                buckets[key] = 0;
+                current.setDate(current.getDate() + 1);
+            }
+            return buckets;
+        };
 
-        // --- B. GRAPHS (Filtered) ---
-        // a) Message Volume Trend
-        // a) Message Volume Trend (JS Aggregation for Robustness)
-        const messagesForGraph = await MessageLog.findAll({
-            attributes: ['createdAt'],
-            where: dateFilter,
-            order: [['createdAt', 'ASC']],
-            raw: true
-        });
+        const rangeStart = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
+        const rangeEnd = endDate ? new Date(endDate) : new Date();
 
-        const volumeMap = {};
+        const volumeMap = generateDailyBuckets(rangeStart, rangeEnd) || {};
         messagesForGraph.forEach(msg => {
-            // Robust check for various key casings returned by raw query
             const rawDate = msg.createdAt || msg.created_at || msg.date || msg.Date;
             if (rawDate) {
                 const d = new Date(rawDate);
@@ -119,33 +156,12 @@ router.get('/stats', async (req, res) => {
             }
         });
 
-        // Debug output to help verify keys if empty
-        if (messagesForGraph.length > 0) {
-            console.log("DEBUG Example Record Keys:", Object.keys(messagesForGraph[0]));
-        } else {
-            console.log("DEBUG: No messages found in range for graph.");
-        }
+        const messageVolumeRaw = Object.entries(volumeMap).map(([date, count]) => ({ date, count })).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        const messageVolumeRaw = Object.entries(volumeMap).map(([date, count]) => ({
-            logDate: date,
-            count
-        })).sort((a, b) => new Date(a.logDate) - new Date(b.logDate));
-
-        console.log("DEBUG: messageVolumeRaw", messageVolumeRaw);
-
-        // b) Revenue Growth Trend (JS Aggregation)
-        const revenueForGraph = await Transaction.findAll({
-            attributes: ['createdAt', 'amount'],
-            where: { status: 'COMPLETED', ...dateFilter },
-            order: [['createdAt', 'ASC']],
-            raw: true
-        });
-
-        const revenueMap = {};
+        const revenueMap = generateDailyBuckets(rangeStart, rangeEnd) || {};
         revenueForGraph.forEach(tx => {
             const rawDate = tx.createdAt || tx.created_at || tx.date;
             const rawAmount = tx.amount || 0;
-
             if (rawDate) {
                 const d = new Date(rawDate);
                 if (!isNaN(d.getTime())) {
@@ -155,30 +171,25 @@ router.get('/stats', async (req, res) => {
             }
         });
 
-        const revenueGrowthRaw = Object.entries(revenueMap).map(([date, amount]) => ({
-            date, // Keeping 'date' key as originally expected or 'logDate', let's use 'date' to match original
-            amount
-        })).sort((a, b) => new Date(a.date) - new Date(b.date));
+        const revenueGrowthRaw = Object.entries(revenueMap).map(([date, amount]) => ({ date, amount })).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-
-        // --- C. RECENT PURCHASES (limit 5, but respecting filter if applied?) ---
-        // Usually "Recent" just means top 5 of all time, but if a filter is active, maybe top 5 IN THAT PERIOD?
-        // Let's apply filter.
-        const recentPurchases = await Transaction.findAll({
-            limit: 5,
-            order: [['createdAt', 'DESC']],
-            where: {
-                status: 'COMPLETED',
-                ...dateFilter
+        const tokenMap = generateDailyBuckets(rangeStart, rangeEnd) || {};
+        aiTokensForGraph.forEach(log => {
+            const rawDate = log.createdAt || log.created_at || log.date;
+            const rawTokens = log.tokensUsed || 0;
+            if (rawDate) {
+                const d = new Date(rawDate);
+                if (!isNaN(d.getTime())) {
+                    const key = d.toISOString().split('T')[0];
+                    tokenMap[key] = (tokenMap[key] || 0) + parseInt(rawTokens);
+                }
             }
         });
+        const aiTokenVolumeRaw = Object.entries(tokenMap).map(([date, tokens]) => ({ date, tokens })).sort((a, b) => new Date(a.date) - new Date(b.date));
 
         // Hydrate user names for purchases
         const userIds = recentPurchases.map(t => t.userId);
-        const purchaseUsers = await User.findAll({
-            where: { id: userIds },
-            attributes: ['id', 'name', 'email']
-        });
+        const purchaseUsers = await User.findAll({ where: { id: userIds }, attributes: ['id', 'name', 'email'] });
         const purchasesWithUser = recentPurchases.map(t => {
             const u = purchaseUsers.find(user => user.id === t.userId);
             return {
@@ -188,38 +199,14 @@ router.get('/stats', async (req, res) => {
             };
         });
 
-
-        // --- D. PLAN DISTRIBUTION (Pie Chart) ---
-        // This is usually "Current Distribution of Active Users". 
-        // Formatting strictly by date range for plans is tricky (snapshots).
-        // Let's keep this as "Current Snapshot" regardless of date filter, 
-        // OR we can filter by "Users created in this range"?
-        // Let's keep it as All-Time Snapshot for now as it makes more sense contextually.
-        const planDistribution = await User.findAll({
-            attributes: ['plan', [sequelize.fn('count', sequelize.col('id')), 'count']],
-            group: ['plan'],
-            raw: true
-        });
-
-
-        // --- E. ACTIVITY LOGS (Recent 7, filtered) ---
-        const recentLogs = await ActivityLog.findAll({
-            limit: 7,
-            order: [['createdAt', 'DESC']],
-            where: dateFilter
-        });
-        // Hydrate user names for logs
+        // Hydrate log users
         const logUserIds = recentLogs.map(l => l.userId).filter(Boolean);
-        const logUsers = await User.findAll({
-            where: { id: logUserIds },
-            attributes: ['id', 'name']
-        });
-
+        const logUsers = await User.findAll({ where: { id: logUserIds }, attributes: ['id', 'name'] });
         const logsWithUser = recentLogs.map(l => {
             const u = logUsers.find(user => user.id === l.userId);
             return {
                 ...l.dataValues,
-                userName: u ? u.name : 'System' // or 'Unknown'
+                userName: u ? u.name : 'System'
             };
         });
 
@@ -235,11 +222,13 @@ router.get('/stats', async (req, res) => {
             },
             graphs: {
                 messageVolume: messageVolumeRaw,
-                revenueGrowth: revenueGrowthRaw
+                revenueGrowth: revenueGrowthRaw,
+                aiTokenVolume: aiTokenVolumeRaw
             },
             recentPurchases: purchasesWithUser,
             planDistribution,
-            activityLogs: logsWithUser
+            activityLogs: logsWithUser,
+            topTokenUsers: topTokenUsers
         });
 
     } catch (err) {
@@ -429,6 +418,47 @@ router.put('/users/:id', async (req, res) => {
         res.status(500).json({ error: 'Server Error: ' + err.message });
     }
 });
+
+// POST Grant Trial to User (Superadmin controlled)
+router.post('/users/:id/grant-trial', async (req, res) => {
+    try {
+        const { planName } = req.body;
+        if (!planName) return res.status(400).json({ error: 'Plan name is required' });
+
+        const targetUser = await User.findByPk(req.params.id);
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        const Plan = require('../models/Plan');
+        const reqPlan = await Plan.findOne({ where: { name: planName } });
+
+        if (!reqPlan) return res.status(404).json({ error: 'Plan not found' });
+        if (!reqPlan.trialDays || reqPlan.trialDays <= 0) {
+            return res.status(400).json({ error: `Plan '${planName}' does not have a configured trial period.` });
+        }
+
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + reqPlan.trialDays);
+
+        await targetUser.update({
+            plan: reqPlan.name,
+            planStatus: 'Trial',
+            planExpiry: expiry
+        });
+
+        // Log Activity
+        await ActivityLog.create({
+            userId: req.user.id,
+            action: 'Trial Granted',
+            details: `Admin granted ${reqPlan.trialDays}-day trial of ${reqPlan.name} to ${targetUser.email}`
+        });
+
+        res.json({ success: true, message: `Granted ${reqPlan.trialDays}-day trial for ${reqPlan.name}.`, user: targetUser });
+    } catch (err) {
+        console.error("Grant Trial Error:", err);
+        res.status(500).json({ error: 'Server Error: ' + err.message });
+    }
+});
+
 // POST Impersonate User
 router.post('/users/:id/impersonate', async (req, res) => {
     try {
@@ -444,6 +474,8 @@ router.post('/users/:id/impersonate', async (req, res) => {
                 name: targetUser.name,
                 email: targetUser.email,
                 isAdmin: targetUser.isAdmin,
+                parentUserId: targetUser.parentUserId,
+                teamPolicy: targetUser.teamPolicy,
                 origRole: 'Admin' // Flag to indicate impersonation by admin
             }
         };
@@ -606,6 +638,76 @@ router.delete('/notifications/:id', async (req, res) => {
         res.json({ message: 'Notification deleted' });
     } catch (err) {
         console.error(err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// --- AI Token Users Management ---
+router.get('/ai-tokens', async (req, res) => {
+    try {
+        const { search, sortBy = 'totalTokens', sortDir = 'DESC', page = 1, limit = 20 } = req.query;
+        let whereClause = {};
+
+        // 1. Gather User IDs that match the search query (Name or Email)
+        if (search) {
+            const matchingUsers = await User.findAll({
+                attributes: ['id'],
+                where: {
+                    [Op.or]: [
+                        { name: { [Op.iLike]: `%${search}%` } },
+                        { email: { [Op.iLike]: `%${search}%` } }
+                    ]
+                },
+                raw: true
+            });
+            const matchingIds = matchingUsers.map(u => u.id);
+            // Even if empty, we set it so AiTokenLog returns 0 results
+            whereClause.userId = { [Op.in]: matchingIds };
+        }
+
+        const offset = (page - 1) * limit;
+
+        // 2. Fetch the grouped AiTokenLog data
+        const tokenLogs = await AiTokenLog.findAll({
+            attributes: [
+                'userId',
+                [sequelize.fn('sum', sequelize.col('tokensUsed')), 'totalTokens'],
+                [sequelize.fn('max', sequelize.col('AiTokenLog.createdAt')), 'lastActivity']
+            ],
+            where: whereClause,
+            include: [{
+                model: User,
+                attributes: ['name', 'email', 'company', 'aiTokenBalance', 'plan']
+            }],
+            group: ['userId', 'User.id', 'User.name', 'User.email', 'User.company', 'User.aiTokenBalance', 'User.plan'],
+            order: [[sequelize.literal(`"${sortBy}"`), sortDir]],
+            limit: parseInt(limit, 10),
+            offset: parseInt(offset, 10),
+            raw: true,
+            nest: true
+        });
+
+        // 3. To get the 'totalRows' for pagination correctly using grouping, we recount
+        const countResult = await AiTokenLog.findAll({
+            attributes: [[sequelize.fn('count', sequelize.fn('distinct', sequelize.col('userId'))), 'totalUsers']],
+            where: whereClause,
+            raw: true
+        });
+
+        const totalDocuments = countResult.length > 0 ? parseInt(countResult[0].totalUsers, 10) : 0;
+        const totalPages = Math.ceil(totalDocuments / limit);
+
+        res.json({
+            users: tokenLogs,
+            pagination: {
+                totalUsers: totalDocuments,
+                totalPages,
+                currentPage: parseInt(page, 10)
+            }
+        });
+
+    } catch (err) {
+        console.error("Admin AI Token error:", err);
         res.status(500).json({ error: 'Server Error' });
     }
 });

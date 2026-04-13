@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { authLimiter } = require('../middleware/rateLimiter');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -22,9 +23,9 @@ const generateToken = (user) => {
 };
 
 // REGISTER
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
     try {
-        const { name, email, password, selectedPlan } = req.body;
+        const { name, email, password, selectedPlan, ref, partnerCode, phone } = req.body;
 
         // Fetch Global Security Settings from the primary admin
         const adminUser = await User.findOne({ where: { isAdmin: true } });
@@ -53,6 +54,32 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'User already exists' });
         }
 
+        // Lookup Referrer (user-to-user referral)
+        let referredBy = null;
+        if (ref) {
+            const referrer = await User.findOne({ where: { referralCode: ref } });
+            if (referrer) referredBy = referrer.id;
+        }
+
+        // Lookup B2B Tech Partner (if user came via ?partner=CODE)
+        let techPartnerId = null;
+        if (partnerCode) {
+            const TechPartner = require('../models/TechPartner');
+            const partner = await TechPartner.findOne({ where: { code: partnerCode.toUpperCase(), enabled: true } });
+            if (partner) {
+                techPartnerId = partner.id;
+                // Increment signup counter on the partner
+                partner.totalSignups = (partner.totalSignups || 0) + 1;
+                await partner.save();
+            }
+        }
+
+        // Generate unique referral code
+        // We'll use a clean 8-char random string or just truncate a UUID
+        const crypto = require('crypto');
+        const randomStr = crypto.randomBytes(4).toString('hex').toUpperCase(); // e.g. "A1B2C3D4"
+        const ownReferralCode = `${name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase()}${randomStr}`;
+
         // Hash Password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -60,26 +87,55 @@ router.post('/register', async (req, res) => {
         // Get default plan
         const Plan = require('../models/Plan');
         const defaultPlan = await Plan.findOne({ where: { isDefault: true } });
-        const assignedPlan = defaultPlan ? defaultPlan.name : 'Free';
+        
+        let assignedPlan = defaultPlan ? defaultPlan.name : 'Free';
+        let planExpiry = null;
+        let planStatus = 'Active';
 
-        // Create User with default plan
-        // Note: We intentionally do NOT allow setting isAdmin via API for security.
-        // Admins must be promoted directly in DB or via a separate seed script.
+        // Under Option 1: Automatic Trials are disabled for public signups. 
+        // We only fetch the plan to verify existence, but we strictly enforce "Free" baseline in DB until paid.
+        let requestedPlanObj = null;
+        if (selectedPlan) {
+            requestedPlanObj = await Plan.findByPk(selectedPlan);
+            if (requestedPlanObj) {
+                // Keep them on Free internally until Checkout succeeds
+                assignedPlan = defaultPlan ? defaultPlan.name : 'Free';
+            }
+        }
+
+        // Create User with assigned plan
         user = await User.create({
             name,
             email,
             password: hashedPassword,
-            plan: assignedPlan, // Assign default plan
+            plan: assignedPlan,
+            planStatus: planStatus,
+            planExpiry: planExpiry,
+            phone: phone || '',
+            referralCode: ownReferralCode,
+            referredBy: referredBy,
+            techPartnerId: techPartnerId,
             lastLogin: new Date()
         });
 
         // Log Activity
         await logActivity(req, 'User Registered', `New user registration: ${email} - Plan: ${assignedPlan}`);
 
+        // Prepare Notification Message
+        let notifyMessage = `New User: ${name} (${email}) registered.`;
+        if (referredBy) {
+            const referrer = await User.findByPk(referredBy);
+            if (referrer) notifyMessage = `New User: ${name} joined via Referral (${referrer.name}).`;
+        } else if (techPartnerId) {
+            const TechPartner = require('../models/TechPartner');
+            const partner = await TechPartner.findByPk(techPartnerId);
+            if (partner) notifyMessage = `New User: ${name} joined via Partner (${partner.name}).`;
+        }
+
         // Notify Admin
         await AdminNotification.create({
             type: 'USER_REGISTER',
-            message: `New User Registered: ${name}`,
+            message: notifyMessage,
             data: { userId: user.id, email: user.email, plan: assignedPlan }
         });
 
@@ -92,9 +148,12 @@ router.post('/register', async (req, res) => {
                 name: user.name,
                 email: user.email,
                 plan: user.plan,
+                planDetails: defaultPlan || null,
                 isAdmin: user.isAdmin,
                 createdAt: user.createdAt,
                 lastLogin: user.lastLogin,
+                parentUserId: user.parentUserId,
+                teamPolicy: user.teamPolicy,
                 selectedPlan: selectedPlan || null // Return selected plan for frontend to handle payment
             }
         });
@@ -105,7 +164,7 @@ router.post('/register', async (req, res) => {
 });
 
 // LOGIN
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -130,6 +189,10 @@ router.post('/login', async (req, res) => {
         req.user = user;
         await logActivity(req, 'User Login', `User logged in from ${req.ip}`);
 
+        // Fetch Plan Details
+        const Plan = require('../models/Plan');
+        const planDetails = await Plan.findOne({ where: { name: user.plan } });
+
         // Return Token
         const token = generateToken(user);
         res.json({
@@ -138,9 +201,13 @@ router.post('/login', async (req, res) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                plan: user.plan,
+                planDetails: planDetails || null,
                 isAdmin: user.isAdmin,
                 createdAt: user.createdAt,
-                lastLogin: user.lastLogin
+                lastLogin: user.lastLogin,
+                parentUserId: user.parentUserId,
+                teamPolicy: user.teamPolicy
             }
         });
 
@@ -152,14 +219,20 @@ router.post('/login', async (req, res) => {
 // GET ME (Current User)
 router.get('/me', require('../middleware/auth'), async (req, res) => {
     try {
-        const user = await User.findByPk(req.user.id, {
+        const user = await User.findByPk(req.user.realId || req.user.id, {
             attributes: { exclude: ['password'] }
         });
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        res.json(user);
+        const Plan = require('../models/Plan');
+        const planDetails = await Plan.findOne({ where: { name: user.plan } });
+        
+        const userData = user.toJSON();
+        userData.planDetails = planDetails || null;
+
+        res.json(userData);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -170,7 +243,7 @@ router.put('/profile', require('../middleware/auth'), async (req, res) => {
     try {
         const { name, phone, company } = req.body;
 
-        const user = await User.findByPk(req.user.id);
+        const user = await User.findByPk(req.user.realId || req.user.id);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -186,7 +259,7 @@ router.put('/profile', require('../middleware/auth'), async (req, res) => {
         await logActivity(req, 'Profile Updated', `User updated their profile: ${user.email}`);
 
         // Return updated user without password
-        const updatedUser = await User.findByPk(req.user.id, {
+        const updatedUser = await User.findByPk(req.user.realId || req.user.id, {
             attributes: { exclude: ['password'] }
         });
 
@@ -201,7 +274,7 @@ router.put('/password', require('../middleware/auth'), async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
 
-        const user = await User.findByPk(req.user.id);
+        const user = await User.findByPk(req.user.realId || req.user.id);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -241,7 +314,7 @@ router.put('/password', require('../middleware/auth'), async (req, res) => {
 // DELETE MY ACCOUNT
 router.delete('/me', require('../middleware/auth'), async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.realId || req.user.id;
 
         const user = await User.findByPk(userId);
         if (!user) {

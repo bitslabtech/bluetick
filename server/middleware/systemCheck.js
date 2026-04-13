@@ -3,7 +3,7 @@ const SystemConfig = require('../models/SystemConfig');
 
 const systemCheck = async (req, res, next) => {
     try {
-        const config = await SystemConfig.getConfig();
+        const config = await SystemConfig.getCachedConfig();
 
         // 1. IP Blacklist Check
         const clientIp = req.ip || req.connection.remoteAddress;

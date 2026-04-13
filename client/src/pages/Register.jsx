@@ -5,16 +5,102 @@ import { LayoutDashboard, Check } from 'lucide-react';
 import axios from 'axios';
 import { useUI } from '../context/UIContext';
 
+const CURRENCY_SYMBOLS = {
+    USD: '$', INR: '₹', EUR: '€', GBP: '£',
+    AED: 'د.إ', SAR: 'SR', AUD: 'A$', CAD: 'C$',
+    SGD: 'S$', MYR: 'RM'
+};
+
+const COUNTRY_CODES = [
+    { code: 'IN', dial: '+91', flag: '🇮🇳', name: 'India' },
+    { code: 'US', dial: '+1', flag: '🇺🇸', name: 'USA' },
+    { code: 'GB', dial: '+44', flag: '🇬🇧', name: 'UK' },
+    { code: 'AE', dial: '+971', flag: '🇦🇪', name: 'UAE' },
+    { code: 'SA', dial: '+966', flag: '🇸🇦', name: 'Saudi Arabia' },
+    { code: 'AU', dial: '+61', flag: '🇦🇺', name: 'Australia' },
+    { code: 'CA', dial: '+1', flag: '🇨🇦', name: 'Canada' },
+    { code: 'SG', dial: '+65', flag: '🇸🇬', name: 'Singapore' },
+    { code: 'MY', dial: '+60', flag: '🇲🇾', name: 'Malaysia' },
+    { code: 'PK', dial: '+92', flag: '🇵🇰', name: 'Pakistan' },
+    { code: 'BD', dial: '+880', flag: '🇧🇩', name: 'Bangladesh' },
+    { code: 'LK', dial: '+94', flag: '🇱🇰', name: 'Sri Lanka' },
+    { code: 'NP', dial: '+977', flag: '🇳🇵', name: 'Nepal' },
+    { code: 'DE', dial: '+49', flag: '🇩🇪', name: 'Germany' },
+    { code: 'FR', dial: '+33', flag: '🇫🇷', name: 'France' },
+    { code: 'NG', dial: '+234', flag: '🇳🇬', name: 'Nigeria' },
+    { code: 'ZA', dial: '+27', flag: '🇿🇦', name: 'South Africa' },
+    { code: 'KE', dial: '+254', flag: '🇰🇪', name: 'Kenya' },
+    { code: 'BR', dial: '+55', flag: '🇧🇷', name: 'Brazil' },
+    { code: 'ID', dial: '+62', flag: '🇮🇩', name: 'Indonesia' },
+    { code: 'PH', dial: '+63', flag: '🇵🇭', name: 'Philippines' },
+    { code: 'TH', dial: '+66', flag: '🇹🇭', name: 'Thailand' },
+    { code: 'EG', dial: '+20', flag: '🇪🇬', name: 'Egypt' },
+];
+
 const Register = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [dialCode, setDialCode] = useState('+91');
+    const [localNumber, setLocalNumber] = useState('');
+    const [phone, setPhone] = useState('+91');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [selectedPlan, setSelectedPlan] = useState(null);
     const { register } = useAuth();
-    const { publicSettings } = useUI();
+    const { publicSettings, publicSettingsLoading } = useUI();
     const navigate = useNavigate();
     const location = useLocation();
+    const searchParams = new URLSearchParams(location.search);
+    const inviteToken = searchParams.get('invite');
+    const refFromUrl = searchParams.get('ref');
+
+    // ── Referral code helpers ──
+    const REF_KEY = 'referral_code';
+    const REF_EXPIRY_KEY = 'referral_code_expiry';
+
+    const getSavedReferralCode = () => {
+        const code = localStorage.getItem(REF_KEY);
+        const expiry = parseInt(localStorage.getItem(REF_EXPIRY_KEY) || '0', 10);
+        if (code && Date.now() < expiry) return code;
+        localStorage.removeItem(REF_KEY);
+        localStorage.removeItem(REF_EXPIRY_KEY);
+        return null;
+    };
+
+    const clearReferralCode = () => {
+        localStorage.removeItem(REF_KEY);
+        localStorage.removeItem(REF_EXPIRY_KEY);
+    };
+
+    // URL param takes priority over stored code
+    const referralCode = refFromUrl || getSavedReferralCode();
+
+    // ── Partner code helpers (B2B Tech Partner attribution) ──
+    const PARTNER_KEY = 'partner_code';
+    const PARTNER_EXPIRY_KEY = 'partner_code_expiry';
+    const partnerFromUrl = searchParams.get('partner');
+
+    const getSavedPartnerCode = () => {
+        const code = localStorage.getItem(PARTNER_KEY);
+        const expiry = parseInt(localStorage.getItem(PARTNER_EXPIRY_KEY) || '0', 10);
+        if (code && Date.now() < expiry) return code;
+        localStorage.removeItem(PARTNER_KEY);
+        localStorage.removeItem(PARTNER_EXPIRY_KEY);
+        return null;
+    };
+
+    const clearPartnerCode = () => {
+        localStorage.removeItem(PARTNER_KEY);
+        localStorage.removeItem(PARTNER_EXPIRY_KEY);
+    };
+
+    const partnerCode = (partnerFromUrl || getSavedPartnerCode() || '')?.toUpperCase() || null;
+
+
+    // Sync combined phone state whenever dial code or local number changes
+    useEffect(() => {
+        setPhone(dialCode + localNumber.replace(/^0+/, ''));
+    }, [dialCode, localNumber]);
 
     // Get plan ID from URL
     useEffect(() => {
@@ -22,16 +108,19 @@ const Register = () => {
         const planId = searchParams.get('plan');
 
         if (planId) {
-            // Fetch plan details
             fetchPlanDetails(planId);
         }
     }, [location]);
 
     const fetchPlanDetails = async (planId) => {
         try {
-            const res = await axios.get('http://localhost:5000/api/plans');
+            const res = await axios.get('http://127.0.0.1:5000/api/plans');
             const plan = res.data.find(p => p.id === planId);
             if (plan) {
+                const searchParams = new URLSearchParams(location.search);
+                const reqInterval = searchParams.get('interval');
+                if (reqInterval) plan.interval = reqInterval; // Save chosen interval!
+                
                 setSelectedPlan(plan);
             }
         } catch (err) {
@@ -43,17 +132,30 @@ const Register = () => {
         e.preventDefault();
         setError('');
 
-        // Pass selected plan ID to backend
-        const res = await register(name, email, password, selectedPlan?.id);
+        // Pass selected plan ID and phone to backend
+        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone);
 
         if (res.success) {
-            // If user selected a paid plan, redirect to checkout
-            if (selectedPlan && selectedPlan.price > 0) {
+            // Clear persisted codes so they can't be reused
+            clearReferralCode();
+            clearPartnerCode();
+            // Process Team Invite if present
+            if (inviteToken) {
+                try {
+                    await axios.post('http://127.0.0.1:5000/api/team/join', { token: inviteToken });
+                } catch (inviteErr) {
+                    console.error('Failed to join team during registration:', inviteErr);
+                }
+            }
+
+            // If user selected a paid plan, AND it doesn't have a trial, redirect to checkout
+            if (selectedPlan && selectedPlan.price > 0 && (!selectedPlan.trialDays || selectedPlan.trialDays <= 0)) {
                 // Store plan info for checkout
                 localStorage.setItem('pendingPlan', JSON.stringify(selectedPlan));
                 navigate('/checkout');
             } else {
-                // Direct registration or free plan - go to dashboard
+                // Direct registration, free plan, or trial plan - go to dashboard
+                // They shouldn't get Option A forced redirect if they started a trial plan.
                 navigate('/dashboard');
             }
         } else {
@@ -63,7 +165,7 @@ const Register = () => {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-50">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg border border-slate-100">
+            <div className="w-full max-w-md p-6 sm:p-8 space-y-6 bg-white rounded-xl shadow-lg border border-slate-100 mx-4 sm:mx-0">
                 <div className="text-center space-y-2">
                     <div className="flex justify-center mb-4">
                         {publicSettings?.logoUrl ? (
@@ -74,32 +176,52 @@ const Register = () => {
                             </div>
                         )}
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900">
-                        {publicSettings?.appName || 'WaManager'}
+                    <h2 className="text-xl font-bold text-slate-900 min-h-[1.75rem]">
+                        {!publicSettingsLoading && (publicSettings?.appName || 'WhatsApp Cloud')}
                     </h2>
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
                         Create Account
                     </h1>
-                    <p className="text-slate-500">Get started with {publicSettings?.appName || 'WhatsApp Bulk Sender'}</p>
+                    <p className="text-slate-500 min-h-[1.5rem] flex items-center justify-center">
+                        {!publicSettingsLoading && `Get started with ${publicSettings?.appName || 'WhatsApp Cloud'}`}
+                    </p>
                 </div>
 
                 {/* Selected Plan Display */}
-                {selectedPlan && (
-                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-                        <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                            <Check className="w-4 h-4 text-primary" />
-                            Selected Plan: {selectedPlan.name}
-                        </h3>
-                        <p className="text-sm text-slate-600 mb-2">
-                            ${selectedPlan.price}/month - {selectedPlan.description}
-                        </p>
-                        <ul className="text-xs text-primary space-y-1">
-                            <li>• {selectedPlan.messageLimit} messages/month</li>
-                            <li>• {selectedPlan.contactLimit} contacts</li>
-                            <li>• {selectedPlan.templateLimit} templates</li>
-                        </ul>
-                    </div>
-                )}
+                {selectedPlan && (() => {
+                    const sym = CURRENCY_SYMBOLS[publicSettings?.currency] || publicSettings?.currency || '$';
+                    const interval = selectedPlan.interval || 'month';
+                    let displayPrice = parseFloat(selectedPlan.price) || 0;
+                    let intervalLabel = '/mo';
+                    if (interval === 'month' && parseFloat(selectedPlan.monthlyPrice) > 0) {
+                        displayPrice = parseFloat(selectedPlan.monthlyPrice);
+                        intervalLabel = '/mo';
+                    } else if (interval === 'half-year' && parseFloat(selectedPlan.halfYearlyPrice) > 0) {
+                        displayPrice = parseFloat(selectedPlan.halfYearlyPrice);
+                        intervalLabel = '/6 months';
+                    } else if (interval === 'year' && parseFloat(selectedPlan.yearlyPrice) > 0) {
+                        displayPrice = parseFloat(selectedPlan.yearlyPrice);
+                        intervalLabel = '/year';
+                    }
+                    return (
+                        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+                            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                                <Check className="w-4 h-4 text-primary" />
+                                Selected Plan: {selectedPlan.name}
+                            </h3>
+                            <p className="text-sm text-slate-600 mb-2">
+                                {sym}{displayPrice.toLocaleString()}{intervalLabel}{selectedPlan.description ? ` — ${selectedPlan.description}` : ''}
+                            </p>
+                            <ul className="text-xs text-primary space-y-1">
+                                <li>• {selectedPlan.messageLimit?.toLocaleString()} messages/month</li>
+                                <li>• {selectedPlan.contactLimit?.toLocaleString()} contacts</li>
+                                {selectedPlan.templateLimit > 0 && <li>• {selectedPlan.templateLimit} templates</li>}
+                                {selectedPlan.teamMemberLimit > 0 && <li>• {selectedPlan.teamMemberLimit} team members</li>}
+                                {selectedPlan.trialDays > 0 && <li>• {selectedPlan.trialDays}-day free trial</li>}
+                            </ul>
+                        </div>
+                    );
+                })()}
 
                 {error && (
                     <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100">
@@ -115,7 +237,7 @@ const Register = () => {
                             required
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                             placeholder="John Doe"
                         />
                     </div>
@@ -126,9 +248,37 @@ const Register = () => {
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                             placeholder="you@example.com"
                         />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-slate-700">Phone Number</label>
+                        <div className="flex gap-2">
+                            {/* Country Code Selector */}
+                            <select
+                                value={dialCode}
+                                onChange={(e) => setDialCode(e.target.value)}
+                                className="w-32 shrink-0 px-2 py-2 border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
+                            >
+                                {COUNTRY_CODES.map(c => (
+                                    <option key={c.code + c.dial} value={c.dial}>
+                                        {c.flag} {c.dial}
+                                    </option>
+                                ))}
+                            </select>
+                            {/* Local Number */}
+                            <input
+                                type="tel"
+                                required
+                                value={localNumber}
+                                onChange={(e) => setLocalNumber(e.target.value.replace(/\D/g, ''))}
+                                className="flex-1 min-w-0 px-4 py-2 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                                placeholder="9876543210"
+                                maxLength={12}
+                            />
+                        </div>
+                        <p className="text-xs text-slate-400">Enter number without leading zero</p>
                     </div>
                     <div className="space-y-1">
                         <label className="text-sm font-medium text-slate-700">Password</label>
@@ -137,7 +287,7 @@ const Register = () => {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                             placeholder="••••••••"
                         />
                     </div>

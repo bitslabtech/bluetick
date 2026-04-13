@@ -30,9 +30,22 @@ const Contact = sequelize.define('Contact', {
     userId: {
         type: DataTypes.UUID,
         allowNull: false
+    },
+    createdById: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'Tracks the specific team member who created this resource'
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    indexes: [
+        {
+            fields: ['userId'] // Speed up contact listings
+        },
+        {
+            fields: ['userId', 'phone'] // Speed up duplicate checks
+        }
+    ]
 });
 
 module.exports = Contact;

@@ -17,7 +17,7 @@ const processCampaign = require('../utils/campaignProcessor');
 // Send Bulk Campaign
 router.post('/send', async (req, res) => {
     try {
-        const { templateId, contactIds, manualRecipients, campaignName, description, tag, params, scheduledFor } = req.body;
+        let { templateId, contactIds, targetGroups, manualRecipients, campaignName, description, tag, params, scheduledFor, retargetCampaignId, retargetStatus, retargetLogIds } = req.body;
         console.log('[CAMPAIGN SEND] Request received. templateId:', templateId, '| params keys:', Object.keys(params || {}));
         const userId = req.user.id;
 
@@ -36,6 +36,12 @@ router.post('/send', async (req, res) => {
         let estimatedCount = 0;
         if (contactIds === 'all') {
             estimatedCount = await Contact.count({ where: { userId } });
+        } else if (Array.isArray(targetGroups) && targetGroups.length > 0) {
+            // Resolve tags to contact IDs right here
+            const allContacts = await Contact.findAll({ where: { userId }, attributes: ['id', 'tags'], raw: true });
+            const matchedIds = allContacts.filter(c => c.tags && c.tags.some(t => targetGroups.includes(t))).map(c => c.id);
+            estimatedCount = matchedIds.length;
+            contactIds = matchedIds; // Override contactIds with the resolved list
         } else if (Array.isArray(contactIds)) {
             estimatedCount = contactIds.length;
         }
@@ -43,7 +49,26 @@ router.post('/send', async (req, res) => {
             estimatedCount += manualRecipients.length;
         }
 
-        if (estimatedCount === 0) return res.status(400).json({ error: 'No recipients selected' });
+        // --- RETARGETING OVERRIDE ---
+        if (retargetCampaignId && retargetStatus) {
+            const whereClause = { campaignId: retargetCampaignId };
+            if (retargetStatus !== 'ALL') {
+                whereClause.status = retargetStatus;
+            }
+            if (retargetLogIds && Array.isArray(retargetLogIds)) {
+                whereClause.id = { [Op.in]: retargetLogIds };
+            }
+            const logs = await MessageLog.findAll({ where: whereClause, attributes: ['contactId', 'phone'] });
+            
+            const targetContactIds = logs.map(l => l.contactId).filter(Boolean);
+            const targetPhones = logs.filter(l => !l.contactId).map(l => ({ name: 'Retargeted', phone: l.phone }));
+
+            contactIds = targetContactIds;
+            manualRecipients = [...(manualRecipients || []), ...targetPhones];
+            estimatedCount = contactIds.length + manualRecipients.length;
+        }
+
+        if (estimatedCount === 0) return res.status(400).json({ error: 'No recipients selected or found for retargeting.' });
 
         // 4. Create Campaign Record
         const status = scheduledFor ? 'SCHEDULED' : 'SENDING';
@@ -54,6 +79,7 @@ router.post('/send', async (req, res) => {
             status: status,
             logs: [],
             userId,
+            createdById: req.user.realId || req.user.id,
             campaignName: campaignName || template.name,
             scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
             targetConfig: {
@@ -61,7 +87,10 @@ router.post('/send', async (req, res) => {
                 manualRecipients,
                 params,
                 description,
-                tag
+                tag,
+                retargetCampaignId,
+                retargetStatus,
+                retargetLogIds
             }
         });
 
@@ -92,16 +121,24 @@ router.get('/:id', async (req, res) => {
         });
         if (!message) return res.status(404).json({ error: 'Campaign not found' });
 
-        // Fetch logs separately with Contact info
-        const logs = await MessageLog.findAll({
-            where: { campaignId: message.id },
-            order: [['createdAt', 'DESC']]
-        });
+        // Calculate stats via DB aggregates instead of pulling all logs into memory
+        const sentCount = await MessageLog.count({ where: { campaignId: message.id, status: { [Op.in]: ['SENT', 'DELIVERED', 'READ', 'CLICKED'] } } });
+        const deliveredCount = await MessageLog.count({ where: { campaignId: message.id, status: { [Op.in]: ['DELIVERED', 'READ', 'CLICKED'] } } });
+        const readCount = await MessageLog.count({ where: { campaignId: message.id, status: { [Op.in]: ['READ', 'CLICKED'] } } });
+        const clickedCount = await MessageLog.count({ where: { campaignId: message.id, status: 'CLICKED' } });
+        const failedCount = await MessageLog.count({ where: { campaignId: message.id, status: 'FAILED' } });
 
-        // Fetch manual contact mappings if needed, or rely on Contact table join
-        // We need to manually join Contacts for these logs since Sequelize raw query might be easier or include
-        // But since we didn't define MessageLog.belongsTo(Contact) yet (we only did campaignId), let's fetch contacts manually or update model.
-        // Actually, let's just fetch all contacts referenced in logs to map names.
+        // Fetch logs paginated to avoid returning 10,000+ items at once
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 1000;
+        const offset = (page - 1) * limit;
+
+        const { count: totalLogs, rows: logs } = await MessageLog.findAndCountAll({
+            where: { campaignId: message.id },
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset
+        });
 
         const contactIds = logs.map(l => l.contactId).filter(id => id);
         const contacts = await Contact.findAll({
@@ -118,20 +155,18 @@ router.get('/:id', async (req, res) => {
             return jsonLog;
         });
 
-        // Attach logs to the response object (frontend expects this)
         const responseHelper = message.toJSON();
         responseHelper.logs = logsWithNames;
 
-        // Calculate stats on the fly
-        responseHelper.sentCount = logs.filter(l => l.status === 'SENT' || l.status === 'DELIVERED' || l.status === 'READ').length;
-        responseHelper.deliveredCount = logs.filter(l => l.status === 'DELIVERED' || l.status === 'READ').length;
-        responseHelper.readCount = logs.filter(l => l.status === 'READ').length;
-        responseHelper.failedCount = logs.filter(l => l.status === 'FAILED').length;
+        responseHelper.sentCount = sentCount;
+        responseHelper.deliveredCount = deliveredCount;
+        responseHelper.readCount = readCount;
+        responseHelper.clickedCount = clickedCount;
+        responseHelper.failedCount = failedCount;
 
-        console.log(`[MESSAGES API] Campaign ${req.params.id} stats: SENT=${responseHelper.sentCount} DELIVERED=${responseHelper.deliveredCount} READ=${responseHelper.readCount} FAILED=${responseHelper.failedCount}`);
-        if (logs.length > 0) {
-            console.log('[MESSAGES API] Sample log statuses:', logs.slice(0, 5).map(l => `${l.messageId?.substring(0, 20)}...:${l.status}`));
-        }
+        responseHelper.totalLogs = totalLogs;
+        responseHelper.totalPages = Math.ceil(totalLogs / limit);
+        responseHelper.currentPage = page;
 
         res.json(responseHelper);
     } catch (err) {
@@ -139,37 +174,48 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Get Messages
+// Get Messages (Campaigns List)
 router.get('/', async (req, res) => {
     try {
-        const messages = await Message.findAll({
+        // Fetch paginated campaigns
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 1000;
+        const offset = (page - 1) * limit;
+
+        const { count, rows: messages } = await Message.findAndCountAll({
             where: { userId: req.user.id },
             include: [
-                { model: Template },
-                {
-                    model: MessageLog,
-                    attributes: ['status'] // Only fetch status to minimize data transfer
-                }
+                { model: Template }
             ],
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset
         });
 
-        // Compute stats for each message
-        const responseData = messages.map(msg => {
-            const logs = msg.MessageLogs || [];
+        // Manual aggregate queries for each campaign to prevent memory exhaustion
+        const responseData = await Promise.all(messages.map(async msg => {
             const jsonMsg = msg.toJSON();
 
-            // Override counters with real-time aggregations from Logs
-            jsonMsg.sentCount = logs.filter(l => ['SENT', 'DELIVERED', 'READ'].includes(l.status)).length;
-            jsonMsg.deliveredCount = logs.filter(l => ['DELIVERED', 'READ'].includes(l.status)).length;
-            jsonMsg.readCount = logs.filter(l => l.status === 'READ').length;
-            jsonMsg.failedCount = logs.filter(l => l.status === 'FAILED').length;
+            const [sentCount, deliveredCount, readCount, failedCount] = await Promise.all([
+                MessageLog.count({ where: { campaignId: msg.id, status: { [Op.in]: ['SENT', 'DELIVERED', 'READ'] } } }),
+                MessageLog.count({ where: { campaignId: msg.id, status: { [Op.in]: ['DELIVERED', 'READ'] } } }),
+                MessageLog.count({ where: { campaignId: msg.id, status: 'READ' } }),
+                MessageLog.count({ where: { campaignId: msg.id, status: 'FAILED' } })
+            ]);
 
-            if (jsonMsg.logs) delete jsonMsg.logs; // Remove legacy logs if present in JSON column to avoid confusion
-            delete jsonMsg.MessageLogs; // Cleanup response
+            jsonMsg.sentCount = sentCount;
+            jsonMsg.deliveredCount = deliveredCount;
+            jsonMsg.readCount = readCount;
+            jsonMsg.failedCount = failedCount;
+
+            if (jsonMsg.logs) delete jsonMsg.logs;
 
             return jsonMsg;
-        });
+        }));
+
+        // Keep standard array format for older clients, but we can append pagination metadata via headers if needed, 
+        // or just return the array if the client expects an array.
+        // Actually since Contacts.jsx was changed but Campaigns.jsx was not yet, we'll return responseData.
 
         res.json(responseData);
     } catch (err) {

@@ -268,7 +268,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
         };
 
         try {
-            await axios.post('http://localhost:5000/api/templates', payload);
+            await axios.post('http://127.0.0.1:5000/api/templates', payload);
             showToast({ type: 'success', title: 'Template Created', message: 'Template successfully created.' });
             onSuccess();
         } catch (err) {

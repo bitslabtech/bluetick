@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Plus, Search, Filter, MoreVertical, Calendar,
     MessageSquare, CheckCircle, AlertTriangle, XCircle, Clock, Menu, Settings
@@ -16,6 +16,7 @@ import CampaignStep3 from '../components/campaigns/CampaignStep3';
 
 const Campaigns = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { showModal } = useUI();
     const [step, setStep] = useState(1);
     const [campaignData, setCampaignData] = useState({
@@ -23,20 +24,41 @@ const Campaigns = () => {
         description: '',
         recipients: [],
         templateId: null,
-        params: {}
+        params: {},
+        retargetCampaignId: null,
+        retargetStatus: null,
+        retargetLogIds: null
     });
     const { user } = useAuth();
     const [isConfigured, setIsConfigured] = useState(true); // Default true until fetched
 
     useEffect(() => {
         if (user?.id) {
-            axios.get('http://localhost:5000/api/dashboard/stats', {
+            axios.get('http://127.0.0.1:5000/api/dashboard/stats', {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             }).then(res => {
                 setIsConfigured(res.data.isWhatsappConfigured);
             }).catch(() => setIsConfigured(false));
         }
     }, [user?.id]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const retargetCampaignId = params.get('retargetCampaignId');
+        const retargetStatus = params.get('retargetStatus');
+        const sourceName = params.get('sourceName');
+        const retargetLogIds = location.state?.retargetLogIds || null;
+        
+        if (retargetCampaignId && retargetStatus) {
+            setCampaignData(prev => ({
+                ...prev,
+                retargetCampaignId,
+                retargetStatus,
+                retargetLogIds,
+                name: `[Retarget - ${retargetStatus}] ${sourceName || 'Campaign'}`
+            }));
+        }
+    }, [location.search, location.state]);
 
     const updateData = (newData) => {
         setCampaignData(prev => ({ ...prev, ...newData }));
@@ -51,7 +73,7 @@ const Campaigns = () => {
                 ...payload,
                 name: campaignData.name
             };
-            await axios.post('http://localhost:5000/api/messages/send', finalPayload);
+            await axios.post('http://127.0.0.1:5000/api/messages/send', finalPayload);
 
             showModal({
                 type: 'success',

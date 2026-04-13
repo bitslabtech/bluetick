@@ -1,9 +1,11 @@
 const express = require('express');
 const router = require('express').Router();
+const { Op } = require('sequelize');
 const Contact = require('../models/Contact');
 const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const { getUserPlanLimits, checkLimit, getContactCount } = require('../utils/planLimits');
+const { applyPrivacyMask } = require('../utils/privacy');
 
 // Apply auth middleware to all routes
 router.use(auth);
@@ -13,7 +15,8 @@ router.get('/groups', async (req, res) => {
     try {
         const contacts = await Contact.findAll({
             attributes: ['tags'],
-            where: { userId: req.user.id }
+            where: { userId: req.user.id },
+            raw: true
         });
 
         // Flatten tags and get unique values
@@ -21,6 +24,41 @@ router.get('/groups', async (req, res) => {
         const uniqueGroups = [...new Set(allTags)].sort();
 
         res.json(uniqueGroups);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET campaign selection summary (groups with counts + total contacts)
+router.get('/campaign-summary', async (req, res) => {
+    try {
+        const totalContacts = await Contact.count({
+            where: { userId: req.user.id }
+        });
+
+        const contacts = await Contact.findAll({
+            attributes: ['tags'],
+            where: { userId: req.user.id },
+            raw: true
+        });
+
+        const allTags = contacts.flatMap(c => c.tags || []);
+        const tagCounts = {};
+        for (const tag of allTags) {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        }
+
+        const groups = Object.keys(tagCounts).map(tag => ({
+            id: tag,
+            name: tag,
+            count: tagCounts[tag].toString(),
+            updated: 'Just now'
+        })).sort((a, b) => a.name.localeCompare(b.name));
+
+        res.json({
+            totalContacts: totalContacts.toString(),
+            groups
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -36,20 +74,64 @@ router.get('/by-phone/:phone', async (req, res) => {
         if (!contact) {
             return res.status(404).json({ error: 'Contact not found' });
         }
-        res.json(contact);
+        res.json(applyPrivacyMask(contact, req.user));
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// GET all contacts for logged in user
+// GET all contacts for logged in user (Paginated)
 router.get('/', async (req, res) => {
     try {
-        const contacts = await Contact.findAll({
-            where: { userId: req.user.id },
-            order: [['createdAt', 'DESC']]
+        const { page = 1, limit = 50, search = '', status = 'All', group = 'All', label = 'All' } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
+
+        // Build Where Clause
+        const whereClause = { userId: req.user.id };
+
+        if (search) {
+            whereClause[Op.or] = [
+                { name: { [Op.iLike]: `%${search}%` } },
+                { phone: { [Op.iLike]: `%${search}%` } },
+                { email: { [Op.iLike]: `%${search}%` } }
+            ];
+        }
+
+        if (status !== 'All') {
+            whereClause.status = status;
+        }
+
+        if (group !== 'All') {
+            whereClause.tags = { [Op.contains]: [group] };
+        }
+
+        let includeClause = [];
+        // If label is specified and it's an ID, we only fetch contacts with that label
+        // We will just filter client side or handle labels dynamically. Since labels is a JSON field in Contact, we can cast it if needed, or query it.
+        // Assume label filtering is complex if JSON, but we can roughly search it
+        if (label !== 'All') {
+            // Because labels is a JSONB array, we need a special query in Postgres to check if an object with id exists inside the array
+            // Due to sqlite fallback or simpler structure, it's safer to query using text matching or skip for now
+            // But let's add a basic string match for the JSON chunk:
+            whereClause.labels = { [Op.like]: `%"id":${label}%` };
+            // Note: Postgres JSONB would use: { [Op.contains]: [{ id: parseInt(label) }] } but String match works as a hack across DBs
+        }
+
+        const { count, rows } = await Contact.findAndCountAll({
+            where: whereClause,
+            order: [['createdAt', 'DESC']],
+            limit: limitNum,
+            offset: offset
         });
-        res.json(contacts);
+
+        res.json({
+            contacts: applyPrivacyMask(rows, req.user),
+            total: count,
+            totalPages: Math.ceil(count / limitNum),
+            currentPage: pageNum
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -89,18 +171,25 @@ router.post('/import', async (req, res) => {
             userId: req.user.id
         }));
 
-        // Note: Sequelize ignoreDuplicates depends on dialect. Postgres uses ON CONFLICT DO NOTHING
-        const created = await Contact.bulkCreate(contactsWithUser, {
-            ignoreDuplicates: true,
-            validate: true
-        });
+        // Break into chunks of 1000 to prevent database query limits / timeouts
+        const CHUNK_SIZE = 1000;
+        let totalCreated = 0;
 
-        const overflow = (currentCount + created.length) > limits.contactLimit && limits.contactLimit !== -1;
+        for (let i = 0; i < contactsWithUser.length; i += CHUNK_SIZE) {
+            const chunk = contactsWithUser.slice(i, i + CHUNK_SIZE);
+            const created = await Contact.bulkCreate(chunk, {
+                ignoreDuplicates: true,
+                validate: true
+            });
+            totalCreated += created.length;
+        }
+
+        const overflow = (currentCount + totalCreated) > limits.contactLimit && limits.contactLimit !== -1;
         const message = overflow
-            ? `Imported ${created.length} contacts. You have reached your plan's contact limit (${limits.contactLimit}). Some contacts will be locked.`
-            : `Successfully imported ${created.length} contacts`;
+            ? `Imported ${totalCreated} contacts. You have reached your plan's contact limit (${limits.contactLimit}). Some contacts will be locked.`
+            : `Successfully imported ${totalCreated} contacts`;
 
-        res.json({ message, count: created.length, overflow });
+        res.json({ message, count: totalCreated, overflow });
 
         // Log Activity
         if (created.length > 0) {
@@ -154,7 +243,8 @@ router.post('/', async (req, res) => {
             phone: cleanPhone,
             email,
             tags,
-            userId: req.user.id
+            userId: req.user.id,
+            createdById: req.user.realId || req.user.id
         });
 
         // Log Activity
@@ -188,7 +278,11 @@ router.put('/:id', async (req, res) => {
         // Check phone overlap if phone is changed
         if (phone) {
             cleanPhone = String(phone).replace(/\D/g, '');
-            if (cleanPhone !== contact.phone) {
+            // Safeguard: If the phone looks like a mask (e.g. starts with ****), skip updating it.
+            // This prevents restricted users from accidentally overwriting real numbers with masks.
+            if (phone.toString().startsWith('****')) {
+                cleanPhone = contact.phone; // Keep original
+            } else if (cleanPhone !== contact.phone) {
                 const existing = await Contact.findOne({
                     where: { phone: cleanPhone, userId: req.user.id }
                 });

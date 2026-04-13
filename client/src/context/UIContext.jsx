@@ -19,6 +19,7 @@ export const UIProvider = ({ children }) => {
     const { user } = useAuth(); // Get user from AuthContext
     const [settings, setSettings] = useState(null);
     const [publicSettings, setPublicSettings] = useState(null);
+    const [publicSettingsLoading, setPublicSettingsLoading] = useState(true);
 
     // Fetch Public Settings on initial load (for branding before login)
     useEffect(() => {
@@ -27,11 +28,17 @@ export const UIProvider = ({ children }) => {
 
     const fetchPublicSettings = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/settings/public');
-            setPublicSettings(res.data);
-            applyBranding(res.data);
+            const res = await axios.get('http://127.0.0.1:5000/api/settings/public');
+            const data = res.data;
+            if (data?.logoUrl?.startsWith('/uploads')) {
+                data.logoUrl = `http://127.0.0.1:5000${data.logoUrl}`;
+            }
+            setPublicSettings(data);
+            applyBranding(data);
         } catch (err) {
             console.error("Failed to fetch public settings:", err);
+        } finally {
+            setPublicSettingsLoading(false);
         }
     };
 
@@ -40,9 +47,6 @@ export const UIProvider = ({ children }) => {
         const root = document.documentElement;
         if (data.primaryColor) {
             root.style.setProperty('--color-primary', data.primaryColor);
-        }
-        if (data.secondaryColor) {
-            root.style.setProperty('--color-secondary', data.secondaryColor);
         }
     };
 
@@ -55,10 +59,14 @@ export const UIProvider = ({ children }) => {
 
     const fetchSettings = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/settings', {
+            const res = await axios.get('http://127.0.0.1:5000/api/settings', {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
-            setSettings(res.data);
+            const data = res.data;
+            if (data?.logoUrl?.startsWith('/uploads')) {
+                data.logoUrl = `http://127.0.0.1:5000${data.logoUrl}`;
+            }
+            setSettings(data);
 
             // Re-apply if user has personal overrides, otherwise public stays
             applyBranding(res.data);
@@ -122,23 +130,35 @@ export const UIProvider = ({ children }) => {
     // Toast State
     const [toasts, setToasts] = useState([]);
 
-    const showToast = useCallback(({ type = 'info', title, message, duration = 4000 }) => {
-        const id = Date.now().toString();
-        setToasts(prev => [...prev, { id, type, title, message }]);
-
-        if (duration) {
-            setTimeout(() => {
-                removeToast(id);
-            }, duration);
-        }
-    }, []);
-
     const removeToast = useCallback((id) => {
         setToasts(prev => prev.filter(t => t.id !== id));
     }, []);
 
+    const showToast = useCallback((args, forcedType = 'info') => {
+        const id = Date.now().toString();
+        let config = { type: 'info', title: '', message: '', duration: 4000 };
+
+        if (typeof args === 'string') {
+            // Support old positional format: showToast("message", "type")
+            config.message = args;
+            config.type = forcedType;
+            config.title = forcedType.charAt(0).toUpperCase() + forcedType.slice(1);
+        } else {
+            // Support new object format: showToast({ message, type, title, duration })
+            config = { ...config, ...args };
+        }
+
+        setToasts(prev => [...prev, { id, ...config }]);
+
+        if (config.duration) {
+            setTimeout(() => {
+                removeToast(id);
+            }, config.duration);
+        }
+    }, [removeToast]);
+
     return (
-        <UIContext.Provider value={{ showModal, closeModal, showToast, formatDate, settings, publicSettings }}>
+        <UIContext.Provider value={{ showModal, closeModal, showToast, formatDate, settings, publicSettings, publicSettingsLoading }}>
             {children}
 
             {/* Modal Layer */}

@@ -1,0 +1,120 @@
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
+
+const Coupon = sequelize.define('Coupon', {
+    id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+    },
+    code: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+        set(value) {
+            this.setDataValue('code', value ? value.toUpperCase().trim() : null);
+        }
+    },
+    discountType: {
+        type: DataTypes.ENUM('percentage', 'fixed'),
+        allowNull: false,
+        defaultValue: 'percentage'
+    },
+    discountValue: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        validate: {
+            min: 0
+        }
+    },
+    isActive: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
+    },
+    isValidForUpgrades: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Whether this coupon can be applied when upgrading from an existing plan'
+    },
+
+    // --- Advanced Validations ---
+
+    // Date Constraints
+    startDate: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    expiryDate: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+
+    // Global Usage Limit
+    maxUses: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0, // 0 means unlimited
+        comment: 'Maximum overall times this coupon can be used by anyone'
+    },
+    usesCount: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+
+    // Per-User Limit (requires tracking usage per user, we can store usedBy array or query Transactions)
+    userLimit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1, // Usually 1 use per user
+        comment: 'How many times a single user can use this coupon'
+    },
+
+    // Specific Plan Restriction
+    applicablePlans: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Array of plan names this coupon applies to. Empty means all plans.'
+    },
+
+    // Purchase Value Restriction
+    minPurchaseAmount: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0,
+        comment: 'Minimum plan price required to apply this coupon'
+    },
+
+    // --- v2 Advanced Constraints ---
+
+    // New Users Only
+    isFirstPurchaseOnly: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'If true, coupon can only be used by users who have 0 prior successful transactions'
+    },
+
+    // Specific Billing Cycles
+    validIntervals: {
+        type: DataTypes.JSON, // e.g., ['month', 'year']
+        defaultValue: [],
+        comment: 'Array of intervals this coupon applies to (empty means all intervals)'
+    },
+
+    // Maximum Discount Cap (for percentage discounts)
+    maxDiscountCap: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0,
+        comment: 'Maximum absolute amount that can be discounted (0 means no limit)'
+    },
+
+    // Restricted Emails/Domains
+    allowedEmails: {
+        type: DataTypes.JSON, // e.g., ['user@test.com', '@partner.com']
+        defaultValue: [],
+        comment: 'Array of exact emails or domains (@domain.com) allowed to use this coupon'
+    }
+}, {
+    timestamps: true,
+    indexes: [
+        { unique: true, fields: ['code'] }
+    ]
+});
+
+module.exports = Coupon;

@@ -1,0 +1,13 @@
+{
+  "ignore": [
+    "uploads/",
+    "plugins/",
+    "logs/",
+    "public/uploads/",
+    "node_modules/",
+    "*.zip",
+    "test_*.js",
+    "seed_*.js",
+    "make_zip.js"
+  ]
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { LayoutDashboard } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 
@@ -9,20 +9,24 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const { login } = useAuth();
-    const { publicSettings } = useUI();
+    const { publicSettings, publicSettingsLoading } = useUI();
     const navigate = useNavigate();
+    const location = useLocation();
+    // The page the user was trying to reach before being redirected to login
+    const fromState = location.state?.from;
+    const from = typeof fromState === 'string' 
+        ? fromState 
+        : (fromState?.pathname ? fromState.pathname + (fromState.search || '') : null);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         const res = await login(email, password);
         if (res.success) {
-            // Check for admin role logic
-            if (res.user?.isAdmin || (res.token && JSON.parse(atob(res.token.split('.')[1])).user.isAdmin)) {
-                navigate('/superadmin');
-            } else {
-                navigate('/dashboard');
-            }
+            const isAdmin = res.user?.isAdmin || (res.token && JSON.parse(atob(res.token.split('.')[1])).user.isAdmin);
+            const defaultDest = isAdmin ? '/superadmin' : '/dashboard';
+            // Return to the originally requested deep link, otherwise go to default
+            navigate(from && from !== '/login' ? from : defaultDest);
         } else {
             setError(res.error);
         }
@@ -30,7 +34,7 @@ const Login = () => {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-50">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg border border-slate-100">
+            <div className="w-full max-w-md p-6 sm:p-8 space-y-6 bg-white rounded-xl shadow-lg border border-slate-100 mx-4 sm:mx-0">
                 <div className="text-center space-y-2">
                     <div className="flex justify-center mb-4">
                         {publicSettings?.logoUrl ? (
@@ -41,8 +45,8 @@ const Login = () => {
                             </div>
                         )}
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900">
-                        {publicSettings?.appName || 'WaManager'}
+                    <h2 className="text-xl font-bold text-slate-900 min-h-[1.75rem]">
+                        {!publicSettingsLoading && (publicSettings?.appName || 'WhatsApp Cloud')}
                     </h2>
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
                         Welcome Back
@@ -64,7 +68,7 @@ const Login = () => {
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                             placeholder="you@example.com"
                         />
                     </div>
@@ -75,7 +79,7 @@ const Login = () => {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                             placeholder="••••••••"
                         />
                     </div>

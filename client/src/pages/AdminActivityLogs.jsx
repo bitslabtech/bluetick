@@ -20,7 +20,7 @@ const AdminActivityLogs = () => {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:5000/api/admin/activity-logs');
+            const res = await axios.get('http://127.0.0.1:5000/api/admin/activity-logs');
             setLogs(res.data);
         } catch (err) {
             console.error("Error fetching logs:", err);
@@ -78,7 +78,7 @@ const AdminActivityLogs = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="p-8 max-w-7xl mx-auto w-full pb-20">
+            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20">
 
                 <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
 

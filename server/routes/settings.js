@@ -4,30 +4,76 @@ const Settings = require('../models/Settings');
 const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const User = require('../models/User');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+const fs = require('fs');
+
+// ── Security: Mask sensitive values before sending to client ──
+const MASK = '••••••••';
+const isMasked = (val) => typeof val === 'string' && val.startsWith('••••••••');
+
+const maskSecret = (value) => {
+    if (!value || typeof value !== 'string') return value;
+    if (value.length <= 4) return MASK;
+    return MASK + value.slice(-4);
+};
+
+const maskSettingsForClient = (settings) => {
+    const json = settings.toJSON ? settings.toJSON() : { ...settings };
+
+    // Mask Meta access token
+    if (json.metaAccessToken) json.metaAccessToken = maskSecret(json.metaAccessToken);
+
+    // Mask payment gateway secrets
+    if (json.paymentGateways) {
+        const pg = json.paymentGateways;
+        if (pg.razorpay?.keySecret) pg.razorpay.keySecret = maskSecret(pg.razorpay.keySecret);
+        if (pg.stripe?.secretKey) pg.stripe.secretKey = maskSecret(pg.stripe.secretKey);
+        if (pg.phonepe?.saltKey) pg.phonepe.saltKey = maskSecret(pg.phonepe.saltKey);
+        if (pg.cashfree?.secretKey) pg.cashfree.secretKey = maskSecret(pg.cashfree.secretKey);
+    }
+
+    // Mask SMTP password
+    if (json.smtpConfig?.pass) json.smtpConfig.pass = maskSecret(json.smtpConfig.pass);
+
+    return json;
+};
 
 // PUBLIC ROUTE: Get global branding settings (unauthenticated)
 router.get('/public', async (req, res) => {
     try {
+        // Fetch global system config for things like menuOrder
+        const SystemConfig = require('../models/SystemConfig');
+        const systemConfig = await SystemConfig.getConfig();
+
         // Find the first admin user
         const adminUser = await User.findOne({ where: { isAdmin: true } });
         if (!adminUser) {
-            return res.json({}); // No admin found, return empty
+            return res.json({ 
+                appName: 'WhatsApp Cloud',
+                menuOrder: systemConfig.menuOrder 
+            }); // No admin found, return with default name
         }
 
         // Get their settings
         const settings = await Settings.findOne({ where: { userId: adminUser.id } });
         if (!settings) {
-            return res.json({});
+            return res.json({ 
+                appName: 'WhatsApp Cloud',
+                menuOrder: systemConfig.menuOrder 
+            });
         }
 
         // Only return non-sensitive branding data
         res.json({
-            appName: settings.appName,
-            appTagline: settings.appTagline,
+            appName: settings.appName || 'WhatsApp Cloud',
+            appTagline: settings.appTagline || 'Business API',
             logoUrl: settings.logoUrl,
             primaryColor: settings.primaryColor,
             secondaryColor: settings.secondaryColor,
-            theme: settings.theme
+            theme: settings.theme,
+            currency: settings.currency,
+            menuOrder: systemConfig.menuOrder
         });
     } catch (err) {
         console.error("Public Settings Error:", err);
@@ -41,12 +87,25 @@ router.use(auth);
 router.get('/', async (req, res) => {
     try {
         let settings = await Settings.findOne({ where: { userId: req.user.id } });
-        // If no settings exist for this user, return empty/default structure but don't create yet to save DB space until save? 
-        // Or create default. Let's create default for consistency.
         if (!settings) {
             settings = await Settings.create({ userId: req.user.id });
         }
-        res.json(settings);
+        
+        let jsonRes = maskSettingsForClient(settings);
+        
+        // Admins can read system-level storage config
+        if (req.user.isAdmin) {
+            const SystemConfig = require('../models/SystemConfig');
+            const sysConfig = await SystemConfig.getConfig();
+            jsonRes.storage = sysConfig.settings?.storage || { type: 'local', s3: {} };
+            
+            if (jsonRes.storage.s3?.secretAccessKey) {
+                jsonRes.storage.s3.secretAccessKey = maskSecret(jsonRes.storage.s3.secretAccessKey);
+            }
+        }
+        
+        // Return masked version — secrets are never sent to the browser
+        res.json(jsonRes);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -62,7 +121,11 @@ router.post('/', async (req, res) => {
             notificationTemplates,
             paymentGateways,
             smtpConfig,
-            securityConfig
+            securityConfig,
+            whatsappProfile,
+            whatsappAutomations,
+            teamPolicy,
+            storage
         } = req.body;
 
         let settings = await Settings.findOne({ where: { userId: req.user.id } });
@@ -77,12 +140,14 @@ router.post('/', async (req, res) => {
                 paymentGateways,
                 smtpConfig,
                 securityConfig,
+                whatsappProfile: whatsappProfile || { description: '', address: '', email: '', websites: [], vertical: '' },
+                whatsappAutomations: whatsappAutomations || { welcomeMessage: { enabled: false, text: '' }, offHoursMessage: { enabled: false, text: '', timezone: 'UTC', schedule: [] } },
                 userId: req.user.id
             });
         } else {
-            // Update fields if provided (or strictly update all)
+            // Update fields — ignore masked values sent back from frontend
             settings.metaPhoneNumberId = metaPhoneNumberId !== undefined ? metaPhoneNumberId : settings.metaPhoneNumberId;
-            settings.metaAccessToken = metaAccessToken !== undefined ? metaAccessToken : settings.metaAccessToken;
+            settings.metaAccessToken = (metaAccessToken !== undefined && !isMasked(metaAccessToken)) ? metaAccessToken : settings.metaAccessToken;
             settings.metaBusinessAccountId = metaBusinessAccountId !== undefined ? metaBusinessAccountId : settings.metaBusinessAccountId;
 
             settings.appName = appName || settings.appName;
@@ -96,17 +161,83 @@ router.post('/', async (req, res) => {
             settings.language = language || settings.language;
             settings.dateFormat = dateFormat || settings.dateFormat;
 
+            if (teamPolicy !== undefined) {
+                settings.teamPolicy = {
+                    ...settings.teamPolicy,
+                    ...teamPolicy
+                };
+                settings.changed('teamPolicy', true);
+            }
+
             if (notificationTemplates) {
                 settings.notificationTemplates = notificationTemplates;
             }
             if (paymentGateways) {
-                settings.paymentGateways = paymentGateways;
+                // Preserve existing secrets if client sent back masked values
+                const existingPG = settings.paymentGateways || {};
+                const safePG = { ...paymentGateways };
+                if (safePG.razorpay?.keySecret && isMasked(safePG.razorpay.keySecret)) safePG.razorpay.keySecret = existingPG.razorpay?.keySecret || '';
+                if (safePG.stripe?.secretKey && isMasked(safePG.stripe.secretKey)) safePG.stripe.secretKey = existingPG.stripe?.secretKey || '';
+                if (safePG.phonepe?.saltKey && isMasked(safePG.phonepe.saltKey)) safePG.phonepe.saltKey = existingPG.phonepe?.saltKey || '';
+                if (safePG.cashfree?.secretKey && isMasked(safePG.cashfree.secretKey)) safePG.cashfree.secretKey = existingPG.cashfree?.secretKey || '';
+                settings.paymentGateways = safePG;
             }
             if (smtpConfig) {
-                settings.smtpConfig = smtpConfig;
+                // Preserve existing SMTP password if masked
+                const existingSMTP = settings.smtpConfig || {};
+                const safeSMTP = { ...smtpConfig };
+                if (safeSMTP.pass && isMasked(safeSMTP.pass)) safeSMTP.pass = existingSMTP.pass || '';
+                settings.smtpConfig = safeSMTP;
             }
             if (securityConfig) {
                 settings.securityConfig = securityConfig;
+            }
+
+            if (whatsappAutomations !== undefined) {
+                settings.whatsappAutomations = whatsappAutomations;
+            }
+
+            if (whatsappProfile !== undefined) {
+                settings.whatsappProfile = whatsappProfile;
+
+                // Fire async request to Meta graph API to update their live profile
+                if (settings.metaPhoneNumberId && settings.metaAccessToken) {
+                    try {
+                        let websites = whatsappProfile.websites || [];
+                        if (typeof websites === 'string') websites = [websites];
+                        // Meta allows maximum of 2 websites
+                        websites = websites.slice(0, 2);
+
+                        const profilePayload = {
+                            messaging_product: "whatsapp",
+                            address: whatsappProfile.address || "",
+                            description: whatsappProfile.description || "",
+                            vertical: whatsappProfile.vertical || "OTHER",
+                            email: whatsappProfile.email || "",
+                            websites: websites
+                        };
+
+                        const profileRes = await fetch(
+                            `https://graph.facebook.com/v19.0/${settings.metaPhoneNumberId}/whatsapp_business_profile`,
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${settings.metaAccessToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(profilePayload)
+                            }
+                        );
+                        const profileData = await profileRes.json();
+                        if (profileData.success) {
+                            console.log(`[SETTINGS] WhatsApp Business Profile updated for phone ${settings.metaPhoneNumberId}`);
+                        } else {
+                            console.warn(`[SETTINGS] WhatsApp Business Profile update failed:`, profileData);
+                        }
+                    } catch (e) {
+                        console.warn('[SETTINGS] Could not sync WhatsApp profile to Meta:', e.message);
+                    }
+                }
             }
 
             await settings.save();
@@ -136,12 +267,183 @@ router.post('/', async (req, res) => {
             }
         }
 
-        res.json(settings);
+        // Handle System-level configurations (like storage) if user is admin
+        if (req.user.isAdmin && storage !== undefined) {
+            const SystemConfig = require('../models/SystemConfig');
+            const sysConfig = await SystemConfig.getConfig();
+            
+            let currentS3 = sysConfig.settings?.storage?.s3 || {};
+            let safeS3 = storage.s3 ? { ...storage.s3 } : {};
+            
+            // Preserve existing S3 secret key if masked
+            if (safeS3.secretAccessKey && isMasked(safeS3.secretAccessKey)) {
+                safeS3.secretAccessKey = currentS3.secretAccessKey || '';
+            }
+            
+            let safeStorage = {
+                type: storage.type || 'local',
+                s3: safeS3
+            };
+
+            sysConfig.settings = {
+                ...sysConfig.settings,
+                storage: safeStorage
+            };
+            sysConfig.changed('settings', true);
+            await sysConfig.save();
+        }
+
+        // Return masked version after save
+        let jsonRes = maskSettingsForClient(settings);
+        if (req.user.isAdmin) {
+            const SystemConfig = require('../models/SystemConfig');
+            const sysConfig = await SystemConfig.getConfig();
+            jsonRes.storage = sysConfig.settings?.storage || { type: 'local', s3: {} };
+            if (jsonRes.storage.s3?.secretAccessKey) {
+                jsonRes.storage.s3.secretAccessKey = maskSecret(jsonRes.storage.s3.secretAccessKey);
+            }
+        }
+        
+        res.json(jsonRes);
     } catch (err) {
         console.error('[SETTINGS] Save error:', err.message, err.stack?.split('\n')[1]);
         res.status(400).json({ error: err.message });
     }
 });
+
+// POST /upload-whatsapp-profile-img — Upload WhatsApp business profile photo to Meta
+router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No image provided' });
+
+        const settings = await Settings.findOne({ where: { userId: req.user.id } });
+        if (!settings?.metaPhoneNumberId || !settings?.metaAccessToken) {
+            return res.status(400).json({ error: 'WhatsApp not configured in settings' });
+        }
+
+        const token = settings.metaAccessToken;
+        const phoneId = settings.metaPhoneNumberId;
+        const fileSize = req.file.size;
+        const fileType = req.file.mimetype;
+
+        // Step 1: Initialize Resumable Upload Session
+        console.log(`[WABA PROFILE DP] Init Upload Session for ${phoneId}`);
+        const initRes = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/uploads?file_length=${fileSize}&file_type=${fileType}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const initData = await initRes.json();
+
+        if (!initData.id) {
+            console.error('[WABA PROFILE DP] Failed to init upload session:', initData);
+            return res.status(400).json({ error: 'Failed to init Meta upload session', details: initData });
+        }
+
+        const uploadSessionId = initData.id;
+
+        // Step 2: Upload File Bytes
+        const fileBuffer = fs.readFileSync(req.file.path);
+        console.log(`[WABA PROFILE DP] Uploading bytes to session ${uploadSessionId}`);
+        const uploadRes = await fetch(`https://graph.facebook.com/v19.0/${uploadSessionId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `OAuth ${token}`,
+                'file_offset': '0'
+            },
+            body: fileBuffer
+        });
+        const uploadData = await uploadRes.json();
+
+        if (!uploadData.h) {
+            console.error('[WABA PROFILE DP] Failed to upload bytes:', uploadData);
+            return res.status(400).json({ error: 'Failed to upload bytes to Meta', details: uploadData });
+        }
+
+        const fileHandle = uploadData.h;
+
+        // Step 3: Set Web Profile Picture
+        console.log(`[WABA PROFILE DP] Setting profile picture with handle ${fileHandle}`);
+        const setRes = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/whatsapp_business_profile`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                profile_picture_handle: fileHandle
+            })
+        });
+
+        const setData = await setRes.json();
+
+        if (!setData.success) {
+            console.error('[WABA PROFILE DP] Failed to set profile picture:', setData);
+            return res.status(400).json({ error: 'Uploaded, but failed to set as profile picture.', details: setData });
+        }
+
+        // Cleanup local temp file
+        try { fs.unlinkSync(req.file.path); } catch (e) { }
+
+        res.json({ success: true, message: 'Profile picture updated successfully' });
+
+    } catch (err) {
+        console.error('[SETTINGS DP] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /sync-whatsapp-profile — Fetch WhatsApp business profile from Meta
+router.get('/sync-whatsapp-profile', auth, async (req, res) => {
+    try {
+        const settings = await Settings.findOne({ where: { userId: req.user.id } });
+        if (!settings?.metaPhoneNumberId || !settings?.metaAccessToken) {
+            return res.status(400).json({ error: 'WhatsApp not configured in settings' });
+        }
+
+        const token = settings.metaAccessToken;
+        const phoneId = settings.metaPhoneNumberId;
+
+        const response = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            return res.status(400).json({ error: data.error.message || 'Failed to fetch Meta profile' });
+        }
+
+        const profileData = data.data?.[0];
+        if (!profileData) {
+            return res.status(404).json({ error: 'No profile found on Meta' });
+        }
+
+        // Map Meta fields to our internal whatsappProfile structure
+        const updatedProfile = {
+            description: profileData.description || profileData.about || '',
+            address: profileData.address || '',
+            email: profileData.email || '',
+            websites: profileData.websites || [''],
+            vertical: profileData.vertical || 'OTHER',
+            profilePictureUrl: profileData.profile_picture_url || ''
+        };
+
+        // Save to DB
+        settings.whatsappProfile = updatedProfile;
+        settings.changed('whatsappProfile', true);
+        await settings.save();
+
+        await logActivity(req, 'Profile Synced', `Synced WhatsApp Business Profile for ${phoneId}`);
+
+        res.json({ success: true, profile: updatedProfile });
+    } catch (err) {
+        console.error('[SETTINGS SYNC] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // POST /subscribe-waba — Manually subscribe app to WABA webhook events
 // This is the CRITICAL step Meta requires to receive real message delivery/read events.
@@ -302,47 +604,15 @@ router.post('/test-smtp', async (req, res) => {
     }
 });
 
-// Upload Logo
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const storageProvider = require('../utils/storageProvider');
 
-const logoUploadDir = path.join(__dirname, '../public/uploads');
-if (!fs.existsSync(logoUploadDir)) {
-    fs.mkdirSync(logoUploadDir, { recursive: true });
-}
-
-const logoStorage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, logoUploadDir);
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = `logo-${Date.now()}${path.extname(file.originalname)}`;
-        cb(null, uniqueSuffix);
-    }
-});
-
-const logoUpload = multer({
-    storage: logoStorage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
-    fileFilter: (req, file, cb) => {
-        if (/image\/(png|jpg|jpeg|svg\+xml|webp)/.test(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed (PNG, JPG, SVG, WEBP)'));
-        }
-    }
-});
-
-router.post('/upload-logo', logoUpload.single('logo'), async (req, res) => {
+router.post('/upload-logo', storageProvider('logos').single('logo'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-        const host = req.headers['x-forwarded-host'] || req.get('host');
-        const publicUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+        const publicUrl = req.file.publicUrl;
 
         // Also save the logoUrl to the user's settings immediately
         let settings = await Settings.findOne({ where: { userId: req.user.id } });

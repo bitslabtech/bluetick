@@ -13,7 +13,7 @@ import {
     BarChart, Bar, Cell, PieChart, Pie, RadialBarChart, RadialBar, Legend
 } from 'recharts';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
 // ─── Searchable Dropdown ─────────────────────────────────────────────────────
 const SearchableDropdown = ({ options, value, onChange, placeholder = 'Select...' }) => {
@@ -305,7 +305,7 @@ const Reports = () => {
     const [selectedCampaignId, setSelectedCampaignId] = useState('all');
 
     useEffect(() => {
-        axios.get(`${API}/api/messages`, { headers: { 'x-auth-token': localStorage.getItem('token') } })
+        axios.get(`${API}/api/messages`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
             .then(res => {
                 setCampaignsList([
                     { value: 'all', label: 'All Campaigns' },
@@ -325,7 +325,7 @@ const Reports = () => {
                     params.endDate = customEnd;
                 }
                 const token = localStorage.getItem('token');
-                const headers = { 'x-auth-token': token };
+                const headers = { 'Authorization': `Bearer ${token}` };
                 const [s, c, r] = await Promise.all([
                     axios.get(`${API}/api/dashboard/stats`, { params, headers }),
                     axios.get(`${API}/api/dashboard/chart`, { params, headers }),
@@ -381,10 +381,9 @@ const Reports = () => {
             )}
 
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0">
                 <div className="flex items-center gap-6 w-full">
-                    <button className="md:hidden text-slate-900 dark:text-white"><Menu className="w-6 h-6" /></button>
-                    <div className="hidden md:flex items-center rounded-xl bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-indigo-500 transition-colors">
+                    <div className="flex items-center rounded-xl bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-indigo-500 transition-colors">
                         <Search className="w-4 h-4 text-slate-400" />
                         <input type="text" placeholder="Search reports..." className="w-full bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none ml-2" />
                     </div>
@@ -422,7 +421,7 @@ const Reports = () => {
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6 lg:p-8 scroll-smooth">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">
                 {loading && !stats ? (
                     <div className="flex flex-col items-center justify-center h-full gap-3">
                         <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />

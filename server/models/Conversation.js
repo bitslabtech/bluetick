@@ -42,14 +42,23 @@ const Conversation = sequelize.define('Conversation', {
         type: DataTypes.TEXT,
         allowNull: true
     },
-    // Assigned agent name
+    // Assigned team member ID (UUID FK to User)
     assignedTo: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
+    // Cached name for display without JOIN
+    assignedToName: {
         type: DataTypes.STRING,
         allowNull: true
     },
     userId: {
         type: DataTypes.UUID,
         allowNull: false
+    },
+    botStatus: {
+        type: DataTypes.ENUM('active', 'paused'),
+        defaultValue: 'active'
     }
 }, {
     timestamps: true,

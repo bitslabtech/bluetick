@@ -24,7 +24,10 @@ const getUserPlanLimits = async (userId) => {
             planName: 'Superadmin',
             messageLimit: -1,
             contactLimit: -1,
-            templateLimit: -1
+            templateLimit: -1,
+            quickReplyLimit: -1,
+            tagLimit: -1,
+            groupLimit: -1
         };
     }
 
@@ -35,7 +38,10 @@ const getUserPlanLimits = async (userId) => {
         planName,
         messageLimit: plan?.messageLimit ?? 30,
         contactLimit: plan?.contactLimit ?? 10,
-        templateLimit: plan?.templateLimit ?? 2
+        templateLimit: plan?.templateLimit ?? 2,
+        quickReplyLimit: plan?.quickReplyLimit ?? 10,
+        tagLimit: plan?.tagLimit ?? 10,
+        groupLimit: plan?.groupLimit ?? 5
     };
 };
 
@@ -83,10 +89,37 @@ const getTemplateCount = async (userId) => {
     return Template.count({ where: { userId } });
 };
 
+/**
+ * Count quick replies belonging to a user/workspace.
+ */
+const getQuickReplyCount = async (userId) => {
+    const QuickReply = require('../models/QuickReply');
+    return QuickReply.count({ where: { userId } });
+};
+
+/**
+ * Count tags/labels belonging to a user/workspace.
+ */
+const getTagCount = async (userId) => {
+    const Label = require('../models/Label');
+    return Label.count({ where: { userId } });
+};
+
+/**
+ * Count groups belonging to a user/workspace.
+ */
+const getGroupCount = async (userId) => {
+    const Group = require('../models/Group');
+    return Group.count({ where: { userId } });
+};
+
 module.exports = {
     getUserPlanLimits,
     checkLimit,
     getMonthlyMessageCount,
     getContactCount,
-    getTemplateCount
+    getTemplateCount,
+    getQuickReplyCount,
+    getTagCount,
+    getGroupCount
 };

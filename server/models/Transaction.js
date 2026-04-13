@@ -35,6 +35,14 @@ const Transaction = sequelize.define('Transaction', {
     razorpayPaymentId: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    couponCode: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    discountApplied: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
     }
 }, {
     timestamps: true

@@ -20,7 +20,7 @@ const AdminPurchases = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`http://localhost:5000/api/purchases?status=${statusFilter}`);
+            const res = await axios.get(`http://127.0.0.1:5000/api/purchases?status=${statusFilter}`);
             setTransactions(res.data);
         } catch (err) {
             console.error("Error fetching transactions:", err);
@@ -31,7 +31,7 @@ const AdminPurchases = () => {
 
     const fetchStats = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/purchases/stats');
+            const res = await axios.get('http://127.0.0.1:5000/api/purchases/stats');
             setStats(res.data);
         } catch (err) {
             console.error("Error fetching stats:", err);
@@ -58,7 +58,7 @@ const AdminPurchases = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="p-8 max-w-7xl mx-auto w-full pb-20">
+            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20">
 
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

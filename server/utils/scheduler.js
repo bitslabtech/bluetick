@@ -27,6 +27,27 @@ function initScheduler() {
                     processCampaign(msg.id).catch(err => console.error(`Scheduler Error [${msg.id}]:`, err));
                 });
             }
+
+            // Expire Addons
+            try {
+                const UserAddon = require('../models/UserAddon');
+                const expiredAddons = await UserAddon.update(
+                    { status: 'expired' },
+                    {
+                        where: {
+                            status: 'active',
+                            currentPeriodEnd: {
+                                [Op.lt]: new Date()
+                            }
+                        }
+                    }
+                );
+                if (expiredAddons[0] > 0) {
+                    console.log(`Expired ${expiredAddons[0]} user addons.`);
+                }
+            } catch (addonErr) {
+                console.error("Scheduler Error Expiring Addons:", addonErr);
+            }
         } catch (err) {
             console.error('Scheduler main loop error:', err);
         }

@@ -9,23 +9,7 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const KBCategory = require('../models/KBCategory');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// Multer Setup for KB Images
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = path.join(__dirname, '../public/uploads/kb');
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'kb-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-const upload = multer({ storage });
+// Multer Setup for KB Images replaced by storageProvider
 
 // Middleware: Verify Auth
 router.use(auth);
@@ -383,15 +367,13 @@ router.delete('/kb/categories/:id', async (req, res) => {
 });
 
 // POST Upload Image (Admin Only)
-router.post('/kb/upload-image', upload.single('image'), async (req, res) => {
+const storageProvider = require('../utils/storageProvider');
+
+router.post('/kb/upload-image', storageProvider('kb').single('image'), async (req, res) => {
     if (!req.user.isAdmin) return res.status(403).json({ error: 'Admin only' });
     if (!req.file) return res.status(400).json({ error: 'No file' });
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    const url = `${protocol}://${host}/uploads/kb/${req.file.filename}`;
-
-    res.json({ url });
+    res.json({ url: req.file.publicUrl });
 });
 
 module.exports = router;

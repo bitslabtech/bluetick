@@ -20,7 +20,7 @@ const AdminAlerts = () => {
 
     const fetchNotifications = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/admin-notifications');
+            const res = await axios.get('http://127.0.0.1:5000/api/admin-notifications');
             setNotifications(res.data.notifications || []);
         } catch (err) {
             console.error("Error fetching notifications:", err);
@@ -31,7 +31,7 @@ const AdminAlerts = () => {
 
     const handleMarkRead = async (id) => {
         try {
-            await axios.put(`http://localhost:5000/api/admin-notifications/${id}/read`);
+            await axios.put(`http://127.0.0.1:5000/api/admin-notifications/${id}/read`);
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
         } catch (err) {
             showToast('Failed to mark read', 'error');
@@ -40,7 +40,7 @@ const AdminAlerts = () => {
 
     const handleMarkAllRead = async () => {
         try {
-            await axios.put('http://localhost:5000/api/admin-notifications/read-all');
+            await axios.put('http://127.0.0.1:5000/api/admin-notifications/read-all');
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             showToast('All marked as read', 'success');
         } catch (err) {
@@ -51,7 +51,7 @@ const AdminAlerts = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Delete this notification?")) return;
         try {
-            await axios.delete(`http://localhost:5000/api/admin-notifications/${id}`);
+            await axios.delete(`http://127.0.0.1:5000/api/admin-notifications/${id}`);
             setNotifications(prev => prev.filter(n => n.id !== id));
             showToast('Notification deleted', 'success');
         } catch (err) {
@@ -62,7 +62,7 @@ const AdminAlerts = () => {
     const handleClearAll = async () => {
         if (!window.confirm("Are you sure you want to delete ALL notifications? This cannot be undone.")) return;
         try {
-            await axios.delete('http://localhost:5000/api/admin-notifications/clear-all');
+            await axios.delete('http://127.0.0.1:5000/api/admin-notifications/clear-all');
             setNotifications([]);
             showToast('All notifications cleared', 'success');
         } catch (err) {
@@ -90,7 +90,7 @@ const AdminAlerts = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="flex-1 overflow-y-auto p-6 lg:p-8 max-w-5xl mx-auto w-full pb-20">
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full pb-20">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">System Alerts</h1>

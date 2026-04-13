@@ -18,6 +18,11 @@ const Group = sequelize.define('Group', {
     userId: {
         type: DataTypes.UUID,
         allowNull: false
+    },
+    color: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: '#3B82F6'
     }
 }, {
     timestamps: true,

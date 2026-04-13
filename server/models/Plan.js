@@ -19,6 +19,19 @@ const Plan = sequelize.define('Plan', {
     price: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
+        defaultValue: 0.00,
+        comment: 'Legacy fallback price. Unused in multi-interval setup.'
+    },
+    monthlyPrice: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0.00
+    },
+    halfYearlyPrice: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0.00
+    },
+    yearlyPrice: {
+        type: DataTypes.DECIMAL(10, 2),
         defaultValue: 0.00
     },
     currency: {
@@ -26,8 +39,14 @@ const Plan = sequelize.define('Plan', {
         defaultValue: 'USD'
     },
     interval: {
-        type: DataTypes.ENUM('month', 'year', 'lifetime'),
-        defaultValue: 'month'
+        type: DataTypes.ENUM('month', 'year', 'lifetime', 'half-year'),
+        defaultValue: 'month',
+        comment: 'Legacy fallback interval. Used structurally but largely overridden dynamically.'
+    },
+    trialDays: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'Number of free trial days before payment is required. Set to 0 to disable.'
     },
     messageLimit: {
         type: DataTypes.INTEGER,
@@ -41,9 +60,47 @@ const Plan = sequelize.define('Plan', {
         type: DataTypes.INTEGER,
         defaultValue: 2
     },
+    quickReplyLimit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 10
+    },
+    tagLimit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 10,
+        comment: 'Limit for number of labels/tags'
+    },
+    groupLimit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 5
+    },
+    teamMemberLimit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'Maximum number of team members allowed for this plan'
+    },
     features: {
         type: DataTypes.JSON, // Stores array of feature strings
         defaultValue: []
+    },
+    flowBotEnabled: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Whether this plan includes access to the FlowBot Builder feature'
+    },
+    includedAddons: {
+        type: DataTypes.JSON, // Stores array of addon module_keys
+        defaultValue: [],
+        comment: 'List of add-on module_key strings that are automatically enrolled when a user Subscribes to this plan'
+    },
+    allowApiAccess: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Whether this plan allows access to Developer API Keys & Webhooks'
+    },
+    aiTokensAllowance: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'One-time bulk addition of AI tokens granted when purchasing or renewing this plan'
     },
     color: {
         type: DataTypes.STRING,

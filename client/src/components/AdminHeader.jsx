@@ -19,7 +19,7 @@ const AdminHeader = ({ title, subtitle, children, showSearch = true, searchTerm 
     const fetchNotifications = async () => {
         if (!user?.isAdmin) return;
         try {
-            const res = await axios.get('http://localhost:5000/api/admin-notifications');
+            const res = await axios.get('http://127.0.0.1:5000/api/admin-notifications');
             setNotifications(res.data.notifications || []);
             setUnreadCount(res.data.unreadCount || 0);
         } catch (err) {
@@ -29,7 +29,7 @@ const AdminHeader = ({ title, subtitle, children, showSearch = true, searchTerm 
 
     const markAllRead = async () => {
         try {
-            await axios.put('http://localhost:5000/api/admin-notifications/read-all');
+            await axios.put('http://127.0.0.1:5000/api/admin-notifications/read-all');
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             setUnreadCount(0);
         } catch (err) {

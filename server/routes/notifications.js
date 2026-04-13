@@ -21,6 +21,7 @@ router.get('/', auth, async (req, res) => {
         if (!req.user.isAdmin) {
             whereCondition = {
                 status: 'Sent',
+                createdAt: { [Op.gte]: user.createdAt }, // Only show notifications after joining
                 [Op.or]: [
                     { recipient: 'All Users' },
                     { recipient: req.user.email }, // Targeted at specific user email
@@ -45,7 +46,7 @@ router.get('/', auth, async (req, res) => {
 // 2. POST /api/notifications - Create New Broadcast (Admin Only)
 router.post('/', [auth, admin], async (req, res) => {
     try {
-        const { title, message, type, targetType, targetValue } = req.body;
+        const { title, message, type, targetType, targetValue, buttonName, buttonUrl } = req.body;
 
         if (!title || !message) {
             return res.status(400).json({ error: 'Title and Message are required' });
@@ -61,10 +62,6 @@ router.post('/', [auth, admin], async (req, res) => {
             recipient = targetedUser.email; // Store email as recipient identifier
             target = `User: ${targetedUser.name} (${targetedUser.email})`;
         } else if (targetType === 'Plan Subscribers') {
-            // In a real app we might validate Plan ID, but here we trust the admin sent a valid plan name or ID
-            // If targetValue is ID, fetch name. If it's name, use it.
-            // Assuming targetValue is the Plan Name from fontend dropdown for simplicity since User model stores plan name commonly as string 'Free', 'Pro' etc in some setups or FK.
-            // Let's assume we store the "Target String" that matches user's plan field.
             const plan = await Plan.findOne({ where: { [Op.or]: [{ id: targetValue }, { name: targetValue }] } });
             if (!plan) return res.status(404).json({ error: 'Plan not found' });
 
@@ -78,6 +75,8 @@ router.post('/', [auth, admin], async (req, res) => {
             type: type || 'Info',
             recipient,
             target,
+            buttonName: buttonName || null,
+            buttonUrl: buttonUrl || null,
             status: 'Sent'
         });
 

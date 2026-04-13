@@ -7,7 +7,7 @@ import {
     Layout, Type, Palette, Image as ImageIcon, Check, RefreshCw,
     Bell, Mail, MessageCircle, UserPlus, CreditCard, AlertTriangle, BarChart, Zap,
     Server, Smartphone, Send, Terminal, Shield, Key, Search, User, Sparkles,
-    FileText, Download, CheckCircle2, TrendingUp, Menu
+    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye
 } from 'lucide-react';
 import BillingTab from '../components/BillingTab';
 import { useAuth } from '../context/AuthContext';
@@ -64,7 +64,7 @@ const Settings = () => {
         try {
             const fd = new FormData();
             fd.append('logo', file);
-            const res = await axios.post('http://localhost:5000/api/settings/upload-logo', fd, {
+            const res = await axios.post('http://127.0.0.1:5000/api/settings/upload-logo', fd, {
                 headers: { 'x-auth-token': localStorage.getItem('token'), 'Content-Type': 'multipart/form-data' }
             });
             setFormData(prev => ({ ...prev, logoUrl: res.data.logoUrl }));
@@ -77,6 +77,7 @@ const Settings = () => {
     };
 
     // Form State
+    const [landingConfig, setLandingConfig] = useState(null);
     const [formData, setFormData] = useState({
         // General
         theme: 'system',
@@ -89,7 +90,6 @@ const Settings = () => {
         currency: 'USD',
         timezone: 'UTC',
         primaryColor: '#4f46e5',
-        secondaryColor: '#ec4899',
         logoUrl: '',
         // Notifications
         notificationTemplates: {
@@ -108,6 +108,16 @@ const Settings = () => {
                 systemUpdate: { templateName: 'system_update_v1', languageCode: 'en_US', enabled: false },
                 features: { templateName: 'feature_announcement_v1', languageCode: 'en_US', enabled: false }
             }
+        },
+        // Team Inbox Policy
+        teamPolicy: {
+            inboxVisibility: 'see_all',
+            phonePrivacy: 'visible'
+        },
+        // Storage
+        storage: {
+            type: 'local',
+            s3: { endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrlPrefix: '' }
         }
     });
 
@@ -150,7 +160,7 @@ const Settings = () => {
 
             // If createdAt isn't available (old session), fetch full profile
             if (!user.createdAt) {
-                axios.get('http://localhost:5000/api/auth/me', {
+                axios.get('http://127.0.0.1:5000/api/auth/me', {
                     headers: { 'x-auth-token': localStorage.getItem('token') }
                 }).then(res => {
                     if (res.data) {
@@ -169,7 +179,13 @@ const Settings = () => {
 
     const fetchSettings = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/settings', {
+            // Also fetch Landing Page config for branding integration
+            const landingRes = await axios.get('http://127.0.0.1:5000/api/landing');
+            if (landingRes.data) {
+                setLandingConfig(landingRes.data);
+            }
+
+            const res = await axios.get('http://127.0.0.1:5000/api/settings', {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             if (res.data) {
@@ -183,6 +199,7 @@ const Settings = () => {
                         whatsapp: { ...prev.notificationTemplates.whatsapp, ...(res.data.notificationTemplates?.whatsapp || {}) }
                     },
                     paymentGateways: {
+                        transactionFeeRule: res.data.paymentGateways?.transactionFeeRule || 'absorb',
                         razorpay: { enabled: false, keyId: '', keySecret: '', ...(res.data.paymentGateways?.razorpay || {}) },
                         stripe: { enabled: false, publishableKey: '', secretKey: '', ...(res.data.paymentGateways?.stripe || {}) },
                         phonepe: { enabled: false, merchantId: '', saltKey: '', saltIndex: '', mode: 'TEST', ...(res.data.paymentGateways?.phonepe || {}) },
@@ -198,6 +215,16 @@ const Settings = () => {
                         enforce2FA: false,
                         minPasswordLength: 8,
                         ...(res.data.securityConfig || {})
+                    },
+                    teamPolicy: {
+                        inboxVisibility: 'see_all',
+                        phonePrivacy: 'visible',
+                        ...(res.data.teamPolicy || {})
+                    },
+                    storage: {
+                        type: 'local',
+                        s3: { endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrlPrefix: '' },
+                        ...(res.data.storage || {})
                     }
                 }));
             }
@@ -254,7 +281,7 @@ const Settings = () => {
                         // To clear Embedded (which might reside in User model like fbAccessToken), we may optionally call disconnect first.
                         try {
                             setSaving(true);
-                            await axios.delete('http://localhost:5000/api/whatsapp/disconnect', { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                            await axios.delete('http://127.0.0.1:5000/api/whatsapp/disconnect', { headers: { 'x-auth-token': localStorage.getItem('token') } });
                             await saveSettingsData();
                         } catch (err) {
                             console.error(err);
@@ -272,7 +299,13 @@ const Settings = () => {
     const saveSettingsData = async () => {
         setSaving(true);
         try {
-            const res = await axios.post('http://localhost:5000/api/settings', formData, {
+            if (landingConfig && activeTab === 'branding') {
+                await axios.put('http://127.0.0.1:5000/api/landing', landingConfig, {
+                    headers: { 'x-auth-token': localStorage.getItem('token') }
+                });
+            }
+
+            const res = await axios.post('http://127.0.0.1:5000/api/settings', formData, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             originalSettings.current = res.data;
@@ -307,7 +340,7 @@ const Settings = () => {
 
         setChangingPassword(true);
         try {
-            await axios.put('http://localhost:5000/api/auth/password',
+            await axios.put('http://127.0.0.1:5000/api/auth/password',
                 { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword },
                 { headers: { 'x-auth-token': localStorage.getItem('token') } }
             );
@@ -324,7 +357,7 @@ const Settings = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            await axios.put('http://localhost:5000/api/auth/profile', profileData, {
+            await axios.put('http://127.0.0.1:5000/api/auth/profile', profileData, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             showToast({
@@ -349,18 +382,18 @@ const Settings = () => {
         { id: 'profile', label: 'My Profile', icon: User },
         { id: 'billing', label: 'Subscription', icon: Sparkles },
         { id: 'general', label: 'System Settings', icon: Layout },
-        { id: 'branding', label: 'Branding', icon: Palette },
         { id: 'notifications', label: 'Notification Config', icon: Bell },
         { id: 'whatsapp_gateway', label: 'WhatsApp Gateway', icon: Server },
         { id: 'payment_gateway', label: 'Payment Gateway', icon: CreditCard },
         { id: 'smtp', label: 'Email SMTP', icon: Mail },
+        { id: 'storage', label: 'Cloud Storage', icon: Database },
         { id: 'security', label: 'Security', icon: Shield },
     ];
 
     const tabs = user?.isAdmin
         // Admins see everything EXCEPT billing/subscription
         ? allTabs.filter(tab => tab.id !== 'billing')
-        : allTabs.filter(tab => ['profile', 'billing', 'general', 'whatsapp_gateway'].includes(tab.id));
+        : allTabs.filter(tab => ['profile', 'billing', 'general', 'whatsapp_gateway', 'payment_gateway'].includes(tab.id));
 
     const handleTestMessage = async () => {
         if (!formData.metaPhoneNumberId || !formData.metaAccessToken || !testPhoneNumber) {
@@ -375,7 +408,7 @@ const Settings = () => {
 
         setTestLoading(true);
         try {
-            const response = await axios.post('http://localhost:5000/api/settings/test', {
+            const response = await axios.post('http://127.0.0.1:5000/api/settings/test', {
                 metaPhoneNumberId: formData.metaPhoneNumberId,
                 metaAccessToken: formData.metaAccessToken,
                 testPhoneNumber
@@ -391,6 +424,43 @@ const Settings = () => {
                 type: 'error',
                 title: 'Test Failed',
                 message: 'Test failed: ' + (error.response?.data?.error || error.message),
+                confirmText: 'Close'
+            });
+        } finally {
+            setTestLoading(false);
+        }
+    };
+
+    const handleTestS3 = async () => {
+        if (!formData.storage?.s3?.bucket || !formData.storage?.s3?.accessKeyId || !formData.storage?.s3?.secretAccessKey) {
+            showModal({
+                type: 'warning',
+                title: 'Missing Credentials',
+                message: 'Please fill in all required S3 credentials before testing.',
+                confirmText: 'OK'
+            });
+            return;
+        }
+
+        setTestLoading(true);
+        try {
+            // Must save first so backend gets the creds
+            await saveSettingsData();
+            
+            const response = await axios.post('http://127.0.0.1:5000/api/system/actions/test-s3', {}, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            showModal({
+                type: 'success',
+                title: 'Test Successful',
+                message: response.data.message || 'S3 connection verified successfully.',
+                confirmText: 'OK'
+            });
+        } catch (error) {
+            showModal({
+                type: 'error',
+                title: 'Test Failed',
+                message: 'Test failed: ' + (error.response?.data?.error || error.response?.data?.msg || error.message),
                 confirmText: 'Close'
             });
         } finally {
@@ -447,13 +517,13 @@ const Settings = () => {
 
     const exchangeFbCode = async (code, wipeManual) => {
         try {
-            const res = await axios.post('http://localhost:5000/api/whatsapp/exchange-token', { code }, {
+            const res = await axios.post('http://127.0.0.1:5000/api/whatsapp/exchange-token', { code }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') } // Authenticate request
             });
 
             // If wiping manual configuration, let's clear the settings on the backend
             if (wipeManual) {
-                await axios.post('http://localhost:5000/api/settings', {
+                await axios.post('http://127.0.0.1:5000/api/settings', {
                     ...formData,
                     metaAccessToken: '',
                     metaPhoneNumberId: '',
@@ -490,7 +560,7 @@ const Settings = () => {
             onConfirm: async () => {
                 try {
                     setFbLoading(true);
-                    await axios.delete('http://localhost:5000/api/whatsapp/disconnect', {
+                    await axios.delete('http://127.0.0.1:5000/api/whatsapp/disconnect', {
                         headers: { 'x-auth-token': localStorage.getItem('token') }
                     });
 
@@ -592,14 +662,10 @@ const Settings = () => {
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-y-auto">
             {/* Top Bar */}
             {/* Top Bar matching Support.jsx */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
                 <div className="flex items-center gap-6 w-full">
-                    <button className="md:hidden text-slate-900 dark:text-white">
-                        <Menu className="w-6 h-6" />
-                    </button>
-
                     {/* Search Bar */}
-                    <div className="hidden md:flex items-center w-full max-w-md transition-colors">
+                    <div className="flex items-center w-full max-w-md transition-colors">
                         <GlobalSearch />
                     </div>
                 </div>
@@ -611,9 +677,9 @@ const Settings = () => {
                 </div>
             </header>
 
-            <main className="w-full px-24 pt-8 space-y-8 pb-32">
+            <main className="w-full px-4 sm:px-8 lg:px-24 pt-6 md:pt-8 space-y-6 md:space-y-8 pb-32">
                 {/* Page Header */}
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
                             Settings
@@ -623,7 +689,7 @@ const Settings = () => {
                     <button
                         onClick={handleSubmit}
                         disabled={saving}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2 disabled:opacity-70"
+                        className="w-full sm:w-auto px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
                     >
                         {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         {saving ? 'Saving...' : 'Save Settings'}
@@ -631,9 +697,32 @@ const Settings = () => {
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 flex overflow-hidden">
-                    {/* Sidebar */}
-                    <aside className="w-64 bg-white dark:bg-background-dark border-r border-slate-200 dark:border-white/5 py-6 px-4 flex-shrink-0">
+                <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white dark:bg-background-dark rounded-2xl border border-slate-200 dark:border-white/5 text-sm">
+                    {/* Mobile Tabs */}
+                    <div className="md:hidden w-full overflow-x-auto border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-surface-dark/50 p-2 shrink-0 custom-scrollbar">
+                        <div className="flex gap-2">
+                            {tabs.map(tab => {
+                                const Icon = tab.icon;
+                                const isActive = activeTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${isActive
+                                            ? 'bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                            : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-white/5'
+                                            }`}
+                                    >
+                                        <Icon className="w-4 h-4 shrink-0" />
+                                        {tab.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Desktop Sidebar */}
+                    <aside className="hidden md:block w-64 bg-slate-50 dark:bg-surface-dark/30 border-r border-slate-200 dark:border-white/5 py-6 px-4 shrink-0">
                         <nav className="space-y-1">
                             {tabs.map(tab => {
                                 const Icon = tab.icon;
@@ -656,7 +745,7 @@ const Settings = () => {
                     </aside>
 
                     {/* Content Area */}
-                    <div className="flex-1 overflow-y-auto p-8">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-8 shrink-0">
                         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                             {/* PROFILE TAB */}
@@ -858,7 +947,7 @@ const Settings = () => {
                                                     cancelText: 'Cancel',
                                                     onConfirm: async () => {
                                                         try {
-                                                            await axios.delete('http://localhost:5000/api/auth/me', {
+                                                            await axios.delete('http://127.0.0.1:5000/api/auth/me', {
                                                                 headers: { 'x-auth-token': localStorage.getItem('token') }
                                                             });
                                                             showToast({ type: 'success', title: 'Account Deleted', message: 'Your account has been permanently deleted.' });
@@ -959,184 +1048,30 @@ const Settings = () => {
                                             </div>
                                         </div>
                                     </section>
+
+
                                 </>
                             )}
 
-                            {/* BRANDING TAB */}
+                            {/* BRANDING TAB - Moved to Landing Page */}
                             {activeTab === 'branding' && (
-                                <>
-                                    {/* App Identity */}
-                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm">
-                                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                                            <Type className="w-5 h-5 text-indigo-500" /> App Identity
-                                        </h2>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Application Name</label>
-                                                <input
-                                                    type="text"
-                                                    name="appName"
-                                                    value={formData.appName}
-                                                    onChange={handleChange}
-                                                    placeholder="e.g. Acme Corp"
-                                                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">App Tagline</label>
-                                                <input
-                                                    type="text"
-                                                    name="appTagline"
-                                                    value={formData.appTagline || ''}
-                                                    onChange={handleChange}
-                                                    placeholder="e.g. Business API"
-                                                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                                />
-                                                <p className="text-xs text-slate-400 mt-1">Shown below the app name in the sidebar.</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Support Email</label>
-                                                <input
-                                                    type="email"
-                                                    name="supportEmail"
-                                                    value={formData.supportEmail}
-                                                    onChange={handleChange}
-                                                    placeholder="support@example.com"
-                                                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Currency</label>
-                                                <select
-                                                    name="currency"
-                                                    value={formData.currency}
-                                                    onChange={handleChange}
-                                                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                                >
-                                                    <option value="USD">USD ($)</option>
-                                                    <option value="EUR">EUR (€)</option>
-                                                    <option value="INR">INR (₹)</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Timezone</label>
-                                                <select
-                                                    name="timezone"
-                                                    value={formData.timezone}
-                                                    onChange={handleChange}
-                                                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                                >
-                                                    <option value="UTC">UTC (Universal Time)</option>
-                                                    <option value="IST">IST (Indian Standard Time - GMT+5:30)</option>
-                                                    <option value="GMT">GMT (Greenwich Mean Time)</option>
-                                                    <option value="CET">CET (Central European Time - GMT+1:00)</option>
-                                                    <option value="GST">GST (Gulf Standard Time - GMT+4:00)</option>
-                                                    <option value="JST">JST (Japan Standard Time - GMT+9:00)</option>
-                                                    <option value="AEST">AEST (Australian Eastern Time - GMT+10:00)</option>
-                                                    <option value="PST">PST (Pacific Standard Time - GMT-8:00)</option>
-                                                    <option value="EST">EST (Eastern Standard Time - GMT-5:00)</option>
-                                                </select>
-                                            </div>
+                                <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-10 shadow-sm">
+                                    <div className="flex flex-col items-center text-center gap-4 max-w-md mx-auto">
+                                        <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl">
+                                            <Palette className="w-10 h-10 text-indigo-500" />
                                         </div>
-
-                                        <div className="border-t border-slate-100 dark:border-white/5 pt-6 mt-6">
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Company Logo</label>
-                                            <div className="flex items-start gap-6">
-
-                                                {/* Clickable Preview / Upload Target */}
-                                                <div
-                                                    onClick={() => logoInputRef.current?.click()}
-                                                    className="w-24 h-24 rounded-2xl bg-slate-50 dark:bg-white/5 border-2 border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center relative overflow-hidden group cursor-pointer shrink-0"
-                                                >
-                                                    {logoUploading ? (
-                                                        <RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" />
-                                                    ) : formData.logoUrl ? (
-                                                        <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-contain" />
-                                                    ) : (
-                                                        <ImageIcon className="w-8 h-8 text-slate-400" />
-                                                    )}
-                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
-                                                        {logoUploading ? 'Uploading...' : 'Click to Upload'}
-                                                    </div>
-                                                </div>
-
-                                                {/* Hidden file input */}
-                                                <input
-                                                    ref={logoInputRef}
-                                                    type="file"
-                                                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                                                    className="hidden"
-                                                    onChange={handleLogoUpload}
-                                                />
-
-                                                <div className="flex-1 space-y-2">
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                                                        Click the image preview to upload a file directly. PNG, JPG, SVG or WEBP (max 5MB).
-                                                    </p>
-                                                    <p className="text-xs text-slate-400 dark:text-slate-500">Or paste a direct URL below:</p>
-                                                    <input
-                                                        type="text"
-                                                        name="logoUrl"
-                                                        value={formData.logoUrl}
-                                                        onChange={handleChange}
-                                                        placeholder="https://example.com/logo.png"
-                                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                                    />
-                                                    {formData.logoUrl && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setFormData(prev => ({ ...prev, logoUrl: '' }))}
-                                                            className="text-xs text-red-500 hover:text-red-600 font-semibold"
-                                                        >
-                                                            Remove Logo
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    {/* Visual Styles */}
-                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm">
-                                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                                            <Palette className="w-5 h-5 text-indigo-500" /> Visual Styles
-                                        </h2>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Primary Color</label>
-                                                <div className="flex items-center gap-4">
-                                                    <input
-                                                        type="color"
-                                                        name="primaryColor"
-                                                        value={formData.primaryColor}
-                                                        onChange={handleChange}
-                                                        className="w-16 h-16 rounded-xl cursor-pointer border-0 p-0"
-                                                    />
-                                                    <div>
-                                                        <p className="font-mono text-sm uppercase text-slate-900 dark:text-white">{formData.primaryColor}</p>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400">Main brand color</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Secondary Color</label>
-                                                <div className="flex items-center gap-4">
-                                                    <input
-                                                        type="color"
-                                                        name="secondaryColor"
-                                                        value={formData.secondaryColor}
-                                                        onChange={handleChange}
-                                                        className="w-16 h-16 rounded-xl cursor-pointer border-0 p-0"
-                                                    />
-                                                    <div>
-                                                        <p className="font-mono text-sm uppercase text-slate-900 dark:text-white">{formData.secondaryColor}</p>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400">Accent color</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </section>
-                                </>
+                                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Branding Has Moved</h2>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                            All branding settings — App Name, Logo, Primary Color, Currency, Timezone, and Landing Page Theme — are now managed from the <strong>Landing Page</strong> section.
+                                        </p>
+                                        <a
+                                            href="/superadmin/landing-page"
+                                            className="mt-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center gap-2"
+                                        >
+                                            <Layout className="w-4 h-4" /> Go to Landing Page → Branding
+                                        </a>
+                                    </div>
+                                </section>
                             )}
 
                             {/* NOTIFICATIONS TAB */}
@@ -1619,6 +1554,26 @@ const Settings = () => {
                                             </div>
                                         </section>
 
+                                        {/* Global Payment Settings */}
+                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Global Payment Settings</h3>
+                                            <div className="max-w-xl">
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Transaction Fee Handling</label>
+                                                <select
+                                                    value={formData.paymentGateways?.transactionFeeRule || 'absorb'}
+                                                    onChange={(e) => setFormData(prev => ({
+                                                        ...prev,
+                                                        paymentGateways: { ...prev.paymentGateways, transactionFeeRule: e.target.value }
+                                                    }))}
+                                                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                >
+                                                    <option value="absorb">Absorb Fee (I pay the gateway fee)</option>
+                                                    <option value="pass">Pass to Customer (Add fee to total amount)</option>
+                                                </select>
+                                                <p className="text-xs text-slate-500 mt-2">Determines whether checkout calculates an extra percentage added to the total form payment.</p>
+                                            </div>
+                                        </section>
+
                                         {/* Configuration Form */}
                                         {activePaymentGateway && formData.paymentGateways && (
                                             <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
@@ -1843,7 +1798,7 @@ const Settings = () => {
                                                     onClick={async () => {
                                                         setTestLoading(true);
                                                         try {
-                                                            await axios.post('http://localhost:5000/api/settings/test-smtp', formData.smtpConfig);
+                                                            await axios.post('http://127.0.0.1:5000/api/settings/test-smtp', formData.smtpConfig);
                                                             showModal({
                                                                 type: 'success',
                                                                 title: 'Success',
@@ -1976,6 +1931,146 @@ const Settings = () => {
                                         </section>
                                     </div>
 
+                                )
+                            }
+
+                            {/* CLOUD STORAGE SETTINGS TAB */}
+                            {
+                                activeTab === 'storage' && (
+                                    <div className="space-y-8">
+                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                    <Database className="w-6 h-6 text-indigo-500" />
+                                                    Cloud Storage Configuration
+                                                </h2>
+                                                <button
+                                                    onClick={handleTestS3}
+                                                    disabled={testLoading}
+                                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+                                                >
+                                                    {testLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+                                                    Test S3 Connection
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+                                                {/* Storage Engine Selection */}
+                                                <div className="md:col-span-2 mb-4">
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Active Storage Backend</label>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {/* Local Drive */}
+                                                        <div 
+                                                            className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 'local' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
+                                                            onClick={() => setFormData(prev => ({ ...prev, storage: { ...prev.storage, type: 'local' } }))}
+                                                        >
+                                                            <HardDrive className={`w-8 h-8 ${formData.storage?.type === 'local' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
+                                                            <span className={`font-bold ${formData.storage?.type === 'local' ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>Local Disk</span>
+                                                            <span className="text-xs text-center text-slate-500 dark:text-slate-400">Store uploads directly on this server.</span>
+                                                        </div>
+                                                        {/* S3 Storage */}
+                                                        <div 
+                                                            className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 's3' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
+                                                            onClick={() => setFormData(prev => ({ ...prev, storage: { ...prev.storage, type: 's3' } }))}
+                                                        >
+                                                            <Cloud className={`w-8 h-8 ${formData.storage?.type === 's3' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
+                                                            <span className={`font-bold ${formData.storage?.type === 's3' ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>S3 Compatible</span>
+                                                            <span className="text-xs text-center text-slate-500 dark:text-slate-400">AWS S3, Wasabi, DigitalOcean Spaces, etc.</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {formData.storage?.type === 's3' && (
+                                                    <>
+                                                        <div className="md:col-span-2 mb-2 pb-4 border-b border-slate-100 dark:border-white/5">
+                                                            <h3 className="text-md font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                                <ServerCog className="w-5 h-5 text-slate-500" />
+                                                                S3 Credentials Provider
+                                                            </h3>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Endpoint URL (Leave empty for AWS)</label>
+                                                            <input
+                                                                type="text"
+                                                                value={formData.storage?.s3?.endpoint || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, endpoint: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                placeholder="s3.eu-central-1.wasabisys.com"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Region</label>
+                                                            <input
+                                                                type="text"
+                                                                value={formData.storage?.s3?.region || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, region: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                placeholder="us-east-1"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Bucket Name</label>
+                                                            <input
+                                                                type="text"
+                                                                value={formData.storage?.s3?.bucket || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, bucket: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                placeholder="my-app-storage"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Public URL Prefix (Optional)</label>
+                                                            <input
+                                                                type="text"
+                                                                value={formData.storage?.s3?.publicUrlPrefix || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, publicUrlPrefix: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                placeholder="https://cdn.my-domain.com/"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Access Key ID</label>
+                                                            <input
+                                                                type="text"
+                                                                value={formData.storage?.s3?.accessKeyId || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, accessKeyId: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                placeholder="AKIAIOSFODNN7EXAMPLE"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Secret Access Key</label>
+                                                            <input
+                                                                type="password"
+                                                                value={formData.storage?.s3?.secretAccessKey || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, secretAccessKey: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                placeholder="••••••••••••••••••••••••••••••••"
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </section>
+                                    </div>
                                 )
                             }
 

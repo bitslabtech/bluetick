@@ -4,7 +4,8 @@ import {
     Search, Bell, HelpCircle, Wallet, Plus,
     Send, CheckCheck, Eye, MessageSquare, Users,
     UserPlus, FilePlus, CreditCard, MoreVertical, FileText,
-    Calendar, ChevronDown, CheckCircle2, AlertTriangle, XCircle, Info, MessageCircle
+    Calendar, ChevronDown, CheckCircle2, AlertTriangle, XCircle, Info, MessageCircle, Zap,
+    ShoppingBag
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
@@ -39,7 +40,9 @@ const Dashboard = () => {
         readRate: 0,
         recentCampaigns: [],
         isWhatsappConfigured: true,
-        monthlyUsageCount: 0
+        monthlyUsageCount: 0,
+        aiTokenBalance: 0,
+        aiTokensAllowance: 0
     });
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -58,7 +61,7 @@ const Dashboard = () => {
 
     const fetchNotifications = useCallback(async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/notifications');
+            const res = await axios.get('http://127.0.0.1:5000/api/notifications');
             setNotifications(res.data);
             if (!isNotificationsOpen) {
                 setUnreadCount(res.data.length);
@@ -110,7 +113,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await axios.get(`http://localhost:5000/api/dashboard/stats?range=${dateRange}${dateRange === 'custom' ? `&startDate=${customStart.toISOString()}&endDate=${customEnd.toISOString()}` : ''}`);
+                const res = await axios.get(`http://127.0.0.1:5000/api/dashboard/stats?range=${dateRange}${dateRange === 'custom' ? `&startDate=${customStart.toISOString()}&endDate=${customEnd.toISOString()}` : ''}`);
                 // Handle both old and new backend response structures to prevent crash
                 setStats(prev => ({
                     ...prev,
@@ -142,7 +145,7 @@ const Dashboard = () => {
                     params.startDate = customStart.toISOString();
                     params.endDate = customEnd.toISOString();
                 }
-                const res = await axios.get('http://localhost:5000/api/dashboard/chart', { params });
+                const res = await axios.get('http://127.0.0.1:5000/api/dashboard/chart', { params });
                 setChartData(res.data);
             } catch (err) {
                 console.error("Error fetching chart data:", err);
@@ -155,7 +158,7 @@ const Dashboard = () => {
 
     const exchangeFbCode = async (code) => {
         try {
-            const res = await axios.post('http://localhost:5000/api/whatsapp/exchange-token', { code }, {
+            const res = await axios.post('http://127.0.0.1:5000/api/whatsapp/exchange-token', { code }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') } // Authenticate request
             });
 
@@ -246,12 +249,20 @@ const Dashboard = () => {
         return null;
     };
 
+    const getRateStatus = (rate) => {
+        const val = parseFloat(rate);
+        if (val >= 50) return { label: 'Excellent', color: 'bg-green-500', text: 'text-green-600 dark:text-[#0bda5b]', bg: 'bg-green-100 dark:bg-[#0bda5b]/10' };
+        if (val >= 31) return { label: 'Good', color: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-500/10' };
+        if (val >= 21) return { label: 'Average', color: 'bg-yellow-500', text: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-400/10' };
+        return { label: 'Low', color: 'bg-red-500', text: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-500/10' };
+    };
+
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
 
 
             {/* Top Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
                     {/* Welcome Title */}
                     <div className="flex flex-col gap-0.5">
@@ -352,7 +363,7 @@ const Dashboard = () => {
             </header>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-[46px] scroll-smooth">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">
                 <div className="w-full flex flex-col gap-8">
 
                     {/* Top Action Row: Banner & New Campaign */}
@@ -389,11 +400,17 @@ const Dashboard = () => {
                             </div>
                         )}
 
-                        {/* New Campaign Button */}
-                        <div className="shrink-0 w-full xl:w-auto flex justify-end ml-auto">
+                        {/* Action Buttons */}
+                        <div className="shrink-0 w-full xl:w-auto flex items-center justify-end gap-3 ml-auto">
+                            <button
+                                onClick={() => navigate('/store')}
+                                className="flex items-center justify-center gap-2 h-11 px-6 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/20 w-full sm:w-auto"
+                            >
+                                <Wallet className="w-5 h-5" /> Top-up Store
+                            </button>
                             <button
                                 onClick={() => navigate('/campaigns')}
-                                className="flex items-center justify-center gap-2 h-11 px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-blue-500/20 w-full xl:w-auto"
+                                className="flex items-center justify-center gap-2 h-11 px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/20 w-full sm:w-auto"
                             >
                                 <Plus className="w-5 h-5" /> New Campaign
                             </button>
@@ -401,7 +418,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                         {/* Stat 1: Messages Sent / Plan Limit */}
                         <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
                             <div className="flex items-start justify-between mb-4">
@@ -434,9 +451,9 @@ const Dashboard = () => {
                                 <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-green-500 dark:text-green-400">
                                     <CheckCheck className="w-6 h-6" />
                                 </div>
-                                <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1 ${parseFloat(stats.deliveryRate) > 90 ? 'text-green-600 dark:text-[#0bda5b] bg-green-100 dark:bg-[#0bda5b]/10' : 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-400/10'}`}>
-                                    <div className={`size-1.5 rounded-full ${parseFloat(stats.deliveryRate) > 90 ? 'bg-green-500 dark:bg-[#0bda5b]' : 'bg-yellow-500 dark:bg-yellow-400'}`}></div>
-                                    {parseFloat(stats.deliveryRate) > 90 ? 'Good' : 'Average'}
+                                <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1 ${getRateStatus(stats.deliveryRate).text} ${getRateStatus(stats.deliveryRate).bg}`}>
+                                    <div className={`size-1.5 rounded-full ${getRateStatus(stats.deliveryRate).color}`}></div>
+                                    {getRateStatus(stats.deliveryRate).label}
                                 </span>
                             </div>
                             <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">Delivery Rate</p>
@@ -450,8 +467,9 @@ const Dashboard = () => {
                                 <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-blue-500 dark:text-blue-400">
                                     <Eye className="w-6 h-6" />
                                 </div>
-                                <span className="text-blue-600 dark:text-blue-400 text-xs font-bold bg-blue-100 dark:bg-blue-500/10 px-2 py-1 rounded flex items-center gap-1">
-                                    <div className="size-1.5 rounded-full bg-blue-500 dark:bg-blue-400"></div> Avg
+                                <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1 ${getRateStatus(stats.readRate).text} ${getRateStatus(stats.readRate).bg}`}>
+                                    <div className={`size-1.5 rounded-full ${getRateStatus(stats.readRate).color}`}></div>
+                                    {getRateStatus(stats.readRate).label}
                                 </span>
                             </div>
                             <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">Read Rate</p>
@@ -507,6 +525,38 @@ const Dashboard = () => {
                                         }`}
                                     style={{ width: `${Math.min((stats.templatesCount / (stats.templateLimit || 2)) * 100, 100)}%` }}
                                 ></div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 dark:text-indigo-400">
+                                    <Zap className="w-6 h-6" />
+                                </div>
+                                <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1 ${stats.aiTokenBalance >= 1000
+                                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/10'
+                                    : stats.aiTokenBalance > 0
+                                        ? 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-400/10'
+                                        : 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-400/10'
+                                    }`}>
+                                    <div className={`size-1.5 rounded-full ${stats.aiTokenBalance >= 1000 ? 'bg-indigo-500' : stats.aiTokenBalance > 0 ? 'bg-yellow-500' : 'bg-red-500'
+                                        }`}></div>
+                                    {stats.aiTokenBalance >= 1000 ? 'Good' : stats.aiTokenBalance > 0 ? 'Low' : 'Empty'}
+                                </span>
+                            </div>
+                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">AI Tokens</p>
+                            <div className="flex items-end gap-1 mb-4">
+                                <p className="text-slate-900 dark:text-white text-2xl font-bold">{(stats.aiTokenBalance || 0).toLocaleString()}</p>
+                            </div>
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium">Available Balance</p>
+                                <button
+                                    onClick={() => navigate('/store')}
+                                    className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm shadow-indigo-500/30 ${stats.aiTokenBalance < 1000 ? 'animate-pulse' : ''}`}
+                                >
+                                    <Zap className="w-3 h-3" />
+                                    Buy More Tokens
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -621,43 +671,60 @@ const Dashboard = () => {
                         {/* Quick Actions */}
                         <div className="flex flex-col gap-4">
                             <h3 className="text-slate-900 dark:text-white text-lg font-bold">Quick Actions</h3>
-                            <div className="grid grid-cols-1 gap-3 flex-1">
+                            <div className="grid grid-cols-1 gap-2 flex-1">
                                 <button
                                     onClick={() => navigate('/contacts', { state: { openAddContact: true } })}
-                                    className="flex items-center justify-between p-4 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
+                                    className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
                                 >
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-3">
                                         <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
-                                            <UserPlus className="w-6 h-6" />
+                                            <UserPlus className="w-5 h-5" />
                                         </div>
                                         <div className="text-left">
-                                            <p className="text-slate-900 dark:text-white font-medium text-sm">Add Contact</p>
-                                            <p className="text-slate-500 dark:text-text-secondary text-xs">Upload CSV or manual entry</p>
+                                            <p className="text-slate-900 dark:text-white font-medium text-sm leading-tight">Add Contact</p>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[11px] leading-tight">Upload CSV or manual entry</p>
                                         </div>
                                     </div>
                                 </button>
                                 <button
                                     onClick={() => navigate('/templates', { state: { openCreateTemplate: true } })}
-                                    className="flex items-center justify-between p-4 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
+                                    className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
                                 >
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-3">
                                         <div className="p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-colors">
-                                            <FilePlus className="w-6 h-6" />
+                                            <FilePlus className="w-5 h-5" />
                                         </div>
                                         <div className="text-left">
-                                            <p className="text-slate-900 dark:text-white font-medium text-sm">Create Template</p>
-                                            <p className="text-slate-500 dark:text-text-secondary text-xs">Submit for Meta approval</p>
+                                            <p className="text-slate-900 dark:text-white font-medium text-sm leading-tight">Create Template</p>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[11px] leading-tight">Submit for Meta approval</p>
                                         </div>
                                     </div>
                                 </button>
-                                <button className="flex items-center justify-between p-4 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                                            <CreditCard className="w-6 h-6" />
+                                <button
+                                    onClick={() => navigate('/marketplace')}
+                                    className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                                            <ShoppingBag className="w-5 h-5" />
                                         </div>
                                         <div className="text-left">
-                                            <p className="text-slate-900 dark:text-white font-medium text-sm">Top-up Credits</p>
-                                            <p className="text-slate-500 dark:text-text-secondary text-xs">Manage billing</p>
+                                            <p className="text-slate-900 dark:text-white font-medium text-sm leading-tight">Addon Marketplace</p>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[11px] leading-tight">Unlock powerful add-ons to supercharge your workflow</p>
+                                        </div>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={() => navigate('/support')}
+                                    className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg group-hover:bg-rose-500 group-hover:text-white transition-colors">
+                                            <HelpCircle className="w-5 h-5" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-slate-900 dark:text-white font-medium text-sm leading-tight">Support</p>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[11px] leading-tight">Get help & assistance</p>
                                         </div>
                                     </div>
                                 </button>
@@ -718,10 +785,21 @@ const Dashboard = () => {
                                 </tbody>
                             </table>
                         </div>
+                        {/* View Full AI Token Usage History Button */}
+                        <div className="flex justify-end mt-3">
+                            <button
+                                onClick={() => navigate('/ai-token-history')}
+                                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-xl text-sm font-bold transition-all group"
+                            >
+                                <Zap className="w-4 h-4" />
+                                View AI Token Usage History
+                                <span className="text-indigo-400 dark:text-indigo-500 group-hover:translate-x-0.5 transition-transform">→</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 

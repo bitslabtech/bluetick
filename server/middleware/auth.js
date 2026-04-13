@@ -14,11 +14,28 @@ module.exports = async function (req, res, next) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded.user;
 
+        // Fetch fresh db user to attach team/workspace data
+        const User = require('../models/User');
+        const dbUser = await User.findByPk(req.user.id);
+
+        if (dbUser) {
+            req.user.realId = req.user.id;
+            req.user.parentUserId = dbUser.parentUserId;
+            req.user.teamRole = dbUser.teamRole;
+            req.user.teamPermissions = dbUser.teamPermissions;
+            req.user.teamPolicy = dbUser.teamPolicy;
+            req.user.plan = dbUser.plan;
+
+            // MAGIC INHERITANCE: If acting as a team member, alias all standard queries to parent's workspace
+            if (dbUser.parentUserId) {
+                req.user.id = dbUser.parentUserId;
+            }
+        }
+
         // NEW: Check for Global Session Kill
         const SystemConfig = require('../models/SystemConfig');
-        // This findOne inside middleware is heavy? Ideally cache it. 
-        // For now, it's safe for functional correctness.
-        const config = await SystemConfig.getConfig();
+        // Use cached config to prevent DB overloading
+        const config = await SystemConfig.getCachedConfig();
         const tokenIssuedAt = new Date(decoded.iat * 1000); // JWT iat is seconds
 
         if (config.lastSessionKill && tokenIssuedAt < config.lastSessionKill) {

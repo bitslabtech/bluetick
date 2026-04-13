@@ -18,7 +18,7 @@ export default function CampaignList() {
     useEffect(() => {
         const fetchCampaigns = async () => {
             try {
-                const res = await axios.get('http://localhost:5000/api/messages');
+                const res = await axios.get('http://127.0.0.1:5000/api/messages');
                 const formattedCampaigns = res.data.map(msg => {
                     return {
                         id: msg.id,
@@ -97,14 +97,10 @@ export default function CampaignList() {
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300 overflow-hidden fade-in">
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
-                <div className="flex items-center gap-6 w-full">
-                    <button className="md:hidden text-slate-900 dark:text-white">
-                        <Menu className="w-6 h-6" />
-                    </button>
-
+            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+                <div className="flex items-center w-full max-w-md">
                     {/* Search Bar */}
-                    <div className="hidden md:flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors">
+                    <div className="flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full px-3 border border-transparent focus-within:border-primary transition-colors">
                         <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
                         <input
                             type="text"
@@ -154,7 +150,7 @@ export default function CampaignList() {
             </div>
 
             {/* Main Content List */}
-            <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth">
                 {loading ? (
                     <div className="flex items-center justify-center h-full">
                         <Loader2 className="w-8 h-8 text-primary animate-spin" />

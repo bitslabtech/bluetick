@@ -4,9 +4,9 @@ import { X, User, Phone, Tag, FileText, Trash2, MessageSquare, Clock, Tags, User
 import { format } from 'date-fns';
 import ManageLabelsModal from './ManageLabelsModal';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
-export default function ContactInfoPanel({ conversation, onClose, onUpdate }) {
+export default function ContactInfoPanel({ conversation, onClose, onUpdate, teamPolicy, isSubMember }) {
     const panelRef = useRef(null);
     const [notes, setNotes] = useState(conversation?.notes || '');
     const [labels, setLabels] = useState(conversation?.labels || []);
@@ -62,10 +62,10 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate }) {
         setLabels(conversation.labels || []);
 
         // Fetch contact details for groups
-        if (conversation.phoneNumber) {
+        if (conversation.id) {
             setContact(null);
             setContactGroups([]);
-            axios.get(`${API_BASE}/api/contacts/by-phone/${conversation.phoneNumber}`, {
+            axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/contact`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             }).then(res => {
                 setContact(res.data);
@@ -156,20 +156,12 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate }) {
 
         let targetId = contact?.id;
         try {
-            if (!targetId) {
-                // Auto-create contact to hold groups
-                const res = await axios.post(`${API_BASE}/api/contacts`, {
-                    name: conversation.contactName || conversation.phoneNumber,
-                    phone: conversation.phoneNumber,
-                    tags: newGroups
-                }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
-                setContact(res.data);
-                targetId = res.data.id;
-            } else {
-                await axios.put(`${API_BASE}/api/contacts/${targetId}`, { tags: newGroups }, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
-            }
+            const res = await axios.post(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/contact/groups`, {
+                tags: newGroups
+            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            
+            setContact(res.data);
+            targetId = res.data.id;
         } catch (err) {
             console.error('Failed to update groups:', err);
         }
@@ -180,7 +172,16 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate }) {
 
     if (!conversation) return null;
 
-    const initials = conversation.contactName
+    const renderName = (name, phone) => {
+        const isActuallyPhone = !name || name === phone || /^\d+$/.test(name.replace(/\D/g, ''));
+        if (isActuallyPhone && isSubMember) {
+            if (teamPolicy?.phonePrivacy === 'blurred') return <span className="blur-sm select-none">{phone || name}</span>;
+            if (teamPolicy?.phonePrivacy === 'masked') return `****${(phone || name)?.slice(-4)}`;
+        }
+        return name || phone;
+    };
+
+    const initials = conversation.contactName && !/^\d+$/.test(conversation.contactName.replace(/\D/g, ''))
         ? conversation.contactName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
         : conversation.phoneNumber?.slice(-2);
 
@@ -200,11 +201,16 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate }) {
                     {initials}
                 </div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                    {conversation.contactName || 'Unknown'}
+                    {renderName(conversation.contactName, conversation.phoneNumber)}
                 </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                     <Phone className="w-3 h-3" />
-                    +{conversation.phoneNumber}
+                    <span className={isSubMember && teamPolicy?.phonePrivacy === 'blurred' ? 'blur-sm select-none' : ''}>
+                        {isSubMember && teamPolicy?.phonePrivacy === 'masked'
+                            ? `****${conversation.phoneNumber?.slice(-4) || ''}`
+                            : `+${conversation.phoneNumber}`
+                        }
+                    </span>
                 </p>
             </div>
 
@@ -250,7 +256,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate }) {
                 <div className="p-4 border-b border-slate-100 dark:border-white/5">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                            <Tag className="w-3.5 h-3.5" /> Labels
+                            <Tag className="w-3.5 h-3.5" /> Tags
                         </h3>
                         <button
                             onClick={() => setShowLabelsModal(true)}
@@ -277,7 +283,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate }) {
                                 </button>
                             );
                         }) : (
-                            <span className="text-xs text-slate-500 dark:text-slate-400 italic">No labels available. Create one to organize conversations.</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 italic">No tags available. Create one to organize conversations.</span>
                         )}
                     </div>
                     {labels.length > 0 && (

@@ -10,7 +10,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
 // Color themes for plan cards
 const PLAN_THEMES = {
@@ -85,7 +85,7 @@ const UsageBar = ({ label, icon, used, limit, color }) => {
     );
 };
 
-const PlanCard = ({ plan, currentPlanName, usage, onUpgrade }) => {
+const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) => {
     const isCurrent = plan.name === currentPlanName;
     const isDowngrade = (() => {
         const order = { Free: 0, Starter: 1, Pro: 2, Enterprise: 3 };
@@ -94,8 +94,22 @@ const PlanCard = ({ plan, currentPlanName, usage, onUpgrade }) => {
 
     const theme = PLAN_THEMES[plan.color] || PLAN_THEMES.blue;
     const currencyMap = { USD: '$', INR: '₹', EUR: '€', GBP: '£', AUD: 'A$', SGD: 'S$' };
-    const currency = currencyMap[plan.currency] || plan.currency || '$';
-    const intervalLbl = plan.interval === 'year' ? '/yr' : plan.interval === 'lifetime' ? '' : '/mo';
+    const currency = currencyMap[plan.currency] || plan.currency || '₹';
+
+    // Determine price to display based on selected interval
+    let displayPrice = parseFloat(plan.price) || 0;
+    let intervalLbl = '/mo';
+    let intervalCode = 'month';
+    if (billingInterval === 'monthly' && parseFloat(plan.monthlyPrice) > 0) {
+        displayPrice = parseFloat(plan.monthlyPrice);
+        intervalLbl = '/mo'; intervalCode = 'month';
+    } else if (billingInterval === 'half-yearly' && parseFloat(plan.halfYearlyPrice) > 0) {
+        displayPrice = parseFloat(plan.halfYearlyPrice);
+        intervalLbl = '/6mo'; intervalCode = 'half-year';
+    } else if (billingInterval === 'yearly' && parseFloat(plan.yearlyPrice) > 0) {
+        displayPrice = parseFloat(plan.yearlyPrice);
+        intervalLbl = '/yr'; intervalCode = 'year';
+    }
 
     // Detect which limits this plan would fix
     const fixesMessages = usage && plan.messageLimit !== -1 && plan.messageLimit > usage.monthlyLimit;
@@ -135,7 +149,7 @@ const PlanCard = ({ plan, currentPlanName, usage, onUpgrade }) => {
                         <p className={`text-sm mb-4 ${theme.accent}`}>{plan.description}</p>
                     )}
                     <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-black tracking-tight">{currency}{parseFloat(plan.price).toLocaleString()}</span>
+                        <span className="text-4xl font-black tracking-tight">{currency}{displayPrice.toLocaleString()}</span>
                         {intervalLbl && <span className="text-white/60 text-sm font-medium">{intervalLbl}</span>}
                     </div>
                 </div>
@@ -184,7 +198,7 @@ const PlanCard = ({ plan, currentPlanName, usage, onUpgrade }) => {
                         </div>
                     ) : (
                         <button
-                            onClick={() => onUpgrade(plan)}
+                            onClick={() => onUpgrade(plan, intervalCode)}
                             className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl active:scale-95 bg-gradient-to-r ${theme.gradient} text-white hover:opacity-90`}
                         >
                             <Zap className="w-4 h-4" />
@@ -218,6 +232,7 @@ const Billing = () => {
     const { user } = useAuth();
     const [billingInfo, setBillingInfo] = useState(null);
     const [plans, setPlans] = useState([]);
+    const [billingInterval, setBillingInterval] = useState('monthly');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -240,10 +255,22 @@ const Billing = () => {
         fetchData();
     }, []);
 
-    const handleUpgrade = (plan) => {
-        localStorage.setItem('pendingPlan', JSON.stringify(plan));
+    const handleUpgrade = (plan, intervalCode = 'month') => {
+        const planWithInterval = { ...plan, interval: intervalCode };
+        localStorage.setItem('pendingPlan', JSON.stringify(planWithInterval));
         navigate('/checkout');
     };
+
+    // Determine available intervals across all plans
+    const hasMonthly = plans.some(p => parseFloat(p.monthlyPrice) > 0);
+    const hasHalfYearly = plans.some(p => parseFloat(p.halfYearlyPrice) > 0);
+    const hasYearly = plans.some(p => parseFloat(p.yearlyPrice) > 0);
+
+    const maxYearlySavings = Math.max(0, ...plans.map(p => {
+        const m = parseFloat(p.monthlyPrice) || 0;
+        const y = parseFloat(p.yearlyPrice) || 0;
+        return (m > 0 && y > 0) ? Math.round(100 - (y / (m * 12) * 100)) : 0;
+    }));
 
     const { plan, usage } = billingInfo || {};
     const daysLeft = plan?.expiry
@@ -258,11 +285,8 @@ const Billing = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
-                    <button className="md:hidden text-slate-900 dark:text-white">
-                        <Menu className="w-6 h-6" />
-                    </button>
                     <div>
                         <h1 className="text-xl font-bold text-slate-900 dark:text-white">Billing & Plans</h1>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your subscription and usage</p>
@@ -283,7 +307,7 @@ const Billing = () => {
                         <span className="text-slate-500">Loading billing details...</span>
                     </div>
                 ) : (
-                    <div className="p-6 md:p-10 max-w-[1400px] mx-auto space-y-10">
+                    <div className="p-4 sm:p-6 md:p-10 max-w-[1400px] mx-auto space-y-10">
 
                         {/* Hero Banner — Current Plan + Usage */}
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -373,9 +397,53 @@ const Billing = () => {
 
                         {/* Plans Grid */}
                         <div>
-                            <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Available Plans</h2>
-                                <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Choose a plan that fits your needs. Plans with a green banner resolve your current limits.</p>
+                            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Available Plans</h2>
+                                    <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Choose a plan and billing cycle that fits your needs.</p>
+                                </div>
+                                {/* Interval Switcher */}
+                                {(hasMonthly || hasHalfYearly || hasYearly) && (
+                                    <div className="flex bg-white dark:bg-surface-dark p-1.5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
+                                        {hasMonthly && (
+                                            <button
+                                                onClick={() => setBillingInterval('monthly')}
+                                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                                                    billingInterval === 'monthly'
+                                                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                                                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                                                }`}
+                                            >
+                                                Monthly
+                                            </button>
+                                        )}
+                                        {hasHalfYearly && (
+                                            <button
+                                                onClick={() => setBillingInterval('half-yearly')}
+                                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${
+                                                    billingInterval === 'half-yearly'
+                                                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                                                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                                                }`}
+                                            >
+                                                Half-Yearly
+                                            </button>
+                                        )}
+                                        {hasYearly && (
+                                            <button
+                                                onClick={() => setBillingInterval('yearly')}
+                                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${
+                                                    billingInterval === 'yearly'
+                                                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                                                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                                                }`}
+                                            >
+                                                Yearly
+                                                {maxYearlySavings > 0 && <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 text-[10px] font-black px-1.5 py-0.5 rounded-full">Save {maxYearlySavings}%</span>}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {plans.length === 0 ? (
@@ -386,6 +454,7 @@ const Billing = () => {
                                         <PlanCard
                                             key={p.id}
                                             plan={p}
+                                            billingInterval={billingInterval}
                                             currentPlanName={plan?.name}
                                             usage={usage}
                                             onUpgrade={handleUpgrade}
@@ -397,7 +466,7 @@ const Billing = () => {
 
                         {/* Footer note */}
                         <p className="text-center text-xs text-slate-400 dark:text-slate-600 pb-4">
-                            All plans are billed monthly. Upgrades take effect immediately. Need a custom plan?{' '}
+                            Need a custom plan?{' '}
                             <button onClick={() => navigate('/support')} className="text-indigo-500 hover:text-indigo-400 underline underline-offset-2 font-medium">
                                 Contact Support
                             </button>

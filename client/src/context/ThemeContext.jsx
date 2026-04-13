@@ -3,9 +3,28 @@ import { createContext, useContext, useEffect, useState } from 'react';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState(localStorage.getItem('theme') || 'system');
+    // Initialize from localStorage immediately to avoid flash
+    const [theme, setTheme] = useState(localStorage.getItem('theme') || null);
+
+    // On mount, if no user preference is in localStorage, fetch the server default
+    useEffect(() => {
+        if (!localStorage.getItem('theme')) {
+            fetch('http://127.0.0.1:5000/api/settings/public')
+                .then(res => res.json())
+                .then(data => {
+                    const serverTheme = data?.theme || 'system';
+                    setTheme(serverTheme);
+                })
+                .catch(() => {
+                    // If fetch fails, fall back to 'system'
+                    setTheme('system');
+                });
+        }
+    }, []);
 
     useEffect(() => {
+        if (!theme) return; // Wait until theme is resolved
+
         const root = window.document.documentElement;
 
         const removeOldTheme = () => {
@@ -39,8 +58,19 @@ export const ThemeProvider = ({ children }) => {
 
     }, [theme]);
 
+    // When admin changes Default Appearance in settings, clear localStorage
+    // so next reload picks up the new server default
+    const resetToServerDefault = () => {
+        localStorage.removeItem('theme');
+        setTheme(null);
+        fetch('http://127.0.0.1:5000/api/settings/public')
+            .then(res => res.json())
+            .then(data => setTheme(data?.theme || 'system'))
+            .catch(() => setTheme('system'));
+    };
+
     return (
-        <ThemeContext.Provider value={{ theme, setTheme }}>
+        <ThemeContext.Provider value={{ theme, setTheme, resetToServerDefault }}>
             {children}
         </ThemeContext.Provider>
     );

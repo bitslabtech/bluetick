@@ -25,6 +25,33 @@ router.get('/', superAdmin, async (req, res) => {
     }
 });
 
+// @route   GET /api/system/referral-stats
+// @desc    Get aggregate stats for Referrals program
+router.get('/referral-stats', superAdmin, async (req, res) => {
+    try {
+        const User = require('../models/User');
+        const ReferralReward = require('../models/ReferralReward');
+
+        // Total users joined via referral (referredBy is not null)
+        const totalJoined = await User.count({ where: { referredBy: { [require('sequelize').Op.not]: null } } });
+
+        // Total rewards given 
+        const totalRewards = await ReferralReward.count();
+
+        // Unique referrers (people who have referred someone)
+        const uniqueReferrers = await User.count({
+            distinct: true,
+            col: 'referredBy',
+            where: { referredBy: { [require('sequelize').Op.not]: null } }
+        });
+
+        res.json({ totalJoined, totalRewards, uniqueReferrers });
+    } catch (err) {
+        console.error('Referral Stats Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // @route   PUT /api/system/settings
 // @desc    Update system settings (Maintenance, Announcement, etc)
 router.put('/settings', superAdmin, async (req, res) => {
@@ -37,6 +64,10 @@ router.put('/settings', superAdmin, async (req, res) => {
         if (req.body.version !== undefined) config.version = req.body.version;
         if (req.body.globalAnnouncement) config.globalAnnouncement = req.body.globalAnnouncement;
         if (req.body.ipBlacklist) config.ipBlacklist = req.body.ipBlacklist;
+        if (req.body.menuOrder) config.menuOrder = req.body.menuOrder;
+        if (req.body.settings) {
+            config.settings = { ...config.settings, ...req.body.settings };
+        }
 
         await config.save();
 
@@ -56,11 +87,11 @@ router.put('/settings', superAdmin, async (req, res) => {
 router.get('/status', auth, async (req, res) => {
     try {
         const config = await SystemConfig.getConfig();
-        // Return only non-sensitive public info
         res.json({
             maintenanceMode: config.maintenanceMode,
             globalAnnouncement: config.globalAnnouncement,
-            version: config.version
+            version: config.version,
+            menuOrder: config.menuOrder
         });
     } catch (err) {
         console.error(err);
@@ -201,6 +232,41 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                         msg: 'WhatsApp API test failed: ' + (data.error?.message || 'Unknown error'),
                         details: data.error
                     });
+                }
+
+            case 'test-s3':
+                const sysConfig = await SystemConfig.getConfig();
+                const s3Conf = sysConfig?.settings?.storage?.s3;
+                if (!s3Conf || !s3Conf.accessKeyId || !s3Conf.secretAccessKey || !s3Conf.bucket) {
+                    return res.status(400).json({ msg: 'S3 Credentials not fully configured in your global settings.' });
+                }
+
+                try {
+                    const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+                    const endpoint = s3Conf.endpoint ? (s3Conf.endpoint.startsWith('http') ? s3Conf.endpoint : `https://${s3Conf.endpoint}`) : undefined;
+                    
+                    const client = new S3Client({
+                        region: s3Conf.region || 'us-east-1',
+                        credentials: {
+                            accessKeyId: s3Conf.accessKeyId,
+                            secretAccessKey: s3Conf.secretAccessKey,
+                        },
+                        endpoint: endpoint,
+                        forcePathStyle: !!endpoint
+                    });
+
+                    // We just do a test list on the bucket, limit to 1
+                    const command = new ListObjectsV2Command({
+                        Bucket: s3Conf.bucket,
+                        MaxKeys: 1
+                    });
+
+                    await client.send(command);
+
+                    return res.json({ success: true, message: 'Successfully connected to S3 Bucket!' });
+                } catch (s3Err) {
+                    console.error("Test S3 Error:", s3Err);
+                    return res.status(400).json({ msg: 'Failed to connect to S3: ' + s3Err.message });
                 }
 
             default:

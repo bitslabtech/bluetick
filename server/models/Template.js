@@ -40,9 +40,34 @@ const Template = sequelize.define('Template', {
         type: DataTypes.JSONB,
         allowNull: true
     },
+    buttons: {
+        type: DataTypes.JSONB,
+        allowNull: true
+    },
+    headerType: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    headerContent: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    headerHandle: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    footer: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     userId: {
         type: DataTypes.UUID,
         allowNull: false
+    },
+    createdById: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'Tracks the specific team member who created this resource'
     }
 }, {
     timestamps: true

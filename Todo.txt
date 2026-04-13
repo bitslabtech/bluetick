@@ -1,0 +1,8 @@
+1. in app notification after read still shows number badge
+2. add sound notification for in app notification and try for chrome pop msg 
+3. Activity logs should log all superadmin and admin and users 
+4. check for google contacts sync integration for contact import and try for icloud contact
+5. in add contact add manage group and manage tags link
+6. remove invalid contacts cardview
+7. in template add hyperlink in Meta Approval Process Guidelines
+8. remove requested from users and 

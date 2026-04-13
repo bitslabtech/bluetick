@@ -3,11 +3,12 @@ import axios from 'axios';
 import {
     Users, MessageSquare, DollarSign, Activity, AlertCircle, CheckCircle2,
     TrendingUp, CreditCard, PieChart as PieChartIcon, MoreHorizontal,
-    Search, Bell
+    Search, Bell, Sparkles
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import AdminHeader from '../components/AdminHeader';
 import { useAuth } from '../context/AuthContext';
+import { useUI } from '../context/UIContext';
 import { Navigate, Link } from 'react-router-dom';
 import {
     LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -21,6 +22,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const SuperAdminDashboard = () => {
     const { user } = useAuth();
+    const { settings } = useUI();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -55,13 +57,16 @@ const SuperAdminDashboard = () => {
 
     useEffect(() => {
         if (!user?.isAdmin) return;
+        // Skip fetch if custom mode and endDate is not yet selected
+        if (!endDate) return;
+
+        setLoading(true); // Reset loading on every filter change to clear stale chart data
 
         const fetchData = async () => {
             try {
                 const startStr = startDate.toISOString();
                 const endStr = endDate.toISOString();
-                const res = await axios.get(`http://localhost:5000/api/admin/stats?startDate=${startStr}&endDate=${endStr}`);
-                console.log("Admin Data:", res.data); // DEBUG
+                const res = await axios.get(`http://127.0.0.1:5000/api/admin/stats?startDate=${startStr}&endDate=${endStr}`);
                 setData(res.data);
             } catch (err) {
                 console.error("Error loading admin data:", err);
@@ -71,7 +76,7 @@ const SuperAdminDashboard = () => {
         };
 
         fetchData(); // Initial load
-        const interval = setInterval(fetchData, 10000); // Auto-refresh
+        const interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
 
         return () => clearInterval(interval);
     }, [user, startDate, endDate]); // Trigger fetch on date change
@@ -79,36 +84,22 @@ const SuperAdminDashboard = () => {
     if (!user?.isAdmin) return <Navigate to="/" />;
 
     // Helper formatting
-    const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+    const currencyCode = settings?.currency || 'USD';
+    const locale = currencyCode === 'INR' ? 'en-IN' : 'en-US';
+    const formatCurrency = (val) => new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 }).format(val);
     const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 
-    // Chart Data Preparation with detailed logging
-    console.log("=== CHART DEBUG ===");
-    console.log("Full API Response:", data);
-    console.log("Message Volume Raw:", data?.graphs?.messageVolume);
-    console.log("Revenue Growth Raw:", data?.graphs?.revenueGrowth);
+    let messageChartData = data?.graphs?.messageVolume?.map(item => ({
+        date: formatDate(item.date),
+        count: parseInt(item.count || 0)
+    })) || [];
 
-    let messageChartData = data?.graphs?.messageVolume?.map(item => {
-        console.log("Processing message item:", item);
-        return {
-            date: formatDate(item.logDate || item.date),
-            count: parseInt(item.count || 0)
-        };
-    }) || [];
-
-    // Recharts needs at least 2 points to render. If we only have 1, pad with previous/next day
     if (messageChartData.length === 1 && data?.graphs?.messageVolume?.length > 0) {
         const singlePoint = messageChartData[0];
-        const date = new Date(data.graphs.messageVolume[0].logDate || data.graphs.messageVolume[0].date);
-
-        // Add previous day with 0 count
-        const prevDay = new Date(date);
-        prevDay.setDate(prevDay.getDate() - 1);
-
-        // Add next day with 0 count
-        const nextDay = new Date(date);
-        nextDay.setDate(nextDay.getDate() + 1);
+        const date = new Date(data.graphs.messageVolume[0].date);
+        const prevDay = new Date(date); prevDay.setDate(prevDay.getDate() - 1);
+        const nextDay = new Date(date); nextDay.setDate(nextDay.getDate() + 1);
 
         messageChartData = [
             { date: formatDate(prevDay.toISOString()), count: 0 },
@@ -117,24 +108,16 @@ const SuperAdminDashboard = () => {
         ];
     }
 
-    console.log("Processed Message Chart Data:", messageChartData);
-    console.log("Message Chart Data Length:", messageChartData.length);
-
     let revenueChartData = data?.graphs?.revenueGrowth?.map(item => ({
         date: formatDate(item.date),
-        amount: parseFloat(item.amount)
+        amount: parseFloat(item.amount || 0)
     })) || [];
 
-    // Same padding for revenue chart
     if (revenueChartData.length === 1 && data?.graphs?.revenueGrowth?.length > 0) {
         const singlePoint = revenueChartData[0];
         const date = new Date(data.graphs.revenueGrowth[0].date);
-
-        const prevDay = new Date(date);
-        prevDay.setDate(prevDay.getDate() - 1);
-
-        const nextDay = new Date(date);
-        nextDay.setDate(nextDay.getDate() + 1);
+        const prevDay = new Date(date); prevDay.setDate(prevDay.getDate() - 1);
+        const nextDay = new Date(date); nextDay.setDate(nextDay.getDate() + 1);
 
         revenueChartData = [
             { date: formatDate(prevDay.toISOString()), amount: 0 },
@@ -143,12 +126,28 @@ const SuperAdminDashboard = () => {
         ];
     }
 
-    console.log("Processed Revenue Chart Data:", revenueChartData);
-
     const pieData = data?.planDistribution?.map(item => ({
         name: item.plan,
         value: parseInt(item.count)
     })) || [];
+
+    let aiTokenChartData = data?.graphs?.aiTokenVolume?.map(item => ({
+        date: formatDate(item.date),
+        count: parseInt(item.tokens || 0)
+    })) || [];
+
+    if (aiTokenChartData.length === 1 && data?.graphs?.aiTokenVolume?.length > 0) {
+        const singlePoint = aiTokenChartData[0];
+        const date = new Date(data.graphs.aiTokenVolume[0].date);
+        const prevDay = new Date(date); prevDay.setDate(prevDay.getDate() - 1);
+        const nextDay = new Date(date); nextDay.setDate(nextDay.getDate() + 1);
+
+        aiTokenChartData = [
+            { date: formatDate(prevDay.toISOString()), count: 0 },
+            singlePoint,
+            { date: formatDate(nextDay.toISOString()), count: 0 }
+        ];
+    }
 
     console.log("Plan Distribution Raw:", data?.planDistribution);
     console.log("Pie Chart Data:", pieData);
@@ -164,7 +163,7 @@ const SuperAdminDashboard = () => {
             </AdminHeader>
 
             {/* Title Section (Moved to Main) */}
-            <div className="px-8 pt-8 max-w-7xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 max-w-7xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Superadmin Overview</h1>
                     <p className="text-sm text-slate-500 dark:text-text-secondary">Platform performance and revenue metrics</p>
@@ -215,7 +214,7 @@ const SuperAdminDashboard = () => {
                 </div>
             </div>
 
-            <main className="p-8 flex flex-col gap-8 max-w-7xl mx-auto w-full pb-20">
+            <main className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 lg:gap-8 max-w-7xl mx-auto w-full pb-20">
 
                 {loading ? (
                     <div className="text-center py-20 text-slate-500">Loading admin analytics...</div>
@@ -241,7 +240,7 @@ const SuperAdminDashboard = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Message Volume */}
                             <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Message Volume (30d)</h3>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Message Volume</h3>
                                 <div className="h-64">
                                     {messageChartData.length === 0 ? (
                                         <div className="h-full flex items-center justify-center text-slate-500">
@@ -282,26 +281,41 @@ const SuperAdminDashboard = () => {
 
                             {/* Revenue Growth */}
                             <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Revenue Growth (30d)</h3>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Revenue Growth</h3>
                                 <div className="h-64">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={revenueChartData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                                            <Tooltip
-                                                contentStyle={{
-                                                    borderRadius: '8px',
-                                                    border: '1px solid rgba(255,255,255,0.1)',
-                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                                                }}
-                                                itemStyle={{ color: '#10b981' }}
-                                                labelStyle={{ color: '#64748b' }}
-                                                wrapperClassName="dark:!bg-[#1e293b] !bg-white dark:!text-white"
-                                            />
-                                            <Line type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} />
-                                        </LineChart>
-                                    </ResponsiveContainer>
+                                    {revenueChartData.length === 0 ? (
+                                        <div className="h-full flex items-center justify-center text-slate-500">
+                                            <div className="text-center">
+                                                <p className="font-semibold">No revenue data for this period</p>
+                                                <p className="text-xs mt-2">Try selecting a different date range</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={revenueChartData}>
+                                                <defs>
+                                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                                                <Tooltip
+                                                    contentStyle={{
+                                                        borderRadius: '8px',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                                    }}
+                                                    itemStyle={{ color: '#10b981' }}
+                                                    labelStyle={{ color: '#64748b' }}
+                                                    wrapperClassName="dark:!bg-[#1e293b] !bg-white dark:!text-white"
+                                                />
+                                                <Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -310,8 +324,9 @@ const SuperAdminDashboard = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Purchases List */}
                             <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-slate-100 dark:border-white/5">
+                                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Purchases</h3>
+                                    <Link to="/superadmin/purchases" className="text-primary text-sm font-medium hover:underline">View All</Link>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm">
@@ -388,6 +403,84 @@ const SuperAdminDashboard = () => {
                                             {pieData.reduce((acc, curr) => acc + curr.value, 0)}
                                         </div>
                                         <div className="text-xs text-slate-500 uppercase">Users</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 3.5 AI TOKEN USAGE & TOP USERS */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* AI Token Graph */}
+                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-purple-500" />
+                                    AI Token Consumption
+                                </h3>
+                                <div className="h-64">
+                                    {aiTokenChartData.length === 0 ? (
+                                        <div className="h-full flex items-center justify-center text-slate-500">
+                                            <div className="text-center">
+                                                <p className="font-semibold">No AI Token data available</p>
+                                                <p className="text-xs mt-2">Check back when users start burning tokens.</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={aiTokenChartData}>
+                                                <defs>
+                                                    <linearGradient id="colorTokens" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                                                <Tooltip
+                                                    contentStyle={{
+                                                        borderRadius: '8px',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                                    }}
+                                                    itemStyle={{ color: '#a855f7' }}
+                                                    wrapperClassName="dark:!bg-[#1e293b] !bg-white dark:!text-white"
+                                                    formatter={(value) => [new Intl.NumberFormat().format(value), 'Tokens']}
+                                                />
+                                                <Area type="monotone" dataKey="count" stroke="#a855f7" strokeWidth={3} fillOpacity={1} fill="url(#colorTokens)" activeDot={{ r: 6, fill: '#a855f7' }} />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Top AI Token Users */}
+                            <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
+                                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white pb-1">Top Consumers</h3>
+                                    <Link to="/superadmin/ai-tokens" className="text-primary text-sm font-medium hover:underline">View All</Link>
+                                </div>
+                                <div className="p-4 flex-1 overflow-y-auto">
+                                    <div className="space-y-4">
+                                        {data.topTokenUsers && data.topTokenUsers.length > 0 ? (
+                                            data.topTokenUsers.map((u, i) => (
+                                                <div key={i} className="flex justify-between items-center bg-slate-50 dark:bg-white/5 p-3 rounded-lg border border-slate-100 dark:border-white/5">
+                                                    <div className="flex flex-col overflow-hidden mr-2">
+                                                        <span className="text-sm font-bold text-slate-900 dark:text-white truncate" title={u.User?.name}>{u.User?.name || 'Unknown'}</span>
+                                                        <span className="text-xs text-slate-500 truncate">{u.User?.email || '-'}</span>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                                                            {new Intl.NumberFormat().format(u.totalTokens)}
+                                                        </div>
+                                                        <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">
+                                                            Tokens
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-center text-slate-500 text-sm py-4">No top users yet.</div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

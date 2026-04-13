@@ -36,6 +36,10 @@ const MessageLog = sequelize.define('MessageLog', {
     metaTimestamp: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    clickedButton: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     timestamps: true,

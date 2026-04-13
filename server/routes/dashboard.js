@@ -6,10 +6,14 @@ const Message = require('../models/Message');
 const MessageLog = require('../models/MessageLog');
 const User = require('../models/User');
 const Plan = require('../models/Plan');
+const AiTokenLog = require('../models/AiTokenLog');
 const Settings = require('../models/Settings');
+const Conversation = require('../models/Conversation');
+const ChatMessage = require('../models/ChatMessage');
 const auth = require('../middleware/auth');
 const { Op, Sequelize } = require('sequelize');
 const { sequelize } = require('../config/database');
+const { getMonthlyMessageCount } = require('../utils/planLimits');
 
 router.use(auth);
 
@@ -95,84 +99,137 @@ router.get('/stats', async (req, res) => {
         // Fetch User and Plan for dynamic limits
         const user = await User.findByPk(userId);
         const userPlan = await Plan.findOne({ where: { name: user.plan || 'Free' } });
-        const monthlyLimit = userPlan ? userPlan.messageLimit : 30; // Default to 30 if plan not found
+        
+        // Calculate Total Limits (Base Plan + Top-ups)
+        const baseMessageLimit = userPlan ? userPlan.messageLimit : 30;
+        const monthlyLimit = baseMessageLimit + (user.extraTopupMessages || 0);
+
+        const baseContactLimit = userPlan ? userPlan.contactLimit : 10;
+        const contactLimit = baseContactLimit + (user.extraTopupContacts || 0);
 
         // Fetch Settings to check WhatsApp Configuration
         const settings = await Settings.findOne({ where: { userId } });
         const isWhatsappConfigured = Boolean(settings && settings.metaAccessToken && settings.metaPhoneNumberId);
 
+        // Check if any bots are active (AI Bot or Flows)
+        const Flow = require('../models/Flow');
+        const Addon = require('../models/Addon');
+        const UserAddon = require('../models/UserAddon');
+        
+        let hasActiveBots = false;
+        if (isWhatsappConfigured) {
+            // Only consider flows as globally active bots if they are catch-all (isAny = true)
+            // Keyword-specific flows should not lock the agent out of normal chatting globally.
+            const universalFlow = await Flow.findOne({ where: { userId, isActive: true, isAny: true } });
+            if (universalFlow) {
+                hasActiveBots = true;
+            } else {
+                const aiAddon = await Addon.findOne({ where: { module_key: 'ai_bot', isActive: true } });
+                if (aiAddon) {
+                    const activeAi = await UserAddon.findOne({ where: { userId, addonId: aiAddon.id, status: 'active' } });
+                    if (activeAi) {
+                        const config = activeAi.config || {};
+                        const mode = config.operatingMode || 'always';
+                        let isEffectivelyActive = true;
+                        if (mode === 'manual') {
+                            const isManualOn = config.manualEnabled === true || config.manualEnabled === 'true';
+                            if (!isManualOn) {
+                                isEffectivelyActive = false;
+                            }
+                        }
+                        
+                        if (isEffectivelyActive) {
+                            hasActiveBots = true;
+                        }
+                    }
+                }
+            }
+        }
+
         // 2. Counts DEPENDENT on Date Range
-        // Messages Sent (Total Logs in period)
-        // Messages Sent (Total Logs in period) - Exclude FAILED
-        // User requesting specifically to see only successful/sent messages in this count
-        const totalMessages = await MessageLog.count({
-            where: {
-                ...logWhere,
-                status: { [Op.ne]: 'FAILED' }
-            },
-            include: [messageInclude]
-        });
+        const isCampaignFilter = campaignId && campaignId !== 'all';
+        
+        let totalMessages, deliveredCount, readCount, failedCount, totalAttempted, hourlyDistributionRaw;
 
-        // Messages Delivered in period
-        const deliveredCount = await MessageLog.count({
-            where: {
-                ...logWhere,
-                status: { [Op.in]: ['DELIVERED', 'READ'] }
-            },
-            include: [messageInclude]
-        });
+        if (isCampaignFilter) {
+            totalMessages = await MessageLog.count({
+                where: { ...logWhere, status: { [Op.ne]: 'FAILED' } },
+                include: [messageInclude]
+            });
+            deliveredCount = await MessageLog.count({
+                where: { ...logWhere, status: { [Op.in]: ['DELIVERED', 'READ'] } },
+                include: [messageInclude]
+            });
+            readCount = await MessageLog.count({
+                where: { ...logWhere, status: 'READ' },
+                include: [messageInclude]
+            });
+            failedCount = await MessageLog.count({
+                where: { ...logWhere, status: 'FAILED' },
+                include: [messageInclude]
+            });
+            totalAttempted = await MessageLog.count({
+                where: logWhere,
+                include: [messageInclude]
+            });
+            hourlyDistributionRaw = await MessageLog.findAll({
+                attributes: [
+                    [sequelize.fn('date_part', 'hour', sequelize.col('MessageLog.createdAt')), 'hour'],
+                    [sequelize.fn('count', sequelize.col('MessageLog.id')), 'count']
+                ],
+                where: logWhere,
+                include: [messageInclude],
+                group: [sequelize.fn('date_part', 'hour', sequelize.col('MessageLog.createdAt'))],
+                raw: true
+            });
+        } else {
+            const chatLogWhere = {
+                direction: 'OUTBOUND',
+                createdAt: { [Op.between]: [start, end] }
+            };
+            const chatInclude = [{
+                model: Conversation,
+                where: { userId },
+                attributes: []
+            }];
 
-        // Messages Read in period
-        const readCount = await MessageLog.count({
-            where: {
-                ...logWhere,
-                status: 'READ'
-            },
-            include: [messageInclude]
-        });
-
-        // Messages Failed in period
-        const failedCount = await MessageLog.count({
-            where: {
-                ...logWhere,
-                status: 'FAILED'
-            },
-            include: [messageInclude]
-        });
-
-        // Total messages attempted in this period (all statuses)
-        const totalAttempted = await MessageLog.count({
-            where: logWhere,
-            include: [messageInclude]
-        });
+            totalMessages = await ChatMessage.count({
+                where: { ...chatLogWhere, status: { [Op.ne]: 'failed' } },
+                include: chatInclude
+            });
+            deliveredCount = await ChatMessage.count({
+                where: { ...chatLogWhere, status: { [Op.in]: ['delivered', 'read'] } },
+                include: chatInclude
+            });
+            readCount = await ChatMessage.count({
+                where: { ...chatLogWhere, status: 'read' },
+                include: chatInclude
+            });
+            failedCount = await ChatMessage.count({
+                where: { ...chatLogWhere, status: 'failed' },
+                include: chatInclude
+            });
+            totalAttempted = await ChatMessage.count({
+                where: chatLogWhere,
+                include: chatInclude
+            });
+            hourlyDistributionRaw = await ChatMessage.findAll({
+                attributes: [
+                    [sequelize.fn('date_part', 'hour', sequelize.col('ChatMessage.createdAt')), 'hour'],
+                    [sequelize.fn('count', sequelize.col('ChatMessage.id')), 'count']
+                ],
+                where: chatLogWhere,
+                include: chatInclude,
+                group: [sequelize.fn('date_part', 'hour', sequelize.col('ChatMessage.createdAt'))],
+                raw: true
+            });
+        }
 
         // 3. Billing Month Usage (Always this month, for the usage bar)
-        const now = new Date();
-        const billingStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const billingEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-        const monthlyUsageCount = await MessageLog.count({
-            where: {
-                createdAt: {
-                    [Op.between]: [billingStart, billingEnd]
-                },
-                status: { [Op.ne]: 'FAILED' }
-            },
-            include: [messageInclude]
-        });
+        // Uses getMonthlyMessageCount which counts ALL Outbound ChatMessage entries (AI, FlowBuilder, Campaigns, Manual)
+        const monthlyUsageCount = await getMonthlyMessageCount(userId);
 
         // 5. Hourly Distribution (for Heatmap)
-        const hourlyDistributionRaw = await MessageLog.findAll({
-            attributes: [
-                [sequelize.fn('date_part', 'hour', sequelize.col('MessageLog.createdAt')), 'hour'],
-                [sequelize.fn('count', sequelize.col('MessageLog.id')), 'count']
-            ],
-            where: logWhere,
-            include: [messageInclude],
-            group: [sequelize.fn('date_part', 'hour', sequelize.col('MessageLog.createdAt'))],
-            raw: true
-        });
-
         const hourlyMap = {};
         hourlyDistributionRaw.forEach(row => {
             hourlyMap[parseInt(row.hour)] = parseInt(row.count);
@@ -200,9 +257,12 @@ router.get('/stats', async (req, res) => {
             templatesCount,
             monthlyLimit,
             monthlyUsageCount,
-            contactLimit: userPlan ? userPlan.contactLimit : 10,
+            contactLimit,
             templateLimit: userPlan ? userPlan.templateLimit : 2,
             planName: user.plan || 'Free',
+            // AI Token Balance
+            aiTokenBalance: user.aiTokenBalance || 0,
+            aiTokensAllowance: userPlan ? (userPlan.aiTokensAllowance || 0) : 0,
             // These reflect the Date Range
             totalMessages,
             deliveredCount,
@@ -213,7 +273,8 @@ router.get('/stats', async (req, res) => {
             failedRate,
             recentCampaigns,
             isWhatsappConfigured,
-            hourlyDistribution
+            hourlyDistribution,
+            hasActiveBots
         });
     } catch (err) {
         console.error("Error fetching stats:", err);
@@ -245,29 +306,56 @@ router.get('/chart', async (req, res) => {
         };
 
         const messageWhere = { userId };
-        if (campaignId && campaignId !== 'all') {
+        const isCampaignFilter = campaignId && campaignId !== 'all';
+        if (isCampaignFilter) {
             messageWhere.id = campaignId;
         }
 
-        const chartData = await MessageLog.findAll({
-            attributes: [
-                [sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('MessageLog.createdAt')), 'date'],
-                [sequelize.col('MessageLog.status'), 'status'],
-                [sequelize.fn('count', sequelize.col('MessageLog.id')), 'count']
-            ],
-            where: logWhere,
-            include: [{
-                model: Message,
-                where: messageWhere,
-                attributes: []
-            }],
-            group: [
-                sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('MessageLog.createdAt')),
-                sequelize.col('MessageLog.status')
-            ],
-            order: [[sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('MessageLog.createdAt')), 'ASC']],
-            raw: true
-        });
+        let chartData;
+        if (isCampaignFilter) {
+            chartData = await MessageLog.findAll({
+                attributes: [
+                    [sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('MessageLog.createdAt')), 'date'],
+                    [sequelize.col('MessageLog.status'), 'status'],
+                    [sequelize.fn('count', sequelize.col('MessageLog.id')), 'count']
+                ],
+                where: logWhere,
+                include: [{
+                    model: Message,
+                    where: messageWhere,
+                    attributes: []
+                }],
+                group: [
+                    sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('MessageLog.createdAt')),
+                    sequelize.col('MessageLog.status')
+                ],
+                order: [[sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('MessageLog.createdAt')), 'ASC']],
+                raw: true
+            });
+        } else {
+            chartData = await ChatMessage.findAll({
+                attributes: [
+                    [sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('ChatMessage.createdAt')), 'date'],
+                    [sequelize.col('ChatMessage.status'), 'status'],
+                    [sequelize.fn('count', sequelize.col('ChatMessage.id')), 'count']
+                ],
+                where: {
+                    direction: 'OUTBOUND',
+                    createdAt: { [Op.between]: [start, end] }
+                },
+                include: [{
+                    model: Conversation,
+                    where: { userId },
+                    attributes: []
+                }],
+                group: [
+                    sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('ChatMessage.createdAt')),
+                    sequelize.col('ChatMessage.status')
+                ],
+                order: [[sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('ChatMessage.createdAt')), 'ASC']],
+                raw: true
+            });
+        }
 
         // Build a complete timeline of dates/hours within the range
         const timeline = [];
@@ -411,4 +499,162 @@ router.get('/campaign-reports', async (req, res) => {
     }
 });
 
-module.exports = router;
+// --- AI Token Usage History (REAL DATA FROM AiTokenLog) ---
+router.get('/ai-token-history', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { range = '30d' } = req.query;
+
+        let days = 30;
+        if (range === '7d') days = 7;
+        else if (range === '90d') days = 90;
+
+        const user = await User.findByPk(userId);
+        const userPlan = await Plan.findOne({ where: { name: user.plan || 'Free' } });
+
+        const totalAllowance = userPlan ? (userPlan.aiTokensAllowance || 0) : 0;
+        const currentBalance = user.aiTokenBalance || 0;
+
+        // ── Query ALL real log records for this user in the date range ──
+        const since = new Date();
+        since.setDate(since.getDate() - (days - 1));
+        since.setHours(0, 0, 0, 0);
+
+        const logs = await AiTokenLog.findAll({
+            where: {
+                userId,
+                createdAt: { [Op.gte]: since }
+            },
+            order: [['createdAt', 'ASC']]
+        });
+
+        // ── Build daily buckets ──
+        const dailyMap = {};
+        for (let i = 0; i < days; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - (days - 1 - i));
+            d.setHours(0, 0, 0, 0);
+            const key = d.toISOString().split('T')[0];
+            dailyMap[key] = {
+                date: key,
+                label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                ai_chatbot: 0,
+                ai_form_generator: 0,
+                ai_template_draft: 0,
+                ai_template_enhancer: 0,
+                total: 0,
+                runningBalance: null  // will fill from last log
+            };
+        }
+
+        for (const log of logs) {
+            const key = new Date(log.createdAt).toISOString().split('T')[0];
+            if (dailyMap[key]) {
+                dailyMap[key][log.feature] += log.tokensUsed;
+                dailyMap[key].total += log.tokensUsed;
+                dailyMap[key].runningBalance = log.balanceAfter; // last log of the day wins
+            }
+        }
+
+        // Fill running balance forward from previous day if no log that day
+        const dailyData = Object.values(dailyMap);
+        let lastKnownBalance = totalAllowance; // starting point
+        for (const day of dailyData) {
+            if (day.runningBalance !== null) {
+                lastKnownBalance = day.runningBalance;
+            } else {
+                day.runningBalance = lastKnownBalance;
+            }
+        }
+        // If we have logs, use the very last log's balanceAfter as the anchor,
+        // and fill backwards from the currentBalance for the most recent day
+        if (logs.length === 0) {
+            // No logs at all — show current balance as flat line
+            for (const day of dailyData) day.runningBalance = currentBalance;
+        }
+
+        // ── Feature breakdown totals (all-time in range) ──
+        const chatbotTotal = logs.filter(l => l.feature === 'ai_chatbot').reduce((s, l) => s + l.tokensUsed, 0);
+        const formTotal = logs.filter(l => l.feature === 'ai_form_generator').reduce((s, l) => s + l.tokensUsed, 0);
+        const templateDraftTotal = logs.filter(l => l.feature === 'ai_template_draft').reduce((s, l) => s + l.tokensUsed, 0);
+        const templateEnhancerTotal = logs.filter(l => l.feature === 'ai_template_enhancer').reduce((s, l) => s + l.tokensUsed, 0);
+        const grandTotal = chatbotTotal + formTotal + templateDraftTotal + templateEnhancerTotal;
+
+        const featureBreakdown = [
+            {
+                name: 'AI Chatbot',
+                key: 'ai_chatbot',
+                tokens: chatbotTotal,
+                percent: grandTotal > 0 ? Math.round((chatbotTotal / grandTotal) * 100) : 0,
+                color: '#6366f1'
+            },
+            {
+                name: 'Form Generator',
+                key: 'ai_form_generator',
+                tokens: formTotal,
+                percent: grandTotal > 0 ? Math.round((formTotal / grandTotal) * 100) : 0,
+                color: '#8b5cf6'
+            },
+            {
+                name: 'Template Draft',
+                key: 'ai_template_draft',
+                tokens: templateDraftTotal,
+                percent: grandTotal > 0 ? Math.round((templateDraftTotal / grandTotal) * 100) : 0,
+                color: '#f59e0b'
+            },
+            {
+                name: 'Template Enhancer',
+                key: 'ai_template_enhancer',
+                tokens: templateEnhancerTotal,
+                percent: grandTotal > 0 ? Math.round((templateEnhancerTotal / grandTotal) * 100) : 0,
+                color: '#10b981'
+            }
+        ];
+
+        // ── Weekly summary (group dailyData into 7-day buckets) ──
+        const weeklySummary = [];
+        for (let w = 0; w < Math.ceil(days / 7); w++) {
+            const weekDays = dailyData.slice(w * 7, (w + 1) * 7);
+            if (weekDays.length === 0) continue;
+            const weekLabel = weekDays[0].label + (weekDays.length > 1 ? ` – ${weekDays[weekDays.length - 1].label}` : '');
+            weeklySummary.push({
+                week: `Wk ${w + 1}`,
+                label: weekLabel,
+                total: weekDays.reduce((s, d) => s + d.total, 0),
+                ai_chatbot: weekDays.reduce((s, d) => s + d.ai_chatbot, 0),
+                ai_form_generator: weekDays.reduce((s, d) => s + d.ai_form_generator, 0),
+                ai_template_draft: weekDays.reduce((s, d) => s + d.ai_template_draft, 0),
+                ai_template_enhancer: weekDays.reduce((s, d) => s + d.ai_template_enhancer, 0)
+            });
+        }
+
+        // ── Summary stats ──
+        const peakDayUsage = Math.max(0, ...dailyData.map(d => d.total));
+        const daysWithUsage = dailyData.filter(d => d.total > 0).length;
+        const avgDailyUsage = daysWithUsage > 0 ? Math.round(grandTotal / daysWithUsage) : 0;
+        // totalUsed: use sum from logs (real events) not allowance math
+        const totalUsed = grandTotal;
+        const usagePercent = totalAllowance > 0 ? Math.round((currentBalance / totalAllowance * 100)) : 0;
+
+        res.json({
+            summary: {
+                totalAllowance,
+                currentBalance,
+                totalUsed,
+                usagePercent,
+                planName: user.plan || 'Free',
+                avgDailyUsage,
+                peakDayUsage,
+                hasHistory: logs.length > 0
+            },
+            dailyData,
+            featureBreakdown,
+            weeklySummary
+        });
+    } catch (err) {
+        console.error("Error fetching AI token history:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+module.exports = router;

@@ -8,7 +8,7 @@ import UserDropdown from '../components/UserDropdown';
 import {
     Menu, Plus, Info, Search,
     Globe, LayoutTemplate, Image as ImageIcon, AlertTriangle, X, RefreshCw,
-    Lock, Trash2, Zap
+    Lock, Trash2, Zap, Sparkles, Send
 } from 'lucide-react';
 import CreateTemplateModal from '../components/CreateTemplateModal';
 
@@ -25,6 +25,14 @@ const Templates = () => {
     const [showConfigError, setShowConfigError] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [syncing, setSyncing] = useState(false);
+
+    // AI Draft States
+    const [showAiDraftModal, setShowAiDraftModal] = useState(false);
+    const [aiDraftPrompt, setAiDraftPrompt] = useState('');
+    const [isDrafting, setIsDrafting] = useState(false);
+    const [draftPayload, setDraftPayload] = useState(null);
+    const [showConfetti, setShowConfetti] = useState(false);
+
     const [newTemplate, setNewTemplate] = useState({
         name: '',
         category: 'MARKETING',
@@ -37,8 +45,8 @@ const Templates = () => {
         try {
             setLoading(true);
             const [tmplRes, billingRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/templates'),
-                axios.get('http://localhost:5000/api/billing')
+                axios.get('http://127.0.0.1:5000/api/templates'),
+                axios.get('http://127.0.0.1:5000/api/billing')
             ]);
             // Sort oldest first so the first N are always the "active" ones
             const sorted = [...tmplRes.data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -57,7 +65,7 @@ const Templates = () => {
     const handleSyncTemplates = async () => {
         try {
             setSyncing(true);
-            const res = await axios.post('http://localhost:5000/api/templates/sync');
+            const res = await axios.post('http://127.0.0.1:5000/api/templates/sync');
             showToast({ type: 'success', title: 'Sync Complete', message: res.data.message });
             fetchTemplates();
         } catch (err) {
@@ -80,25 +88,51 @@ const Templates = () => {
     }, [location]);
 
 
-    const checkSettingsAndOpenModal = async () => {
+    const checkSettingsAndOpenModal = async (draft = null) => {
         try {
-            const res = await axios.get('http://localhost:5000/api/settings', {
+            const res = await axios.get('http://127.0.0.1:5000/api/settings', {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             const s = res.data;
-            // Allow if: embedded onboarding connected (wabaId/metaBusinessAccountId)
-            // OR manual keys configured (phoneNumberId + accessToken)
             const embeddedConfigured = !!(s?.metaBusinessAccountId);
             const manualConfigured = !!(s?.metaPhoneNumberId && s?.metaAccessToken);
             if (!embeddedConfigured && !manualConfigured) {
                 setShowConfigError(true);
                 return;
             }
+            if (draft) {
+                setDraftPayload(draft);
+            } else {
+                setDraftPayload(null);
+            }
             setShowCreateModal(true);
         } catch (err) {
             console.error("Error checking settings:", err);
-            // On any error, block access and show config error
             setShowConfigError(true);
+        }
+    };
+
+    const handleAiDraftSubmit = async (e) => {
+        e.preventDefault();
+        if (!aiDraftPrompt.trim()) return;
+        setIsDrafting(true);
+        try {
+            const res = await axios.post('http://127.0.0.1:5000/api/templates/draft-ai', { prompt: aiDraftPrompt }, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            showToast({ type: 'success', title: 'AI Draft Complete', message: `Template drafted successfully! Used ${res.data.tokensDeducted} Tokens.` });
+            setShowAiDraftModal(false);
+            setAiDraftPrompt('');
+            // Fire confetti burst
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3500);
+            // Open the builder modal and pass the generated payload
+            checkSettingsAndOpenModal(res.data.draft);
+        } catch (err) {
+            console.error("AI Draft Error:", err);
+            showToast({ type: 'error', title: 'AI Drafting Failed', message: err.response?.data?.error || 'Could not reach AI platform.' });
+        } finally {
+            setIsDrafting(false);
         }
     };
 
@@ -116,7 +150,7 @@ const Templates = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://localhost:5000/api/templates/${id}`);
+                    await axios.delete(`http://127.0.0.1:5000/api/templates/${id}`);
                     fetchTemplates();
                     showToast({ type: 'success', title: 'Deleted', message: 'Template deleted successfully' });
                 } catch (err) {
@@ -145,12 +179,47 @@ const Templates = () => {
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white font-display relative transition-colors duration-300">
+
+            {/* Confetti Burst Animation */}
+            {showConfetti && (
+                <div className="fixed inset-0 pointer-events-none z-[200] overflow-hidden">
+                    {Array.from({ length: 60 }).map((_, i) => {
+                        const colors = ['#6366f1', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#f97316'];
+                        const color = colors[i % colors.length];
+                        const left = `${Math.random() * 100}%`;
+                        const delay = `${Math.random() * 0.8}s`;
+                        const duration = `${1.5 + Math.random() * 2}s`;
+                        const size = `${6 + Math.random() * 8}px`;
+                        const rotate = `${Math.random() * 720}deg`;
+                        return (
+                            <div
+                                key={i}
+                                style={{
+                                    position: 'absolute',
+                                    left,
+                                    top: '-20px',
+                                    width: size,
+                                    height: size,
+                                    background: color,
+                                    borderRadius: i % 3 === 0 ? '50%' : i % 3 === 1 ? '2px' : '0',
+                                    animation: `confettiFall ${duration} ${delay} ease-in forwards`,
+                                    transform: `rotate(${rotate})`
+                                }}
+                            />
+                        );
+                    })}
+                    <style>{`
+                        @keyframes confettiFall {
+                            0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+                            80% { opacity: 1; }
+                            100% { transform: translateY(100vh) rotate(720deg) scale(0.5); opacity: 0; }
+                        }
+                    `}</style>
+                </div>
+            )}
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
-                    <button className="md:hidden text-slate-900 dark:text-white">
-                        <Menu className="w-6 h-6" />
-                    </button>
 
                     {/* Search Bar */}
                     <div className="hidden md:flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors">
@@ -172,7 +241,7 @@ const Templates = () => {
             </header>
 
             {/* Content Actions */}
-            <div className="flex-1 overflow-y-auto p-[46px] custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
                 <div className="w-full flex flex-col gap-8">
 
                     {/* Title & Add Button */}
@@ -181,21 +250,31 @@ const Templates = () => {
                             <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Message Templates</h1>
                             <p className="text-slate-500 dark:text-text-secondary mt-1">Manage and organize your message templates for WhatsApp Business API.</p>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex flex-wrap gap-3 w-full md:w-auto">
                             <button
                                 onClick={handleSyncTemplates}
                                 disabled={syncing}
-                                className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50 shadow-sm"
+                                className="flex-1 md:flex-none justify-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50 shadow-sm"
                             >
                                 <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
                                 Sync
                             </button>
                             <button
-                                onClick={checkSettingsAndOpenModal}
-                                className="bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                                onClick={() => setShowAiDraftModal(true)}
+                                className="flex-1 md:flex-none justify-center bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-purple-500/20 active:scale-95 relative overflow-hidden group"
+                            >
+                                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                                <Sparkles className="w-4 h-4 text-amber-300" />
+                                <span className="hidden sm:inline">Create With Ai</span>
+                                <span className="sm:hidden">Draft AI</span>
+                            </button>
+                            <button
+                                onClick={() => checkSettingsAndOpenModal(null)}
+                                className="flex-1 md:flex-none justify-center bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
                             >
                                 <Plus className="w-5 h-5" />
-                                Create New Template
+                                <span className="hidden sm:inline">Create New Template</span>
+                                <span className="sm:hidden">Create</span>
                             </button>
                         </div>
                     </div>
@@ -243,7 +322,7 @@ const Templates = () => {
                             <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-                                    Plan Limit: {templateLimit} of {templates.length} templates active
+                                    Total Template Limit: {templateLimit} of {templates.length} templates active
                                 </p>
                                 <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
                                     Your plan allows {templateLimit} template{templateLimit !== 1 ? 's' : ''}. The {templateLimit} oldest are active for campaigns. Upgrade to unlock more.
@@ -273,7 +352,7 @@ const Templates = () => {
                                             <div className="absolute inset-0 z-10 bg-slate-100/70 dark:bg-background-dark/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 rounded-xl">
                                                 <div className="flex items-center gap-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-full px-4 py-2 shadow-lg">
                                                     <Lock className="w-4 h-4 text-slate-500" />
-                                                    <span className="text-xs font-bold text-slate-600 dark:text-text-secondary">Plan Limit Reached</span>
+                                                    <span className="text-xs font-bold text-slate-600 dark:text-text-secondary">Total Template Limit Reached</span>
                                                 </div>
                                                 <button
                                                     onClick={() => navigate('/billing')}
@@ -343,7 +422,7 @@ const Templates = () => {
 
                             {/* Create New Card */}
                             <button
-                                onClick={checkSettingsAndOpenModal}
+                                onClick={() => checkSettingsAndOpenModal(null)}
                                 className="bg-slate-100/50 dark:bg-surface-dark/30 rounded-xl border-2 border-dashed border-slate-300 dark:border-white/10 hover:border-primary hover:bg-slate-50 dark:hover:bg-surface-dark transition-all flex flex-col items-center justify-center gap-4 group min-h-[300px] cursor-pointer"
                             >
                                 <div className="size-16 rounded-full bg-white dark:bg-background-dark flex items-center justify-center group-hover:scale-110 transition-transform border border-slate-200 dark:border-white/10 shadow-sm">
@@ -365,7 +444,65 @@ const Templates = () => {
                 onClose={() => setShowCreateModal(false)}
                 onSuccess={handleCreateSuccess}
                 showToast={showToast}
+                initialDraft={draftPayload}
             />
+
+            {/* AI Drafting Prompt Modal */}
+            {showAiDraftModal && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden relative">
+                        {isDrafting && (
+                            <div className="absolute inset-0 z-10 bg-white/80 dark:bg-surface-dark/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+                                <div className="relative">
+                                    <div className="size-16 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(139,92,246,0.4)]">
+                                        <Sparkles className="w-8 h-8 text-white animate-spin-slow" />
+                                    </div>
+                                    {/* Orbital rings */}
+                                    <div className="absolute inset-0 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-[spin_3s_linear_infinite]"></div>
+                                    <div className="absolute -inset-2 rounded-full border-2 border-purple-400/20 border-b-purple-400 animate-[spin_4s_linear_infinite_reverse]"></div>
+                                </div>
+                                <div className="text-center">
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">
+                                        Architecting your Template
+                                    </h3>
+                                    <p className="text-sm text-slate-500 dark:text-text-secondary max-w-[250px] mx-auto mt-1">
+                                        Deploying Gemini to structure the perfect variables and JSON...
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-indigo-500" /> Draft Template with AI
+                            </h3>
+                            <button onClick={() => setShowAiDraftModal(false)} className="p-2 -mr-2 rounded-full hover:bg-slate-200 dark:hover:bg-white/5 text-slate-500 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAiDraftSubmit} className="p-6">
+                            <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
+                                Describe your message
+                            </label>
+                            <textarea
+                                value={aiDraftPrompt}
+                                onChange={(e) => setAiDraftPrompt(e.target.value)}
+                                placeholder="I need a welcome template with a 50% discount code and a button that goes to my shop URL..."
+                                className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none transition-all h-32"
+                                autoFocus
+                            />
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button type="button" onClick={() => setShowAiDraftModal(false)} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={!aiDraftPrompt.trim()} className="px-5 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50 flex items-center gap-2 active:scale-95">
+                                    <Send className="w-4 h-4" /> Generate
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Config Error Modal */}
             {showConfigError && (

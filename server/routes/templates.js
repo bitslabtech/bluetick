@@ -80,24 +80,13 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-// POST upload media for SENDING messages (Standard Media API) - also saves locally for inbox display
-const path = require('path');
+// POST upload media for SENDING messages (Standard Media API) - also saves locally or S3 for inbox display
+const FormData = require('form-data');
+const axios = require('axios');
 const fs = require('fs');
-const uploadDisk = multer({
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => {
-            const dir = path.join(__dirname, '../public/uploads/campaign-media');
-            fs.mkdirSync(dir, { recursive: true });
-            cb(null, dir);
-        },
-        filename: (req, file, cb) => {
-            const ext = path.extname(file.originalname);
-            cb(null, `${Date.now()}-${Math.random().toString(36).substr(2, 8)}${ext}`);
-        }
-    })
-});
+const storageProvider = require('../utils/storageProvider');
 
-router.post('/upload-message-media', uploadDisk.single('file'), async (req, res) => {
+router.post('/upload-message-media', storageProvider('campaign-media').single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
@@ -106,15 +95,21 @@ router.post('/upload-message-media', uploadDisk.single('file'), async (req, res)
             return res.status(403).json({ error: 'Please configure your WhatsApp API settings first.' });
         }
 
-        // Build local URL for inbox display
-        const localUrl = `http://localhost:5000/uploads/campaign-media/${req.file.filename}`;
+        // Build URL for inbox display
+        const localUrl = req.file.publicUrl;
 
         // Also upload to Meta for actual sending using axios and form-data (Node compatible)
-        const FormData = require('form-data');
-        const axios = require('axios');
-
         const form = new FormData();
-        form.append('file', fs.createReadStream(req.file.path));
+        
+        if (req.file.location) {
+            // It's S3, stream from the public URL
+            const fileStreamRes = await axios.get(req.file.publicUrl, { responseType: 'stream' });
+            form.append('file', fileStreamRes.data, { filename: req.file.originalname });
+        } else {
+            // It's local
+            form.append('file', fs.createReadStream(req.file.path));
+        }
+
         form.append('messaging_product', 'whatsapp');
 
         const uploadRes = await axios.post(
@@ -165,7 +160,11 @@ router.post('/', async (req, res) => {
         if (archetype === 'carousel' && cards && cards.length > 0) {
             // Master Body for Carousel
             if (content) {
-                components.push({ type: "BODY", text: content });
+                const bodyComp = { type: "BODY", text: content };
+                if (req.body.bodyVariables && req.body.bodyVariables.length > 0) {
+                    bodyComp.example = { body_text: [req.body.bodyVariables] };
+                }
+                components.push(bodyComp);
             }
 
             // Carousel component containing cards
@@ -199,6 +198,7 @@ router.post('/', async (req, res) => {
                     const cardBtns = card.buttons.map(btn => {
                         if (btn.type === 'URL') return { type: 'URL', text: btn.text, url: btn.url };
                         if (btn.type === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: btn.text, phone_number: btn.phoneNumber };
+                        if (btn.type === 'COPY_CODE') return { type: 'COPY_CODE', text: 'Copy offer code', example: [btn.couponCode || ''] };
                         return { type: 'QUICK_REPLY', text: btn.text };
                     });
                     cardComponents.push({
@@ -221,6 +221,9 @@ router.post('/', async (req, res) => {
                 const headerComp = { type: "HEADER", format: headerType };
                 if (headerType === 'TEXT' && headerContent) {
                     headerComp.text = headerContent;
+                    if (req.body.headerVariables && req.body.headerVariables.length > 0) {
+                        headerComp.example = { header_text: req.body.headerVariables };
+                    }
                 } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerType) && headerHandle) {
                     headerComp.example = { header_handle: [headerHandle] };
                 }
@@ -228,7 +231,11 @@ router.post('/', async (req, res) => {
             }
 
             if (content) {
-                components.push({ type: "BODY", text: content });
+                const bodyComp = { type: "BODY", text: content };
+                if (req.body.bodyVariables && req.body.bodyVariables.length > 0) {
+                    bodyComp.example = { body_text: [req.body.bodyVariables] };
+                }
+                components.push(bodyComp);
             }
 
             if (footer) {
@@ -239,6 +246,7 @@ router.post('/', async (req, res) => {
                 const standardBtns = buttons.map(btn => {
                     if (btn.type === 'URL') return { type: 'URL', text: btn.text, url: btn.url };
                     if (btn.type === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: btn.text, phone_number: btn.phoneNumber };
+                    if (btn.type === 'COPY_CODE') return { type: 'COPY_CODE', text: 'Copy offer code', example: [btn.couponCode || ''] };
                     return { type: 'QUICK_REPLY', text: btn.text };
                 });
                 components.push({ type: "BUTTONS", buttons: standardBtns });
@@ -267,11 +275,10 @@ router.post('/', async (req, res) => {
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("Meta Creation Error:", data);
-            return res.status(400).json({ error: data.error?.message || 'Failed to create template on WhatsApp.' });
+            console.error("Meta Creation Error:", JSON.stringify(data, null, 2));
+            return res.status(400).json({ error: (data.error?.error_user_msg || data.error?.message || 'Failed to create template on WhatsApp.') + JSON.stringify(data.error?.error_data || '') });
         }
 
-        // Save to DB on success
         // Save to DB on success
         const newTemplate = await Template.create({
             name,
@@ -279,10 +286,16 @@ router.post('/', async (req, res) => {
             category: category || "MARKETING",
             language: language || "en_US",
             userId: req.user.id,
+            createdById: req.user.realId || req.user.id,
             status: data.status || 'PENDING',
             metaTemplateId: data.id,
             archetype: archetype || 'standard',
-            cards: archetype === 'carousel' ? cards : null
+            cards: archetype === 'carousel' ? cards : null,
+            buttons: archetype !== 'carousel' ? buttons : null,
+            headerType: archetype !== 'carousel' ? headerType : null,
+            headerContent: archetype !== 'carousel' ? headerContent : null,
+            headerHandle: archetype !== 'carousel' ? headerHandle : null,
+            footer: archetype !== 'carousel' ? footer : null
         });
 
         // Auto-Notification
@@ -386,10 +399,106 @@ router.post('/sync', async (req, res) => {
             const bodyComponent = mt.components.find(c => c.type === 'BODY');
             const contentText = bodyComponent ? bodyComponent.text : '';
 
+            const headerComponent = mt.components.find(c => c.type === 'HEADER');
+            let headerType = 'NONE';
+            let headerContent = null;
+            if (headerComponent) {
+                headerType = headerComponent.format;
+                if (headerType === 'TEXT') headerContent = headerComponent.text;
+            }
+
+            const footerComponent = mt.components.find(c => c.type === 'FOOTER');
+            const footerText = footerComponent ? footerComponent.text : null;
+
+            const buttonsComponent = mt.components.find(c => c.type === 'BUTTONS');
+            let buttons = null;
+            if (buttonsComponent && buttonsComponent.buttons) {
+                buttons = buttonsComponent.buttons.map(b => {
+                    const mapped = { type: b.type, text: b.text };
+                    if (b.type === 'URL') mapped.url = b.url;
+                    if (b.type === 'PHONE_NUMBER') mapped.phoneNumber = b.phone_number;
+                    if (b.type === 'COPY_CODE') mapped.couponCode = b.example?.[0] || 'CODE';
+                    return mapped;
+                });
+            }
+
+            const carouselComponent = mt.components.find(c => c.type === 'CAROUSEL');
+            let cards = null;
+            if (carouselComponent && carouselComponent.cards) {
+                cards = carouselComponent.cards.map(card => {
+                    const cHeader = card.components.find(c => c.type === 'HEADER');
+                    const cBody = card.components.find(c => c.type === 'BODY');
+                    const cButtons = card.components.find(c => c.type === 'BUTTONS');
+                    
+                    let cardBtns = [];
+                    if (cButtons && cButtons.buttons) {
+                        cardBtns = cButtons.buttons.map(b => {
+                            const mapped = { type: b.type, text: b.text };
+                            if (b.type === 'URL') mapped.url = b.url;
+                            if (b.type === 'PHONE_NUMBER') mapped.phoneNumber = b.phone_number;
+                            if (b.type === 'COPY_CODE') mapped.couponCode = b.example?.[0] || 'CODE';
+                            return mapped;
+                        });
+                    }
+
+                    return {
+                        headerType: cHeader ? cHeader.format : 'IMAGE',
+                        content: cBody ? cBody.text : '',
+                        buttons: cardBtns
+                    };
+                });
+            }
+
+            let archetype = 'simple_text';
+            if (carouselComponent) archetype = 'carousel';
+            else if (buttons && buttons.length > 0) {
+                if (buttons.some(b => ['URL', 'PHONE_NUMBER', 'COPY_CODE'].includes(b.type))) {
+                    archetype = 'call_to_action';
+                } else {
+                    archetype = 'quick_replies';
+                }
+            } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerType)) {
+                archetype = 'media_message';
+            } else if (mt.category === 'AUTHENTICATION') {
+                archetype = 'authentication';
+            }
+
             if (existing) {
+                let updated = false;
                 if (existing.status !== mt.status) {
                     existing.status = mt.status;
+                    updated = true;
+                }
+                if (existing.metaTemplateId !== mt.id) {
                     existing.metaTemplateId = mt.id;
+                    updated = true;
+                }
+                
+                // Keep local cache in sync with Meta truth
+                const existingBtnsStr = JSON.stringify(existing.buttons || []);
+                const incomingBtnsStr = JSON.stringify(buttons || []);
+                const existingCardsStr = JSON.stringify(existing.cards || []);
+                const incomingCardsStr = JSON.stringify(cards || []);
+
+                if (existingBtnsStr !== incomingBtnsStr ||
+                    existingCardsStr !== incomingCardsStr ||
+                    existing.content !== contentText ||
+                    existing.archetype !== archetype ||
+                    existing.headerType !== headerType ||
+                    existing.headerContent !== headerContent ||
+                    existing.footer !== footerText) 
+                {
+                    existing.content = contentText;
+                    existing.archetype = archetype;
+                    existing.buttons = buttons;
+                    existing.cards = cards;
+                    existing.headerType = headerType;
+                    existing.headerContent = headerContent;
+                    existing.footer = footerText;
+                    updated = true;
+                }
+
+                if (updated) {
                     await existing.save();
                     syncResults.updated++;
                 }
@@ -401,7 +510,13 @@ router.post('/sync', async (req, res) => {
                     category: mt.category,
                     content: contentText || 'Synced from Meta',
                     status: mt.status,
-                    metaTemplateId: mt.id
+                    metaTemplateId: mt.id,
+                    archetype: archetype,
+                    buttons: buttons,
+                    cards: cards,
+                    headerType: headerType,
+                    headerContent: headerContent,
+                    footer: footerText
                 });
                 syncResults.added++;
             }
@@ -421,6 +536,218 @@ router.post('/sync', async (req, res) => {
     } catch (err) {
         console.error("Sync Error:", err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// ENHANCE Body text with AI
+router.post('/enhance-ai', async (req, res) => {
+    const { text } = req.body;
+    try {
+        if (!text) return res.status(400).json({ error: 'Text to enhance is required' });
+
+        const User = require('../models/User');
+        const SystemConfig = require('../models/SystemConfig');
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const sysConfig = await SystemConfig.getConfig();
+        const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_template_enhancer ?? 1;
+        const BASE_COST = 5;
+        const finalCost = Math.ceil(BASE_COST * multiplier);
+
+        if (user.aiTokenBalance < finalCost) {
+            return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
+
+        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
+        const axios = require('axios');
+
+        const systemInstruction = `You are an expert copywriter specializing in high-converting WhatsApp marketing messages.
+Your goal is to enhance, proofread, and optimize the user's text for WhatsApp. 
+Fix grammar, make it punchy, engaging, and professional but concise.
+If there are any variables like {{1}}, {{2}} etc., keep them EXACTLY as they are. DO NOT change, remove, or re-order variables unless absolutely necessary for flow, but you must retain the exact variable placeholders.
+Output ONLY the final enhanced message text. Do not include introductory notes, quotes, or markdown wrappers.`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
+        const payload = {
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ role: 'user', parts: [{ text: text }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+        };
+
+        const aiRes = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
+        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        replyText = replyText.replace(/```(whatsapp|text|markdown)?/gi, '').replace(/```/gi, '').trim();
+
+        await user.decrement('aiTokenBalance', { by: finalCost });
+        const newBal = (user.aiTokenBalance - finalCost);
+
+        try {
+            const AiTokenLog = require('../models/AiTokenLog');
+            await AiTokenLog.create({
+                userId: req.user.id,
+                feature: 'ai_template_enhancer',
+                tokensUsed: finalCost,
+                balanceAfter: Math.max(0, newBal)
+            });
+        } catch (logErr) {
+            console.warn('[TEMPLATES AI] Failed to write AiTokenLog:', logErr.message);
+        }
+
+        res.json({
+            enhancedText: replyText,
+            tokensDeducted: finalCost,
+            newBalance: newBal
+        });
+    } catch (err) {
+        console.error('Error enhancing text with AI:', err.response?.data || err.message);
+        const actualError = err.response?.data?.error?.message || err.message || '';
+        const shortError = actualError.split(' ').slice(0, 5).join(' ');
+        res.status(500).json({ 
+            error: `Failed to communicate with AI: (${shortError}...)`,
+            fullError: err.response?.data || actualError
+        });
+    }
+});
+
+// DRAFT template with AI
+router.post('/draft-ai', async (req, res) => {
+    const { prompt } = req.body;
+    try {
+        if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+
+        const User = require('../models/User');
+        const SystemConfig = require('../models/SystemConfig');
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const sysConfig = await SystemConfig.getConfig();
+        const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_template_enhancer ?? 1;
+        const BASE_COST = 10;
+        const finalCost = Math.ceil(BASE_COST * multiplier);
+
+        if (user.aiTokenBalance < finalCost) {
+            return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
+
+        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
+        const axios = require('axios');
+
+        const systemInstruction = `You are an expert WhatsApp Business template architect. The user will describe a WhatsApp message template they want to build.
+Your task is to generate a perfectly structured, Meta-compliant JSON configuration based EXACTLY on their requirements.
+
+OUTPUT STRICTLY VALID JSON. NO MARKDOWN WRAPPERS (\`\`\`json). NO COMMENTS. JUST RAW JSON.
+
+=== BUTTON TYPES — READ THIS CAREFULLY ===
+There are 4 button types. Choose the CORRECT one based on strict intent matching:
+
+1. "QUICK_REPLY" — Use ONLY when the user wants a one-tap reply button (like "Yes", "No", "Interested", "Not Now"). These send a message back to the business. DO NOT use for coupons, links, or phone calls.
+
+2. "URL" — Use when the user wants to redirect to a website. Requires a "url" field. Examples: "Visit Website", "Shop Now", "Learn More".
+
+3. "PHONE_NUMBER" — Use when the user wants to initiate a phone call. Requires a "phoneNumber" field.
+
+4. "COPY_CODE" — Use when the user mentions: "coupon code", "promo code", "discount code", "copy code", "coupon copy button", "copy coupon", or any intent to let the user copy a code. Requires a "couponCode" field with the actual code string.
+   Example: { "type": "COPY_CODE", "text": "Copy Coupon", "couponCode": "LAUNCH50" }
+
+=== INTENT → BUTTON TYPE MAPPING (STRICT) ===
+- "copy code", "coupon code", "promo code", "discount code" → COPY_CODE
+- "visit website", "website link", "learn more", "open link", "shop now" → URL
+- "call us", "phone number", "call now" → PHONE_NUMBER
+- "reply yes/no", "quick reply", "interested/not interested" → QUICK_REPLY
+
+=== FULL JSON SCHEMA ===
+{
+  "name": "string (lowercase, max 50 chars, NO spaces, use underscores e.g. launch_promo_01)",
+  "category": "MARKETING | UTILITY | AUTHENTICATION",
+  "archetype": "simple_text | media_message | call_to_action | quick_replies | authentication | carousel",
+  "language": "en_US (default unless specified)",
+  "headerType": "NONE | TEXT | IMAGE | VIDEO | DOCUMENT",
+  "headerContent": "string (only if headerType is TEXT, max 60 chars)",
+  "content": "string (body text, max 1024 chars, use {{1}} {{2}} for variables)",
+  "footer": "string (optional, max 60 chars)",
+  "bodyVariables": { "1": "sample_value", "2": "other_sample" },
+  "buttons": [
+    { "type": "URL", "text": "Visit Website", "url": "https://example.com" },
+    { "type": "PHONE_NUMBER", "text": "Call Us", "phoneNumber": "+1234567890" },
+    { "type": "QUICK_REPLY", "text": "Yes, interested" },
+    { "type": "COPY_CODE", "text": "Copy Coupon", "couponCode": "SAVE20" }
+  ],
+  "cards": [
+    {
+      "headerType": "IMAGE",
+      "headerContent": "",
+      "content": "Card body text here",
+      "buttons": []
+    }
+  ]
+}
+
+=== ARCHITECTURE RULES ===
+- "media_message": set headerType to IMAGE/VIDEO/DOCUMENT, fill buttons array at root level.
+- "carousel": put ALL buttons inside each card's "buttons" array. Root "buttons" must be empty [].
+- "authentication": headerType NONE, no buttons, body must say something like "Your code is {{1}}.".
+- "call_to_action": at least one URL or PHONE_NUMBER button.
+- "quick_replies": at least one QUICK_REPLY button.
+- If user asks for BOTH media header AND mixed buttons → use "media_message" archetype.
+- Max limits: 10 QUICK_REPLY buttons, 2 URL buttons, 1 PHONE_NUMBER button, 1 COPY_CODE button per template.
+- NEVER add URLs inside body text or footer — always use a URL button instead.
+- NEVER use QUICK_REPLY for coupon/promo codes — always use COPY_CODE.
+`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
+        const payload = {
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.6, maxOutputTokens: 2048 }
+        };
+
+        const aiRes = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
+        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        replyText = replyText.replace(/```(whatsapp|text|markdown|json)?/gi, '').replace(/```/gi, '').trim();
+
+        let generatedDraft;
+        try {
+            generatedDraft = JSON.parse(replyText);
+        } catch (e) {
+            console.error("AI JSON Parse Error:", replyText);
+            return res.status(500).json({ error: 'AI generated invalid structure. Please try again.' });
+        }
+
+        await user.decrement('aiTokenBalance', { by: finalCost });
+        const newBal = (user.aiTokenBalance - finalCost);
+
+        try {
+            const AiTokenLog = require('../models/AiTokenLog');
+            await AiTokenLog.create({
+                userId: req.user.id,
+                feature: 'ai_template_draft',
+                tokensUsed: finalCost,
+                balanceAfter: Math.max(0, newBal)
+            });
+        } catch (logErr) {
+            console.warn('[TEMPLATES AI] Failed to write AiTokenLog:', logErr.message);
+        }
+
+        res.json({
+            draft: generatedDraft,
+            tokensDeducted: finalCost,
+            newBalance: newBal
+        });
+    } catch (err) {
+        console.error('Error drafting template with AI:', err.response?.data || err.message);
+        const actualError = err.response?.data?.error?.message || err.message || '';
+        const shortError = actualError.split(' ').slice(0, 5).join(' ');
+        res.status(500).json({ 
+            error: `Failed to communicate with AI: (${shortError}...)`,
+            fullError: err.response?.data || actualError
+        });
     }
 });
 

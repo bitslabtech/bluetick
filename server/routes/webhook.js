@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Sequelize } = require('sequelize');
 const { getIo } = require('../socket');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
@@ -8,6 +9,15 @@ const Settings = require('../models/Settings');
 const User = require('../models/User');
 const Template = require('../models/Template');
 const SystemNotification = require('../models/SystemNotification');
+const UserAddon = require('../models/UserAddon');
+const Addon = require('../models/Addon');
+const Contact = require('../models/Contact'); // NEW
+const Flow = require('../models/Flow'); // NEW
+const ContactFlowState = require('../models/ContactFlowState'); // NEW
+const FlowRunner = require('../services/FlowRunner'); // NEW
+const { getMonthlyMessageCount, getUserPlanLimits } = require('../utils/planLimits');
+const path = require('path');
+const fs = require('fs');
 
 // GET /api/webhook/:userId - Webhook Verification
 router.get('/:userId', async (req, res) => {
@@ -200,6 +210,18 @@ router.post('/:userId', async (req, res) => {
                             case 'button':
                                 messageBody = message.button.text;
                                 break;
+                            case 'location':
+                                const loc = message.location || {};
+                                messageBody = `📍 Location: ${loc.latitude || 0}, ${loc.longitude || 0}${loc.name ? ' — ' + loc.name : ''}${loc.address ? ' (' + loc.address + ')' : ''}`;
+                                break;
+                            case 'interactive':
+                                const interactive = message.interactive || {};
+                                if (interactive.type === 'button_reply') {
+                                    messageBody = interactive.button_reply?.title || '';
+                                } else if (interactive.type === 'list_reply') {
+                                    messageBody = interactive.list_reply?.title || '';
+                                }
+                                break;
                             default:
                                 messageBody = `[${messageType}]`;
                                 messageType = 'unknown';
@@ -207,12 +229,31 @@ router.post('/:userId', async (req, res) => {
 
                         console.log(`[WEBHOOK] Incoming message from ${contactWaId}: "${messageBody}"`);
 
+                        // --- TRACK CAMPAIGN BUTTON CLICKS ---
+                        const outboundContextId = message.context?.id || null;
+                        if (outboundContextId && (messageType === 'button' || messageType === 'interactive')) {
+                            try {
+                                const outboundLog = await MessageLog.findOne({ where: { messageId: outboundContextId } });
+                                if (outboundLog) {
+                                    console.log(`[WEBHOOK] Button click detected for outbound log ${outboundLog.id}. Button: ${messageBody}`);
+                                    outboundLog.status = 'CLICKED';
+                                    outboundLog.clickedButton = messageBody;
+                                    await outboundLog.save();
+                                }
+                            } catch (err) {
+                                console.error('[WEBHOOK ERROR] Failed to update MessageLog on button click:', err.message);
+                            }
+                        }
+
                         // Find or create Conversation
                         let conversation = await Conversation.findOne({
                             where: { phoneNumber: contactWaId, userId }
                         });
 
+                        let isNewConversationWindow = false;
+
                         if (!conversation) {
+                            isNewConversationWindow = true;
                             console.log(`[WEBHOOK] Creating new conversation for ${contactWaId}`);
                             conversation = await Conversation.create({
                                 phoneNumber: contactWaId,
@@ -225,6 +266,10 @@ router.post('/:userId', async (req, res) => {
                             });
                         } else {
                             console.log(`[WEBHOOK] Updating existing conversation: ${conversation.id}`);
+                            const lastInbound = new Date(conversation.lastInboundMessageAt).getTime();
+                            if (timestamp - lastInbound > 24 * 60 * 60 * 1000) {
+                                isNewConversationWindow = true;
+                            }
                             conversation.lastMessageAt = new Date(timestamp);
                             conversation.lastInboundMessageAt = new Date(timestamp);
                             conversation.unreadCount += 1;
@@ -257,6 +302,421 @@ router.post('/:userId', async (req, res) => {
                             } catch (e) {
                                 console.error('[WEBHOOK ERROR] Socket emit failed:', e.message);
                             }
+
+                            // ------ CHECK MONTHLY LIMITS ------
+                            let isLimitHit = false;
+                            try {
+                                const limits = await getUserPlanLimits(userId);
+                                if (limits.messageLimit !== -1) {
+                                    const user = await User.findByPk(userId);
+                                    // Add topup messages if they exist
+                                    const totalLimit = limits.messageLimit + (user?.extraTopupMessages || 0);
+                                    const sentThisMonth = await getMonthlyMessageCount(userId);
+                                    if (sentThisMonth >= totalLimit) {
+                                        isLimitHit = true;
+                                        console.log(`[WEBHOOK] User ${userId} hit message limit (${sentThisMonth}/${totalLimit}). Bot actions blocked.`);
+                                        // Optional: Notify the user they hit the limit (throttle this so we don't spam them per-message)
+                                        // A real impl might check if a notification was sent recently
+                                    }
+                                }
+                            } catch (limErr) {
+                                console.error('[WEBHOOK ERROR] Failed to check limits:', limErr);
+                            }
+
+                            // ------ FLOWBOT EXECUTION LOGIC START ------
+                            let flowHandled = false;
+                            try {
+                                const settings = await Settings.findOne({ where: { userId } });
+                                if (!isLimitHit && settings && settings.metaAccessToken && settings.metaPhoneNumberId) {
+                                    
+                                    // 0. Check for EXACT trigger keyword match to auto-unpause bot
+                                    let exactKeywordFlow = null;
+                                    if (messageType === 'text' || messageType === 'button' || messageType === 'interactive') {
+                                        const incomingText = (messageBody || '').trim().toLowerCase();
+                                        exactKeywordFlow = await Flow.findOne({
+                                            where: { 
+                                                userId, 
+                                                isActive: true, 
+                                                // Case-insensitive query using LOWER
+                                                [Sequelize.Op.and]: [
+                                                    Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('triggerKeyword')), incomingText)
+                                                ]
+                                            }
+                                        });
+                                    }
+
+                                    if (exactKeywordFlow && conversation.botStatus === 'paused') {
+                                        console.log(`[WEBHOOK] Exact keyword "${messageBody}" matched. Re-enabling bot.`);
+                                        conversation.botStatus = 'active';
+                                        await conversation.save();
+                                        
+                                        // Emit socket update to sync frontend UI
+                                        try {
+                                            getIo().to(userId).emit('conversation_bot_update', {
+                                                conversationId: conversation.id,
+                                                botStatus: 'active'
+                                            });
+                                        } catch (e) {}
+                                    }
+
+                                    if (conversation.botStatus !== 'paused') {
+                                        // 1. Ensure we have the Contact
+                                        let contact = await Contact.findOne({ where: { phone: contactWaId, userId } });
+                                        if (!contact) {
+                                            contact = await Contact.create({ phone: contactWaId, name: contactName, userId });
+                                        }
+
+                                    const runner = new FlowRunner(settings, conversation, userId);
+
+                                    // 2. Check if user is PAUSED in an active flow (waiting for a button click)
+                                    const activeState = await ContactFlowState.findOne({ where: { contactId: contact.id } });
+                                    
+                                    if (activeState) {
+                                        console.log(`[WEBHOOK] Contact is in active flow state. FlowID: ${activeState.flowId}, NodeID: ${activeState.currentNodeId}`);
+                                        const flow = await Flow.findOne({ where: { id: activeState.flowId, isActive: true } });
+                                        
+                                        if (flow) {
+                                            // Find the paused node to check its type
+                                            const pausedNode = flow.nodes.find(n => n.id === activeState.currentNodeId);
+                                            
+                                            // If paused on a locationNode, only resume when we receive a location message
+                                            if (pausedNode && pausedNode.type === 'locationNode') {
+                                                if (messageType === 'location') {
+                                                    const loc = message.location || {};
+                                                    // Store location data in flow variables for downstream nodes
+                                                    const vars = { ...(activeState.variables || {}), 
+                                                        last_location_lat: loc.latitude || 0, 
+                                                        last_location_lng: loc.longitude || 0,
+                                                        last_location_name: loc.name || '',
+                                                        last_location_address: loc.address || ''
+                                                    };
+                                                    activeState.variables = vars;
+                                                    await activeState.save();
+
+                                                    const outgoingEdges = flow.edges.filter(e => e.source === activeState.currentNodeId);
+                                                    if (outgoingEdges.length > 0) {
+                                                        const nextNodeId = outgoingEdges[0].target;
+                                                        flowHandled = true;
+                                                        await runner.executeFlow(flow, contact.id, nextNodeId);
+                                                    }
+                                                } else {
+                                                    // User sent something other than location — remind them
+                                                    flowHandled = true; // Don't trigger other flows
+                                                    const reminderText = pausedNode.data?.text || 'Please share your location to continue.';
+                                                    await runner.sendWhatsAppLocationRequest(reminderText);
+                                                }
+                                            } else if (pausedNode && ['inputTextNode', 'inputDateNode', 'inputNumberNode'].includes(pausedNode.type)) {
+                                                if (messageType === 'text') {
+                                                    const textVal = messageBody.trim();
+                                                    let isValid = true;
+                                                    
+                                                    if (pausedNode.type === 'inputNumberNode') {
+                                                        const isNum = /^\d+$/.test(textVal);
+                                                        const exactLength = pausedNode.data?.exactLength;
+                                                        
+                                                        if (!isNum) {
+                                                            flowHandled = true;
+                                                            isValid = false;
+                                                            await runner.sendWhatsAppText('Please enter a valid number.');
+                                                        } else if (exactLength && textVal.length !== exactLength) {
+                                                            flowHandled = true;
+                                                            isValid = false;
+                                                            await runner.sendWhatsAppText(`Please enter exactly ${exactLength} digits.`);
+                                                        }
+                                                    }
+                                                    
+                                                    if (isValid) {
+                                                        const vars = { ...(activeState.variables || {}) };
+                                                        if (pausedNode.data?.variable) {
+                                                            vars[pausedNode.data.variable] = textVal;
+                                                        }
+                                                        activeState.variables = vars;
+                                                        await activeState.save();
+                                                        
+                                                        const outgoingEdges = flow.edges.filter(e => e.source === activeState.currentNodeId);
+                                                        if (outgoingEdges.length > 0) {
+                                                            const nextNodeId = outgoingEdges[0].target;
+                                                            flowHandled = true;
+                                                            await runner.executeFlow(flow, contact.id, nextNodeId);
+                                                        }
+                                                    }
+                                                } else {
+                                                    flowHandled = true;
+                                                    await runner.sendWhatsAppText('Please reply with text to continue.');
+                                                }
+                                            } else if (pausedNode && pausedNode.type === 'aiNode') {
+                                                // AI Node: re-execute the SAME node so Gemini gets the new message
+                                                flowHandled = true;
+                                                // Don't clear state — the AI node will re-save it after responding
+                                                await runner.executeFlow(flow, contact.id, pausedNode.id);
+                                            } else if (pausedNode && pausedNode.type === 'listNode') {
+                                                // List Node: user made a selection from the interactive list
+                                                if (messageType === 'interactive') {
+                                                    // Extract the raw row ID from the WhatsApp payload (e.g. "row_2")
+                                                    // The edge sourceHandle uses a dash format (e.g. "row-2"), so convert
+                                                    const rawRowId = message.interactive?.list_reply?.id || '';
+                                                    const sourceHandleId = rawRowId.replace('row_', 'row-');
+                                                    const selectedTitle = messageBody.trim();
+
+                                                    // Save the selected option text to the configured variable
+                                                    const vars = { ...(activeState.variables || {}) };
+                                                    if (pausedNode.data?.variable) {
+                                                        vars[pausedNode.data.variable] = selectedTitle;
+                                                    }
+                                                    activeState.variables = vars;
+                                                    await activeState.save();
+
+                                                    // Find the edge that matches the selected row's sourceHandle
+                                                    const allOutgoingEdges = flow.edges.filter(e => e.source === activeState.currentNodeId);
+                                                    const matchedEdge = allOutgoingEdges.find(e => e.sourceHandle === sourceHandleId)
+                                                                     || allOutgoingEdges[0]; // fallback to first edge
+
+                                                    if (matchedEdge) {
+                                                        const nextNodeId = matchedEdge.target;
+                                                        flowHandled = true;
+                                                        await runner.executeFlow(flow, contact.id, nextNodeId);
+                                                    }
+                                                } else {
+                                                    // User sent something other than a list selection — re-send the list
+                                                    flowHandled = true;
+                                                    const sections = pausedNode.data?.sections || [];
+                                                    const rows = sections[0]?.rows || [];
+                                                    const title = pausedNode.data?.title || 'Select an Option';
+                                                    const bodyText = pausedNode.data?.text || title;
+                                                    if (rows.length > 0) await runner.sendWhatsAppList(bodyText, title, rows);
+                                                }
+                                            } else if (pausedNode && pausedNode.type === 'interactiveNode') {
+                                                // Buttons Node: user clicked one of the 1-3 buttons
+                                                if (messageType === 'interactive' && message.interactive?.type === 'button_reply') {
+                                                    const rawBtnId = message.interactive?.button_reply?.id || ''; // "btn_0"
+                                                    const sourceHandleId = rawBtnId.replace('btn_', 'btn-'); // "btn-0"
+                                                    
+                                                    const allOutgoingEdges = flow.edges.filter(e => e.source === activeState.currentNodeId);
+                                                    const matchedEdge = allOutgoingEdges.find(e => e.sourceHandle === sourceHandleId);
+
+                                                    if (matchedEdge) {
+                                                        const nextNodeId = matchedEdge.target;
+                                                        flowHandled = true;
+                                                        await runner.executeFlow(flow, contact.id, nextNodeId);
+                                                    }
+                                                } else {
+                                                    // User sent text instead of clicking a button — re-send the buttons
+                                                    flowHandled = true;
+                                                    const interpolatedText = await runner.interpolate(pausedNode.data?.text || '', contact.id);
+                                                    await runner.sendWhatsAppButtons(interpolatedText, pausedNode.data?.buttons || []);
+                                                }
+                                            } else {
+                                                // Generic flow resumption
+                                                const outgoingEdges = flow.edges.filter(e => e.source === activeState.currentNodeId);
+                                                if (outgoingEdges.length > 0) {
+                                                    const nextNodeId = outgoingEdges[0].target;
+                                                    flowHandled = true;
+                                                    await runner.clearContactState(contact.id);
+                                                    await runner.executeFlow(flow, contact.id, nextNodeId);
+                                                }
+                                            }
+                                        } else {
+                                            // Flow was disabled or deleted while they were paused
+                                            await runner.clearContactState(contact.id);
+                                        }
+                                    }
+                                    
+                                    // 3. If not in a running flow, check if message matches any Trigger Keywords
+                                    if (!flowHandled && (messageType === 'text' || messageType === 'button' || messageType === 'interactive')) {
+                                        const incomingText = messageBody.trim().toLowerCase();
+                                        
+                                        // Find active flows for this user where triggerKeyword matches OR isAny is true
+                                        // Prefer exact keyword matches first
+                                        let triggerFlow = await Flow.findOne({
+                                            where: { 
+                                                userId, 
+                                                isActive: true,
+                                                // Case-insensitive query using LOWER
+                                                [Sequelize.Op.and]: [
+                                                    Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('triggerKeyword')), incomingText)
+                                                ]
+                                            }
+                                        });
+
+                                        if (!triggerFlow) {
+                                            // Check 'isAny' trigger
+                                            triggerFlow = await Flow.findOne({
+                                                where: { userId, isActive: true, isAny: true }
+                                            });
+                                        }
+
+                                        if (triggerFlow) {
+                                            console.log(`[WEBHOOK] Trigger matched Flow: ${triggerFlow.name}`);
+                                            flowHandled = true;
+                                            await runner.executeFlow(triggerFlow, contact.id, null);
+                                        }
+                                    }
+                                    } // Close: if (conversation.botStatus !== 'paused')
+                                }
+                            } catch (flowErr) {
+                                console.error('[WEBHOOK ERROR] FlowBot execution failed:', flowErr.message || flowErr);
+                                if (flowErr.sql) console.error('[WEBHOOK ERROR] SQL Query involved:', flowErr.sql);
+                            }
+                            // ------ FLOWBOT EXECUTION LOGIC END ------
+
+                            // ------ AUTO-REPLY LOGIC START ------
+                            if (!isLimitHit && !flowHandled && isNewConversationWindow) {
+                                try {
+                                    const settings = await Settings.findOne({ where: { userId } });
+                                    if (settings && settings.metaAccessToken && settings.metaPhoneNumberId && settings.whatsappAutomations) {
+                                        let replyText = null;
+                                        const { welcomeMessage, offHoursMessage } = settings.whatsappAutomations;
+
+                                        // Check Off-Hours first
+                                        if (offHoursMessage?.enabled && offHoursMessage.text && Array.isArray(offHoursMessage.schedule)) {
+                                            try {
+                                                const userTime = new Date().toLocaleString("en-US", { timeZone: offHoursMessage.timezone || 'UTC' });
+                                                const userDate = new Date(userTime);
+                                                const currDay = userDate.getDay();
+                                                const currHour = userDate.getHours();
+                                                const currMin = userDate.getMinutes();
+
+                                                const daySchedule = offHoursMessage.schedule.find(s => s.day === currDay);
+                                                let isOffHours = true;
+                                                // If enabled, it means there are business hours today
+                                                if (daySchedule && daySchedule.enabled) {
+                                                    const [startH, startM] = (daySchedule.startTime || '09:00').split(':').map(Number);
+                                                    const [endH, endM] = (daySchedule.endTime || '17:00').split(':').map(Number);
+                                                    const currentMins = currHour * 60 + currMin;
+                                                    const startMins = startH * 60 + startM;
+                                                    const endMins = endH * 60 + endM;
+                                                    if (currentMins >= startMins && currentMins <= endMins) {
+                                                        isOffHours = false;
+                                                    }
+                                                }
+
+                                                if (isOffHours) {
+                                                    replyText = offHoursMessage.text;
+                                                }
+                                                } catch (e) {
+                                                    console.error('[WEBHOOK] Error calculating off-hours:', e);
+                                                }
+                                            }
+
+                                            // If not off-hours (or off-hours disabled), check Welcome Message
+                                            if (!replyText && welcomeMessage?.enabled && welcomeMessage.text) {
+                                                replyText = welcomeMessage.text;
+                                            }
+
+                                        if (replyText) {
+                                            console.log(`[WEBHOOK] Sending Auto-Reply to ${contactWaId}`);
+                                            const metaPayload = {
+                                                messaging_product: "whatsapp",
+                                                recipient_type: "individual",
+                                                to: contactWaId,
+                                                type: "text",
+                                                text: { preview_url: false, body: replyText }
+                                            };
+
+                                            // Make asynchronous call
+                                            fetch(`https://graph.facebook.com/v19.0/${settings.metaPhoneNumberId}/messages`, {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Authorization': `Bearer ${settings.metaAccessToken}`,
+                                                    'Content-Type': 'application/json'
+                                                },
+                                                body: JSON.stringify(metaPayload)
+                                            }).then(res => res.json()).then(async metaRes => {
+                                                if (metaRes.messages && metaRes.messages.length > 0) {
+                                                    const outMsg = await ChatMessage.create({
+                                                        conversationId: conversation.id,
+                                                        messageId: metaRes.messages[0].id,
+                                                        direction: 'OUTBOUND',
+                                                        type: 'text',
+                                                        body: replyText,
+                                                        status: 'sent',
+                                                        timestamp: new Date()
+                                                    });
+                                                    conversation.lastMessage = replyText;
+                                                    conversation.lastMessageAt = new Date();
+                                                    await conversation.save();
+
+                                                    // Tell frontend an automated outbound message was sent
+                                                    getIo().to(userId).emit('new_message', { conversation, message: outMsg });
+                                                } else {
+                                                    console.error('[WEBHOOK] Auto-reply failed in Meta Graph API:', metaRes);
+                                                }
+                                            }).catch(err => console.error('[WEBHOOK] Auto-reply send promise failed:', err));
+                                        }
+                                    }
+                                } catch (autoReplyErr) {
+                                    console.error('[WEBHOOK ERROR] Auto-reply failure:', autoReplyErr);
+                                }
+                            }
+                            // ------ AUTO-REPLY LOGIC END ------
+
+                            // ------ PLUGIN HOOK: AI CHATBOT (Ongoing Chat Run) ------
+                            try {
+                                const settings = await Settings.findOne({ where: { userId } });
+                                if (!isLimitHit && !flowHandled && conversation.botStatus !== 'paused' && settings && settings.metaAccessToken && settings.metaPhoneNumberId && settings.whatsappAutomations) {
+                                    
+                                    // Check if user has ai_bot active
+                                    let aiReplyText = null;
+                                    const addon = await Addon.findOne({ where: { module_key: 'ai_bot', isActive: true } });
+                                    if (addon) {
+                                        const userAddon = await UserAddon.findOne({ where: { userId, addonId: addon.id, status: 'active' } });
+                                        if (userAddon) {
+                                            const aiBotPluginPath = path.join(__dirname, '../plugins/addon_ai_bot/index.js');
+                                            if (fs.existsSync(aiBotPluginPath)) {
+                                                const aiBot = require(aiBotPluginPath); // correct requiring
+                                                if (typeof aiBot.processMessage === 'function') {
+                                                    const aiResponse = await aiBot.processMessage(messageBody, userId, conversation.id, userAddon.config || {}, settings);
+                                                    if (aiResponse) {
+                                                        aiReplyText = aiResponse;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (aiReplyText) {
+                                        console.log(`[WEBHOOK-AI] Sending AI Reply to ${contactWaId}`);
+                                        const metaPayload = {
+                                            messaging_product: "whatsapp",
+                                            recipient_type: "individual",
+                                            to: contactWaId,
+                                            type: "text",
+                                            text: { preview_url: false, body: aiReplyText }
+                                        };
+
+                                        fetch(`https://graph.facebook.com/v19.0/${settings.metaPhoneNumberId}/messages`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Authorization': `Bearer ${settings.metaAccessToken}`,
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify(metaPayload)
+                                        }).then(res => res.json()).then(async metaRes => {
+                                            if (metaRes.messages && metaRes.messages.length > 0) {
+                                                const outMsg = await ChatMessage.create({
+                                                    conversationId: conversation.id,
+                                                    messageId: metaRes.messages[0].id,
+                                                    direction: 'OUTBOUND',
+                                                    type: 'text',
+                                                    body: aiReplyText,
+                                                    status: 'sent',
+                                                    timestamp: new Date()
+                                                });
+                                                conversation.lastMessage = aiReplyText;
+                                                conversation.lastMessageAt = new Date();
+                                                await conversation.save();
+
+                                                getIo().to(userId).emit('new_message', { conversation, message: outMsg });
+                                            } else {
+                                                console.error('[WEBHOOK-AI] Auto-reply failed in Meta API:', metaRes);
+                                            }
+                                        }).catch(err => console.error('[WEBHOOK-AI] Auto-reply fetch error:', err));
+                                    }
+                                }
+                            } catch (aiErr) {
+                                console.error('[WEBHOOK ERROR] AI Bot Add-on Hook failed:', aiErr);
+                            }
+                            // ----------------------------------------
                         } else {
                             console.log(`[WEBHOOK] Duplicate message ignored: ${messageId}`);
                         }

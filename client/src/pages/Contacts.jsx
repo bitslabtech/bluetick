@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Papa from 'papaparse';
+import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
@@ -14,9 +15,35 @@ import {
 } from 'lucide-react';
 import ManageLabelsModal from '../components/ManageLabelsModal';
 
+const groupColors = [
+    { name: 'Blue', value: '#3B82F6' },
+    { name: 'Indigo', value: '#6366F1' },
+    { name: 'Purple', value: '#A855F7' },
+    { name: 'Pink', value: '#EC4899' },
+    { name: 'Rose', value: '#F43F5E' },
+    { name: 'Orange', value: '#F97316' },
+    { name: 'Amber', value: '#F59E0B' },
+    { name: 'Emerald', value: '#10B981' },
+    { name: 'Teal', value: '#14B8A6' },
+    { name: 'Cyan', value: '#06B6D4' },
+    { name: 'Slate', value: '#64748B' },
+];
+
 const Contacts = () => {
     const location = useLocation();
     const { showModal, showToast } = useUI();
+    const { user } = useAuth();
+    const teamPolicy = user?.teamPolicy || { inboxVisibility: 'see_all', phonePrivacy: 'visible' };
+    const isSubMember = !!user?.parentUserId;
+
+    const renderName = (name, phone) => {
+        const isActuallyPhone = !name || name === phone || /^\d+$/.test(name.replace(/\D/g, ''));
+        if (isActuallyPhone && isSubMember) {
+            if (teamPolicy.phonePrivacy === 'blurred') return <span className="blur-sm select-none">{phone || name}</span>;
+            if (teamPolicy.phonePrivacy === 'masked') return `****${(phone || name)?.slice(-4)}`;
+        }
+        return name || phone;
+    };
     // Mock Data matching the design
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -30,6 +57,12 @@ const Contacts = () => {
     const [editingContact, setEditingContact] = useState(null); // for edit modal
     const navigate = useNavigate();
 
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalContacts, setTotalContacts] = useState(0);
+    const limit = 50;
+
     // Label & Group Picker States for Slide-over
     const [availableLabels, setAvailableLabels] = useState([]);
     const [showLabelsModal, setShowLabelsModal] = useState(false);
@@ -39,30 +72,37 @@ const Contacts = () => {
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
+    const [tempSearch, setTempSearch] = useState(''); // debounced search
     const [statusFilter, setStatusFilter] = useState('All');
     const [groupFilter, setGroupFilter] = useState('All');
     const [labelFilter, setLabelFilter] = useState('All');
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
 
     // Filtered Contacts Logic
-    const filteredContacts = contacts.filter(contact => {
-        const matchesSearch = (contact.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (contact.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (contact.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'All' || contact.status === statusFilter;
-        const matchesGroup = groupFilter === 'All' || (contact.tags && contact.tags.includes(groupFilter));
-        const matchesLabel = labelFilter === 'All' || (contact.labels && contact.labels.some(l => String(l.id) === String(labelFilter)));
-        return matchesSearch && matchesStatus && matchesGroup && matchesLabel;
-    });
+    // We now filter on backend, so filteredContacts is just contacts
+    const filteredContacts = contacts;
+
+    // Reset pagination when filters change
+    useEffect(() => {
+        setPage(1);
+    }, [searchTerm, statusFilter, groupFilter, labelFilter]);
+
+    // Debounce search input
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setSearchTerm(tempSearch);
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [tempSearch]);
 
     // Group Management States
     const [isCreatingGroup, setIsCreatingGroup] = useState(false);
     const [editingGroup, setEditingGroup] = useState(null); // null = none, object = editing
-    const [groupForm, setGroupForm] = useState({ name: '', description: '' });
+    const [groupForm, setGroupForm] = useState({ name: '', description: '', color: '#3B82F6' });
 
     const fetchGroups = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/groups');
+            const res = await axios.get('http://127.0.0.1:5000/api/groups');
             setAvailableGroups(res.data);
         } catch (err) {
             console.error(err);
@@ -73,14 +113,14 @@ const Contacts = () => {
     const handleSaveGroup = async () => {
         try {
             if (editingGroup) {
-                await axios.put(`http://localhost:5000/api/groups/${editingGroup.id}`, groupForm);
+                await axios.put(`http://127.0.0.1:5000/api/groups/${editingGroup.id}`, groupForm);
             } else {
-                await axios.post('http://localhost:5000/api/groups', groupForm);
+                await axios.post('http://127.0.0.1:5000/api/groups', groupForm);
             }
             fetchGroups();
             setEditingGroup(null);
-            setIsCreatingGroup(false);
-            setGroupForm({ name: '', description: '' });
+            setShowGroupsModal(false);
+            setGroupForm({ name: '', description: '', color: '#3B82F6' });
         } catch (err) {
             alert('Error saving group: ' + (err.response?.data?.error || err.message));
         }
@@ -95,7 +135,7 @@ const Contacts = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://localhost:5000/api/groups/${id}`);
+                    await axios.delete(`http://127.0.0.1:5000/api/groups/${id}`);
                     fetchGroups();
                     showToast({ type: 'success', title: 'Group Deleted', message: 'Group deleted successfully' });
                 } catch (err) {
@@ -112,13 +152,25 @@ const Contacts = () => {
     }, [showGroupsModal]);
 
     // Fetch Contacts, Groups, Labels
-    const fetchContacts = async () => {
+    const fetchContacts = async (forcePage) => {
         try {
-            const res = await axios.get('http://localhost:5000/api/contacts', {
+            setLoading(true);
+            const currentPage = forcePage || page;
+            const res = await axios.get(`http://127.0.0.1:5000/api/contacts`, {
+                params: {
+                    page: currentPage,
+                    limit: limit,
+                    search: searchTerm,
+                    status: statusFilter,
+                    group: groupFilter,
+                    label: labelFilter
+                },
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
-            const sorted = [...res.data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            setContacts(sorted);
+            setContacts(res.data.contacts);
+            setTotalPages(res.data.totalPages);
+            setTotalContacts(res.data.total);
+            setPage(res.data.currentPage);
         } catch (err) {
             console.error(err);
         } finally {
@@ -128,7 +180,7 @@ const Contacts = () => {
 
     const fetchLabels = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/labels', {
+            const res = await axios.get('http://127.0.0.1:5000/api/labels', {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             setAvailableLabels(res.data);
@@ -139,7 +191,7 @@ const Contacts = () => {
 
     const fetchBilling = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/billing');
+            const res = await axios.get('http://127.0.0.1:5000/api/billing');
             setContactLimit(res.data?.usage?.contactLimit ?? -1);
         } catch (err) {
             console.error('Failed to fetch billing info:', err);
@@ -151,7 +203,7 @@ const Contacts = () => {
         fetchGroups();
         fetchLabels();
         fetchBilling();
-    }, []);
+    }, [page, searchTerm, statusFilter, groupFilter, labelFilter]);
 
     useEffect(() => {
         if (!showLabelsModal) {
@@ -192,7 +244,7 @@ const Contacts = () => {
             }
 
             if (editingContact) {
-                await axios.put(`http://localhost:5000/api/contacts/${editingContact.id}`, {
+                await axios.put(`http://127.0.0.1:5000/api/contacts/${editingContact.id}`, {
                     ...newContact,
                     tags: tagsArray,
                     labels: labelsArray
@@ -201,7 +253,7 @@ const Contacts = () => {
                 });
                 showToast({ type: 'success', title: 'Contact Updated', message: 'Contact details updated successfully.' });
             } else {
-                await axios.post('http://localhost:5000/api/contacts', {
+                await axios.post('http://127.0.0.1:5000/api/contacts', {
                     ...newContact,
                     tags: tagsArray,
                     labels: labelsArray
@@ -227,7 +279,7 @@ const Contacts = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://localhost:5000/api/contacts/${contact.id}`, {
+                    await axios.delete(`http://127.0.0.1:5000/api/contacts/${contact.id}`, {
                         headers: { 'x-auth-token': localStorage.getItem('token') }
                     });
                     setViewingContact(null);
@@ -278,7 +330,7 @@ const Contacts = () => {
             const hasLabel = currentLabels.some(l => l.id === label.id);
             const updatedLabels = hasLabel ? [] : [{ id: label.id, name: label.name, color: label.color }];
 
-            await axios.put(`http://localhost:5000/api/contacts/${contact.id}`, {
+            await axios.put(`http://127.0.0.1:5000/api/contacts/${contact.id}`, {
                 labels: updatedLabels
             }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
@@ -302,7 +354,7 @@ const Contacts = () => {
             const hasGroup = currentTags.includes(groupName);
             const updatedTags = hasGroup ? currentTags.filter(t => t !== groupName) : [...currentTags, groupName];
 
-            await axios.put(`http://localhost:5000/api/contacts/${contact.id}`, {
+            await axios.put(`http://127.0.0.1:5000/api/contacts/${contact.id}`, {
                 tags: updatedTags
             }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
@@ -329,7 +381,7 @@ const Contacts = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.post('http://localhost:5000/api/contacts/bulk-delete', { ids: selectedIds });
+                    await axios.post('http://127.0.0.1:5000/api/contacts/bulk-delete', { ids: selectedIds });
                     fetchContacts();
                     setSelectedIds([]);
                     showToast({ type: 'success', title: 'Contacts Deleted', message: 'Selected contacts have been deleted.' });
@@ -342,7 +394,7 @@ const Contacts = () => {
 
     const handleBulkAddToGroup = async (groupName) => {
         try {
-            await axios.post('http://localhost:5000/api/contacts/bulk-tag', { ids: selectedIds, tag: groupName });
+            await axios.post('http://127.0.0.1:5000/api/contacts/bulk-tag', { ids: selectedIds, tag: groupName });
             fetchContacts();
             showToast({ type: 'success', title: 'Group Updated', message: `Added ${selectedIds.length} contacts to "${groupName}"` });
             setShowGroupsModal(false);
@@ -374,21 +426,10 @@ const Contacts = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
                 <div className="flex items-center gap-6 w-full">
-                    <button className="md:hidden text-slate-900 dark:text-white">
-                        <Menu className="w-6 h-6" />
-                    </button>
-                    {/* Search Bar in Header */}
-                    <div className="flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors hidden md:flex">
-                        <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
-                        <input
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary text-sm focus:outline-none ml-2"
-                            placeholder="Search contacts..."
-                        />
-                    </div>
+                    {/* Search Bar relocated to Filters */}
+                    <div></div>
                 </div>
                 <div className="flex items-center gap-4">
 
@@ -399,7 +440,7 @@ const Contacts = () => {
             </header>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto p-[46px] custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
                 <div className="w-full flex flex-col gap-6">
 
                     {/* Page Header */}
@@ -413,28 +454,32 @@ const Contacts = () => {
                             <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Manage Contacts</h1>
                             <p className="text-slate-500 dark:text-text-secondary text-sm">View, filter and manage your subscriber list for campaigns.</p>
                         </div>
-                        <div className="flex gap-3">
-                            <button onClick={() => setShowLabelsModal(true)} className="flex items-center justify-center h-10 px-4 rounded-lg bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-dark text-slate-700 dark:text-white text-sm font-medium hover:bg-slate-50 dark:hover:bg-[#2f455a] transition-colors gap-2 shadow-sm">
-                                <Tags className="w-5 h-5" />
-                                Manage Labels
+                        <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                            <button onClick={() => setShowLabelsModal(true)} className="flex-1 md:flex-none items-center justify-center h-10 px-4 rounded-lg bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-dark text-slate-700 dark:text-white text-sm font-medium hover:bg-slate-50 dark:hover:bg-[#2f455a] transition-colors gap-2 shadow-sm flex">
+                                <Tags className="w-4 h-4" />
+                                <span className="hidden sm:inline">Manage Tags</span>
+                                <span className="sm:hidden">Tags</span>
                             </button>
-                            <button onClick={() => setShowGroupsModal(true)} className="flex items-center justify-center h-10 px-4 rounded-lg bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-dark text-slate-700 dark:text-white text-sm font-medium hover:bg-slate-50 dark:hover:bg-[#2f455a] transition-colors gap-2 shadow-sm">
-                                <FolderCog className="w-5 h-5" />
-                                Manage Groups
+                            <button onClick={() => setShowGroupsModal(true)} className="flex-1 md:flex-none items-center justify-center h-10 px-4 rounded-lg bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-dark text-slate-700 dark:text-white text-sm font-medium hover:bg-slate-50 dark:hover:bg-[#2f455a] transition-colors gap-2 shadow-sm flex">
+                                <FolderCog className="w-4 h-4" />
+                                <span className="hidden sm:inline">Manage Groups</span>
+                                <span className="sm:hidden">Groups</span>
                             </button>
                             <button
                                 onClick={() => contacts.length >= contactLimit && contactLimit !== -1 ? showToast({ type: 'warning', title: 'Limit Reached', message: 'You have reached your contact limit. Upgrade to add more.' }) : setShowImportModal(true)}
-                                className={`${contacts.length >= contactLimit && contactLimit !== -1 ? 'opacity-50 cursor-not-allowed' : ''} bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm`}
+                                className={`flex-1 md:flex-none justify-center ${contacts.length >= contactLimit && contactLimit !== -1 ? 'opacity-50 cursor-not-allowed' : ''} bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm`}
                             >
-                                <UploadCloud className="w-5 h-5" />
-                                Upload CSV
+                                <UploadCloud className="w-4 h-4" />
+                                <span className="hidden sm:inline">Upload CSV</span>
+                                <span className="sm:hidden">Import</span>
                             </button>
                             <button
                                 onClick={() => contacts.length >= contactLimit && contactLimit !== -1 ? showToast({ type: 'warning', title: 'Limit Reached', message: 'You have reached your contact limit. Upgrade to add more.' }) : setShowAddModal(true)}
-                                className={`${contacts.length >= contactLimit && contactLimit !== -1 ? 'opacity-50 cursor-not-allowed shadow-none' : 'shadow-lg shadow-blue-500/20 active:scale-95'} bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all`}
+                                className={`flex-1 md:flex-none justify-center ${contacts.length >= contactLimit && contactLimit !== -1 ? 'opacity-50 cursor-not-allowed shadow-none' : 'shadow-lg shadow-blue-500/20 active:scale-95'} bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all`}
                             >
-                                <Plus className="w-5 h-5" />
-                                Add Contact
+                                <Plus className="w-4 h-4" />
+                                <span className="hidden sm:inline">Add Contact</span>
+                                <span className="sm:hidden">Add</span>
                             </button>
                         </div>
                     </div>
@@ -469,7 +514,7 @@ const Contacts = () => {
                             </div>
                             <div>
                                 <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Total Contacts</p>
-                                <p className="text-slate-900 dark:text-white text-xl font-bold">{contacts.length}</p>
+                                <p className="text-slate-900 dark:text-white text-xl font-bold">{totalContacts}</p>
                             </div>
                         </div>
                         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-4 flex items-center gap-4 shadow-sm transition-colors duration-300">
@@ -486,7 +531,7 @@ const Contacts = () => {
                                 <Tags className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Labels</p>
+                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Tags</p>
                                 <p className="text-slate-900 dark:text-white text-xl font-bold">{availableLabels.length}</p>
                             </div>
                         </div>
@@ -503,7 +548,16 @@ const Contacts = () => {
 
                     {/* Filters & Search */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm transition-colors duration-300">
-                        {/* Search removed from here, now in global header */}
+                        {/* Search Bar */}
+                        <div className="flex items-center rounded-lg bg-slate-100 dark:bg-background-dark h-10 w-full sm:max-w-xs px-3 border border-transparent focus-within:border-primary transition-colors">
+                            <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
+                            <input
+                                value={tempSearch}
+                                onChange={(e) => setTempSearch(e.target.value)}
+                                className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary text-sm focus:outline-none ml-2"
+                                placeholder="Search contacts..."
+                            />
+                        </div>
 
                         <div className="flex gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
                             <div className="relative">
@@ -541,7 +595,7 @@ const Contacts = () => {
                                     onChange={(e) => setLabelFilter(e.target.value)}
                                     className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-8 py-2.5 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
                                 >
-                                    <option value="All">All Labels</option>
+                                    <option value="All">All Tags</option>
                                     {availableLabels.map(l => (
                                         <option key={l.id} value={l.id}>{l.name}</option>
                                     ))}
@@ -581,15 +635,15 @@ const Contacts = () => {
                                             </th>
                                             <th className="px-6 py-4">Name</th>
                                             <th className="px-6 py-4">Phone Number</th>
-                                            <th className="px-6 py-4">Labels</th>
+                                            <th className="px-6 py-4">Tags</th>
                                             <th className="px-6 py-4">Group</th>
                                             <th className="px-6 py-4">Status</th>
                                             <th className="px-6 py-4 w-12 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-700 dark:text-gray-200">
-                                        {filteredContacts.map((contact) => {
-                                            const actualIndex = contacts.findIndex(c => c.id === contact.id);
+                                        {filteredContacts.map((contact, index) => {
+                                            const actualIndex = (page - 1) * limit + index;
                                             const isLocked = contactLimit !== -1 && actualIndex >= contactLimit;
                                             return (
                                                 <tr
@@ -625,12 +679,19 @@ const Contacts = () => {
                                                                 </div>
                                                             )}
                                                             <div className="flex flex-col">
-                                                                <span className="font-medium text-slate-900 dark:text-white">{contact.name}</span>
+                                                                <span className="font-medium text-slate-900 dark:text-white">{renderName(contact.name, contact.phone)}</span>
                                                                 {contact.email && <span className="text-slate-500 dark:text-text-secondary text-xs">{contact.email}</span>}
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 font-mono text-slate-600 dark:text-gray-300">{contact.phone}</td>
+                                                    <td className="px-6 py-4 font-mono text-slate-600 dark:text-gray-300">
+                                                        <span className={isSubMember && teamPolicy.phonePrivacy === 'blurred' ? 'blur-sm select-none' : ''}>
+                                                            {isSubMember && teamPolicy.phonePrivacy === 'masked'
+                                                                ? `****${contact.phone?.slice(-4) || ''}`
+                                                                : contact.phone
+                                                            }
+                                                        </span>
+                                                    </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex flex-wrap gap-1.5">
                                                             {(contact.labels && contact.labels.length > 0) ? contact.labels.map(l => (
@@ -639,18 +700,22 @@ const Contacts = () => {
                                                                     {l.name}
                                                                 </span>
                                                             )) : (
-                                                                <span className="text-slate-400 dark:text-text-secondary text-xs italic opacity-60">No labels</span>
+                                                                <span className="text-slate-400 dark:text-text-secondary text-xs italic opacity-60">No tags</span>
                                                             )}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex flex-wrap gap-1.5">
-                                                            {(contact.tags && contact.tags.length > 0) ? contact.tags.map((tag, i) => (
-                                                                <span key={i} className="px-2 py-0.5 rounded text-xs font-medium bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                                                                    <Users className="w-3 h-3" />
-                                                                    {tag}
-                                                                </span>
-                                                            )) : (
+                                                            {(contact.tags && contact.tags.length > 0) ? contact.tags.map((tag, i) => {
+                                                                const groupMeta = availableGroups.find(g => g.name === tag);
+                                                                const tagColor = groupMeta?.color || '#6366F1';
+                                                                return (
+                                                                    <span key={i} className="px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1 border" style={{ backgroundColor: `${tagColor}15`, borderColor: `${tagColor}30`, color: tagColor }}>
+                                                                        <Users className="w-3 h-3" />
+                                                                        {tag}
+                                                                    </span>
+                                                                );
+                                                            }) : (
                                                                 <span className="text-slate-400 dark:text-text-secondary text-xs">—</span>
                                                             )}
                                                         </div>
@@ -691,13 +756,21 @@ const Contacts = () => {
                             {/* Pagination */}
                             <div className="bg-slate-50 dark:bg-background-dark/30 border-t border-slate-200 dark:border-white/5 px-6 py-4 flex items-center justify-between">
                                 <div className="text-sm text-slate-500 dark:text-text-secondary">
-                                    Showing <span className="font-medium text-slate-900 dark:text-white">1</span> to <span className="font-medium text-slate-900 dark:text-white">{contacts.length}</span> of <span className="font-medium text-slate-900 dark:text-white">12,450</span> results
+                                    Showing <span className="font-medium text-slate-900 dark:text-white">{Math.min((page - 1) * limit + 1, totalContacts)}</span> to <span className="font-medium text-slate-900 dark:text-white">{Math.min(page * limit, totalContacts)}</span> of <span className="font-medium text-slate-900 dark:text-white">{totalContacts}</span> results
                                 </div>
                                 <div className="flex gap-2">
-                                    <button className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary text-sm hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white disabled:opacity-50 transition-colors" disabled>
+                                    <button
+                                        onClick={() => setPage(Math.max(1, page - 1))}
+                                        disabled={page === 1}
+                                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary text-sm hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white disabled:opacity-50 transition-colors"
+                                    >
                                         Previous
                                     </button>
-                                    <button className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary text-sm hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                    <button
+                                        onClick={() => setPage(Math.min(totalPages, page + 1))}
+                                        disabled={page === totalPages || totalPages === 0}
+                                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary text-sm hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white disabled:opacity-50 transition-colors"
+                                    >
                                         Next
                                     </button>
                                 </div>
@@ -705,9 +778,9 @@ const Contacts = () => {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                            {filteredContacts.map((contact, fIndex) => {
+                            {filteredContacts.map((contact, index) => {
                                 // We need actual index in the full sorted list for locking
-                                const actualIndex = contacts.findIndex(c => c.id === contact.id);
+                                const actualIndex = (page - 1) * limit + index;
                                 const isLocked = contactLimit !== -1 && actualIndex >= contactLimit;
 
                                 return (
@@ -761,8 +834,15 @@ const Contacts = () => {
 
                                         {/* Basic Info */}
                                         <div className="flex flex-col gap-0.5 w-full z-0">
-                                            <h3 className="font-bold text-white text-base truncate w-full px-2" title={contact.name}>{contact.name}</h3>
-                                            <p className="text-gray-300 text-xs font-mono tracking-wide">{contact.phone}</p>
+                                            <h3 className="font-bold text-white text-base truncate w-full px-2">{renderName(contact.name, contact.phone)}</h3>
+                                            <p className="text-gray-300 text-xs font-mono tracking-wide">
+                                                <span className={isSubMember && teamPolicy.phonePrivacy === 'blurred' ? 'blur-sm select-none' : ''}>
+                                                    {isSubMember && teamPolicy.phonePrivacy === 'masked'
+                                                        ? `****${contact.phone?.slice(-4) || ''}`
+                                                        : contact.phone
+                                                    }
+                                                </span>
+                                            </p>
                                             {contact.email && <p className="text-text-secondary text-[10px] truncate w-full px-4 text-opacity-80">{contact.email}</p>}
                                         </div>
 
@@ -780,12 +860,16 @@ const Contacts = () => {
 
                                         {/* Groups */}
                                         <div className="flex flex-wrap justify-center gap-1 w-full px-1">
-                                            {(contact.tags && contact.tags.length > 0) ? contact.tags.map((tag, i) => (
-                                                <span key={i} className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center gap-1">
-                                                    <Users className="w-2.5 h-2.5" />
-                                                    {tag}
-                                                </span>
-                                            )) : (
+                                            {(contact.tags && contact.tags.length > 0) ? contact.tags.map((tag, i) => {
+                                                const groupMeta = availableGroups.find(g => g.name === tag);
+                                                const tagColor = groupMeta?.color || '#3B82F6';
+                                                return (
+                                                    <span key={i} className="px-1.5 py-0.5 rounded-md text-[9px] font-bold border flex items-center gap-1" style={{ backgroundColor: `${tagColor}15`, borderColor: `${tagColor}30`, color: tagColor }}>
+                                                        <Users className="w-2.5 h-2.5" />
+                                                        {tag}
+                                                    </span>
+                                                );
+                                            }) : (
                                                 <span className="text-text-secondary text-[10px] italic opacity-40">No group</span>
                                             )}
                                         </div>
@@ -898,10 +982,15 @@ const Contacts = () => {
                                     {viewingContact.initials || viewingContact.name[0]}
                                 </div>
                             )}
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1 text-center">{viewingContact.name}</h2>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1 text-center">{renderName(viewingContact.name, viewingContact.phone)}</h2>
                             <p className="text-slate-500 dark:text-text-secondary font-mono flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 px-3 py-1 rounded-lg text-xs">
                                 <Phone className="w-3.5 h-3.5" />
-                                {viewingContact.phone}
+                                <span className={isSubMember && teamPolicy.phonePrivacy === 'blurred' ? 'blur-sm select-none' : ''}>
+                                    {isSubMember && teamPolicy.phonePrivacy === 'masked'
+                                        ? `****${viewingContact.phone?.slice(-4) || ''}`
+                                        : viewingContact.phone
+                                    }
+                                </span>
                             </p>
 
                             {/* Quick Actions (Functional) */}
@@ -1046,7 +1135,7 @@ const Contacts = () => {
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2 text-slate-800 dark:text-white font-semibold">
                                         <Tag className="w-4 h-4 text-purple-500" />
-                                        <h3>Labels</h3>
+                                        <h3>Tags</h3>
                                     </div>
                                     <button
                                         onClick={() => setShowLabelsModal(true)}
@@ -1071,7 +1160,7 @@ const Contacts = () => {
                                             </button>
                                         </span>
                                     )) : (
-                                        <span className="text-xs text-slate-400 italic py-2">No labels assigned</span>
+                                        <span className="text-xs text-slate-400 italic py-2">No tags assigned</span>
                                     )}
                                 </div>
 
@@ -1087,7 +1176,7 @@ const Contacts = () => {
                                         disabled={isUpdatingLabel}
                                     >
                                         <span className="truncate">
-                                            {(viewingContact.labels && viewingContact.labels.length > 0) ? viewingContact.labels[0].name : "+ Add label..."}
+                                            {(viewingContact.labels && viewingContact.labels.length > 0) ? viewingContact.labels[0].name : "+ Add tag..."}
                                             {(viewingContact.labels && viewingContact.labels.length > 1) && ` (+${viewingContact.labels.length - 1})`}
                                         </span>
                                         <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
@@ -1097,7 +1186,7 @@ const Contacts = () => {
                                         <div className="absolute top-full left-0 right-0 pt-2 z-50">
                                             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl py-2 animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
                                                 {availableLabels.length === 0 ? (
-                                                    <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 italic text-center">No labels found</div>
+                                                    <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 italic text-center">No tags found</div>
                                                 ) : (
                                                     availableLabels.map(label => {
                                                         const isSelected = (viewingContact.labels || []).some(l => l.id === label.id);
@@ -1212,7 +1301,7 @@ const Contacts = () => {
                                                                         return;
                                                                     }
 
-                                                                    axios.post('http://localhost:5000/api/contacts/import', { contacts: contactsToImport })
+                                                                    axios.post('http://127.0.0.1:5000/api/contacts/import', { contacts: contactsToImport })
                                                                         .then(res => {
                                                                             showModal({
                                                                                 type: 'success',
@@ -1278,7 +1367,19 @@ const Contacts = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm text-text-secondary mb-1">Phone (with Country Code)</label>
-                                    <input required value={newContact.phone} onChange={e => setNewContact({ ...newContact, phone: e.target.value })} className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none" placeholder="+1234567890" />
+                                    <input 
+                                        required 
+                                        disabled={editingContact && newContact.phone.toString().startsWith('****')}
+                                        value={newContact.phone} 
+                                        onChange={e => setNewContact({ ...newContact, phone: e.target.value })} 
+                                        className={`w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white outline-none ${editingContact && newContact.phone.toString().startsWith('****') ? 'opacity-50 cursor-not-allowed' : 'focus:border-primary'}`} 
+                                        placeholder="+1234567890" 
+                                    />
+                                    {editingContact && newContact.phone.toString().startsWith('****') && (
+                                        <p className="text-[10px] text-amber-500 mt-1 flex items-center gap-1">
+                                            <Lock className="w-3 h-3" /> Phone number modification restricted due to privacy policy.
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm text-text-secondary mb-1">Email (Optional)</label>
@@ -1370,6 +1471,27 @@ const Contacts = () => {
                                             placeholder="VIP customers from 2024"
                                         />
                                     </div>
+                                    <div>
+                                        <label className="block text-sm text-text-secondary mb-3">Group Color</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {groupColors.map((color) => (
+                                                <button
+                                                    key={color.value}
+                                                    type="button"
+                                                    onClick={() => setGroupForm({ ...groupForm, color: color.value })}
+                                                    className={`size-8 rounded-full transition-all border-2 ${groupForm.color === color.value ? 'border-white scale-110 shadow-lg shadow-white/20' : 'border-transparent hover:scale-105'}`}
+                                                    style={{ backgroundColor: color.value }}
+                                                    title={color.name}
+                                                />
+                                            ))}
+                                            <input 
+                                                type="color" 
+                                                value={groupForm.color} 
+                                                onChange={(e) => setGroupForm({ ...groupForm, color: e.target.value })}
+                                                className="size-8 rounded-full bg-transparent border-none cursor-pointer overflow-hidden p-0"
+                                            />
+                                        </div>
+                                    </div>
                                     <div className="flex justify-end gap-3 pt-2">
                                         <button
                                             onClick={() => { setIsCreatingGroup(false); setEditingGroup(null); }}
@@ -1410,7 +1532,7 @@ const Contacts = () => {
                                                         return (
                                                             <li key={group.id} className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors group">
                                                                 <div className="flex items-start gap-3">
-                                                                    <div className="bg-surface-dark p-2 rounded-lg text-primary border border-white/5 mt-0.5">
+                                                                    <div className="p-2 rounded-lg text-white border border-white/5 mt-0.5" style={{ backgroundColor: `${group.color || '#3B82F6'}20`, color: group.color || '#3B82F6', borderColor: `${group.color || '#3B82F6'}40` }}>
                                                                         <Users className="w-4 h-4" />
                                                                     </div>
                                                                     <div>
@@ -1425,7 +1547,14 @@ const Contacts = () => {
                                                                 </div>
                                                                 <div className="flex gap-2">
                                                                     <button
-                                                                        onClick={() => { setEditingGroup(group); setGroupForm({ name: group.name, description: group.description || '' }); }}
+                                                                        onClick={() => { 
+                                                                            setEditingGroup(group); 
+                                                                            setGroupForm({ 
+                                                                                name: group.name, 
+                                                                                description: group.description || '', 
+                                                                                color: group.color || '#3B82F6' 
+                                                                            }); 
+                                                                        }}
                                                                         className="p-1.5 text-text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                                                                         title="Edit"
                                                                     >

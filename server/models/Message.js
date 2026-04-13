@@ -59,9 +59,22 @@ const Message = sequelize.define('Message', {
     userId: {
         type: DataTypes.UUID,
         allowNull: false
+    },
+    createdById: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'Tracks the specific team member who created this resource'
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    indexes: [
+        {
+            fields: ['userId', 'status'] // Optimize queue fetching per user
+        },
+        {
+            fields: ['campaignName'] // Optimize campaign grouping
+        }
+    ]
 });
 
 // Relationships

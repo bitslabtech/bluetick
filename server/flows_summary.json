@@ -1,0 +1,16 @@
+[
+  {
+    "id": "81a07470-2867-4955-b845-23ddcf92ad56",
+    "name": "Test flow",
+    "triggerKeyword": "i'm interested",
+    "isAny": false,
+    "isActive": true
+  },
+  {
+    "id": "5da32e89-0700-4c08-b247-565f13b39aa6",
+    "name": "Untitled Flow",
+    "triggerKeyword": "start",
+    "isAny": false,
+    "isActive": true
+  }
+]

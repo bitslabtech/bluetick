@@ -9,7 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { useUI } from '../context/UIContext';
 
 const AdminUsers = () => {
-    const { user, login, impersonate } = useAuth(); // Need impersonate from context
+    const { user, login, impersonate } = useAuth();
+
     const { showModal, formatDate } = useUI();
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
@@ -20,6 +21,7 @@ const AdminUsers = () => {
     const [activeMenu, setActiveMenu] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [isTrialModalOpen, setIsTrialModalOpen] = useState(false);
     const [historyLogs, setHistoryLogs] = useState([]);
     const [editingUser, setEditingUser] = useState(null);
 
@@ -29,8 +31,8 @@ const AdminUsers = () => {
         const fetchUsers = async () => {
             try {
                 const [usersRes, plansRes] = await Promise.all([
-                    axios.get('http://localhost:5000/api/admin/users'),
-                    axios.get('http://localhost:5000/api/plans')
+                    axios.get('http://127.0.0.1:5000/api/admin/users'),
+                    axios.get('http://127.0.0.1:5000/api/plans')
                 ]);
 
                 if (Array.isArray(usersRes.data)) {
@@ -58,7 +60,7 @@ const AdminUsers = () => {
     const handleDelete = async () => {
         if (!deleteId) return;
         try {
-            await axios.delete(`http://localhost:5000/api/admin/users/${deleteId}`);
+            await axios.delete(`http://127.0.0.1:5000/api/admin/users/${deleteId}`);
             setUsers(users.filter(u => u.id !== deleteId));
             setDeleteId(null);
         } catch (err) {
@@ -72,7 +74,9 @@ const AdminUsers = () => {
         }
     };
 
+    // Guard: skip redirect while isTransitioning is true (impersonate sets it before user swap)
     if (!user?.isAdmin) return <Navigate to="/" />;
+
 
     // Safety check for map/filter
     const safeUsers = Array.isArray(users) ? users : [];
@@ -91,16 +95,12 @@ const AdminUsers = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    const res = await axios.post(`http://localhost:5000/api/admin/users/${targetUser.id}/impersonate`);
+                    const res = await axios.post(`http://127.0.0.1:5000/api/admin/users/${targetUser.id}/impersonate`);
                     const { token, user } = res.data;
 
-                    // Use AuthContext impersonate method
-                    impersonate(token, user);
-
-                    // Small delay to ensure state updates before navigation
-                    setTimeout(() => {
-                        navigate('/dashboard'); // Go to their dashboard
-                    }, 100);
+                    // impersonate() swaps tokens in localStorage and does window.location.href
+                    // to /dashboard — no React render races possible.
+                    await impersonate(token, user);
                 } catch (err) {
                     console.error("Impersonation failed:", err);
                     showModal({
@@ -116,7 +116,7 @@ const AdminUsers = () => {
 
     const handleHistory = async (targetUser) => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/admin/users/${targetUser.id}/impersonation-history`);
+            const res = await axios.get(`http://127.0.0.1:5000/api/admin/users/${targetUser.id}/impersonation-history`);
             setHistoryLogs(res.data);
             setEditingUser(targetUser); // Reuse this state just to track which user we are viewing
             setIsHistoryOpen(true);
@@ -143,15 +143,21 @@ const AdminUsers = () => {
         setActiveMenu(null);
     };
 
+    const openTrialModal = (u) => {
+        setEditingUser(u);
+        setIsTrialModalOpen(true);
+        setActiveMenu(null);
+    };
+
     const handleSaveUser = async (formData) => {
         try {
             if (editingUser) {
                 // Update
-                const res = await axios.put(`http://localhost:5000/api/admin/users/${editingUser.id}`, formData);
+                const res = await axios.put(`http://127.0.0.1:5000/api/admin/users/${editingUser.id}`, formData);
                 setUsers(users.map(u => u.id === editingUser.id ? res.data : u));
             } else {
                 // Create
-                const res = await axios.post('http://localhost:5000/api/admin/users', formData);
+                const res = await axios.post('http://127.0.0.1:5000/api/admin/users', formData);
                 setUsers([res.data, ...users]);
             }
             setIsModalOpen(false);
@@ -161,6 +167,28 @@ const AdminUsers = () => {
                 type: 'error',
                 title: 'Error',
                 message: err.response?.data?.error || "Failed to save user",
+                confirmText: 'Close'
+            });
+        }
+    };
+
+    const handleGrantTrial = async (planName) => {
+        try {
+            const res = await axios.post(`http://127.0.0.1:5000/api/admin/users/${editingUser.id}/grant-trial`, { planName });
+            setUsers(users.map(u => u.id === editingUser.id ? { ...u, plan: res.data.user.plan, planStatus: res.data.user.planStatus, planExpiry: res.data.user.planExpiry } : u));
+            setIsTrialModalOpen(false);
+            showModal({
+                type: 'success',
+                title: 'Trial Granted',
+                message: res.data.message,
+                confirmText: 'Awesome'
+            });
+        } catch (err) {
+            console.error("Grant Trial Error:", err);
+            showModal({
+                type: 'error',
+                title: 'Failed',
+                message: err.response?.data?.error || "Failed to grant trial",
                 confirmText: 'Close'
             });
         }
@@ -176,7 +204,7 @@ const AdminUsers = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="p-8 max-w-7xl mx-auto w-full pb-20">
+            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20">
 
                 {/* Page Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -184,14 +212,14 @@ const AdminUsers = () => {
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">User Management</h1>
                         <p className="text-slate-500 dark:text-text-secondary mt-1">View, edit, and manage all users on the platform.</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-slate-300 dark:border-white/10 text-slate-700 dark:text-white font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shadow-sm text-sm">
-                            <Settings className="w-4 h-4" />
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+                        <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-300 dark:border-white/10 text-slate-700 dark:text-white font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shadow-sm text-sm whitespace-nowrap">
+                            <Settings className="w-4 h-4 shrink-0" />
                             Manage Permissions
                         </button>
-                        <button onClick={openAddModal} className="flex items-center gap-2 px-4 py-2 bg-[#0088cc] text-white font-bold rounded-lg hover:bg-[#0077b3] transition-colors shadow-sm text-sm">
-                            <Plus className="w-4 h-4" />
-                            Add New User
+                        <button onClick={openAddModal} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[#0088cc] text-white font-bold rounded-lg hover:bg-[#0077b3] transition-colors shadow-sm text-sm whitespace-nowrap">
+                            <Plus className="w-4 h-4 shrink-0" />
+                            Add User
                         </button>
                     </div>
                 </div>
@@ -345,6 +373,9 @@ const AdminUsers = () => {
                                         <button onClick={() => { openEditModal(u); setActiveMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-text-secondary hover:bg-slate-50 dark:hover:bg-white/5 font-medium text-left">
                                             <Edit className="w-4 h-4" /> Edit User
                                         </button>
+                                        <button onClick={() => { openTrialModal(u); setActiveMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 font-medium text-left">
+                                            <ShieldCheck className="w-4 h-4" /> Grant Trial
+                                        </button>
                                         {!u.isAdmin && (
                                             <button
                                                 onClick={() => {
@@ -453,6 +484,18 @@ const AdminUsers = () => {
                         plans={availablePlans}
                         onClose={() => setIsModalOpen(false)}
                         onSave={handleSaveUser}
+                    />
+                )
+            }
+
+            {/* Trial Modal */}
+            {
+                isTrialModalOpen && (
+                    <GrantTrialModal
+                        user={editingUser}
+                        plans={availablePlans.filter(p => p.trialDays && p.trialDays > 0)}
+                        onClose={() => setIsTrialModalOpen(false)}
+                        onSave={handleGrantTrial}
                     />
                 )
             }
@@ -631,6 +674,74 @@ const HistorySessionCard = ({ session }) => {
                     )}
                 </div>
             )}
+        </div>
+    );
+};
+
+// Grant Trial Modal Component
+const GrantTrialModal = ({ user, plans, onClose, onSave }) => {
+    const [selectedPlan, setSelectedPlan] = useState(plans.length > 0 ? plans[0].name : '');
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(selectedPlan);
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-white/10">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    Grant Trial to {user.name}
+                </h3>
+                <p className="text-slate-500 text-sm mb-6">
+                    This will immediately override their existing plan and start a new time-restricted trial.
+                </p>
+
+                {plans.length === 0 ? (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 p-4 rounded-xl border border-amber-200 dark:border-amber-800/30 text-sm">
+                        No plans currently offer free trials. You must configure &quot;Free Trial Days&quot; on a plan via the Plans Settings first.
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Trial Plan</label>
+                            <select
+                                value={selectedPlan}
+                                onChange={e => setSelectedPlan(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-white"
+                            >
+                                {plans.map(p => (
+                                    <option key={p.id} value={p.name}>
+                                        {p.name} ({p.trialDays} Days)
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6 pt-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-lg shadow-green-500/30 transition-colors text-sm flex items-center gap-2"
+                            >
+                                <ShieldCheck className="w-4 h-4" /> Grant Trial
+                            </button>
+                        </div>
+                    </form>
+                )}
+                
+                {plans.length === 0 && (
+                     <div className="flex justify-end mt-6">
+                         <button onClick={onClose} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg text-sm">Close</button>
+                     </div>
+                )}
+            </div>
         </div>
     );
 };

@@ -20,8 +20,8 @@ const NotificationBell = () => {
     const fetchNotifications = async () => {
         try {
             const endpoint = isAdmin
-                ? 'http://localhost:5000/api/admin-notifications'
-                : 'http://localhost:5000/api/notifications';
+                ? 'http://127.0.0.1:5000/api/admin-notifications'
+                : 'http://127.0.0.1:5000/api/notifications';
 
             const res = await axios.get(endpoint);
 
@@ -42,7 +42,7 @@ const NotificationBell = () => {
     const markAllRead = async () => {
         if (!isAdmin) return;
         try {
-            await axios.put('http://localhost:5000/api/admin-notifications/read-all');
+            await axios.put('http://127.0.0.1:5000/api/admin-notifications/read-all');
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             setUnreadCount(0);
             showToast('All marked as read', 'success');
@@ -104,7 +104,7 @@ const NotificationBell = () => {
     return (
         <div className="relative" ref={containerRef}>
             <motion.button
-                whileHover={{ rotate: 15, scale: 1.1 }}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                 className="relative flex items-center justify-center size-10 rounded-lg bg-slate-100 dark:bg-surface-dark text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-[#2f455a] transition-colors focus:outline-none"
@@ -151,6 +151,10 @@ const NotificationBell = () => {
                                     {notifications.slice(0, 5).map((notif, i) => (
                                         <div
                                             key={notif.id || i}
+                                            onClick={() => {
+                                                setIsNotificationsOpen(false);
+                                                navigate(isAdmin ? '/superadmin/alerts' : '/notifications');
+                                            }}
                                             className={`p-4 transition-colors cursor-pointer group relative ${getBgColor(notif.type, notif.isRead)}`}
                                         >
                                             <div className="flex gap-3">
@@ -164,7 +168,24 @@ const NotificationBell = () => {
                                                     <p className="text-sm font-semibold text-slate-900 dark:text-white truncate pr-6">
                                                         {isAdmin ? notif.message : notif.title}
                                                     </p>
-                                                    {!isAdmin && <p className="text-xs text-slate-500 dark:text-text-secondary mt-0.5 line-clamp-2">{notif.message}</p>}
+                                                    {!isAdmin && (
+                                                        <p className="text-xs text-slate-500 dark:text-text-secondary mt-0.5 line-clamp-4 leading-relaxed">
+                                                            {notif.message}
+                                                        </p>
+                                                    )}
+                                                    {!isAdmin && notif.buttonName && notif.buttonUrl && (
+                                                        <div className="mt-2">
+                                                            <a
+                                                                href={notif.buttonUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="inline-block px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/20 dark:hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 rounded-md text-[10px] font-bold transition-colors border border-indigo-200 dark:border-indigo-500/30"
+                                                            >
+                                                                {notif.buttonName}
+                                                            </a>
+                                                        </div>
+                                                    )}
                                                     <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">
                                                         {new Date(notif.createdAt).toLocaleTimeString()}
                                                     </p>

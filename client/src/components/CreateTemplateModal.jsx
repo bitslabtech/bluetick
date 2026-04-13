@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     X, ArrowLeft, ArrowRight, Check, Image as ImageIcon,
     MessageSquare, Link, MousePointerClick, ShieldCheck,
-    Smartphone, CheckCircle2, AlertCircle, Plus, Trash2, Phone
+    Smartphone, CheckCircle2, AlertCircle, Plus, Trash2, Phone, Zap, Sparkles
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -70,10 +70,14 @@ const TEMPLATE_ARCHETYPES = [
     }
 ];
 
-const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
+const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDraft }) => {
     const [step, setStep] = useState(1);
     const [selectedArchetype, setSelectedArchetype] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isEnhancing, setIsEnhancing] = useState(false);
+    const [enhancingSection, setEnhancingSection] = useState(null);
+    const [enhancedSuccess, setEnhancedSuccess] = useState(null);
+    const [validationErrors, setValidationErrors] = useState({});
 
     // Form State
     const [formData, setFormData] = useState({
@@ -93,28 +97,121 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
     const [bodyVariables, setBodyVariables] = useState({});
     const [headerVariables, setHeaderVariables] = useState({});
 
+    // Object URL management for live preview — auto revoke on change/unmount
+    const [headerPreviewUrl, setHeaderPreviewUrl] = useState(null);
+    const headerUrlRef = useRef(null);
+    useEffect(() => {
+        if (formData.headerFile) {
+            const url = URL.createObjectURL(formData.headerFile);
+            setHeaderPreviewUrl(url);
+            headerUrlRef.current = url;
+            return () => URL.revokeObjectURL(url);
+        } else {
+            setHeaderPreviewUrl(null);
+        }
+    }, [formData.headerFile]);
+
+    // Card preview URLs — one per card
+    const [cardPreviewUrls, setCardPreviewUrls] = useState([]);
+    useEffect(() => {
+        const urls = formData.cards.map(card => card.mediaFile ? URL.createObjectURL(card.mediaFile) : null);
+        setCardPreviewUrls(urls);
+        return () => urls.forEach(u => u && URL.revokeObjectURL(u));
+    }, [formData.cards.map(c => c.mediaFile).join(',')]);
+
+    const handleEnhanceAI = async (textToEnhance, type = 'content', cardIndex = -1) => {
+        const sectionId = type === 'content' ? 'content' : `card-content-${cardIndex}`;
+        if (!textToEnhance?.trim()) return showToast({ type: 'error', title: 'Error', message: 'Please enter some text to enhance first.' });
+        
+        setIsEnhancing(true);
+        setEnhancingSection(sectionId);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.post('http://127.0.0.1:5000/api/templates/enhance-ai', 
+                { text: textToEnhance },
+                { headers: { 'x-auth-token': token } }
+            );
+            
+            const enhancedText = res.data.enhancedText;
+            showToast({ type: 'success', title: 'AI Enhancement', message: `Text optimized! Used ${res.data.tokensDeducted} AI Tokens.` });
+            
+            if (type === 'content') {
+                setFormData(prev => ({ ...prev, content: enhancedText }));
+                // update body variables
+                const vars = extractVariables(enhancedText);
+                setBodyVariables(prev => {
+                    const next = {};
+                    vars.forEach(v => { next[v] = prev[v] || ''; });
+                    return next;
+                });
+            } else if (type === 'card-content' && cardIndex >= 0) {
+                const newCards = [...formData.cards];
+                newCards[cardIndex].content = enhancedText;
+                setFormData(prev => ({ ...prev, cards: newCards }));
+            }
+            
+            setEnhancedSuccess(sectionId);
+            setTimeout(() => setEnhancedSuccess(null), 2500);
+
+        } catch (err) {
+            console.error("AI Enhance Error:", err);
+            showToast({ type: 'error', title: 'AI Error', message: err.response?.data?.error || 'Failed to enhance text.' });
+        } finally {
+            setIsEnhancing(false);
+            setEnhancingSection(null);
+        }
+    };
+
     // Reset state when modal opens
     useEffect(() => {
         if (isOpen) {
-            setStep(1);
-            setSelectedArchetype(null);
             setIsSubmitting(false);
-            setFormData({
-                name: '',
-                category: 'MARKETING',
-                language: 'en_US',
-                content: '',
-                footer: '',
-                headerType: 'NONE',
-                headerContent: '',
-                buttons: [],
-                cards: []
-            });
-            setBodyVariables({});
-            setHeaderVariables({});
-            setActiveCardIndex(0);
+            setValidationErrors({}); // Always clear errors when modal opens
+            if (initialDraft) {
+                // Set the mapped archetype
+                const matchingArchetype = TEMPLATE_ARCHETYPES.find(a => a.id === initialDraft.archetype) || TEMPLATE_ARCHETYPES[0];
+                setSelectedArchetype(matchingArchetype);
+                
+                // Hydrate Form Data
+                setFormData({
+                    name: initialDraft.name || '',
+                    category: initialDraft.category || 'MARKETING',
+                    language: initialDraft.language || 'en_US',
+                    content: initialDraft.content || '',
+                    footer: initialDraft.footer || '',
+                    headerType: initialDraft.headerType || 'NONE',
+                    headerContent: initialDraft.headerContent || '',
+                    buttons: initialDraft.buttons || [],
+                    cards: initialDraft.cards || []
+                });
+                
+                // Hydrate Body Variables
+                setBodyVariables(initialDraft.bodyVariables || {});
+                setHeaderVariables({});
+                setActiveCardIndex(0);
+                
+                // Auto-advance to Step 2
+                setStep(2);
+            } else {
+                setStep(1);
+                setSelectedArchetype(null);
+                setFormData({
+                    name: '',
+                    category: 'MARKETING',
+                    language: 'en_US',
+                    content: '',
+                    footer: '',
+                    headerType: 'NONE',
+                    headerContent: '',
+                    buttons: [],
+                    cards: []
+                });
+                setBodyVariables({});
+                setHeaderVariables({});
+                setActiveCardIndex(0);
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, initialDraft]);
 
     // Helper: extract all variables {{1}}, {{2}} etc from a string
     const extractVariables = (text) => {
@@ -188,16 +285,18 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
     };
 
     const handleAddButton = (type) => {
-        // Meta limits: Max 3 Quick Replies, Max 1 Phone, Max 2 URL
+        // Meta limits: Max 3 Quick Replies, Max 1 Phone, Max 2 URL, Max 1 COPY_CODE
         const currentQRs = formData.buttons.filter(b => b.type === 'QUICK_REPLY').length;
         const currentURLs = formData.buttons.filter(b => b.type === 'URL').length;
         const currentPhones = formData.buttons.filter(b => b.type === 'PHONE_NUMBER').length;
+        const currentCopyCodes = formData.buttons.filter(b => b.type === 'COPY_CODE').length;
 
-        if (type === 'QUICK_REPLY' && currentQRs >= 3) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 3 Quick Replies allowed.' });
+        if (type === 'QUICK_REPLY' && currentQRs >= 10) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 10 Quick Replies allowed.' });
         if (type === 'URL' && currentURLs >= 2) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 2 URL buttons allowed.' });
         if (type === 'PHONE_NUMBER' && currentPhones >= 1) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 1 Phone button allowed.' });
+        if (type === 'COPY_CODE' && currentCopyCodes >= 1) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 1 Copy Code button allowed.' });
 
-        const newBtn = { type, text: '', url: '', phoneNumber: '' };
+        const newBtn = { type, text: type === 'COPY_CODE' ? 'Copy offer code' : '', url: '', phoneNumber: '', couponCode: '' };
         setFormData({ ...formData, buttons: [...formData.buttons, newBtn] });
     };
 
@@ -218,12 +317,14 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
         const currentQRs = cardClass.buttons.filter(b => b.type === 'QUICK_REPLY').length;
         const currentURLs = cardClass.buttons.filter(b => b.type === 'URL').length;
         const currentPhones = cardClass.buttons.filter(b => b.type === 'PHONE_NUMBER').length;
+        const currentCopyCodes = cardClass.buttons.filter(b => b.type === 'COPY_CODE').length;
 
         if (type === 'QUICK_REPLY' && currentQRs >= 3) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 3 Quick Replies allowed.' });
         if (type === 'URL' && currentURLs >= 2) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 2 URL buttons allowed.' });
         if (type === 'PHONE_NUMBER' && currentPhones >= 1) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 1 Phone button allowed.' });
+        if (type === 'COPY_CODE' && currentCopyCodes >= 1) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 1 Copy Code button allowed.' });
 
-        const newBtn = { type, text: '', url: '', phoneNumber: '' };
+        const newBtn = { type, text: type === 'COPY_CODE' ? 'Copy offer code' : '', url: '', phoneNumber: '', couponCode: '' };
         const newCards = [...formData.cards];
         newCards.forEach(c => {
             c.buttons.push({ ...newBtn });
@@ -299,7 +400,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
         const fd = new FormData();
         fd.append('file', file);
         const token = localStorage.getItem('token');
-        const res = await axios.post('http://localhost:5000/api/templates/upload', fd, {
+        const res = await axios.post('http://127.0.0.1:5000/api/templates/upload', fd, {
             headers: {
                 'Content-Type': 'multipart/form-data',
                 'Authorization': `Bearer ${token}`
@@ -308,8 +409,74 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
         return res.data.handle;
     };
 
+    const validateForm = () => {
+        const errors = {};
+        const isCarousel = selectedArchetype?.id === 'carousel';
+
+        // 1. Template Name
+        if (!formData.name.trim()) errors.name = 'Template name is required.';
+
+        // 2. Body text (not required for carousel since each card has its own)
+        if (!isCarousel && !formData.content.trim()) errors.content = 'Message body text is required.';
+
+        // 3. Body Variables - all sample values must be filled
+        const unfilledVars = Object.entries(bodyVariables).filter(([, v]) => !v.trim());
+        if (unfilledVars.length > 0) errors.bodyVariables = `Please fill in sample values for: ${unfilledVars.map(([k]) => `{{${k}}}`).join(', ')}`;
+
+        // 4. Header media upload required
+        if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(formData.headerType) && !formData.headerFile) {
+            const typeLabel = formData.headerType === 'IMAGE' ? 'image (JPG/PNG)' : formData.headerType === 'VIDEO' ? 'video (MP4)' : 'document (PDF)';
+            errors.headerMedia = `Please upload a ${typeLabel} for the header. Meta requires a real media file.`;
+        }
+
+        // 5. Header TEXT content required
+        if (formData.headerType === 'TEXT' && !formData.headerContent.trim()) {
+            errors.headerContent = 'Header text cannot be empty.';
+        }
+
+        // 6. Button validation
+        const btnErrors = [];
+        formData.buttons.forEach((btn, i) => {
+            if (!btn.text.trim()) btnErrors.push(`Button ${i + 1}: Label text is required.`);
+            if (btn.type === 'URL' && !btn.url.trim()) btnErrors.push(`Button ${i + 1}: URL is required.`);
+            if (btn.type === 'PHONE_NUMBER' && !btn.phoneNumber.trim()) btnErrors.push(`Button ${i + 1}: Phone number is required.`);
+            if (btn.type === 'COPY_CODE' && !btn.couponCode?.trim()) btnErrors.push(`Button ${i + 1}: Coupon code is required.`);
+        });
+        if (btnErrors.length > 0) errors.buttons = btnErrors.join(' ');
+
+        // 7. Carousel card validation
+        if (isCarousel) {
+            const cardErrors = [];
+            formData.cards.forEach((card, i) => {
+                if (!card.content.trim()) cardErrors.push(`Card ${i + 1}: Body text is required.`);
+                if (['IMAGE', 'VIDEO'].includes(card.headerType) && !card.mediaFile) {
+                    cardErrors.push(`Card ${i + 1}: Media upload is required.`);
+                }
+                card.buttons.forEach((btn, bi) => {
+                    if (!btn.text.trim()) cardErrors.push(`Card ${i + 1}, Button ${bi + 1}: Label is required.`);
+                    if (btn.type === 'URL' && !btn.url.trim()) cardErrors.push(`Card ${i + 1}, Button ${bi + 1}: URL is required.`);
+                    if (btn.type === 'PHONE_NUMBER' && !btn.phoneNumber.trim()) cardErrors.push(`Card ${i + 1}, Button ${bi + 1}: Phone number is required.`);
+                    if (btn.type === 'COPY_CODE' && !btn.couponCode?.trim()) cardErrors.push(`Card ${i + 1}, Button ${bi + 1}: Coupon code is required.`);
+                });
+            });
+            if (cardErrors.length > 0) errors.cards = cardErrors;
+        }
+
+        return errors;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Run inline validation first
+        const errors = validateForm();
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            // Scroll to top of the form to show first error
+            document.querySelector('#template-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
+        setValidationErrors({});
         setIsSubmitting(true);
         try {
             // 1. Process Media Uploads to Meta's Resumable API
@@ -355,7 +522,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                 cards: processedCards
             };
 
-            await axios.post('http://localhost:5000/api/templates', payload);
+            await axios.post('http://127.0.0.1:5000/api/templates', payload);
             showToast({ type: 'success', title: 'Template Created', message: 'Template successfully submitted to Meta.' });
             onSuccess();
         } catch (err) {
@@ -404,7 +571,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                 <div className="h-1 w-full bg-slate-100 dark:bg-background-dark">
                     <div
                         className="h-full bg-primary transition-all duration-500 ease-out"
-                        style={{ width: React.createElement("span", {}, step === 1 ? '50%' : '100%').props.children }}
+                        style={{ width: step === 1 ? '50%' : '100%' }}
                     />
                 </div>
 
@@ -446,7 +613,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <h4 className={`font - bold text - base mb - 2 ${isSelected ? 'text-primary' : 'text-slate-900 dark:text-white'} `}>
+                                                <h4 className={`font-bold text-base mb-2 ${isSelected ? 'text-primary' : 'text-slate-900 dark:text-white'}`}>
                                                     {arch.title}
                                                 </h4>
                                                 <p className="text-sm text-slate-500 dark:text-text-secondary leading-relaxed flex-1">
@@ -461,8 +628,24 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
 
                         {step === 2 && (
                             <form id="template-form" onSubmit={handleSubmit} className="max-w-3xl mx-auto flex flex-col gap-6 pb-10">
+                                {/* Global Validation Error Summary */}
+                                {Object.keys(validationErrors).length > 0 && (
+                                    <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-500/10 border border-red-300 dark:border-red-500/50 rounded-2xl animate-in slide-in-from-top-2 duration-200">
+                                        <div className="p-1.5 bg-red-100 dark:bg-red-500/20 rounded-lg shrink-0">
+                                            <AlertCircle className="w-5 h-5 text-red-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-red-700 dark:text-red-400">
+                                                {Object.keys(validationErrors).length} issue{Object.keys(validationErrors).length > 1 ? 's' : ''} need your attention
+                                            </p>
+                                            <p className="text-xs text-red-600 dark:text-red-500 mt-0.5">
+                                                Review the highlighted sections below and fill in all required fields before submitting.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                                 {/* Basic Info Section */}
-                                <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm space-y-5">
+                                <div className={`bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-6 border shadow-sm space-y-5 transition-colors ${validationErrors.name ? 'border-red-400 dark:border-red-500/60' : 'border-slate-200 dark:border-white/5'}`}>
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                         1. Basic Details
                                     </h3>
@@ -473,13 +656,20 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                             type="text"
                                             required
                                             value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
-                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                                            onChange={(e) => { setFormData({ ...formData, name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') }); if (validationErrors.name) setValidationErrors(p => ({ ...p, name: undefined })); }}
+                                            className={`w-full bg-slate-50 dark:bg-background-dark border rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 outline-none transition-all ${validationErrors.name ? 'border-red-400 dark:border-red-500 focus:border-red-400 focus:ring-red-400/30' : 'border-slate-200 dark:border-white/10 focus:border-primary focus:ring-primary'}`}
                                             placeholder="e.g. summer_sale_promo"
                                         />
+                                        {validationErrors.name && (
+                                            <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1 font-medium">
+                                                <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {validationErrors.name}
+                                            </p>
+                                        )}
+                                        {!validationErrors.name && (
                                         <p className="text-xs text-slate-500 dark:text-text-secondary mt-1.5 flex items-center gap-1">
                                             <AlertCircle className="w-3.5 h-3.5" /> Lowercase letters, numbers, and underscores only.
                                         </p>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -523,17 +713,26 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                         <div>
                                             <div className="flex justify-between items-end mb-2">
                                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Body Text *</label>
-                                                <span className="text-xs text-slate-400 font-mono">{formData.content.length}/1024</span>
+                                                <div className="flex items-center gap-3">
+                                                    <button onClick={() => handleEnhanceAI(formData.content, 'content')} disabled={isEnhancing && enhancingSection !== 'content'} className={`relative flex items-center gap-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 px-2 py-1 rounded-md font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all duration-300 disabled:opacity-50 ${enhancingSection === 'content' ? 'shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-105 border-indigo-400 dark:border-indigo-400 overflow-hidden' : ''}`} type="button">
+                                                        {enhancingSection === 'content' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.5s_infinite]"></div>}
+                                                        <Sparkles className={`w-3 h-3 ${enhancingSection === 'content' ? 'animate-spin text-amber-500' : ''}`} /> 
+                                                        {enhancingSection === 'content' ? 'Enhancing...' : 'Enhance with AI'}
+                                                    </button>
+                                                    <span className="text-xs text-slate-400 font-mono">{formData.content.length}/1024</span>
+                                                </div>
                                             </div>
-                                            <textarea
-                                                required
-                                                value={formData.content}
-                                                onChange={handleContentChange}
-                                                rows={3}
-                                                maxLength={1024}
-                                                className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none transition-all"
-                                                placeholder="Swipe through our latest collection below!"
-                                            />
+                                            <div className={`transition-all duration-500 ${enhancedSuccess === 'content' ? 'ring-4 ring-indigo-500/50 rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.3)]' : ''}`}>
+                                                <textarea
+                                                    required
+                                                    value={formData.content}
+                                                    onChange={handleContentChange}
+                                                    rows={3}
+                                                    maxLength={1024}
+                                                    className={`w-full bg-slate-50 dark:bg-background-dark border ${enhancedSuccess === 'content' ? 'border-transparent' : 'border-slate-200 dark:border-white/10'} rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none transition-all`}
+                                                    placeholder="Swipe through our latest collection below!"
+                                                />
+                                            </div>
                                             {Object.keys(bodyVariables).length > 0 && (
                                                 <div className="mt-4 p-4 rounded-xl bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 animate-in fade-in duration-300">
                                                     <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3">Sample Values</h4>
@@ -560,7 +759,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
 
                                 {/* Header Section (Standard - Hidden for Carousel) */}
                                 {selectedArchetype?.id !== 'authentication' && selectedArchetype?.id !== 'simple_text' && selectedArchetype?.id !== 'carousel' && (
-                                    <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm space-y-5">
+                                    <div className={`bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-6 border shadow-sm space-y-5 transition-colors ${(validationErrors.headerMedia || validationErrors.headerContent) ? 'border-red-400 dark:border-red-500/60' : 'border-slate-200 dark:border-white/5'}`}>
                                         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                             {selectedArchetype?.id === 'media_message' ? 'Header (Required Media)' : 'Header (Optional)'}
                                         </h3>
@@ -606,6 +805,11 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                 <p className="text-xs text-slate-500 dark:text-text-secondary mt-1.5 flex items-center gap-1">
                                                     Header text can only contain exactly ONE variable.
                                                 </p>
+                                                {validationErrors.headerContent && (
+                                                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1 font-medium">
+                                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {validationErrors.headerContent}
+                                                    </p>
+                                                )}
 
                                                 {/* Header Variables Sample Field */}
                                                 {Object.keys(headerVariables).length > 0 && (
@@ -648,7 +852,39 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                     accept={formData.headerType === 'IMAGE' ? 'image/jpeg, image/png, image/jpg' : formData.headerType === 'VIDEO' ? 'video/mp4' : 'application/pdf'}
                                                     onChange={(e) => {
                                                         const file = e.target.files[0];
-                                                        if (file) setFormData({ ...formData, headerFile: file });
+                                                        if (!file) return;
+
+                                                        let valid = true;
+                                                        let allowedExts = [];
+                                                        let maxSizeMB = 0;
+
+                                                        if (formData.headerType === 'IMAGE') {
+                                                            if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) valid = false;
+                                                            allowedExts = ['JPG', 'PNG'];
+                                                            maxSizeMB = 5;
+                                                        } else if (formData.headerType === 'VIDEO') {
+                                                            if (file.type !== 'video/mp4') valid = false;
+                                                            allowedExts = ['MP4'];
+                                                            maxSizeMB = 16;
+                                                        } else if (formData.headerType === 'DOCUMENT') {
+                                                            if (file.type !== 'application/pdf') valid = false;
+                                                            allowedExts = ['PDF'];
+                                                            maxSizeMB = 100;
+                                                        }
+
+                                                        if (!valid) {
+                                                            showToast({ type: 'error', title: 'Invalid File Type', message: `Meta only allows ${allowedExts.join(', ')} files for this header type.` });
+                                                            e.target.value = '';
+                                                            return;
+                                                        }
+
+                                                        if (file.size > maxSizeMB * 1024 * 1024) {
+                                                            showToast({ type: 'error', title: 'File Too Large', message: `Maximum allowed size is ${maxSizeMB}MB.` });
+                                                            e.target.value = '';
+                                                            return;
+                                                        }
+
+                                                        setFormData({ ...formData, headerFile: file });
                                                     }}
                                                 />
                                                 <label
@@ -657,6 +893,12 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                 >
                                                     {formData.headerFile ? 'Change File' : 'Select File'}
                                                 </label>
+                                                {validationErrors.headerMedia && (
+                                                    <div className="w-full mt-3 flex items-start gap-2 text-red-500 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg px-3 py-2">
+                                                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                                        <p className="text-xs font-medium">{validationErrors.headerMedia}</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -664,7 +906,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
 
                                 {/* Message Content Section (Standard) */}
                                 {selectedArchetype?.id !== 'carousel' && (
-                                    <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm space-y-6 flex-1">
+                                    <div className={`bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-6 border shadow-sm space-y-6 flex-1 transition-colors ${(validationErrors.content || validationErrors.bodyVariables) ? 'border-red-400 dark:border-red-500/60' : 'border-slate-200 dark:border-white/5'}`}>
                                         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                             2. Message Content
                                         </h3>
@@ -672,33 +914,49 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                         <div>
                                             <div className="flex justify-between items-end mb-2">
                                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Body Text *</label>
-                                                <span className="text-xs text-slate-400 font-mono">{formData.content.length}/1024</span>
+                                                <div className="flex items-center gap-3">
+                                                    <button onClick={() => handleEnhanceAI(formData.content, 'content')} disabled={isEnhancing && enhancingSection !== 'content'} className={`relative flex items-center gap-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 px-2 py-1 rounded-md font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all duration-300 disabled:opacity-50 ${enhancingSection === 'content' ? 'shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-105 border-indigo-400 dark:border-indigo-400 overflow-hidden' : ''}`} type="button">
+                                                        {enhancingSection === 'content' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.5s_infinite]"></div>}
+                                                        <Sparkles className={`w-3 h-3 ${enhancingSection === 'content' ? 'animate-spin text-amber-500' : ''}`} /> 
+                                                        {enhancingSection === 'content' ? 'Enhancing...' : 'Enhance with AI'}
+                                                    </button>
+                                                    <span className="text-xs text-slate-400 font-mono">{formData.content.length}/1024</span>
+                                                </div>
                                             </div>
 
-                                            <div className="relative">
+                                            <div className={`relative transition-all duration-500 ${enhancedSuccess === 'content' ? 'ring-4 ring-indigo-500/50 rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.3)]' : ''}`}>
                                                 <textarea
                                                     required
                                                     value={formData.content}
-                                                    onChange={handleContentChange}
+                                                    onChange={(e) => { handleContentChange(e); if (validationErrors.content) setValidationErrors(p => ({ ...p, content: undefined })); }}
                                                     rows={5}
                                                     maxLength={1024}
-
-                                                    className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none transition-all"
+                                                    className={`w-full bg-slate-50 dark:bg-background-dark border rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 outline-none resize-none transition-all ${enhancedSuccess === 'content' ? 'border-transparent' : validationErrors.content ? 'border-red-400 dark:border-red-500 focus:border-red-400 focus:ring-red-400/30' : 'border-slate-200 dark:border-white/10 focus:border-primary focus:ring-primary'}`}
                                                     placeholder={selectedArchetype?.id === 'authentication'
                                                         ? 'Your verification code is {{1}}.'
                                                         : 'Hello {{1}}, check out our new offers!'}
                                                 />
                                             </div>
+                                            {validationErrors.content && (
+                                                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1 font-medium">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {validationErrors.content}
+                                                </p>
+                                            )}
                                             <p className="text-xs text-slate-500 dark:text-text-secondary mt-2">
                                                 Use <code className="bg-slate-100 dark:bg-white/10 px-1 py-0.5 rounded text-primary">{'{{1}}'}</code>, <code className="bg-slate-100 dark:bg-white/10 px-1 py-0.5 rounded text-primary">{'{{2}}'}</code> to insert dynamic variables. Variables support bold (*text*), italic (_text_), and strikethrough (~text~).
                                             </p>
 
                                             {/* Dynamic Body Variables Inputs */}
                                             {Object.keys(bodyVariables).length > 0 && (
-                                                <div className="mt-4 p-4 rounded-xl bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 animate-in fade-in duration-300">
+                                                <div className={`mt-4 p-4 rounded-xl border animate-in fade-in duration-300 ${validationErrors.bodyVariables ? 'bg-red-50 dark:bg-red-500/5 border-red-300 dark:border-red-500/40' : 'bg-slate-100/50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
                                                     <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3">Sample Values for Meta Approval</h4>
                                                     <p className="text-xs text-slate-500 mb-4">Meta requires realistic sample data for every variable you use.</p>
-
+                                                    {validationErrors.bodyVariables && (
+                                                        <div className="flex items-start gap-2 mb-3 text-red-600 dark:text-red-400 text-xs font-semibold">
+                                                            <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                                            <span>{validationErrors.bodyVariables}</span>
+                                                        </div>
+                                                    )}
                                                     <div className="flex flex-col gap-3">
                                                         {Object.keys(bodyVariables).map((num) => (
                                                             <div key={`body-var-${num}`} className="flex items-center gap-3">
@@ -708,8 +966,8 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                                     required
                                                                     placeholder={`Sample for {{${num}}}`}
                                                                     value={bodyVariables[num]}
-                                                                    onChange={(e) => setBodyVariables({ ...bodyVariables, [num]: e.target.value })}
-                                                                    className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all shadow-sm"
+                                                                    onChange={(e) => { setBodyVariables({ ...bodyVariables, [num]: e.target.value }); if (validationErrors.bodyVariables) setValidationErrors(p => ({ ...p, bodyVariables: undefined })); }}
+                                                                    className={`w-full bg-white dark:bg-background-dark border rounded-lg px-4 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all shadow-sm ${!bodyVariables[num]?.trim() && validationErrors.bodyVariables ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-white/10'}`}
                                                                 />
                                                             </div>
                                                         ))}
@@ -746,7 +1004,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                         <div className="flex justify-between items-center bg-slate-50 dark:bg-background-dark p-3 rounded-xl border border-slate-200 dark:border-white/10">
                                             <div>
                                                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Interactive Buttons</h4>
-                                                <p className="text-xs text-slate-500 mt-0.5">Add up to 3 buttons. Cannot mix Quick Replies with CTA buttons.</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">Cannot mix Quick Replies with CTA buttons.</p>
                                             </div>
 
                                             {/* Button Config Dropdown */}
@@ -766,7 +1024,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                     <optgroup label="Quick Replies">
                                                         <option
                                                             value="QUICK_REPLY"
-                                                            disabled={formData.buttons.length >= 3 || formData.buttons.some(b => b.type !== 'QUICK_REPLY')}
+                                                            disabled={formData.buttons.filter(b => b.type === 'QUICK_REPLY').length >= 10 || formData.buttons.some(b => b.type !== 'QUICK_REPLY')}
                                                         >
                                                             Custom Quick Reply
                                                         </option>
@@ -775,15 +1033,21 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                     <optgroup label="Call to Action">
                                                         <option
                                                             value="URL"
-                                                            disabled={formData.buttons.length >= 3 || formData.buttons.some(b => b.type === 'QUICK_REPLY') || formData.buttons.filter(b => b.type === 'URL').length >= 2}
+                                                            disabled={formData.buttons.some(b => b.type === 'QUICK_REPLY') || formData.buttons.filter(b => b.type === 'URL').length >= 2}
                                                         >
                                                             Visit Website
                                                         </option>
                                                         <option
                                                             value="PHONE_NUMBER"
-                                                            disabled={formData.buttons.length >= 3 || formData.buttons.some(b => b.type === 'QUICK_REPLY') || formData.buttons.some(b => b.type === 'PHONE_NUMBER')}
+                                                            disabled={formData.buttons.some(b => b.type === 'QUICK_REPLY') || formData.buttons.some(b => b.type === 'PHONE_NUMBER')}
                                                         >
                                                             Call Phone Number
+                                                        </option>
+                                                        <option
+                                                            value="COPY_CODE"
+                                                            disabled={formData.buttons.some(b => b.type === 'QUICK_REPLY') || formData.buttons.some(b => b.type === 'COPY_CODE')}
+                                                        >
+                                                            Copy Code (Coupon)
                                                         </option>
                                                     </optgroup>
                                                 </select>
@@ -794,27 +1058,39 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                         <div className="space-y-4">
                                             {formData.buttons.map((btn, idx) => (
                                                 <div key={`btn-${idx}`} className="flex flex-col gap-3 p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark relative animate-in slide-in-from-top-2 shadow-sm">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveButton(idx)}
+                                                        className="absolute top-3 right-3 p-1 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 transition-colors"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
                                                     <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
-                                                        <div className="p-1.5 bg-slate-100 dark:bg-white/5 rounded-md">
+                                                        <div className={`p-1.5 rounded-md ${btn.type === 'COPY_CODE' ? 'bg-amber-100 dark:bg-amber-500/10' : 'bg-slate-100 dark:bg-white/5'}`}>
                                                             {btn.type === 'QUICK_REPLY' && <MousePointerClick className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                                                             {btn.type === 'URL' && <Link className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                                                             {btn.type === 'PHONE_NUMBER' && <Phone className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
+                                                            {btn.type === 'COPY_CODE' && <Zap className="w-4 h-4 text-amber-500" />}
                                                         </div>
                                                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                                            {btn.type === 'QUICK_REPLY' ? 'Quick Reply Button' : btn.type === 'URL' ? 'Visit Website Button' : 'Call Phone Button'}
+                                                            {btn.type === 'QUICK_REPLY' ? 'Quick Reply Button'
+                                                                : btn.type === 'URL' ? 'Visit Website Button'
+                                                                : btn.type === 'COPY_CODE' ? '🎟 Copy Code Button'
+                                                                : 'Call Phone Button'}
                                                         </span>
                                                     </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <div>
-                                                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Button Text</label>
+                                                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Button Label</label>
                                                             <input
                                                                 type="text"
                                                                 required
-                                                                placeholder={btn.type === 'QUICK_REPLY' ? 'e.g. Yes, please!' : btn.type === 'URL' ? 'e.g. Visit Website' : 'e.g. Call Us'}
+                                                                placeholder={btn.type === 'QUICK_REPLY' ? 'e.g. Yes, please!' : btn.type === 'URL' ? 'e.g. Visit Website' : btn.type === 'COPY_CODE' ? 'e.g. Copy Offer Code' : 'e.g. Call Us'}
                                                                 value={btn.text}
-                                                                onChange={(e) => handleButtonChange(idx, 'text', e.target.value)}
+                                                                disabled={btn.type === 'COPY_CODE'}
+                                                                onChange={(e) => { handleButtonChange(idx, 'text', e.target.value); if (validationErrors.buttons) setValidationErrors(p => ({ ...p, buttons: undefined })); }}
                                                                 maxLength={25}
-                                                                className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all"
+                                                                className={`w-full bg-slate-50 dark:bg-background-dark border rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all ${btn.type === 'COPY_CODE' ? 'opacity-50 cursor-not-allowed' : ''} ${!btn.text.trim() && validationErrors.buttons ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-white/10'}`}
                                                             />
                                                         </div>
                                                         {btn.type === 'URL' && (
@@ -829,8 +1105,8 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                                         required
                                                                         placeholder="https://example.com"
                                                                         value={btn.url}
-                                                                        onChange={(e) => handleButtonChange(idx, 'url', e.target.value)}
-                                                                        className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all"
+                                                                        onChange={(e) => { handleButtonChange(idx, 'url', e.target.value); if (validationErrors.buttons) setValidationErrors(p => ({ ...p, buttons: undefined })); }}
+                                                                        className={`w-full bg-slate-50 dark:bg-background-dark border rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all ${!btn.url.trim() && validationErrors.buttons ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-white/10'}`}
                                                                     />
                                                                 </div>
                                                             </div>
@@ -843,21 +1119,52 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                                     required
                                                                     placeholder="+1 (555) 000-0000"
                                                                     value={btn.phoneNumber}
-                                                                    onChange={(e) => handleButtonChange(idx, 'phoneNumber', e.target.value)}
-                                                                    className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all"
+                                                                    onChange={(e) => { handleButtonChange(idx, 'phoneNumber', e.target.value); if (validationErrors.buttons) setValidationErrors(p => ({ ...p, buttons: undefined })); }}
+                                                                    className={`w-full bg-slate-50 dark:bg-background-dark border rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all ${!btn.phoneNumber.trim() && validationErrors.buttons ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-white/10'}`}
                                                                 />
+                                                            </div>
+                                                        )}
+                                                        {btn.type === 'COPY_CODE' && (
+                                                            <div>
+                                                                <label className="block text-xs font-semibold text-amber-600 dark:text-amber-400 mb-1.5 uppercase tracking-wide">Coupon Code</label>
+                                                                <input
+                                                                    type="text"
+                                                                    required
+                                                                    placeholder="e.g. LAUNCH50"
+                                                                    value={btn.couponCode || ''}
+                                                                    onChange={(e) => { handleButtonChange(idx, 'couponCode', e.target.value.toUpperCase()); if (validationErrors.buttons) setValidationErrors(p => ({ ...p, buttons: undefined })); }}
+                                                                    className={`w-full font-mono font-bold tracking-widest bg-amber-50 dark:bg-amber-900/10 border rounded-lg px-3 py-2 text-sm text-amber-900 dark:text-amber-300 outline-none focus:border-amber-400 transition-all ${!btn.couponCode?.trim() && validationErrors.buttons ? 'border-red-400 dark:border-red-500' : 'border-amber-200 dark:border-amber-700/40'}`}
+                                                                />
+                                                                <p className="text-[10px] text-amber-600/70 dark:text-amber-500/60 mt-1">This code will be copied to clipboard when user taps the button.</p>
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
+                                        {validationErrors.buttons && (
+                                            <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-red-600 dark:text-red-400">
+                                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                                <p className="text-xs font-medium">{validationErrors.buttons}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
                                 {/* Carousel Cards Section */}
                                 {selectedArchetype?.id === 'carousel' && (
-                                    <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm space-y-5">
+                                    <div className={`bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-6 border shadow-sm space-y-5 transition-colors ${validationErrors.cards ? 'border-red-400 dark:border-red-500/60' : 'border-slate-200 dark:border-white/5'}`}>
+                                        {validationErrors.cards && (
+                                            <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl">
+                                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
+                                                <div>
+                                                    <p className="text-xs font-bold text-red-600 dark:text-red-400 mb-1">Please fix these issues in your carousel cards:</p>
+                                                    <ul className="text-xs text-red-500 dark:text-red-400 space-y-0.5 list-disc list-inside">
+                                                        {validationErrors.cards.map((e, i) => <li key={i}>{e}</li>)}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
                                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                                 3. Carousel Cards ({formData.cards.length}/10)
@@ -936,11 +1243,27 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                             accept="image/jpeg, image/png, image/jpg, video/mp4"
                                                             onChange={(e) => {
                                                                 const file = e.target.files[0];
-                                                                if (file) {
-                                                                    const newCards = [...formData.cards];
-                                                                    newCards[activeCardIndex].mediaFile = file;
-                                                                    setFormData({ ...formData, cards: newCards });
+                                                                if (!file) return;
+
+                                                                if (!['image/jpeg', 'image/png', 'image/jpg', 'video/mp4'].includes(file.type)) {
+                                                                    showToast({ type: 'error', title: 'Invalid File Type', message: 'Meta only allows JPG, PNG, or MP4 files for carousel cards.' });
+                                                                    e.target.value = '';
+                                                                    return;
                                                                 }
+
+                                                                const isVid = file.type === 'video/mp4';
+                                                                const maxSize = isVid ? 16 : 5;
+                                                                
+                                                                if (file.size > maxSize * 1024 * 1024) {
+                                                                    showToast({ type: 'error', title: 'File Too Large', message: `Maximum allowed size is ${maxSize}MB.` });
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+
+                                                                const newCards = [...formData.cards];
+                                                                newCards[activeCardIndex].mediaFile = file;
+                                                                newCards[activeCardIndex].headerType = isVid ? 'VIDEO' : 'IMAGE'; // Automatically sync the internal type
+                                                                setFormData({ ...formData, cards: newCards });
                                                             }}
                                                         />
                                                     </label>
@@ -950,20 +1273,29 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                 <div className="mb-4">
                                                     <div className="flex justify-between items-end mb-1">
                                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Card Body Text</label>
-                                                        <span className="text-[10px] text-slate-400 font-mono">{(formData.cards[activeCardIndex].content || '').length}/160</span>
+                                                        <div className="flex items-center gap-3">
+                                                            <button onClick={() => handleEnhanceAI(formData.cards[activeCardIndex].content, 'card-content', activeCardIndex)} disabled={isEnhancing && enhancingSection !== `card-content-${activeCardIndex}`} className={`relative flex items-center gap-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 px-2 py-1 rounded-md font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all duration-300 disabled:opacity-50 ${enhancingSection === `card-content-${activeCardIndex}` ? 'shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-105 border-indigo-400 dark:border-indigo-400 overflow-hidden' : ''}`} type="button">
+                                                                {enhancingSection === `card-content-${activeCardIndex}` && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.5s_infinite]"></div>}
+                                                                <Sparkles className={`w-3 h-3 ${enhancingSection === `card-content-${activeCardIndex}` ? 'animate-spin text-amber-500' : ''}`} /> 
+                                                                {enhancingSection === `card-content-${activeCardIndex}` ? 'Enhancing...' : 'Enhance'}
+                                                            </button>
+                                                            <span className="text-[10px] text-slate-400 font-mono">{(formData.cards[activeCardIndex].content || '').length}/160</span>
+                                                        </div>
                                                     </div>
-                                                    <textarea
-                                                        value={formData.cards[activeCardIndex].content}
-                                                        onChange={(e) => {
-                                                            const newCards = [...formData.cards];
-                                                            newCards[activeCardIndex].content = e.target.value;
-                                                            setFormData({ ...formData, cards: newCards });
-                                                        }}
-                                                        rows={2}
-                                                        maxLength={160}
-                                                        placeholder="Short description for this card..."
-                                                        className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary outline-none resize-none transition-all"
-                                                    />
+                                                    <div className={`transition-all duration-500 ${enhancedSuccess === `card-content-${activeCardIndex}` ? 'ring-4 ring-indigo-500/50 rounded-lg shadow-[0_0_20px_rgba(99,102,241,0.3)]' : ''}`}>
+                                                        <textarea
+                                                            value={formData.cards[activeCardIndex].content}
+                                                            onChange={(e) => {
+                                                                const newCards = [...formData.cards];
+                                                                newCards[activeCardIndex].content = e.target.value;
+                                                                setFormData({ ...formData, cards: newCards });
+                                                            }}
+                                                            rows={2}
+                                                            maxLength={160}
+                                                            placeholder="Short description for this card..."
+                                                            className={`w-full bg-white dark:bg-background-dark border ${enhancedSuccess === `card-content-${activeCardIndex}` ? 'border-transparent' : 'border-slate-200 dark:border-white/10'} rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-primary outline-none resize-none transition-all`}
+                                                        />
+                                                    </div>
                                                 </div>
 
                                                 {/* Card Buttons */}
@@ -1044,9 +1376,10 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                                             required
                                                                             placeholder={btn.type === 'QUICK_REPLY' ? 'e.g. Yes, please!' : btn.type === 'URL' ? 'e.g. Visit Website' : 'e.g. Call Us'}
                                                                             value={btn.text}
+                                                                            disabled={btn.type === 'COPY_CODE'}
                                                                             onChange={(e) => handleCardButtonChange(activeCardIndex, idx, 'text', e.target.value)}
                                                                             maxLength={25}
-                                                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all"
+                                                                            className={`w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all ${btn.type === 'COPY_CODE' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                         />
                                                                     </div>
                                                                     {btn.type === 'URL' && (
@@ -1134,15 +1467,35 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                             {getPreviewText(formData.headerContent, headerVariables)}
                                                         </div>
                                                     )}
-                                                    {(formData.headerType === 'IMAGE' || formData.headerType === 'VIDEO') && (
-                                                        <div className="w-full aspect-video bg-slate-200 dark:bg-white/5 rounded-lg mb-2 flex items-center justify-center">
-                                                            <ImageIcon className="w-6 h-6 text-slate-400" />
+                                                    {(formData.headerType === 'IMAGE') && (
+                                                        <div className="w-full aspect-video rounded-lg mb-2 overflow-hidden bg-slate-200 dark:bg-white/5 flex items-center justify-center">
+                                                            {headerPreviewUrl ? (
+                                                                <img src={headerPreviewUrl} alt="Header preview" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <ImageIcon className="w-6 h-6 text-slate-400" />
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {formData.headerType === 'VIDEO' && (
+                                                        <div className="w-full aspect-video rounded-lg mb-2 overflow-hidden bg-slate-900 flex items-center justify-center relative">
+                                                            {headerPreviewUrl ? (
+                                                                <video src={headerPreviewUrl} className="w-full h-full object-cover" muted playsInline />
+                                                            ) : (
+                                                                <ImageIcon className="w-6 h-6 text-slate-400" />
+                                                            )}
+                                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                                <div className="bg-black/40 rounded-full p-2">
+                                                                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     )}
                                                     {formData.headerType === 'DOCUMENT' && (
                                                         <div className="w-full h-12 bg-rose-500/10 border border-rose-500/20 rounded-lg mb-2 flex items-center px-3 gap-2">
                                                             <div className="bg-rose-500 text-white p-1 rounded"><ShieldCheck className="w-3 h-3" /></div>
-                                                            <span className="text-xs text-rose-500 font-semibold truncate">Document.pdf</span>
+                                                            <span className="text-xs text-rose-500 font-semibold truncate">
+                                                                {formData.headerFile ? formData.headerFile.name : 'Document.pdf'}
+                                                            </span>
                                                         </div>
                                                     )}
 
@@ -1170,10 +1523,11 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                     {formData.buttons && formData.buttons.length > 0 && (
                                                         <div className="border-t border-slate-100 dark:border-white/5 mt-1 flex flex-col w-full relative -left-1.5 w-[calc(100%+12px)]">
                                                             {formData.buttons.map((btn, i) => (
-                                                                <div key={`prev-btn-${i}`} className={`py-2.5 flex justify-center items-center text-[#00a884] text-[14px] font-medium ${i < formData.buttons.length - 1 ? 'border-b border-slate-100 dark:border-white/5' : ''}`}>
-                                                                    {btn.type === 'URL' && <Link className="w-4 h-4 mr-1.5" />}
-                                                                    {btn.type === 'PHONE_NUMBER' && <Phone className="w-4 h-4 mr-1.5" />}
-                                                                    {btn.text || <span className="text-[#00a884]/50 italic">Button Text</span>}
+                                                                <div key={`prev-btn-${i}`} className={`py-2.5 flex justify-center items-center gap-1.5 text-[#00a884] text-[14px] font-medium ${i < formData.buttons.length - 1 ? 'border-b border-slate-100 dark:border-white/5' : ''}`}>
+                                                                    {btn.type === 'URL' && <Link className="w-4 h-4" />}
+                                                                    {btn.type === 'PHONE_NUMBER' && <Phone className="w-4 h-4" />}
+                                                                    {btn.type === 'COPY_CODE' && <Zap className="w-4 h-4 text-amber-500" />}
+                                                                    <span className="truncate max-w-[80%]">{btn.text || <span className="text-[#00a884]/50 italic">Button Text</span>}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -1204,8 +1558,21 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                         {formData.cards.map((card, i) => (
                                                             <div key={`prev-card-${i}`} className="snap-center shrink-0 w-[80%] bg-white dark:bg-[#202c33] border border-slate-200 dark:border-slate-700/50 rounded-xl overflow-hidden shadow-sm flex flex-col">
                                                                 {/* Card Media Header */}
-                                                                <div className="w-full aspect-[1.91/1] bg-slate-200 dark:bg-white/5 flex items-center justify-center border-b border-slate-100 dark:border-white/5">
-                                                                    <ImageIcon className="w-6 h-6 text-slate-400" />
+                                                                <div className="w-full aspect-[1.91/1] bg-slate-200 dark:bg-white/5 flex items-center justify-center border-b border-slate-100 dark:border-white/5 overflow-hidden">
+                                                                    {cardPreviewUrls[i] && card.headerType === 'IMAGE' ? (
+                                                                        <img src={cardPreviewUrls[i]} alt={`Card ${i + 1}`} className="w-full h-full object-cover" />
+                                                                    ) : cardPreviewUrls[i] && card.headerType === 'VIDEO' ? (
+                                                                        <div className="relative w-full h-full">
+                                                                            <video src={cardPreviewUrls[i]} className="w-full h-full object-cover" muted playsInline />
+                                                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                                                <div className="bg-black/40 rounded-full p-1.5">
+                                                                                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <ImageIcon className="w-6 h-6 text-slate-400" />
+                                                                    )}
                                                                 </div>
 
                                                                 {/* Card Body */}
@@ -1221,6 +1588,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast }) => {
                                                                                 {btn.type === 'URL' && <Link className="w-3.5 h-3.5" />}
                                                                                 {btn.type === 'PHONE_NUMBER' && <Phone className="w-3.5 h-3.5" />}
                                                                                 {btn.type === 'QUICK_REPLY' && <MousePointerClick className="w-3.5 h-3.5 text-[#00a884]/60" />}
+                                                                                {btn.type === 'COPY_CODE' && <Zap className="w-3.5 h-3.5 text-amber-500" />}
                                                                                 <span className="truncate max-w-[80%]">{btn.text || <span className="text-[#00a884]/50 italic text-[11px]">Button Text</span>}</span>
                                                                             </div>
                                                                         ))

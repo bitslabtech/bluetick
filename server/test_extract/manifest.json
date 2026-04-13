@@ -1,0 +1,12 @@
+{
+  "name": "WhatsApp Forms Builder",
+  "module_key": "forms",
+  "description": "A powerful, drag-and-drop conversational form builder optimized natively for WhatsApp lead generation.",
+  "default_price": 0,
+  "is_recurring": false,
+  "features": [
+    "Drag & Drop Builder",
+    "Live iPhone Preview",
+    "Data Export"
+  ]
+}

@@ -1,50 +1,292 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Send, Settings, LogOut, MessageSquare, BarChart3, ShieldCheck, CreditCard, ShoppingBag, Bell, Activity, LifeBuoy, LayoutTemplate, Settings2, Terminal, Package } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Send, Settings, LogOut, MessageSquare, BarChart3, ShieldCheck, CreditCard, ShoppingBag, Bell, Activity, LifeBuoy, LayoutTemplate, Settings2, Package, X, ChevronDown, ChevronRight, Layers, Tag, Sparkles, Calendar, Terminal, Briefcase } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
+import axios from 'axios';
 
 const userNavItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: MessageSquare, label: 'WhatsApp', path: '/whatsapp', requiredModule: 'whatsapp_inbox' }, // PROTECTED
-    { icon: Send, label: 'Send Message', path: '/campaigns' },
-    { icon: MessageSquare, label: 'Campaigns', path: '/campaign-list' },
-    { icon: Users, label: 'Contacts', path: '/contacts' },
-    { icon: FileText, label: 'Templates', path: '/templates' },
-    { icon: BarChart3, label: 'Reports', path: '/reports' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', perm: 'menu_dashboard' },
+    {
+        icon: MessageSquare,
+        label: 'WhatsApp',
+        requiredModule: 'whatsapp_inbox',
+        subItems: [
+            { label: 'Inbox', path: '/whatsapp', perm: 'menu_whatsapp_inbox' },
+            { label: 'Team', path: '/team', ownerOnly: true },
+            { label: 'Settings', path: '/whatsapp-settings', perm: 'menu_whatsapp_settings' }
+        ]
+    }, // PROTECTED
+    { icon: Send, label: 'Send Message', path: '/campaigns', perm: 'menu_send_message' },
+    { icon: MessageSquare, label: 'Campaigns', path: '/campaign-list', perm: 'menu_campaigns' },
+    { icon: LayoutTemplate, label: 'FlowBot Builder', path: '/flowbot', ownerOnly: true, requiresFlowbot: true },
+    { icon: Users, label: 'Contacts', path: '/contacts', perm: 'menu_contacts' },
+    { icon: FileText, label: 'Templates', path: '/templates', perm: 'menu_templates' },
+    { icon: Package, label: 'Add-ons Market', path: '/marketplace', perm: 'menu_addons' },
+    { icon: Terminal, label: 'Integrations & API', path: '/integrations', perm: 'menu_integrations', requiresApiAccess: true },
 
-    { icon: LifeBuoy, label: 'Support', path: '/support' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
+    { icon: BarChart3, label: 'Reports', path: '/reports', perm: 'menu_reports' },
+    { icon: Sparkles, label: 'Refer & Earn', path: '/referrals', perm: 'menu_referrals' },
+
+    { icon: LifeBuoy, label: 'Support', path: '/support', perm: 'menu_support' },
+    { icon: Settings, label: 'Settings', path: '/settings', perm: 'menu_settings' },
 ];
 
 const adminNavItems = [
     { icon: ShieldCheck, label: 'Dashboard', path: '/superadmin' },
     { icon: Users, label: 'Users', path: '/superadmin/users' },
+    { icon: Sparkles, label: 'AI Tokens', path: '/superadmin/ai-tokens' },
     { icon: CreditCard, label: 'Plans', path: '/superadmin/plans' },
     { icon: ShoppingBag, label: 'Purchases', path: '/superadmin/purchases' },
     { icon: Bell, label: 'Broadcast Manager', path: '/superadmin/notifications' },
     { icon: Activity, label: 'Activity Logs', path: '/superadmin/activity-logs' }, // Fixed path for logs too
-    { icon: Settings2, label: 'System Controls', path: '/superadmin/system-control' },
+    { icon: Layers, label: 'Add-ons Market', path: '/superadmin/addons' },
+    { 
+        icon: Settings2, 
+        label: 'System Controls', 
+        subItems: [
+            { label: 'General', path: '/superadmin/system-control' },
+            { label: 'Referral', path: '/superadmin/referral-settings' },
+            { label: 'Tech Partner', path: '/superadmin/tech-partners' }
+        ]
+    },
     { icon: LayoutTemplate, label: 'Landing Page', path: '/superadmin/landing-page' },
+    { icon: MessageSquare, label: 'Contact Messages', path: '/superadmin/messages' },
 
     { icon: LifeBuoy, label: 'Support', path: '/superadmin/support' },
     { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
-export default function Sidebar() {
+// Sub-item Component
+function NavItem({ item, location, setIsOpen, unreadCount }) {
+    const { user } = useAuth();
+    const isActive = item.path === location.pathname || (item.subItems && item.subItems.some(sub => sub.path === location.pathname));
+    const [expanded, setExpanded] = useState(isActive);
+    const isSubMenu = !!item.subItems;
+
+    return (
+        <div className="flex flex-col gap-1">
+            {isSubMenu ? (
+                <button
+                    onClick={() => setExpanded(!expanded)}
+                    className={cn(
+                        "flex justify-between items-center px-3 py-3 rounded-lg transition-all duration-200 w-full",
+                        isActive && !expanded
+                            ? "bg-primary/10 text-primary dark:text-white"
+                            : "text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white"
+                    )}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <item.icon className="text-[22px]" />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-background-dark"></span>
+                            )}
+                        </div>
+                        <p className="text-sm font-medium leading-normal">{item.label}</p>
+                    </div>
+                    {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </button>
+            ) : (
+                <Link
+                    to={item.path}
+                    onClick={() => setIsOpen && setIsOpen(false)}
+                    className={cn(
+                        "flex items-center justify-between px-3 py-3 rounded-lg transition-all duration-200",
+                        item.path === location.pathname
+                            ? "bg-primary text-white shadow-md shadow-blue-500/20"
+                            : "text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white"
+                    )}
+                >
+                    <div className="flex items-center gap-3">
+                        <item.icon className="text-[22px]" />
+                        <p className="text-sm font-medium leading-normal">{item.label}</p>
+                    </div>
+                    {unreadCount > 0 && (
+                        <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            {unreadCount}
+                        </div>
+                    )}
+                </Link>
+            )}
+
+            {/* Sub-items */}
+            {isSubMenu && expanded && (
+                <div className="flex flex-col gap-1 ml-9 border-l-2 border-slate-100 dark:border-white/10 pl-2">
+                    {item.subItems.filter(sub => {
+                        const isSubUser = !!user?.parentUserId;
+                        const isAdmin = user?.teamRole === 'admin';
+                        if (sub.ownerOnly && isSubUser && !isAdmin) return false;
+                        
+                        // Custom permissions check for sub-items
+                        if (isSubUser && user?.teamRole === 'custom' && sub.perm) {
+                            if (!user.teamPermissions?.includes(sub.perm)) return false;
+                        }
+                        
+                        return true;
+                    }).map((sub) => (
+                        <Link
+                            key={sub.path}
+                            to={sub.path}
+                            onClick={() => setIsOpen && setIsOpen(false)}
+                            className={cn(
+                                "flex items-center px-3 py-2 rounded-lg transition-all text-sm font-medium",
+                                sub.path === location.pathname
+                                    ? "bg-primary text-white shadow-sm"
+                                    : "text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white"
+                            )}
+                        >
+                            {sub.label}
+                        </Link>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default function Sidebar({ isOpen, setIsOpen }) {
     const location = useLocation();
     const { user, logout } = useAuth();
-    const { settings, publicSettings } = useUI();
+    const { settings, publicSettings, publicSettingsLoading } = useUI();
+
+    // ── Version & Changelog state (user sidebar) ──
+    const [currentVersion, setCurrentVersion] = useState(null);
+    const [changelogOpen, setChangelogOpen] = useState(false);
+    const [changelog, setChangelog] = useState([]);
+    const [changelogLoading, setChangelogLoading] = useState(false);
+    const [hasNewVersion, setHasNewVersion] = useState(false);
+    const [unreadContactMsgs, setUnreadContactMsgs] = useState(0);
+
+    // Fetch latest version on mount
+    useEffect(() => {
+        if (user) {
+            axios.get('http://127.0.0.1:5000/api/versioning/latest')
+                .then(res => {
+                    setCurrentVersion(res.data);
+                    // Check if the user has seen this version
+                    const lastSeen = localStorage.getItem('lastSeenVersion');
+                    if (lastSeen !== res.data.version) {
+                        setHasNewVersion(true);
+                    }
+                })
+                .catch(() => setCurrentVersion({ version: '1.0.0' }));
+        }
+    }, [user]);
+
+    // Fetch unread count for admins
+    useEffect(() => {
+        if (user?.isAdmin) {
+            const fetchContactCount = () => {
+                axios.get('http://127.0.0.1:5000/api/contact/unread-count', {
+                    headers: { 'x-auth-token': localStorage.getItem('token') }
+                })
+                .then(res => setUnreadContactMsgs(res.data.count))
+                .catch(err => console.error(err));
+            };
+            fetchContactCount();
+            const interval = setInterval(fetchContactCount, 60000); // 1 min poll
+            return () => clearInterval(interval);
+        }
+    }, [user]);
+
+    const openChangelog = async () => {
+        setChangelogOpen(true);
+        setChangelogLoading(true);
+        // Mark version as seen
+        if (currentVersion?.version) {
+            localStorage.setItem('lastSeenVersion', currentVersion.version);
+            setHasNewVersion(false);
+        }
+        try {
+            const res = await axios.get('http://127.0.0.1:5000/api/versioning/changelog');
+            setChangelog(res.data);
+        } catch {
+            setChangelog([]);
+        } finally {
+            setChangelogLoading(false);
+        }
+    };
 
     // Decide which items to show based on role
     // Filter out items the user doesn't have the requiredModule for
     const baseItems = user?.isAdmin ? adminNavItems : userNavItems;
+    const isSubUser = !!user?.parentUserId;
 
-    // Admins see everything in their list. Users see their list.
-    const items = baseItems;
+    // Filter nav items: hide ownerOnly items for sub-users
+    let items = baseItems.filter(item => {
+        if (item.ownerOnly && isSubUser && user?.teamRole !== 'admin') return false;
+        if (item.requiresFlowbot && !user?.planDetails?.flowBotEnabled && !user?.isAdmin) return false;
+        if (item.requiresApiAccess && !user?.planDetails?.allowApiAccess && !user?.isAdmin) return false;
+        
+        // Custom Permissions check for main level items
+        if (isSubUser && user?.teamRole === 'custom' && !user?.isAdmin) {
+            if (item.subItems) {
+                // Keep parent if at least one sub-item is allowed, or if it's ownerOnly (which we handle)
+                const hasAllowedSub = item.subItems.some(sub => {
+                    if (sub.ownerOnly) return false;
+                    if (sub.perm) return user.teamPermissions?.includes(sub.perm);
+                    return true;
+                });
+                if (!hasAllowedSub) return false;
+            } else if (item.perm) {
+                if (!user.teamPermissions?.includes(item.perm)) return false;
+            }
+        }
+        
+        return true;
+    });
 
-    return (
-        <aside className="w-72 flex-col justify-between border-r border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark p-4 hidden md:flex sticky top-0 h-screen transition-colors duration-300">
+    // Reorder based on global system config menuOrder (if it exists)
+    // Only apply for non-admins so superadmin retains the default structured view
+    if (!user?.isAdmin && publicSettings?.menuOrder && Array.isArray(publicSettings.menuOrder) && publicSettings.menuOrder.length > 0) {
+        // Create a map for O(1) index lookup
+        const orderMap = new Map();
+        publicSettings.menuOrder.forEach((label, index) => {
+            orderMap.set(label, index);
+        });
+
+        items.sort((a, b) => {
+            const indexA = orderMap.has(a.label) ? orderMap.get(a.label) : 999;
+            const indexB = orderMap.has(b.label) ? orderMap.get(b.label) : 999;
+            return indexA - indexB;
+        });
+    }
+
+    if (publicSettingsLoading) {
+        return (
+            <aside className={cn(
+                "flex flex-col border-r border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark p-4 transition-all duration-300",
+                "fixed inset-y-0 left-0 z-50 w-72 transform overflow-y-auto",
+                isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
+                "md:translate-x-0 md:sticky md:top-0 md:h-screen md:shadow-none"
+            )}>
+                <div className="flex flex-col gap-8">
+                    <div className="flex gap-3 items-center px-2 animate-pulse">
+                        <div className="w-10 h-10 bg-slate-200 dark:bg-surface-dark rounded-lg shrink-0"></div>
+                        <div className="flex flex-col gap-2 justify-center">
+                            <div className="w-24 h-4 bg-slate-200 dark:bg-surface-dark rounded"></div>
+                            <div className="w-16 h-3 bg-slate-200 dark:bg-surface-dark rounded"></div>
+                        </div>
+                    </div>
+                    <nav className="flex flex-col gap-2">
+                        {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                            <div key={i} className="h-11 bg-slate-50 dark:bg-surface-dark rounded-lg animate-pulse"></div>
+                        ))}
+                    </nav>
+                </div>
+            </aside>
+        );
+    }
+
+    return (<>
+        <aside className={cn(
+            "flex flex-col justify-between border-r border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark p-4 transition-all duration-300",
+            "fixed inset-y-0 left-0 z-50 w-72 transform overflow-y-auto",
+            isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
+            "md:translate-x-0 md:sticky md:top-0 md:h-screen md:shadow-none"
+        )}>
             <div className="flex flex-col gap-8">
                 {/* Logo Area */}
                 <div className="flex gap-3 items-center px-2">
@@ -57,56 +299,161 @@ export default function Sidebar() {
                     )}
                     <div className="flex flex-col">
                         <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px]">
-                            {publicSettings?.appName || 'WaManager'}
+                            {publicSettings?.appName || 'WhatsApp Cloud'}
                         </h1>
                         <p className="text-slate-500 dark:text-text-secondary text-xs font-normal leading-normal truncate max-w-[140px]">{publicSettings?.appTagline || 'Business API'}</p>
                     </div>
+                    {/* Mobile Close Button */}
+                    <button
+                        onClick={() => setIsOpen && setIsOpen(false)}
+                        className="md:hidden ml-auto p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
 
                 {/* Navigation */}
                 <nav className="flex flex-col gap-2">
-                    {items.map((item) => {
-                        const isActive = location.pathname === item.path;
-                        return (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={cn(
-                                    "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200",
-                                    isActive
-                                        ? "bg-primary text-white shadow-md shadow-blue-500/20"
-                                        : "text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white"
-                                )}
-                            >
-                                <item.icon className="text-[22px]" />
-                                <p className="text-sm font-medium leading-normal">{item.label}</p>
-                            </Link>
-                        );
-                    })}
+                    {items.map((item, index) => (
+                        <NavItem 
+                            key={item.path || index} 
+                            item={item} 
+                            location={location} 
+                            setIsOpen={setIsOpen} 
+                            unreadCount={item.path === '/superadmin/messages' ? unreadContactMsgs : null}
+                        />
+                    ))}
                 </nav>
             </div>
 
-            {/* User/System Status */}
-            <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between px-3 py-3 rounded-lg bg-slate-50 dark:bg-surface-dark/50 border border-slate-200 dark:border-surface-dark transition-colors duration-300">
-                    <div className="flex items-center gap-3">
-                        <div className="size-2 rounded-full bg-green-500 animate-pulse"></div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-medium text-slate-900 dark:text-white">{user?.name || 'User'}</span>
-                            <span className="text-[10px] text-slate-500 dark:text-text-secondary">
-                                {user?.isAdmin ? 'Superadmin' : 'API Connected'}
-                            </span>
-                        </div>
-                    </div>
+            {/* ── Version Badge (all users) ── */}
+            {currentVersion && (
+                <div className="px-3 pb-3">
                     <button
-                        onClick={logout}
-                        className="text-slate-400 dark:text-text-secondary hover:text-red-500 dark:hover:text-red-400 p-1 transition-colors"
-                        title="Logout"
+                        onClick={openChangelog}
+                        className="group flex items-center justify-center gap-2 py-3 mt-2 w-full rounded-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-white/10 cursor-pointer"
                     >
-                        <LogOut className="w-4 h-4" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                        <div className="relative">
+                            <Sparkles className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:text-purple-500 transition-colors duration-300" />
+                            {hasNewVersion && (
+                                <span className="absolute -top-1.5 -right-1.5 flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors duration-300">
+                                Version
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 group-hover:bg-purple-500/10 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
+                                v{currentVersion.version}
+                            </span>
+                            {hasNewVersion && (
+                                <span className="text-[9px] font-bold text-red-500 uppercase tracking-wider animate-pulse">New!</span>
+                            )}
+                        </div>
                     </button>
                 </div>
-            </div>
+            )}
+
         </aside>
-    );
+
+        {/* ── Changelog Modal ── */}
+        {changelogOpen && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setChangelogOpen(false)}>
+                <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-white/5 shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                                <Tag className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Changelog</h3>
+                                <p className="text-xs text-slate-500 dark:text-text-secondary">What's new in every update</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setChangelogOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Body */}
+                    <div className="overflow-y-auto flex-1 p-6">
+                        {changelogLoading ? (
+                            <div className="flex flex-col gap-6">
+                                {[...Array(3)].map((_, i) => (
+                                    <div key={i} className="animate-pulse">
+                                        <div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-24 mb-2"></div>
+                                        <div className="h-3 bg-slate-200 dark:bg-white/5 rounded w-48 mb-1"></div>
+                                        <div className="h-3 bg-slate-200 dark:bg-white/5 rounded w-64"></div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : changelog.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                <Tag className="w-10 h-10 mb-3 opacity-20" />
+                                <p className="text-sm font-medium">No changelogs yet.</p>
+                            </div>
+                        ) : (
+                            <div className="relative">
+                                {/* Timeline line */}
+                                <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-200 dark:bg-white/10"></div>
+
+                                <div className="flex flex-col gap-6">
+                                    {changelog.map((v, i) => (
+                                        <div key={v.id} className="relative pl-7">
+                                            {/* Timeline dot */}
+                                            <div className={cn(
+                                                "absolute left-0 top-1.5 w-[15px] h-[15px] rounded-full border-2 border-white dark:border-surface-dark z-10",
+                                                v.isCurrent
+                                                    ? "bg-purple-500 shadow-md shadow-purple-500/30"
+                                                    : "bg-slate-300 dark:bg-slate-600"
+                                            )}></div>
+
+                                            {/* Content */}
+                                            <div className={cn(
+                                                "p-4 rounded-xl border transition-colors",
+                                                v.isCurrent
+                                                    ? "bg-purple-50/50 dark:bg-purple-500/5 border-purple-200 dark:border-purple-500/20"
+                                                    : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5"
+                                            )}>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={cn(
+                                                            "px-2 py-0.5 rounded-md text-[10px] font-mono font-bold",
+                                                            v.isCurrent
+                                                                ? "bg-purple-500/10 text-purple-700 dark:text-purple-400"
+                                                                : "bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400"
+                                                        )}>
+                                                            v{v.version}
+                                                        </span>
+                                                        {v.isCurrent && (
+                                                            <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">Current</span>
+                                                        )}
+                                                    </div>
+                                                    {v.releasedAt && (
+                                                        <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                                                            <Calendar className="w-3 h-3" />
+                                                            {new Date(v.releasedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{v.title}</h4>
+                                                {v.changelog && (
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-line">{v.changelog}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+    </>);
 }

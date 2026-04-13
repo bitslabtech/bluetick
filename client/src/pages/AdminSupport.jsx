@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Bell, LifeBuoy, Ticket, Book, Map, Plus, Trash2, Send, CheckCircle2, MoreHorizontal, MessageSquare, CornerDownRight, ThumbsUp as ThumbsUpIcon, Filter, X, ExternalLink, Calendar, Clock, AlertCircle, User, Search } from 'lucide-react';
 
@@ -62,13 +63,13 @@ const AdminSupport = () => {
         if (showLoader) setLoading(true);
         try {
             if (activeTab === 'tickets') {
-                const res = await axios.get('http://localhost:5000/api/support/tickets');
+                const res = await axios.get('http://127.0.0.1:5000/api/support/tickets');
                 setTickets(res.data);
             } else if (activeTab === 'kb') {
-                const res = await axios.get('http://localhost:5000/api/support/kb');
+                const res = await axios.get('http://127.0.0.1:5000/api/support/kb');
                 setKbArticles(res.data);
             } else if (activeTab === 'roadmap') {
-                const res = await axios.get('http://localhost:5000/api/support/roadmap');
+                const res = await axios.get('http://127.0.0.1:5000/api/support/roadmap');
                 setRoadmap(res.data);
             }
         } catch (err) {
@@ -86,7 +87,7 @@ const AdminSupport = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="flex-1 overflow-hidden p-6 max-w-[1920px] mx-auto w-full flex flex-col relative z-0">
+            <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8 max-w-[1920px] mx-auto w-full flex flex-col relative">
 
                 {/* Modern Header: Title & Tabs Inline */}
                 <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4 shrink-0">
@@ -99,7 +100,7 @@ const AdminSupport = () => {
                     </div>
 
                     {/* Tabs - Glassmorphism Pills */}
-                    <div className="flex items-center bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-slate-200/60 dark:border-white/5 p-1.5 rounded-2xl shadow-sm">
+                    <div className="flex items-center bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-slate-200/60 dark:border-white/5 p-1.5 rounded-2xl shadow-sm overflow-x-auto w-full md:w-auto scrollbar-hide">
                         <button
                             onClick={() => setActiveTab('tickets')}
                             className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'tickets' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
@@ -240,7 +241,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
         if (!reply.trim()) return;
         setSending(true);
         try {
-            await axios.post(`http://localhost:5000/api/support/tickets/${ticket.id}/reply`, {
+            await axios.post(`http://127.0.0.1:5000/api/support/tickets/${ticket.id}/reply`, {
                 text: reply,
                 status: 'In Progress'
             });
@@ -256,8 +257,8 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+    return createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white dark:bg-[#0B1120] w-full max-w-4xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10 animate-in zoom-in-95 duration-200">
 
                 {/* Header */}
@@ -389,7 +390,8 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
@@ -413,7 +415,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
 
     const fetchCategories = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/support/kb/categories');
+            const res = await axios.get('http://127.0.0.1:5000/api/support/kb/categories');
             setCategories(res.data);
         } catch (err) { console.error(err); }
     };
@@ -422,9 +424,9 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
         if (!newCatName) return;
         try {
             if (editingCategory) {
-                await axios.put(`http://localhost:5000/api/support/kb/categories/${editingCategory.id}`, { name: newCatName, icon: newCatIcon });
+                await axios.put(`http://127.0.0.1:5000/api/support/kb/categories/${editingCategory.id}`, { name: newCatName, icon: newCatIcon });
             } else {
-                await axios.post('http://localhost:5000/api/support/kb/categories', { name: newCatName, icon: newCatIcon });
+                await axios.post('http://127.0.0.1:5000/api/support/kb/categories', { name: newCatName, icon: newCatIcon });
             }
             fetchCategories();
             setNewCatName('');
@@ -435,7 +437,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
     const deleteCategory = async (id) => {
         if (!window.confirm("Delete this category? Articles will remain but category reference will be broken.")) return;
         try {
-            await axios.delete(`http://localhost:5000/api/support/kb/categories/${id}`);
+            await axios.delete(`http://127.0.0.1:5000/api/support/kb/categories/${id}`);
             fetchCategories();
         } catch (err) { console.error(err); }
     };
@@ -446,7 +448,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
         const formData = new FormData();
         formData.append('image', file);
         try {
-            const res = await axios.post('http://localhost:5000/api/support/kb/upload-image', formData);
+            const res = await axios.post('http://127.0.0.1:5000/api/support/kb/upload-image', formData);
             const markdownImage = `\n![Image](${res.data.url})\n`;
             setNewContent(prev => prev + markdownImage);
             showToast({ type: 'success', title: 'Image Uploaded', message: 'Image inserted into article.' });
@@ -462,10 +464,10 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
 
         try {
             if (selectedArticleId) {
-                await axios.put(`http://localhost:5000/api/support/kb/${selectedArticleId}`, data);
+                await axios.put(`http://127.0.0.1:5000/api/support/kb/${selectedArticleId}`, data);
                 showToast({ type: 'success', title: 'Article Updated', message: 'Changes saved successfully.' });
             } else {
-                await axios.post('http://localhost:5000/api/support/kb', data);
+                await axios.post('http://127.0.0.1:5000/api/support/kb', data);
                 showToast({ type: 'success', title: 'Article Created', message: 'Knowledge Base article published.' });
             }
             resetEditor();
@@ -501,7 +503,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://localhost:5000/api/support/kb/${id}`);
+                    await axios.delete(`http://127.0.0.1:5000/api/support/kb/${id}`);
                     if (selectedArticleId === id) resetEditor();
                     refresh();
                     showToast({ type: 'success', title: 'Deleted', message: 'Article deleted.' });
@@ -785,14 +787,14 @@ const RoadmapManager = ({ items, refresh }) => {
     const [activeConfettiId, setActiveConfettiId] = useState(null);
 
     const handleCreate = async () => {
-        await axios.post('http://localhost:5000/api/support/roadmap', { title: newTitle, status: 'Requested' });
+        await axios.post('http://127.0.0.1:5000/api/support/roadmap', { title: newTitle, status: 'Requested' });
         setNewTitle('');
         refresh();
     };
 
     const handleUpdateStatus = async (id, newStatus) => {
         try {
-            await axios.put(`http://localhost:5000/api/support/roadmap/${id}`, { status: newStatus });
+            await axios.put(`http://127.0.0.1:5000/api/support/roadmap/${id}`, { status: newStatus });
             refresh();
         } catch (err) {
             console.error(err);
@@ -807,7 +809,7 @@ const RoadmapManager = ({ items, refresh }) => {
     ];
 
     return (
-        <div className="max-w-[1400px] w-full mx-auto h-full flex flex-col px-4">
+        <div className="max-w-[1200px] w-full mx-auto h-full flex flex-col px-6">
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-white/10 dark:to-white/5 p-1 rounded-2xl mb-8 flex gap-2 w-full max-w-md mx-auto shadow-lg">
                 <input
                     className="flex-1 bg-white dark:bg-[#0B1120] rounded-xl px-4 py-3 outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
@@ -818,7 +820,7 @@ const RoadmapManager = ({ items, refresh }) => {
                 <button onClick={handleCreate} className="px-6 rounded-xl bg-indigo-500 text-white font-bold hover:bg-indigo-400 transition-colors">Add</button>
             </div>
 
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 overflow-hidden min-h-0">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 overflow-hidden min-h-0">
                 {columns.map((col) => {
                     return (
                         <div key={col.id} className="flex flex-col h-full bg-slate-50/50 dark:bg-white/[0.02] rounded-2xl p-4 border border-slate-200/60 dark:border-white/5 overflow-hidden">
@@ -853,17 +855,20 @@ const RoadmapManager = ({ items, refresh }) => {
                                                     exit={{ opacity: 0, scale: 0.9 }}
                                                     transition={{ duration: 0.3 }}
                                                     key={item.id}
-                                                    className="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-slate-200 dark:border-white/5 hover:shadow-md group shrink-0"
+                                                    className="bg-white dark:bg-surface-dark p-3 rounded-lg shadow-sm border border-slate-200 dark:border-white/5 hover:shadow-md group shrink-0"
                                                 >
-                                                    <div className="font-bold text-slate-800 dark:text-white mb-2">{item.title}</div>
+                                                    <div className="font-bold text-slate-800 dark:text-white mb-0.5 text-sm">{item.title}</div>
+                                                    <div className="text-[10px] text-indigo-500 font-medium mb-2 opacity-80">
+                                                        👤 {item.suggesterName || 'System / Anonymous'}
+                                                    </div>
 
                                                     <div className="flex justify-between items-center pt-2 border-t border-slate-50 dark:border-white/5 mb-3">
-                                                        <span className="text-[10px] text-slate-400">{new Date(item.createdAt).toLocaleDateString()}</span>
+                                                        <span className="text-[10px] text-slate-400 font-medium">{new Date(item.createdAt).toLocaleDateString()}</span>
                                                         <motion.button
                                                             whileTap={{ scale: 0.9 }}
                                                             onClick={async () => {
                                                                 const wasVoted = item.voters?.includes(user?.id);
-                                                                await axios.post(`http://localhost:5000/api/support/roadmap/${item.id}/upvote`);
+                                                                await axios.post(`http://127.0.0.1:5000/api/support/roadmap/${item.id}/upvote`);
                                                                 if (!wasVoted) {
                                                                     setActiveConfettiId(item.id);
                                                                     setTimeout(() => setActiveConfettiId(null), 1000);
@@ -891,7 +896,7 @@ const RoadmapManager = ({ items, refresh }) => {
                                                         {col.id === 'Requested' && (
                                                             <button
                                                                 onClick={() => handleUpdateStatus(item.id, 'Approved')}
-                                                                className="w-full py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                                className="w-full py-1.5 bg-green-500 hover:bg-green-600 text-white text-[11px] font-bold rounded-md transition-colors flex items-center justify-center gap-1.5"
                                                             >
                                                                 <CheckCircle2 className="w-3 h-3" /> Approve
                                                             </button>
@@ -899,15 +904,15 @@ const RoadmapManager = ({ items, refresh }) => {
                                                         {col.id === 'Approved' && (
                                                             <button
                                                                 onClick={() => handleUpdateStatus(item.id, 'In Progress')}
-                                                                className="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                                className="w-full py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[11px] font-bold rounded-md transition-colors flex items-center justify-center gap-1.5"
                                                             >
-                                                                <CornerDownRight className="w-3 h-3" /> Start Development
+                                                                <CornerDownRight className="w-3 h-3" /> Start Dev
                                                             </button>
                                                         )}
                                                         {col.id === 'In Progress' && (
                                                             <button
                                                                 onClick={() => handleUpdateStatus(item.id, 'Live')}
-                                                                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                                className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold rounded-md transition-colors flex items-center justify-center gap-1.5"
                                                             >
                                                                 🚀 Mark Live
                                                             </button>

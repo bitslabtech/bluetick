@@ -30,6 +30,8 @@ const AdminNotifications = () => {
     const [formData, setFormData] = useState({
         title: '',
         message: '',
+        buttonName: '',
+        buttonUrl: '',
         type: 'Info', // Info, Success, Warning, Error
         targetType: 'All Users', // All Users, Specific User, Plan Subscribers
         targetValue: ''
@@ -43,7 +45,7 @@ const AdminNotifications = () => {
     const fetchBroadcasts = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:5000/api/notifications');
+            const res = await axios.get('http://127.0.0.1:5000/api/notifications');
             setBroadcasts(res.data);
         } catch (err) {
             console.error("Error fetching broadcasts:", err);
@@ -55,8 +57,8 @@ const AdminNotifications = () => {
     const fetchMetadata = async () => {
         try {
             const [usersRes, plansRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/admin/users'),
-                axios.get('http://localhost:5000/api/plans')
+                axios.get('http://127.0.0.1:5000/api/admin/users'),
+                axios.get('http://127.0.0.1:5000/api/plans')
             ]);
             setUsersList(usersRes.data);
             setPlansList(plansRes.data);
@@ -68,29 +70,27 @@ const AdminNotifications = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this broadcast?")) return;
         try {
-            await axios.delete(`http://localhost:5000/api/notifications/${id}`);
+            await axios.delete(`http://127.0.0.1:5000/api/notifications/${id}`);
             setBroadcasts(prev => prev.filter(b => b.id !== id));
-            showToast('Broadcast deleted successfully', 'success');
+            showToast({ type: 'success', title: 'Deleted', message: 'Broadcast deleted successfully.' });
         } catch (err) {
-            showToast('Failed to delete broadcast', 'error');
+            showToast({ type: 'error', title: 'Delete Failed', message: 'Failed to delete broadcast.' });
         }
     };
 
     const handleSend = async () => {
         setSending(true);
         try {
-            const payload = {
-                ...formData,
-                targetType: formData.targetType === 'All Users' ? 'all' :
-                    formData.targetType === 'Specific User' ? 'user' : 'plan'
-            };
+            const payload = { ...formData };
 
-            await axios.post('http://localhost:5000/api/notifications', payload);
-            showToast('Broadcast sent successfully!', 'success');
+            await axios.post('http://127.0.0.1:5000/api/notifications', payload);
+            showToast({ type: 'success', title: 'Sent', message: 'Broadcast sent successfully!' });
             setShowPreview(false);
             setFormData({
                 title: '',
                 message: '',
+                buttonName: '',
+                buttonUrl: '',
                 type: 'Info',
                 targetType: 'All Users',
                 targetValue: ''
@@ -98,7 +98,7 @@ const AdminNotifications = () => {
             fetchBroadcasts();
         } catch (err) {
             console.error(err);
-            showToast('Failed to send broadcast', 'error');
+            showToast({ type: 'error', title: 'Send Failed', message: 'Failed to send broadcast.' });
         } finally {
             setSending(false);
         }
@@ -139,7 +139,7 @@ const AdminNotifications = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="flex-1 overflow-y-auto p-6 lg:p-8 max-w-[1600px] mx-auto w-full pb-20">
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full pb-20">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Broadcast Manager</h1>
@@ -168,8 +168,8 @@ const AdminNotifications = () => {
                                                     key={type}
                                                     onClick={() => setFormData({ ...formData, type })}
                                                     className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${isActive
-                                                            ? `${activeStyles.border} ${activeStyles.bg}`
-                                                            : 'border-transparent bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10'
+                                                        ? `${activeStyles.border} ${activeStyles.bg}`
+                                                        : 'border-transparent bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10'
                                                         }`}
                                                 >
                                                     <div className={`${isActive ? activeStyles.color : 'text-slate-400'}`}>
@@ -194,8 +194,8 @@ const AdminNotifications = () => {
                                                 key={target}
                                                 onClick={() => setFormData({ ...formData, targetType: target, targetValue: '' })}
                                                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formData.targetType === target
-                                                        ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm'
-                                                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                                                    ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm'
+                                                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                                                     }`}
                                             >
                                                 {target}
@@ -258,6 +258,22 @@ const AdminNotifications = () => {
                                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white placeholder-slate-400 resize-none"
                                     />
+                                    <div className="flex gap-4">
+                                        <input
+                                            type="text"
+                                            placeholder="Button Name (Optional)"
+                                            value={formData.buttonName}
+                                            onChange={(e) => setFormData({ ...formData, buttonName: e.target.value })}
+                                            className="w-1/3 px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white placeholder-slate-400"
+                                        />
+                                        <input
+                                            type="url"
+                                            placeholder="Button URL (Optional)"
+                                            value={formData.buttonUrl}
+                                            onChange={(e) => setFormData({ ...formData, buttonUrl: e.target.value })}
+                                            className="w-2/3 px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white placeholder-slate-400"
+                                        />
+                                    </div>
                                 </div>
 
                                 <button
@@ -372,6 +388,18 @@ const AdminNotifications = () => {
                                         <div>
                                             <h4 className={`font-bold ${getTypeStyles(formData.type).color} mb-1`}>{formData.title}</h4>
                                             <p className="text-sm text-slate-700 dark:text-slate-200">{formData.message}</p>
+                                            {formData.buttonName && formData.buttonUrl && (
+                                                <div className="mt-3">
+                                                    <a
+                                                        href={formData.buttonUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-md transition-colors"
+                                                    >
+                                                        {formData.buttonName}
+                                                    </a>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -382,9 +410,14 @@ const AdminNotifications = () => {
                                         <span className="font-bold text-slate-900 dark:text-white">{formData.targetType}</span>
                                     </div>
                                     {formData.targetValue && (
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-500">Specific Target:</span>
-                                            <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{formData.targetValue}</span>
+                                        <div className="flex justify-between gap-4">
+                                            <span className="text-slate-500 shrink-0">Specific Target:</span>
+                                            <span className="font-bold text-slate-900 dark:text-white truncate text-right">
+                                                {formData.targetType === 'Specific User' 
+                                                    ? usersList.find(u => u.id === formData.targetValue)?.name + ' (' + usersList.find(u => u.id === formData.targetValue)?.email + ')'
+                                                    : formData.targetValue
+                                                }
+                                            </span>
                                         </div>
                                     )}
                                 </div>
