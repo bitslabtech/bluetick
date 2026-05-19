@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-import { Save, RefreshCw, LayoutTemplate, MessageSquare, BarChart, Users, Type, Image as ImageIcon, Plus, Trash2, CheckCircle, Smartphone, Globe, Monitor, Target, Zap, Tag, DollarSign, Percent, Calendar, FileText, Palette, Key, Server, Edit, X, Phone, Upload } from 'lucide-react';
+import { Save, RefreshCw, LayoutTemplate, MessageSquare, BarChart, Users, Type, Image as ImageIcon, Plus, Trash2, CheckCircle, Smartphone, Globe, Monitor, Target, Zap, Tag, DollarSign, Percent, Calendar, FileText, Palette, Key, Server, Edit, X, Phone, Upload, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
@@ -9,6 +9,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import BlogManager from '../components/landing/BlogManager';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import { advancedFeatures, FEATURE_CATEGORIES, industries } from './LandingPage';
 
 const InputGroup = ({ label, value, onChange, placeholder, type = "text" }) => (
     <div className="space-y-2">
@@ -41,6 +42,7 @@ const AdminLandingPage = () => {
     const [config, setConfig] = useState(null);
     const [mainTab, setMainTab] = useState('content'); // content | seo | coupons
     const [contentTab, setContentTab] = useState('hero'); // hero | features | testimonials | cta | brand
+    const [advFeatureTab, setAdvFeatureTab] = useState('whatsapp');
 
     // Public Pages Modal State
     const [showPageEditor, setShowPageEditor] = useState(false);
@@ -50,7 +52,7 @@ const AdminLandingPage = () => {
 
     // Branding Settings (from /api/settings)
     const [brandingSettings, setBrandingSettings] = useState({
-        appName: 'WhatsApp Cloud',
+        appName: 'Bluetick',
         appTagline: 'Business API',
         supportEmail: '',
         currency: 'USD',
@@ -68,7 +70,7 @@ const AdminLandingPage = () => {
         try {
             const fd = new FormData();
             fd.append('logo', file);
-            const res = await axios.post('http://127.0.0.1:5000/api/settings/upload-logo', fd, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/upload-logo`, fd, {
                 headers: { 'x-auth-token': localStorage.getItem('token'), 'Content-Type': 'multipart/form-data' }
             });
             setBrandingSettings(prev => ({ ...prev, logoUrl: res.data.logoUrl }));
@@ -101,7 +103,7 @@ const AdminLandingPage = () => {
 
     const fetchPlans = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/plans');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/plans`);
             setPlans(res.data);
         } catch (err) {
             console.error("Error fetching plans:", err);
@@ -110,7 +112,7 @@ const AdminLandingPage = () => {
 
     const fetchCoupons = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/coupons', { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/coupons`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
             setCoupons(res.data);
         } catch (err) {
             console.error('Failed to fetch coupons:', err);
@@ -138,10 +140,10 @@ const AdminLandingPage = () => {
 
 
             if (editingCoupon) {
-                await axios.put(`http://127.0.0.1:5000/api/coupons/${editingCoupon.id}`, payload, hdrs);
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/coupons/${editingCoupon.id}`, payload, hdrs);
                 showToast({ type: 'success', title: 'Updated', message: 'Coupon updated!' });
             } else {
-                await axios.post('http://127.0.0.1:5000/api/coupons', payload, hdrs);
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/coupons`, payload, hdrs);
                 showToast({ type: 'success', title: 'Created', message: 'Coupon created!' });
             }
             setShowCouponModal(false);
@@ -160,7 +162,7 @@ const AdminLandingPage = () => {
             confirmText: 'Delete', cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/coupons/${id}`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/coupons/${id}`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
                     showToast({ type: 'success', title: 'Deleted', message: 'Coupon deleted.' });
                     fetchCoupons();
                 } catch (err) {
@@ -172,7 +174,7 @@ const AdminLandingPage = () => {
 
     const handleToggleCoupon = async (id, currentStatus) => {
         try {
-            await axios.put(`http://127.0.0.1:5000/api/coupons/${id}`, { isActive: !currentStatus }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/coupons/${id}`, { isActive: !currentStatus }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
             fetchCoupons();
             showToast({ type: 'success', title: 'Updated', message: `Coupon turned ${!currentStatus ? 'ON' : 'OFF'}` });
         } catch (err) {
@@ -182,8 +184,58 @@ const AdminLandingPage = () => {
 
     const fetchConfig = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/landing');
-            setConfig(res.data);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing`);
+            const data = res.data;
+
+            // Auto-migrate to inject the missing 14 advanced features into the admin config
+            if (data?.advancedFeatures?.features) {
+                const dbFeatures = data.advancedFeatures.features;
+                const finalFeatures = [];
+
+                dbFeatures.forEach(dbFeat => {
+                    const baseFeat = advancedFeatures.find(af => af.id === dbFeat.id || (af.id === 'analytics_wa' && dbFeat.id === 'analytics'));
+                    if (baseFeat) {
+                        finalFeatures.push({ ...baseFeat, ...dbFeat, id: baseFeat.id, category: baseFeat.category, preview: baseFeat.preview });
+                    }
+                });
+
+                advancedFeatures.forEach(af => {
+                    if (!finalFeatures.find(f => f.id === af.id || (f.id === 'analytics' && af.id === 'analytics_wa'))) {
+                        finalFeatures.push(af);
+                    }
+                });
+
+                // Group by category to ensure autoplay doesn't jump
+                const groupedFeatures = [];
+                ['whatsapp', 'meta', 'store', 'vcard'].forEach(cat => {
+                    groupedFeatures.push(...finalFeatures.filter(f => f.category === cat));
+                });
+
+                data.advancedFeatures.features = groupedFeatures;
+            }
+
+            // Auto-migrate industries — always ensure all 16 are present
+            if (data?.industries) {
+                const dbItems = data.industries.items || [];
+                const merged = dbItems.map(dbInd => {
+                    const base = industries.find(i => i.id === dbInd.id);
+                    return base ? { ...base, ...dbInd } : dbInd;
+                });
+                // Append any hardcoded industries missing from DB
+                industries.forEach(ind => {
+                    if (!merged.find(m => m.id === ind.id)) merged.push(ind);
+                });
+                data.industries.items = merged;
+            } else {
+                // No industries in DB at all — inject defaults
+                data.industries = {
+                    title: 'Built for every industry',
+                    subtitle: 'See how leading verticals leverage WhatsApp to cut costs and drive unprecedented revenue.',
+                    items: industries
+                };
+            }
+
+            setConfig(data);
             setLoading(false);
         } catch (err) {
             console.error(err);
@@ -193,12 +245,12 @@ const AdminLandingPage = () => {
 
     const fetchBrandingSettings = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/settings', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             const d = res.data;
             setBrandingSettings({
-                appName: d.appName || 'WhatsApp Cloud',
+                appName: d.appName || 'Bluetick',
                 appTagline: d.appTagline || 'Business API',
                 supportEmail: d.supportEmail || '',
                 currency: d.currency || 'USD',
@@ -215,10 +267,10 @@ const AdminLandingPage = () => {
         setSaving(true);
         try {
             // Save landing page config
-            await axios.put('http://127.0.0.1:5000/api/landing', config);
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/landing`, config);
             // If on branding tab, also save branding settings
             if (mainTab === 'content' && contentTab === 'brand') {
-                await axios.post('http://127.0.0.1:5000/api/settings', brandingSettings, {
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, brandingSettings, {
                     headers: { 'x-auth-token': localStorage.getItem('token') }
                 });
             }
@@ -241,7 +293,7 @@ const AdminLandingPage = () => {
             onConfirm: async () => {
                 setLoading(true);
                 try {
-                    const res = await axios.post('http://127.0.0.1:5000/api/landing/reset');
+                    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/reset`);
                     setConfig(res.data);
                     setLoading(false);
                     showToast({ type: 'success', title: 'Reset', message: 'Configuration reset to defaults.' });
@@ -362,6 +414,7 @@ const AdminLandingPage = () => {
                                     { id: 'footer', icon: LayoutTemplate, label: 'Footer Menu', desc: 'Columns & bottom text' },
                                     { id: 'public_pages', icon: FileText, label: 'Custom Pages', desc: 'About, Privacy, Terms...' },
                                     { id: 'contact_page', icon: Phone, label: 'Contact Settings', desc: 'Email, Address, Phone' },
+                                    { id: 'ai_chatbot', icon: MessageSquare, label: 'AI Chatbot', desc: 'Public Gemini assistant' },
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
@@ -369,7 +422,7 @@ const AdminLandingPage = () => {
                                         className={`w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-start gap-3 group ${contentTab === tab.id
                                             ? 'bg-white dark:bg-white/10 shadow-sm border border-slate-200 dark:border-white/10 text-indigo-600 dark:text-indigo-400'
                                             : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white border border-transparent'
-                                        }`}
+                                            }`}
                                     >
                                         <tab.icon className={`w-4 h-4 mt-0.5 shrink-0 ${contentTab === tab.id ? 'text-indigo-500' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
                                         <div className="min-w-0">
@@ -393,7 +446,22 @@ const AdminLandingPage = () => {
                                             <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Hero Section</h3>
                                             <p className="text-sm text-slate-500 dark:text-slate-400">The first section visitors see — make it count.</p>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 gap-6">
+                                            <div>
+                                                <label className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2 block">Layout Style</label>
+                                                <div className="flex gap-4">
+                                                    <label className={`flex-1 p-4 rounded-xl border-2 cursor-pointer transition-all ${(!config.hero.layout || config.hero.layout === 'type1') ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}>
+                                                        <input type="radio" name="heroLayout" className="hidden" checked={!config.hero.layout || config.hero.layout === 'type1'} onChange={() => setConfig({ ...config, hero: { ...config.hero, layout: 'type1' } })} />
+                                                        <div className="font-bold text-slate-700 dark:text-slate-200 text-center">Type 1 (Side-by-side)</div>
+                                                    </label>
+                                                    <label className={`flex-1 p-4 rounded-xl border-2 cursor-pointer transition-all ${config.hero.layout === 'type2' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}>
+                                                        <input type="radio" name="heroLayout" className="hidden" checked={config.hero.layout === 'type2'} onChange={() => setConfig({ ...config, hero: { ...config.hero, layout: 'type2' } })} />
+                                                        <div className="font-bold text-slate-700 dark:text-slate-200 text-center">Type 2 (Centered + Image)</div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                                             <div className="col-span-2">
                                                 <InputGroup label="Headline Title" value={config.hero.title}
                                                     onChange={v => setConfig({ ...config, hero: { ...config.hero, title: v } })}
@@ -409,6 +477,41 @@ const AdminLandingPage = () => {
                                             <InputGroup label="Primary Button Link" value={config.hero.ctaLink}
                                                 onChange={v => setConfig({ ...config, hero: { ...config.hero, ctaLink: v } })} />
                                         </div>
+                                        <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-2">
+                                            <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Hero Image ({config.hero.layout === 'type2' ? 'Type 2' : 'Type 1'})</label>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{config.hero.layout === 'type2' ? 'Shows full-width below text in Type 2.' : 'Replaces default mockup on the right side in Type 1.'}</p>
+                                            {(config.hero.layout === 'type2' ? config.hero.imageType2 : config.hero.imageType1) ? (
+                                                <div className="relative group w-full h-48 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm">
+                                                    <img src={config.hero.layout === 'type2' ? config.hero.imageType2 : config.hero.imageType1} className="w-full h-full object-cover" alt="Hero" />
+                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <button onClick={() => setConfig({ ...config, hero: { ...config.hero, [config.hero.layout === 'type2' ? 'imageType2' : 'imageType1']: '' } })} className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 flex items-center gap-2">
+                                                            <X className="w-3.5 h-3.5" /> Remove
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <label className="w-full border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-slate-400 hover:text-indigo-500 h-32">
+                                                    <Upload className="w-6 h-6 mb-1" />
+                                                    <span className="text-sm font-bold">Click to Upload Hero Image ({config.hero.layout === 'type2' ? 'Type 2' : 'Type 1'})</span>
+                                                    <span className="text-xs opacity-70">High resolution recommended. PNG, JPG up to 5MB</span>
+                                                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                                        const file = e.target.files[0];
+                                                        if (!file) return;
+                                                        const fd = new FormData();
+                                                        fd.append('image', file);
+                                                        try {
+                                                            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-hero`, fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                            const key = config.hero.layout === 'type2' ? 'imageType2' : 'imageType1';
+                                                            setConfig({ ...config, hero: { ...config.hero, [key]: res.data.imageUrl } });
+                                                            showToast({ type: 'success', title: 'Uploaded', message: 'Hero image uploaded.' });
+                                                        } catch (err) {
+                                                            showToast({ type: 'error', title: 'Error', message: 'Failed to upload image.' });
+                                                        }
+                                                    }} />
+                                                </label>
+                                            )}
+                                        </div>
+
                                         <div className="pt-6 border-t border-slate-100 dark:border-white/5">
                                             <h4 className="font-bold text-slate-900 dark:text-white mb-4">Visual Style</h4>
                                             <div className="grid grid-cols-2 gap-6">
@@ -457,7 +560,7 @@ const AdminLandingPage = () => {
                                                         <div className="font-bold text-slate-700 dark:text-slate-300 mb-2 border-b border-slate-200 dark:border-white/10 pb-2">Card: {card.id.toUpperCase()}</div>
                                                         <InputGroup label="Tag" value={card.tag} onChange={v => { const nc = [...config.capabilities.cards]; nc[idx].tag = v; setConfig({ ...config, capabilities: { ...config.capabilities, cards: nc } }); }} />
                                                         <InputGroup label="Title" value={card.title} onChange={v => { const nc = [...config.capabilities.cards]; nc[idx].title = v; setConfig({ ...config, capabilities: { ...config.capabilities, cards: nc } }); }} />
-                                                        
+
                                                         {card.desc !== undefined && (
                                                             <InputGroup label="Description" type="textarea" value={card.desc} onChange={v => { const nc = [...config.capabilities.cards]; nc[idx].desc = v; setConfig({ ...config, capabilities: { ...config.capabilities, cards: nc } }); }} />
                                                         )}
@@ -485,7 +588,7 @@ const AdminLandingPage = () => {
                                                                             const fd = new FormData();
                                                                             fd.append('image', file);
                                                                             try {
-                                                                                const res = await axios.post('http://127.0.0.1:5000/api/landing/upload-capability', fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-capability`, fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
                                                                                 const nc = [...config.capabilities.cards];
                                                                                 nc[idx].image = res.data.imageUrl;
                                                                                 setConfig({ ...config, capabilities: { ...config.capabilities, cards: nc } });
@@ -520,71 +623,130 @@ const AdminLandingPage = () => {
                                         </div>
 
                                         <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-5">
-                                            <h4 className="font-bold text-slate-900 dark:text-white">Feature Cards</h4>
+                                            <div className="flex flex-col gap-4">
+                                                <h4 className="font-bold text-slate-900 dark:text-white">Feature Cards</h4>
+
+                                                {/* TABS */}
+                                                <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                                                    {FEATURE_CATEGORIES.map(cat => (
+                                                        <button
+                                                            key={cat.id}
+                                                            onClick={() => setAdvFeatureTab(cat.id)}
+                                                            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 ${advFeatureTab === cat.id
+                                                                ? 'bg-indigo-600 text-white shadow-md'
+                                                                : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10'
+                                                                }`}
+                                                        >
+                                                            <cat.icon className="w-4 h-4" /> {cat.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
                                             <div className="space-y-4">
-                                                {config.advancedFeatures.features.map((feat, idx) => {
-                                                    const updateFeat = (key, val) => {
+                                                {(() => {
+                                                    const moveFeature = (currentIndex, direction) => {
                                                         const nf = [...config.advancedFeatures.features];
-                                                        nf[idx] = { ...nf[idx], [key]: val };
-                                                        setConfig({ ...config, advancedFeatures: { ...config.advancedFeatures, features: nf } });
+                                                        let targetIndex = -1;
+                                                        if (direction === 'up') {
+                                                            for (let i = currentIndex - 1; i >= 0; i--) {
+                                                                if (nf[i].category === nf[currentIndex].category) {
+                                                                    targetIndex = i;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        } else {
+                                                            for (let i = currentIndex + 1; i < nf.length; i++) {
+                                                                if (nf[i].category === nf[currentIndex].category) {
+                                                                    targetIndex = i;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                        if (targetIndex !== -1) {
+                                                            const temp = nf[currentIndex];
+                                                            nf[currentIndex] = nf[targetIndex];
+                                                            nf[targetIndex] = temp;
+                                                            setConfig({ ...config, advancedFeatures: { ...config.advancedFeatures, features: nf } });
+                                                        }
                                                     };
-                                                    return (
-                                                        <div key={idx} className="p-5 rounded-2xl bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 space-y-4">
-                                                            <div className="flex items-center gap-3 mb-1 pb-3 border-b border-slate-200 dark:border-white/10">
-                                                                <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                                                                <span className="font-bold text-slate-700 dark:text-slate-200 capitalize">{feat.label || feat.id}</span>
-                                                                <span className="ml-auto text-[10px] text-slate-400 font-mono uppercase">{feat.id}</span>
-                                                            </div>
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <InputGroup label="Tab Label" value={feat.label} onChange={v => updateFeat('label', v)} />
-                                                                <InputGroup label="Tag" value={feat.tagText} onChange={v => updateFeat('tagText', v)} />
-                                                            </div>
-                                                            <InputGroup label="Feature Title" value={feat.title} onChange={v => updateFeat('title', v)} />
-                                                            <InputGroup label="Description" type="textarea" value={feat.desc} onChange={v => updateFeat('desc', v)} />
-                                                            <div className="space-y-1">
-                                                                <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Stats Chips <span className="font-normal normal-case opacity-60">(comma-separated)</span></label>
-                                                                <input
-                                                                    className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white text-sm"
-                                                                    value={Array.isArray(feat.stats) ? feat.stats.join(', ') : feat.stats}
-                                                                    onChange={e => updateFeat('stats', e.target.value)}
-                                                                    placeholder="e.g. 98% Open Rate, 45% CTR, 3x Revenue"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Preview Image <span className="font-normal normal-case opacity-60">(replaces animated mockup)</span></label>
-                                                                {feat.image ? (
-                                                                    <div className="relative group w-full h-32 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm">
-                                                                        <img src={feat.image} className="w-full h-full object-cover" alt="Feature preview" />
-                                                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                            <button onClick={() => updateFeat('image', '')} className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 flex items-center gap-2">
-                                                                                <X className="w-3.5 h-3.5" /> Remove Image
-                                                                            </button>
-                                                                        </div>
+
+                                                    return config.advancedFeatures.features.map((feat, idx) => {
+                                                        if (feat.category !== advFeatureTab) return null;
+
+                                                        const updateFeat = (key, val) => {
+                                                            const nf = [...config.advancedFeatures.features];
+                                                            nf[idx] = { ...nf[idx], [key]: val };
+                                                            setConfig({ ...config, advancedFeatures: { ...config.advancedFeatures, features: nf } });
+                                                        };
+                                                        return (
+                                                            <div key={idx} className="p-5 rounded-2xl bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 space-y-4">
+                                                                <div className="flex items-center gap-3 mb-1 pb-3 border-b border-slate-200 dark:border-white/10">
+                                                                    <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                                                                    <span className="font-bold text-slate-700 dark:text-slate-200 capitalize">{feat.label || feat.id}</span>
+
+                                                                    <div className="ml-auto flex items-center gap-1">
+                                                                        <button onClick={() => moveFeature(idx, 'up')} className="p-1.5 hover:bg-slate-200 dark:hover:bg-white/10 rounded transition-colors" title="Move Up">
+                                                                            <ChevronUp className="w-4 h-4 text-slate-500" />
+                                                                        </button>
+                                                                        <button onClick={() => moveFeature(idx, 'down')} className="p-1.5 hover:bg-slate-200 dark:hover:bg-white/10 rounded transition-colors" title="Move Down">
+                                                                            <ChevronDown className="w-4 h-4 text-slate-500" />
+                                                                        </button>
                                                                     </div>
-                                                                ) : (
-                                                                    <label className="w-full border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-slate-400 hover:text-indigo-500 h-28">
-                                                                        <Upload className="w-6 h-6 mb-1" />
-                                                                        <span className="text-xs font-bold">Click to Upload Preview Image</span>
-                                                                        <span className="text-[10px] opacity-70">PNG, JPG up to 5MB · Replaces animated mockup</span>
-                                                                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                                                                            const file = e.target.files[0];
-                                                                            if (!file) return;
-                                                                            const fd = new FormData();
-                                                                            fd.append('image', file);
-                                                                            try {
-                                                                                const res = await axios.post('http://127.0.0.1:5000/api/landing/upload-feature', fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
-                                                                                updateFeat('image', res.data.imageUrl);
-                                                                                showToast({ type: 'success', title: 'Uploaded', message: 'Image uploaded successfully.' });
-                                                                            } catch (err) {
-                                                                                showToast({ type: 'error', title: 'Error', message: 'Failed to upload image.' });
-                                                                            }
-                                                                        }} />
-                                                                    </label>
-                                                                )}
+
+                                                                    <span className="text-[10px] text-slate-400 font-mono uppercase ml-2">{feat.id}</span>
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <InputGroup label="Tab Label" value={feat.label} onChange={v => updateFeat('label', v)} />
+                                                                    <InputGroup label="Tag" value={feat.tagText} onChange={v => updateFeat('tagText', v)} />
+                                                                </div>
+                                                                <InputGroup label="Feature Title" value={feat.title} onChange={v => updateFeat('title', v)} />
+                                                                <InputGroup label="Description" type="textarea" value={feat.desc} onChange={v => updateFeat('desc', v)} />
+                                                                <div className="space-y-1">
+                                                                    <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Stats Chips <span className="font-normal normal-case opacity-60">(comma-separated)</span></label>
+                                                                    <input
+                                                                        className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white text-sm"
+                                                                        value={Array.isArray(feat.stats) ? feat.stats.join(', ') : feat.stats}
+                                                                        onChange={e => updateFeat('stats', e.target.value)}
+                                                                        placeholder="e.g. 98% Open Rate, 45% CTR, 3x Revenue"
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Preview Image <span className="font-normal normal-case opacity-60">(replaces animated mockup)</span></label>
+                                                                    {feat.image ? (
+                                                                        <div className="relative group w-full h-32 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm">
+                                                                            <img src={feat.image} className="w-full h-full object-cover" alt="Feature preview" />
+                                                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                                <button onClick={() => updateFeat('image', '')} className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 flex items-center gap-2">
+                                                                                    <X className="w-3.5 h-3.5" /> Remove Image
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <label className="w-full border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-slate-400 hover:text-indigo-500 h-28">
+                                                                            <Upload className="w-6 h-6 mb-1" />
+                                                                            <span className="text-xs font-bold">Click to Upload Preview Image</span>
+                                                                            <span className="text-[10px] opacity-70">PNG, JPG up to 5MB · Replaces animated mockup</span>
+                                                                            <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                                                                const file = e.target.files[0];
+                                                                                if (!file) return;
+                                                                                const fd = new FormData();
+                                                                                fd.append('image', file);
+                                                                                try {
+                                                                                    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-feature`, fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                                    updateFeat('image', res.data.imageUrl);
+                                                                                    showToast({ type: 'success', title: 'Uploaded', message: 'Image uploaded successfully.' });
+                                                                                } catch (err) {
+                                                                                    showToast({ type: 'error', title: 'Error', message: 'Failed to upload image.' });
+                                                                                }
+                                                                            }} />
+                                                                        </label>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        );
+                                                    });
+                                                })()}
                                             </div>
                                         </div>
                                     </div>
@@ -654,7 +816,7 @@ const AdminLandingPage = () => {
                                                                             const fd = new FormData();
                                                                             fd.append('image', file);
                                                                             try {
-                                                                                const res = await axios.post('http://127.0.0.1:5000/api/landing/upload-industry', fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-industry`, fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
                                                                                 updateInd('image', res.data.imageUrl);
                                                                                 showToast({ type: 'success', title: 'Uploaded', message: 'Image uploaded successfully.' });
                                                                             } catch (err) {
@@ -709,7 +871,8 @@ const AdminLandingPage = () => {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Setup Steps</h3>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400">Edit the "Setup in 5 Minutes" section on the landing page.</p>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">Edit the "f:\Bitslab\Whatsapp cloud" section on the landing page.</p>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">Edit the "f:\Bitslab\Whatsapp cloud" section on the landing page.</p>
                                             </div>
                                             <button onClick={() => setConfig({ ...config, steps: [...(config.steps || []), { title: 'New Step', description: 'Describe this step.', icon: 'Zap' }] })}
                                                 className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-indigo-100 transition-colors shrink-0">
@@ -986,20 +1149,20 @@ const AdminLandingPage = () => {
                                             {(config.footer?.columns || []).map((col, cIdx) => (
                                                 <div key={cIdx} className="p-5 rounded-2xl bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 space-y-4">
                                                     <div className="flex justify-between items-center">
-                                                        <input 
-                                                            value={col.heading} 
-                                                            onChange={e => { const nc = [...config.footer.columns]; nc[cIdx].heading = e.target.value; setConfig({ ...config, footer: { ...config.footer, columns: nc }}); }}
+                                                        <input
+                                                            value={col.heading}
+                                                            onChange={e => { const nc = [...config.footer.columns]; nc[cIdx].heading = e.target.value; setConfig({ ...config, footer: { ...config.footer, columns: nc } }); }}
                                                             className="font-bold text-lg bg-transparent border-none outline-none focus:ring-0 text-slate-900 dark:text-white w-[200px]"
                                                             placeholder="Column Heading"
                                                         />
                                                         <div className="flex items-center gap-4">
-                                                            <button 
-                                                                onClick={() => { const nc = [...config.footer.columns]; nc[cIdx].links.push({ label: 'New Link', href: '/' }); setConfig({ ...config, footer: { ...config.footer, columns: nc }}); }}
+                                                            <button
+                                                                onClick={() => { const nc = [...config.footer.columns]; nc[cIdx].links.push({ label: 'New Link', href: '/' }); setConfig({ ...config, footer: { ...config.footer, columns: nc } }); }}
                                                                 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
                                                                 + Add Link
                                                             </button>
-                                                            <button 
-                                                                onClick={() => { const nc = config.footer.columns.filter((_, i) => i !== cIdx); setConfig({ ...config, footer: { ...config.footer, columns: nc }}); }}
+                                                            <button
+                                                                onClick={() => { const nc = config.footer.columns.filter((_, i) => i !== cIdx); setConfig({ ...config, footer: { ...config.footer, columns: nc } }); }}
                                                                 className="p-1.5 text-slate-400 rounded-lg hover:bg-white dark:hover:bg-surface-dark hover:text-red-500 border border-transparent hover:border-slate-200 dark:hover:border-white/10 transition-all shadow-sm">
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
@@ -1010,20 +1173,20 @@ const AdminLandingPage = () => {
                                                         {col.links.length === 0 && <p className="text-sm text-slate-400 italic mb-2">No links in this column.</p>}
                                                         {col.links.map((link, lIdx) => (
                                                             <div key={lIdx} className="flex gap-3 items-center group">
-                                                                <input 
+                                                                <input
                                                                     value={link.label}
-                                                                    onChange={e => { const nc = [...config.footer.columns]; nc[cIdx].links[lIdx].label = e.target.value; setConfig({ ...config, footer: { ...config.footer, columns: nc }}); }}
+                                                                    onChange={e => { const nc = [...config.footer.columns]; nc[cIdx].links[lIdx].label = e.target.value; setConfig({ ...config, footer: { ...config.footer, columns: nc } }); }}
                                                                     className="flex-1 px-3 py-2 text-sm bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:border-indigo-500 dark:text-white"
                                                                     placeholder="Link Label"
                                                                 />
-                                                                <input 
+                                                                <input
                                                                     value={link.href}
-                                                                    onChange={e => { const nc = [...config.footer.columns]; nc[cIdx].links[lIdx].href = e.target.value; setConfig({ ...config, footer: { ...config.footer, columns: nc }}); }}
+                                                                    onChange={e => { const nc = [...config.footer.columns]; nc[cIdx].links[lIdx].href = e.target.value; setConfig({ ...config, footer: { ...config.footer, columns: nc } }); }}
                                                                     className="flex-[1.5] px-3 py-2 text-sm bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:border-indigo-500 text-slate-500 dark:text-slate-400"
                                                                     placeholder="URL or /path"
                                                                 />
-                                                                <button 
-                                                                    onClick={() => { const nc = [...config.footer.columns]; nc[cIdx].links = nc[cIdx].links.filter((_, i) => i !== lIdx); setConfig({ ...config, footer: { ...config.footer, columns: nc }}); }}
+                                                                <button
+                                                                    onClick={() => { const nc = [...config.footer.columns]; nc[cIdx].links = nc[cIdx].links.filter((_, i) => i !== lIdx); setConfig({ ...config, footer: { ...config.footer, columns: nc } }); }}
                                                                     className="p-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                     <Trash2 className="w-4 h-4" />
                                                                 </button>
@@ -1069,17 +1232,17 @@ const AdminLandingPage = () => {
                                                         <p className="text-sm text-slate-500 font-mono mt-1">{page.path}</p>
                                                     </div>
                                                     <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingPageKey(page.key);
-                                                            setPageEditorTitle(page.title);
-                                                            setPageEditorContent(config.publicPages?.[page.key] || '');
-                                                            setShowPageEditor(true);
-                                                        }}
-                                                        className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
-                                                    >
-                                                        <Edit className="w-4 h-4" /> Edit Content
-                                                    </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingPageKey(page.key);
+                                                                setPageEditorTitle(page.title);
+                                                                setPageEditorContent(config.publicPages?.[page.key] || '');
+                                                                setShowPageEditor(true);
+                                                            }}
+                                                            className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+                                                        >
+                                                            <Edit className="w-4 h-4" /> Edit Content
+                                                        </button>
                                                     </div>
                                                 </div>
                                             ))}
@@ -1126,6 +1289,37 @@ const AdminLandingPage = () => {
                                     </div>
                                 )}
 
+                                {/* AI CHATBOT SETTINGS */}
+                                {contentTab === 'ai_chatbot' && (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">AI Chatbot</h3>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">Configure the public Gemini AI assistant.</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" className="sr-only peer" checked={config.aiChatbot?.enabled || false}
+                                                    onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, enabled: e.target.checked } })} />
+                                                <div className="w-11 h-6 bg-slate-200 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                                <span className="ml-3 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">{config.aiChatbot?.enabled ? 'Enabled' : 'Disabled'}</span>
+                                            </label>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-6">
+                                            <div className="col-span-1">
+                                                <InputGroup label="Welcome Message" value={config.aiChatbot?.welcomeMessage || ''}
+                                                    onChange={v => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, welcomeMessage: v } })}
+                                                    placeholder="Hi there! How can I help you learn more about our platform?" />
+                                            </div>
+                                            <div className="col-span-1">
+                                                <InputGroup type="textarea" label="Knowledge Base Data (Instructions & Facts)" value={config.aiChatbot?.knowledgeBase || ''}
+                                                    onChange={v => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, knowledgeBase: v } })}
+                                                    placeholder="Paste all pricing details, features, and FAQs here. The AI will strictly use this data to answer questions." />
+                                                <p className="text-xs text-slate-500 mt-2">The Gemini AI model is instructed to strictly answer questions based on this knowledge base and refuse off-topic inquiries.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                             </div>{/* end right panel */}
                         </div>{/* end split layout */}
                     </div>
@@ -1147,7 +1341,7 @@ const AdminLandingPage = () => {
                                 label="Meta Title"
                                 value={config.seo?.title || ''}
                                 onChange={v => setConfig({ ...config, seo: { ...config.seo, title: v } })}
-                                placeholder="e.g. WhatsApp Cloud - Best Bulk Sender"
+                                placeholder="e.g. Bluetick - Best Bulk Sender"
                             />
 
                             <InputGroup
@@ -1236,7 +1430,7 @@ const AdminLandingPage = () => {
                                         <div className="text-xs text-slate-500">Submit this to Google Search Console</div>
                                     </div>
                                     <a
-                                        href="http://127.0.0.1:5000/sitemap.xml"
+                                        href={`${import.meta.env.VITE_API_URL}/sitemap.xml`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="text-indigo-600 dark:text-indigo-400 text-sm font-mono underline hover:text-indigo-500"
@@ -1253,106 +1447,106 @@ const AdminLandingPage = () => {
                 {mainTab === 'coupons' && (
                     <div className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-y-auto" style={{ height: '680px' }}>
                         <div className="p-8">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-                            <div>
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <Tag className="w-6 h-6 text-indigo-500" /> Discount Coupons
-                                </h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage promo codes and checkout discounts.</p>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <Tag className="w-6 h-6 text-indigo-500" /> Discount Coupons
+                                    </h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage promo codes and checkout discounts.</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setEditingCoupon(null);
+                                        setCouponForm({
+                                            code: '', discountType: 'percentage', discountValue: 0, startDate: '', expiryDate: '',
+                                            maxUses: 0, userLimit: 1, minPurchaseAmount: 0, isValidForUpgrades: false,
+                                            isFirstPurchaseOnly: false, validIntervals: '', maxDiscountCap: 0, allowedEmails: ''
+                                        });
+                                        setShowCouponModal(true);
+                                    }}
+                                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2 whitespace-nowrap"
+                                >
+                                    <Plus className="w-4 h-4" /> Create Coupon
+                                </button>
                             </div>
-                            <button
-                                onClick={() => {
-                                    setEditingCoupon(null);
-                                    setCouponForm({
-                                        code: '', discountType: 'percentage', discountValue: 0, startDate: '', expiryDate: '',
-                                        maxUses: 0, userLimit: 1, minPurchaseAmount: 0, isValidForUpgrades: false,
-                                        isFirstPurchaseOnly: false, validIntervals: '', maxDiscountCap: 0, allowedEmails: ''
-                                    });
-                                    setShowCouponModal(true);
-                                }}
-                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2 whitespace-nowrap"
-                            >
-                                <Plus className="w-4 h-4" /> Create Coupon
-                            </button>
-                        </div>
 
-                        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
-                            <table className="w-full text-left border-collapse min-w-[700px]">
-                                <thead>
-                                    <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">
-                                        <th className="p-4">Code</th>
-                                        <th className="p-4">Discount</th>
-                                        <th className="p-4">Global Uses</th>
-                                        <th className="p-4">Status</th>
-                                        <th className="p-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {coupons.length === 0 ? (
-                                        <tr><td colSpan="5" className="p-8 text-center text-slate-500 font-medium">No coupons created yet.</td></tr>
-                                    ) : coupons.map(c => (
-                                        <tr key={c.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                                            <td className="p-4">
-                                                <div className="flex flex-col">
-                                                    <span className="font-mono text-sm font-bold text-slate-900 dark:text-white mb-1">{c.code}</span>
-                                                    {(c.startDate || c.expiryDate) && (
-                                                        <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                                                            <Calendar className="w-3 h-3" />
-                                                            {c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : 'No expiry'}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="p-4 text-slate-600 dark:text-slate-300 font-bold">
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-xs">
-                                                    {c.discountType === 'percentage' ? <Percent className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />}
-                                                    {c.discountType === 'percentage' ? `${c.discountValue}% Off` : `₹${c.discountValue} Off`}
-                                                </span>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-0.5">{c.usesCount} / {c.maxUses === 0 ? '∞' : c.maxUses}</div>
-                                                <div className="text-[10px] text-slate-400">Limit per user: {c.userLimit}</div>
-                                            </td>
-                                            <td className="p-4">
-                                                <button onClick={() => handleToggleCoupon(c.id, c.isActive)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none ring-2 ring-transparent transition-colors duration-200 ease-in-out ${c.isActive ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${c.isActive ? 'translate-x-2' : '-translate-x-2'}`} />
-                                                </button>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="flex justify-end gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingCoupon(c);
-                                                            setCouponForm({
-                                                                code: c.code, discountType: c.discountType, discountValue: c.discountValue,
-                                                                startDate: c.startDate ? c.startDate.substring(0, 16) : '',
-                                                                expiryDate: c.expiryDate ? c.expiryDate.substring(0, 16) : '',
-                                                                maxUses: c.maxUses, userLimit: c.userLimit, minPurchaseAmount: c.minPurchaseAmount,
-                                                                isValidForUpgrades: c.isValidForUpgrades || false,
-                                                                isFirstPurchaseOnly: c.isFirstPurchaseOnly || false,
-                                                                validIntervals: c.validIntervals ? c.validIntervals.join(', ') : '',
-                                                                maxDiscountCap: c.maxDiscountCap || 0,
-                                                                allowedEmails: c.allowedEmails ? c.allowedEmails.join(', ') : ''
-                                                            });
-                                                            setShowCouponModal(true);
-                                                        }}
-                                                        className="p-2 text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 dark:bg-black/20 dark:hover:bg-indigo-900/30 rounded-lg transition-colors border border-transparent dark:border-white/5"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteCoupon(c.id)}
-                                                        className="p-2 text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 dark:bg-black/20 dark:hover:bg-red-900/30 rounded-lg transition-colors border border-transparent dark:border-white/5"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
+                                <table className="w-full text-left border-collapse min-w-[700px]">
+                                    <thead>
+                                        <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">
+                                            <th className="p-4">Code</th>
+                                            <th className="p-4">Discount</th>
+                                            <th className="p-4">Global Uses</th>
+                                            <th className="p-4">Status</th>
+                                            <th className="p-4 text-right">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>{/* end table overflow */}
+                                    </thead>
+                                    <tbody>
+                                        {coupons.length === 0 ? (
+                                            <tr><td colSpan="5" className="p-8 text-center text-slate-500 font-medium">No coupons created yet.</td></tr>
+                                        ) : coupons.map(c => (
+                                            <tr key={c.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                                                <td className="p-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-mono text-sm font-bold text-slate-900 dark:text-white mb-1">{c.code}</span>
+                                                        {(c.startDate || c.expiryDate) && (
+                                                            <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                                <Calendar className="w-3 h-3" />
+                                                                {c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : 'No expiry'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-slate-600 dark:text-slate-300 font-bold">
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-xs">
+                                                        {c.discountType === 'percentage' ? <Percent className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />}
+                                                        {c.discountType === 'percentage' ? `${c.discountValue}% Off` : `₹${c.discountValue} Off`}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-0.5">{c.usesCount} / {c.maxUses === 0 ? '∞' : c.maxUses}</div>
+                                                    <div className="text-[10px] text-slate-400">Limit per user: {c.userLimit}</div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <button onClick={() => handleToggleCoupon(c.id, c.isActive)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none ring-2 ring-transparent transition-colors duration-200 ease-in-out ${c.isActive ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${c.isActive ? 'translate-x-2' : '-translate-x-2'}`} />
+                                                    </button>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingCoupon(c);
+                                                                setCouponForm({
+                                                                    code: c.code, discountType: c.discountType, discountValue: c.discountValue,
+                                                                    startDate: c.startDate ? c.startDate.substring(0, 16) : '',
+                                                                    expiryDate: c.expiryDate ? c.expiryDate.substring(0, 16) : '',
+                                                                    maxUses: c.maxUses, userLimit: c.userLimit, minPurchaseAmount: c.minPurchaseAmount,
+                                                                    isValidForUpgrades: c.isValidForUpgrades || false,
+                                                                    isFirstPurchaseOnly: c.isFirstPurchaseOnly || false,
+                                                                    validIntervals: c.validIntervals ? c.validIntervals.join(', ') : '',
+                                                                    maxDiscountCap: c.maxDiscountCap || 0,
+                                                                    allowedEmails: c.allowedEmails ? c.allowedEmails.join(', ') : ''
+                                                                });
+                                                                setShowCouponModal(true);
+                                                            }}
+                                                            className="p-2 text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 dark:bg-black/20 dark:hover:bg-indigo-900/30 rounded-lg transition-colors border border-transparent dark:border-white/5"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteCoupon(c.id)}
+                                                            className="p-2 text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 dark:bg-black/20 dark:hover:bg-red-900/30 rounded-lg transition-colors border border-transparent dark:border-white/5"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>{/* end table overflow */}
                         </div>{/* end p-8 */}
                     </div>
                 )}
@@ -1597,7 +1791,7 @@ const AdminLandingPage = () => {
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
-                            
+
                             <div className="p-6 overflow-y-auto flex-1">
                                 <ReactQuill
                                     theme="snow"
@@ -1608,7 +1802,7 @@ const AdminLandingPage = () => {
                                         toolbar: [
                                             [{ 'header': [1, 2, 3, false] }],
                                             ['bold', 'italic', 'underline', 'strike'],
-                                            [{'list': 'ordered'}, {'list': 'bullet'}],
+                                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                                             ['link', 'image'],
                                             ['clean']
                                         ]

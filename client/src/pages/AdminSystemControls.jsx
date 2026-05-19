@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
     Activity, Shield, Server, Zap, Terminal,
     RefreshCw, Power, AlertTriangle, Users, Database, Globe, Bell,
-    Tag, Plus, Edit2, Trash2, Check, X, Calendar, Star, Briefcase, TrendingUp, ExternalLink
+    Tag, Plus, Edit2, Trash2, Check, X, Calendar, Star, Briefcase, TrendingUp, ExternalLink, Link2, KeyRound, ToggleLeft, ToggleRight, Sparkles
 } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -37,6 +37,84 @@ const AdminSystemControls = () => {
     const [versionForm, setVersionForm] = useState({ version: '', title: '', changelog: '', isCurrent: false, releasedAt: '' });
     const [versionSaving, setVersionSaving] = useState(false);
 
+    // AI Model State
+    const [aiModel, setAiModel] = useState('gemini-2.0-flash');
+    const [savingAiModel, setSavingAiModel] = useState(false);
+
+    // Token Price Calculator State
+    const [calcTokens, setCalcTokens] = useState(1000);
+    const [calcCurrency, setCalcCurrency] = useState('INR');
+    const [calcModel, setCalcModel] = useState('gemini-2.0-flash'); // independent — does NOT change app-wide model
+    const [calcResult, setCalcResult] = useState(null);
+    const [calcLoading, setCalcLoading] = useState(false);
+    const [calcRateDate, setCalcRateDate] = useState(null);
+
+    // Gemini official pricing per 1M tokens (USD) — input / output
+    const GEMINI_PRICING = {
+        'gemini-2.0-flash-lite': { input: 0.075,  output: 0.30,  label: 'Gemini 2.0 Flash Lite' },
+        'gemini-2.0-flash':      { input: 0.10,   output: 0.40,  label: 'Gemini 2.0 Flash' },
+        'gemini-2.5-flash':      { input: 0.15,   output: 0.60,  label: 'Gemini 2.5 Flash' },
+        'gemini-2.5-pro':        { input: 1.25,   output: 10.00, label: 'Gemini 2.5 Pro' },
+    };
+
+    const TOP_CURRENCIES = [
+        { code: 'INR', name: 'Indian Rupee',     symbol: '₹' },
+        { code: 'USD', name: 'US Dollar',         symbol: '$' },
+        { code: 'EUR', name: 'Euro',              symbol: '€' },
+        { code: 'GBP', name: 'British Pound',     symbol: '£' },
+        { code: 'JPY', name: 'Japanese Yen',      symbol: '¥' },
+        { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+        { code: 'CAD', name: 'Canadian Dollar',   symbol: 'C$' },
+        { code: 'CHF', name: 'Swiss Franc',       symbol: 'Fr' },
+        { code: 'SGD', name: 'Singapore Dollar',  symbol: 'S$' },
+        { code: 'AED', name: 'UAE Dirham',        symbol: 'AED' },
+    ];
+
+    const calculateTokenPrice = async () => {
+        setCalcLoading(true);
+        setCalcResult(null);
+        try {
+            const pricing = GEMINI_PRICING[calcModel];
+            if (!pricing) throw new Error('Unknown model');
+
+            // Use open.er-api.com — free, no key, CORS-enabled, updated every 24h
+            let rate = 1;
+            let rateDate = new Date().toISOString().split('T')[0];
+            if (calcCurrency !== 'USD') {
+                const res = await fetch(`https://open.er-api.com/v6/latest/USD`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                rate = data.rates[calcCurrency];
+                rateDate = data.time_last_update_utc
+                    ? new Date(data.time_last_update_utc).toISOString().split('T')[0]
+                    : rateDate;
+                if (!rate) throw new Error(`No rate for ${calcCurrency}`);
+            }
+            setCalcRateDate(rateDate);
+
+            const tokens = parseInt(calcTokens) || 0;
+            const inputCostUSD  = (tokens / 1_000_000) * pricing.input;
+            const outputCostUSD = (tokens / 1_000_000) * pricing.output;
+            const totalUSD      = inputCostUSD + outputCostUSD;
+
+            const currencyInfo = TOP_CURRENCIES.find(c => c.code === calcCurrency);
+            setCalcResult({
+                inputCost:  (inputCostUSD  * rate).toFixed(6),
+                outputCost: (outputCostUSD * rate).toFixed(6),
+                totalCost:  (totalUSD      * rate).toFixed(6),
+                symbol:     currencyInfo?.symbol || calcCurrency,
+                currency:   calcCurrency,
+                tokens,
+                model:      pricing.label,
+            });
+        } catch (err) {
+            console.error('Price calc error:', err);
+            showToast({ type: 'error', title: 'Rate Fetch Failed', message: `Could not get exchange rates: ${err.message}` });
+        } finally {
+            setCalcLoading(false);
+        }
+    };
+
 
 
 
@@ -44,12 +122,14 @@ const AdminSystemControls = () => {
         try {
             setLoading(true);
             const [configRes, diagRes] = await Promise.all([
-                axios.get('http://127.0.0.1:5000/api/system'),
-                axios.get('http://127.0.0.1:5000/api/system/diagnostics')
+                axios.get(`${import.meta.env.VITE_API_URL}/api/system`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/system/diagnostics`)
             ]);
             setConfig(configRes.data);
             setDiagnostics(diagRes.data);
             setLogs(diagRes.data.logs);
+            // Load AI model from system config
+            setAiModel(configRes.data?.settings?.aiModel || 'gemini-2.0-flash');
             setLoading(false);
         } catch (err) {
             console.error(err);
@@ -59,7 +139,7 @@ const AdminSystemControls = () => {
 
     const fetchDiagnostics = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/system/diagnostics');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/system/diagnostics`);
             setDiagnostics(res.data);
             setLogs(res.data.logs);
         } catch (err) { console.error(err); }
@@ -68,7 +148,7 @@ const AdminSystemControls = () => {
     useEffect(() => {
         fetchData();
         fetchVersions();
-        const interval = setInterval(fetchDiagnostics, 10000);
+        const interval = setInterval(fetchDiagnostics, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -76,7 +156,7 @@ const AdminSystemControls = () => {
     const fetchVersions = async () => {
         setVersionsLoading(true);
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/versioning');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/versioning`);
             setVersions(res.data);
         } catch (err) {
             console.error('Error fetching versions:', err);
@@ -140,10 +220,10 @@ const AdminSystemControls = () => {
         try {
             const payload = { ...versionForm, releasedAt: versionForm.releasedAt ? new Date(versionForm.releasedAt).toISOString() : undefined };
             if (editingVersion) {
-                await axios.put(`http://127.0.0.1:5000/api/versioning/${editingVersion.id}`, payload);
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/versioning/${editingVersion.id}`, payload);
                 showToast({ type: 'success', message: 'Version updated.' });
             } else {
-                await axios.post('http://127.0.0.1:5000/api/versioning', payload);
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/versioning`, payload);
                 showToast({ type: 'success', message: 'Version created.' });
             }
             setVersionModalOpen(false);
@@ -165,7 +245,7 @@ const AdminSystemControls = () => {
             confirmText: 'Delete',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/versioning/${v.id}`);
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/versioning/${v.id}`);
                     showToast({ type: 'success', message: 'Version deleted.' });
                     fetchVersions();
                 } catch (err) {
@@ -178,7 +258,7 @@ const AdminSystemControls = () => {
     const handleSave = async (newConfig = config) => {
         setSaving(true);
         try {
-            await axios.put('http://127.0.0.1:5000/api/system/settings', newConfig);
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, newConfig);
             setConfig(newConfig);
             showModal({
                 type: 'success',
@@ -199,6 +279,20 @@ const AdminSystemControls = () => {
         }
     };
 
+    const saveAiModel = async (model) => {
+        setSavingAiModel(true);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, { settings: { ...config?.settings, aiModel: model } });
+            setAiModel(model);
+            setConfig(prev => ({ ...prev, settings: { ...prev?.settings, aiModel: model } }));
+            showToast({ type: 'success', title: 'AI Model Updated', message: `Now using ${model} across the platform.` });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Error', message: 'Failed to save AI model.' });
+        } finally {
+            setSavingAiModel(false);
+        }
+    };
+
     const triggerAction = async (action) => {
         showModal({
             type: 'warning',
@@ -208,7 +302,7 @@ const AdminSystemControls = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    const res = await axios.post(`http://127.0.0.1:5000/api/system/actions/${action}`, {});
+                    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/${action}`, {});
                     showToast({
                         type: 'success',
                         title: 'Action Executed',
@@ -262,6 +356,7 @@ const AdminSystemControls = () => {
     };
 
     if (loading) return <div className="p-8 text-center">Loading Mission Control...</div>;
+    if (!config) return <div className="p-8 text-center text-red-500 font-bold">Error: Could not load system configuration. Please ensure the backend server is running and try again.</div>;
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
@@ -403,6 +498,138 @@ const AdminSystemControls = () => {
                             </div>
                         </div>
 
+                        {/* AI MODEL CONFIGURATION */}
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+                            <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
+                                <Sparkles className="w-5 h-5 text-violet-500" /> AI Model Configuration
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+                                Select the Gemini model used globally across the platform — AI Auto-Responder, FlowBot AI Node, Template AI, AI Draft, and the public AI Chatbot all use this setting.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                {[
+                                    { model: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite', desc: 'Cheapest & fastest. Great for free-tier API keys.', color: 'text-emerald-500', border: 'border-emerald-400' },
+                                    { model: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash',      desc: 'Best speed/quality balance. Recommended.',      color: 'text-blue-500',    border: 'border-blue-400' },
+                                    { model: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      desc: 'Latest generation. Smarter responses.',          color: 'text-violet-500',  border: 'border-violet-400' },
+                                    { model: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        desc: 'Most powerful. Best for complex tasks.',         color: 'text-amber-500',   border: 'border-amber-400' },
+                                ].map(m => (
+                                    <button
+                                        key={m.model}
+                                        type="button"
+                                        onClick={() => saveAiModel(m.model)}
+                                        disabled={savingAiModel}
+                                        className={`p-4 rounded-xl border-2 text-left transition-all disabled:opacity-60 ${
+                                            aiModel === m.model
+                                                ? `${m.border} bg-slate-50 dark:bg-white/5`
+                                                : 'border-slate-100 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+                                        }`}
+                                    >
+                                        <div className={`text-sm font-bold ${m.color}`}>{m.label}</div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{m.desc}</div>
+                                        {aiModel === m.model && (
+                                            <div className="mt-2 text-[10px] font-bold uppercase tracking-wider text-indigo-500">● Active</div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="text-xs text-slate-400 p-3 bg-slate-50 dark:bg-white/5 rounded-xl">
+                                Currently active: <span className="font-mono font-bold text-violet-500">{aiModel}</span>
+                                {savingAiModel && <span className="ml-2 text-indigo-400 animate-pulse">Saving...</span>}
+                            </div>
+
+                            {/* ── DIVIDER ── */}
+                            <div className="my-6 border-t border-slate-100 dark:border-white/5" />
+
+                            {/* TOKEN PRICE CALCULATOR (inside same card) */}
+                            <div className="flex items-center gap-2 mb-4">
+                                <Zap className="w-4 h-4 text-amber-500" />
+                                <h4 className="font-bold text-slate-800 dark:text-white text-sm">Token Price Calculator</h4>
+                                <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">live rates · 24h</span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                                Estimate API costs for any model — selecting a model here does <span className="font-bold">not</span> change the active app-wide model.
+                            </p>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                                <div className="col-span-2 sm:col-span-1">
+                                    <label className="text-xs font-bold uppercase text-slate-400 block mb-1.5">Model</label>
+                                    <select
+                                        value={calcModel}
+                                        onChange={e => { setCalcModel(e.target.value); setCalcResult(null); }}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                                    >
+                                        {Object.entries(GEMINI_PRICING).map(([key, val]) => (
+                                            <option key={key} value={key}>{val.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold uppercase text-slate-400 block mb-1.5">Tokens</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={calcTokens}
+                                        onChange={e => { setCalcTokens(e.target.value); setCalcResult(null); }}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold uppercase text-slate-400 block mb-1.5">Currency</label>
+                                    <select
+                                        value={calcCurrency}
+                                        onChange={e => { setCalcCurrency(e.target.value); setCalcResult(null); }}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                                    >
+                                        {TOP_CURRENCIES.map(c => (
+                                            <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex items-end">
+                                    <button
+                                        onClick={calculateTokenPrice}
+                                        disabled={calcLoading || !calcTokens}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-60"
+                                    >
+                                        {calcLoading
+                                            ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Fetching...</>
+                                            : <><Sparkles className="w-3.5 h-3.5" /> Calculate</>}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {calcResult && (
+                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-xs font-bold text-amber-700 dark:text-amber-400">{calcResult.model} · {calcResult.tokens.toLocaleString()} tokens</span>
+                                        {calcRateDate && (
+                                            <span className="text-[10px] text-slate-400 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-100 dark:border-white/10">
+                                                Rates: {calcRateDate}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="bg-white dark:bg-black/20 rounded-xl p-3 text-center border border-slate-100 dark:border-white/5">
+                                            <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">Input</div>
+                                            <div className="text-sm font-bold text-slate-800 dark:text-white font-mono">{calcResult.symbol}{calcResult.inputCost}</div>
+                                            <div className="text-[10px] text-slate-400">{calcResult.currency}</div>
+                                        </div>
+                                        <div className="bg-white dark:bg-black/20 rounded-xl p-3 text-center border border-slate-100 dark:border-white/5">
+                                            <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">Output</div>
+                                            <div className="text-sm font-bold text-slate-800 dark:text-white font-mono">{calcResult.symbol}{calcResult.outputCost}</div>
+                                            <div className="text-[10px] text-slate-400">{calcResult.currency}</div>
+                                        </div>
+                                        <div className="bg-amber-500 rounded-xl p-3 text-center shadow-md">
+                                            <div className="text-[10px] font-bold uppercase text-amber-100 mb-1">Total</div>
+                                            <div className="text-sm font-bold text-white font-mono">{calcResult.symbol}{calcResult.totalCost}</div>
+                                            <div className="text-[10px] text-amber-200">{calcResult.currency}</div>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-2 text-center">Official Gemini pricing · Input + Output · open.er-api.com</p>
+                                </div>
+                            )}
+                        </div>
+
                         {/* 2. SECURITY PANEL */}
                         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
                             <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
@@ -445,39 +672,68 @@ const AdminSystemControls = () => {
                                 <Bell className="w-5 h-5 text-blue-500" /> Global Announcement
                             </h3>
 
-                            <div className="flex gap-4 items-start">
-                                <div className="flex-1 space-y-3">
-                                    <input
-                                        type="text"
-                                        className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white"
-                                        placeholder="Announcement Message (e.g. Server maintenance at 2 AM)"
-                                        value={config.globalAnnouncement?.message || ''}
-                                        onChange={(e) => setConfig({ ...config, globalAnnouncement: { ...config.globalAnnouncement, message: e.target.value } })}
-                                    />
-                                    <div className="flex gap-4">
-                                        <select
-                                            className="px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white"
-                                            value={config.globalAnnouncement?.type || 'info'}
-                                            onChange={(e) => setConfig({ ...config, globalAnnouncement: { ...config.globalAnnouncement, type: e.target.value } })}
-                                        >
-                                            <option value="info">Info (Blue)</option>
-                                            <option value="warning">Warning (Amber)</option>
-                                            <option value="error">Critical (Red)</option>
-                                        </select>
-                                        <button
-                                            onClick={() => handleSave()}
-                                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold text-sm"
-                                        >
-                                            Update
-                                        </button>
+                            <div className="space-y-3">
+                                {/* Message */}
+                                <input
+                                    type="text"
+                                    className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white"
+                                    placeholder="Announcement Message (e.g. Server maintenance at 2 AM)"
+                                    value={config.globalAnnouncement?.message || ''}
+                                    onChange={(e) => setConfig({ ...config, globalAnnouncement: { ...config.globalAnnouncement, message: e.target.value } })}
+                                />
+
+                                {/* Optional Button */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                            Button Label <span className="normal-case font-normal text-slate-400">(optional)</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm"
+                                            placeholder="e.g. Learn More"
+                                            value={config.globalAnnouncement?.buttonText || ''}
+                                            onChange={(e) => setConfig({ ...config, globalAnnouncement: { ...config.globalAnnouncement, buttonText: e.target.value } })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                            Button URL <span className="normal-case font-normal text-slate-400">(optional)</span>
+                                        </label>
+                                        <input
+                                            type="url"
+                                            className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm"
+                                            placeholder="https://example.com"
+                                            value={config.globalAnnouncement?.buttonUrl || ''}
+                                            onChange={(e) => setConfig({ ...config, globalAnnouncement: { ...config.globalAnnouncement, buttonUrl: e.target.value } })}
+                                        />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 pt-2">
-                                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">Active</span>
-                                    <Toggle
-                                        enabled={config.globalAnnouncement?.active}
-                                        onChange={(val) => handleSave({ ...config, globalAnnouncement: { ...config.globalAnnouncement, active: val } })}
-                                    />
+
+                                {/* Type + Actions row */}
+                                <div className="flex items-center gap-4 flex-wrap">
+                                    <select
+                                        className="px-4 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white"
+                                        value={config.globalAnnouncement?.type || 'info'}
+                                        onChange={(e) => setConfig({ ...config, globalAnnouncement: { ...config.globalAnnouncement, type: e.target.value } })}
+                                    >
+                                        <option value="info">Info (Blue)</option>
+                                        <option value="warning">Warning (Amber)</option>
+                                        <option value="error">Critical (Red)</option>
+                                    </select>
+                                    <button
+                                        onClick={() => handleSave()}
+                                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold text-sm"
+                                    >
+                                        Update
+                                    </button>
+                                    <div className="flex items-center gap-2 ml-auto">
+                                        <span className="text-sm font-bold text-slate-600 dark:text-slate-400">Active</span>
+                                        <Toggle
+                                            enabled={config.globalAnnouncement?.active}
+                                            onChange={(val) => handleSave({ ...config, globalAnnouncement: { ...config.globalAnnouncement, active: val } })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -763,21 +1019,42 @@ const SortableMenuItem = ({ id, label }) => {
 };
 
 const MenuOrderPanel = ({ config, onSave }) => {
-    // List of base items that can be reordered (excludes dynamic/admin menus)
+    // List of base items that can be reordered (matches the new Sidebar nav structure)
     const baseMenuLabels = [
-        'Dashboard', 'WhatsApp', 'Send Message', 'Campaigns', 
-        'FlowBot Builder', 'Contacts', 'Templates', 'Add-ons Market', 'Reports',
+        'Dashboard', 'WhatsApp', 'Growth & Marketing',
+        'Automation', 'Refer & Earn', 'Add-ons Market', 'Integrations & API', 'Reports',
         'Support', 'Settings'
     ];
+
+    // Migration map: remap any old label names saved in the DB to the new ones
+    const labelMigration = {
+        'Inbox & CRM': 'WhatsApp',
+        'Marketing & Growth': 'Growth & Marketing',
+        'Send Campaign': null,       // removed — now inside WhatsApp
+        'All Campaigns': null,       // removed — now inside WhatsApp
+        'Templates': null,           // removed — now inside WhatsApp
+        'Contacts': null,            // removed — now inside WhatsApp
+        'FlowBot Builder': null,     // removed — now inside Automation
+        'Integrations': 'Integrations & API',
+    };
 
     const [items, setItems] = useState([]);
 
     useEffect(() => {
         if (!config) return;
-        // Merge the saved menuOrder with any base items that aren't in the saved order yet
         const savedOrder = Array.isArray(config.menuOrder) ? config.menuOrder : [];
-        const missingItems = baseMenuLabels.filter(label => !savedOrder.includes(label));
-        const combined = [...savedOrder.filter(l => baseMenuLabels.includes(l)), ...missingItems];
+
+        // Migrate old labels → new labels, drop removed ones
+        const migrated = savedOrder
+            .map(label => labelMigration.hasOwnProperty(label) ? labelMigration[label] : label)
+            .filter(Boolean); // remove nulls (dropped items)
+
+        // De-duplicate (in case migration caused duplicates)
+        const deduped = [...new Set(migrated)];
+
+        // Append any new base items not yet in the saved order
+        const missingItems = baseMenuLabels.filter(label => !deduped.includes(label));
+        const combined = [...deduped.filter(l => baseMenuLabels.includes(l)), ...missingItems];
         setItems(combined);
     }, [config]);
 

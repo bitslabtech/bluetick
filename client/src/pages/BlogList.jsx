@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Megaphone, Calendar, ArrowRight, ArrowUpRight, Loader2, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
+import PublicLayout from '../components/landing/PublicLayout';
 
 const BlogList = () => {
     const [blogs, setBlogs] = useState([]);
@@ -16,7 +17,7 @@ const BlogList = () => {
 
     const fetchBlogs = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/landing/blogs'); // Only returns published for public
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing/blogs`); // Only returns published for public
             setBlogs(res.data);
             setLoading(false);
         } catch (err) {
@@ -36,19 +37,8 @@ const BlogList = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#F5F5F7] dark:bg-black text-slate-900 dark:text-white font-display selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-200">
-            {/* Minimalist Apple-style Header */}
-            <nav className="fixed top-0 w-full z-50 bg-[#F5F5F7]/80 dark:bg-black/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 transition-all outline-none">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <Link to="/" className="text-xl font-bold tracking-tight">Our Platform</Link>
-                    <div className="flex items-center gap-6 text-sm font-medium">
-                        <Link to="/" className="text-slate-500 hover:text-black dark:text-slate-400 dark:hover:text-white transition-colors">Home</Link>
-                        <Link to="/blog" className="text-black dark:text-white">Blog</Link>
-                        <Link to="/login" className="px-4 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-full hover:scale-105 transition-transform">Sign in</Link>
-                    </div>
-                </div>
-            </nav>
-
+        <PublicLayout pageKey="blog" fullWidth={true}>
+            <div className="bg-[#F5F5F7] dark:bg-black text-slate-900 dark:text-white font-display selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-200">
             {/* Hero Section */}
             <header className="pt-40 pb-20 px-6 text-center max-w-4xl mx-auto">
                 <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-tight mb-6">
@@ -115,7 +105,8 @@ const BlogList = () => {
                     </div>
                 )}
             </main>
-        </div>
+            </div>
+        </PublicLayout>
     );
 };
 

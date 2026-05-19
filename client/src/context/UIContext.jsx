@@ -28,10 +28,10 @@ export const UIProvider = ({ children }) => {
 
     const fetchPublicSettings = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/settings/public');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/public`);
             const data = res.data;
             if (data?.logoUrl?.startsWith('/uploads')) {
-                data.logoUrl = `http://127.0.0.1:5000${data.logoUrl}`;
+                data.logoUrl = `${import.meta.env.VITE_API_URL}${data.logoUrl}`;
             }
             setPublicSettings(data);
             applyBranding(data);
@@ -59,12 +59,12 @@ export const UIProvider = ({ children }) => {
 
     const fetchSettings = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/settings', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             const data = res.data;
             if (data?.logoUrl?.startsWith('/uploads')) {
-                data.logoUrl = `http://127.0.0.1:5000${data.logoUrl}`;
+                data.logoUrl = `${import.meta.env.VITE_API_URL}${data.logoUrl}`;
             }
             setSettings(data);
 

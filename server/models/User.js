@@ -142,6 +142,36 @@ const User = sequelize.define('User', {
     wabaId: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    // Meta Ads Integration Fields (CTWA)
+    metaAdsToken: {
+        type: DataTypes.STRING(2048),
+        allowNull: true,
+        comment: 'Long-lived User Access Token with ads_read permission'
+    },
+    metaAdAccountId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Selected Ad Account ID for CTWA Analytics (e.g., act_123456789)'
+    },
+    metaBusinessId: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    // Vcard Global Settings
+    vcardPreferences: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            emailNotifications: true,
+            defaultEnquiryEmail: '',
+            appointmentTimezone: 'UTC'
+        }
+    },
+    // Storage Tracking
+    storageUsed: {
+        type: DataTypes.BIGINT, // in bytes
+        defaultValue: 0,
+        comment: 'Total storage used by the user across all modules in bytes'
     }
 }, {
     timestamps: true
@@ -170,3 +200,7 @@ ReferralReward.belongsTo(User, { foreignKey: 'referredUserId', as: 'referredUser
 
 const TechPartner = require('./TechPartner');
 User.hasOne(TechPartner, { foreignKey: 'userId', as: 'techPartnerProfile' });
+
+const MetaAdCampaign = require('./MetaAdCampaign');
+User.hasMany(MetaAdCampaign, { foreignKey: 'userId', as: 'metaAdCampaigns' });
+MetaAdCampaign.belongsTo(User, { foreignKey: 'userId' });

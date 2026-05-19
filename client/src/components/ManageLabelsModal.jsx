@@ -3,7 +3,7 @@ import axios from 'axios';
 import { X, Tag, Trash2, Edit2, Plus, Check } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 const DEFAULT_COLORS = [
     '#3b82f6', // blue

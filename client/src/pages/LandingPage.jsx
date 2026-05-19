@@ -2,21 +2,28 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { 
-    Zap, MessageSquare, BarChart, Shield, Send, Server, Users, 
-    ArrowRight, Check, Star, Menu, X, Smartphone, Calendar, 
+import {
+    Zap, MessageSquare, BarChart, Shield, Send, Server, Users,
+    ArrowRight, Check, Star, Menu, X, Smartphone, Calendar,
     ArrowUpRight, Play, Globe, Code, Layers, Mail, Plus, Minus,
-    ShoppingCart, Briefcase, GraduationCap, HeartPulse, Building, 
+    ShoppingCart, Briefcase, GraduationCap, HeartPulse, Building,
     HeadphonesIcon, MessageCircle, User, Plane, Landmark, Car, Store, TrendingUp,
-    Twitter, Facebook, Linkedin, Instagram
+    Twitter, Facebook, Linkedin, Instagram,
+    CreditCard, Truck, LayoutTemplate, Repeat, QrCode,
+    Megaphone, Activity, Target, SplitSquareHorizontal, Wand2,
+    LayoutGrid, ListOrdered, Tag, FileText, LineChart, Wifi, Search, Filter
 } from 'lucide-react';
+import PublicHeader from '../components/landing/PublicHeader';
+import FloatingChatbot from '../components/landing/FloatingChatbot';
 
 // Icon Map for dynamic rendering
-const IconMap = { 
-    Zap, MessageSquare, BarChart, Shield, Send, Server, Users, Star, 
+const IconMap = {
+    Zap, MessageSquare, BarChart, Shield, Send, Server, Users, Star,
     ArrowRight, Check, Smartphone, Calendar, ArrowUpRight, Play, Globe, Code, Layers,
     ShoppingCart, Briefcase, GraduationCap, HeartPulse, Building, HeadphonesIcon, MessageCircle,
-    UserPlus: Users, Mail, Plane, Landmark, Car, Store
+    UserPlus: Users, Mail, Plane, Landmark, Car, Store, CreditCard, Truck, LayoutTemplate, Repeat, QrCode,
+    Megaphone, Activity, Target, SplitSquareHorizontal, Wand2,
+    LayoutGrid, ListOrdered, Tag, FileText, LineChart, Wifi
 };
 
 // Safely resolve icon – DB may return {name:'Send'} OR plain 'Send' string
@@ -39,7 +46,7 @@ const comparisonData = [
     { metric: 'Format Support', email: 'Rich Text', sms: 'Text Only', whatsapp: 'Images, Videos, Docs, Buttons' },
 ];
 
-const industries = [
+export const industries = [
     { id: 'ecommerce', icon: ShoppingCart, title: 'E-Commerce', desc: 'Recover abandoned carts, send shipping updates, and run flash sales directly on WhatsApp.', metrics: ['80% higher cart recovery', '3x repeat purchase rate'], imagePattern: 'bg-indigo-500' },
     { id: 'education', icon: GraduationCap, title: 'Education (Edtech)', desc: 'Send fee reminders, zoom links, and automated course updates to students and parents instantly.', metrics: ['99% communication delivery', 'Cut admin time by 60%'], imagePattern: 'bg-emerald-500' },
     { id: 'realestate', icon: Building, title: 'Real Estate', desc: 'Share property brochures, schedule site visits, and qualify leads 24/7 with an AI Agent.', metrics: ['5x more leads qualified', 'Instant prospect engagement'], imagePattern: 'bg-amber-500' },
@@ -47,19 +54,35 @@ const industries = [
     { id: 'travel', icon: Plane, title: 'Travel & Tours', desc: 'Send booking confirmations, flight updates, and offer 24/7 concierge services efficiently.', metrics: ['24/7 instant support', '95% faster query resolution'], imagePattern: 'bg-sky-500' },
     { id: 'finance', icon: Landmark, title: 'Fintech & Banking', desc: 'Share real-time transaction alerts, automate loan queries, and provide secure account updates.', metrics: ['End-to-end encryption', '2x faster document collection'], imagePattern: 'bg-purple-500' },
     { id: 'automotive', icon: Car, title: 'Automotive', desc: 'Schedule test drives, automate service reminders, and share interactive vehicle brochures.', metrics: ['3x test drives booked', 'Higher service retention'], imagePattern: 'bg-rose-500' },
-    { id: 'retail', icon: Store, title: 'Retail & FMCG', desc: 'Run localized promotional campaigns, build loyal customer communities, and handle store inquiries.', metrics: ['Boost footfall by 40%', 'Higher coupon redemption'], imagePattern: 'bg-orange-500' }
+    { id: 'retail', icon: Store, title: 'Retail & FMCG', desc: 'Run localized promotional campaigns, build loyal customer communities, and handle store inquiries.', metrics: ['Boost footfall by 40%', 'Higher coupon redemption'], imagePattern: 'bg-orange-500' },
+    { id: 'logistics', icon: Truck, title: 'Logistics & Delivery', desc: 'Send real-time delivery status, route updates, and collect proof of delivery via WhatsApp.', metrics: ['Zero missed deliveries', '70% fewer support calls'], imagePattern: 'bg-blue-500' },
+    { id: 'hospitality', icon: Building, title: 'Hotels & Hospitality', desc: 'Automate check-in confirmations, upsell services, and gather instant guest feedback on WhatsApp.', metrics: ['Higher upsell revenue', '4.8★ avg guest rating'], imagePattern: 'bg-amber-600' },
+    { id: 'insurance', icon: Shield, title: 'Insurance', desc: 'Simplify policy renewals, claim updates, and lead qualification with smart WhatsApp chatbots.', metrics: ['2x faster claim updates', '50% lower acquisition cost'], imagePattern: 'bg-teal-500' },
+    { id: 'fmcg', icon: Tag, title: 'D2C & FMCG Brands', desc: 'Build a branded WhatsApp storefront, run loyalty programs, and collect post-purchase reviews.', metrics: ['40% higher LTV', 'Zero third-party fees'], imagePattern: 'bg-pink-500' },
+    { id: 'recruitment', icon: Users, title: 'Recruitment & HR', desc: 'Automate candidate screening, interview scheduling, and onboarding workflows over WhatsApp.', metrics: ['3x faster shortlisting', '80% candidate response rate'], imagePattern: 'bg-violet-500' },
+    { id: 'govt', icon: Landmark, title: 'Government & NGOs', desc: 'Broadcast citizen alerts, collect feedback, and deliver public services at massive scale on WhatsApp.', metrics: ['99% message delivery', 'Millions reached instantly'], imagePattern: 'bg-emerald-600' },
+    { id: 'media', icon: Megaphone, title: 'Media & Publishing', desc: 'Deliver breaking news alerts, personalized content digests, and subscription renewals via WhatsApp.', metrics: ['5x subscriber engagement', '3x content click-through'], imagePattern: 'bg-red-500' },
+    { id: 'beauty', icon: Star, title: 'Beauty & Wellness', desc: 'Handle appointment bookings, send aftercare tips, and run exclusive member-only flash sales.', metrics: ['60% fewer no-shows', '2x repeat bookings'], imagePattern: 'bg-fuchsia-500' },
 ];
 
 // Icon map keyed by id — keeps visual tokens hardcoded on frontend
 const INDUSTRY_DEFAULTS = {
-    ecommerce:  { icon: ShoppingCart, imagePattern: 'bg-indigo-500' },
-    education:  { icon: GraduationCap, imagePattern: 'bg-emerald-500' },
+    ecommerce: { icon: ShoppingCart, imagePattern: 'bg-indigo-500' },
+    education: { icon: GraduationCap, imagePattern: 'bg-emerald-500' },
     realestate: { icon: Building, imagePattern: 'bg-amber-500' },
     healthcare: { icon: HeartPulse, imagePattern: 'bg-cyan-500' },
-    travel:     { icon: Plane, imagePattern: 'bg-sky-500' },
-    finance:    { icon: Landmark, imagePattern: 'bg-purple-500' },
+    travel: { icon: Plane, imagePattern: 'bg-sky-500' },
+    finance: { icon: Landmark, imagePattern: 'bg-purple-500' },
     automotive: { icon: Car, imagePattern: 'bg-rose-500' },
-    retail:     { icon: Store, imagePattern: 'bg-orange-500' },
+    retail: { icon: Store, imagePattern: 'bg-orange-500' },
+    logistics: { icon: Truck, imagePattern: 'bg-blue-500' },
+    hospitality: { icon: Building, imagePattern: 'bg-amber-600' },
+    insurance: { icon: Shield, imagePattern: 'bg-teal-500' },
+    fmcg: { icon: Tag, imagePattern: 'bg-pink-500' },
+    recruitment: { icon: Users, imagePattern: 'bg-violet-500' },
+    govt: { icon: Landmark, imagePattern: 'bg-emerald-600' },
+    media: { icon: Megaphone, imagePattern: 'bg-red-500' },
+    beauty: { icon: Star, imagePattern: 'bg-fuchsia-500' },
 };
 
 const integrationLogos = [
@@ -80,21 +103,22 @@ const CapabilitiesBento = ({ config }) => {
         title: 'Powerful Capabilities That Maximize Your Reach',
         subtitle: 'Everything you need to market, sell, and support on WhatsApp.',
         cards: [
-            { id: 'marketing', title: 'Maximize Leads, \nOptimize Sales', desc: 'Run Click-to-WhatsApp ads to capture leads instantly on Meta platforms and run personalized broadcast campaigns.', tag: 'Marketing' },
+            { id: 'marketing', title: 'Click-to-WhatsApp\nMeta Ads', desc: 'Launch CTWA campaigns on Facebook & Instagram. Capture leads instantly into your WhatsApp inbox.', tag: 'Meta Marketing' },
             { id: 'support', title: 'Shared Team Inbox', desc: 'Collaborate with multiple agents on a single WhatsApp number to resolve queries lightning fast.', tag: 'Support' },
             { id: 'automation', title: 'No-Code AI Chatbots', tag: 'Automation' },
-            { id: 'commerce', title: 'Product Catalogs', tag: 'Commerce' },
-            { id: 'crm', title: 'Organize & Track Leads', tag: 'Sales CRM' }
+            { id: 'commerce', title: 'Native WhatsApp\nStore', desc: 'Sell directly in-chat with rich product catalogs and native checkout flows.', tag: 'Commerce' },
+            { id: 'vcard', title: 'Premium Digital\nvCards', desc: 'Create stunning interactive business cards. Capture leads instantly via QR.', tag: 'Networking' }
         ]
     };
     const data = config || defaultData;
     const cards = data.cards || defaultData.cards;
-    
-    const marketingCard = cards.find(c => c.id === 'marketing') || defaultData.cards[0];
-    const supportCard = cards.find(c => c.id === 'support') || defaultData.cards[1];
-    const automationCard = cards.find(c => c.id === 'automation') || defaultData.cards[2];
-    const commerceCard = cards.find(c => c.id === 'commerce') || defaultData.cards[3];
-    const crmCard = cards.find(c => c.id === 'crm') || defaultData.cards[4];
+
+    const marketingCard = cards.find(c => c.id === 'marketing') || cards[0] || defaultData.cards[0];
+    const supportCard = cards.find(c => c.id === 'support') || cards[1] || defaultData.cards[1];
+    const automationCard = cards.find(c => c.id === 'automation') || cards[2] || defaultData.cards[2];
+    const commerceCard = cards.find(c => c.id === 'commerce') || cards[3] || defaultData.cards[3];
+    // 5th card: try 'vcard' id first, then 'crm' (old id), then positional fallback so admin data always wins
+    const vcardCard = cards.find(c => c.id === 'vcard') || cards.find(c => c.id === 'crm') || cards[4] || defaultData.cards[4];
 
     return (
         <section className="py-24 bg-white dark:bg-[#05050A] transition-colors relative overflow-hidden">
@@ -114,66 +138,146 @@ const CapabilitiesBento = ({ config }) => {
 
                 {/* BENTO GRID */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    
+
                     {/* CARD 1: MARKETING (Large Left) */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once:true }}
-                                className="md:col-span-7 rounded-[32px] bg-[#FFF5F3] dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
-                        <div className="p-8 md:p-10 relative z-10 w-full sm:w-[55%] lg:w-1/2">
+                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                        className="md:col-span-7 rounded-[32px] bg-[#FFF5F3] dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
+                        <div className="p-8 md:p-10 relative z-10 w-full md:w-[55%] lg:w-[50%] mb-auto">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-rose-500 dark:text-rose-400 mb-4">{marketingCard.tag}</div>
                             <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight whitespace-pre-line">{marketingCard.title}</h3>
                             <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium mb-6 md:mb-8 whitespace-pre-line">{marketingCard.desc}</p>
-                            <a href="#" className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4"/></a>
+                            <a href="#" className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4" /></a>
                         </div>
                         {marketingCard.image ? (
-                            <div className="absolute right-0 bottom-0 w-[55%] h-[85%] rounded-tl-[32px] overflow-hidden translate-x-4 translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500 border-t border-l border-rose-100 dark:border-rose-800/30 shadow-2xl">
+                            <div className="relative md:absolute md:right-0 md:bottom-0 w-[90%] md:w-[50%] lg:w-[45%] h-56 md:h-[85%] self-end rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-2xl overflow-hidden md:translate-x-4 md:translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500">
                                 <img src={marketingCard.image} className="w-full h-full object-cover" alt={marketingCard.title} />
                             </div>
                         ) : (
-                            <div className="absolute right-0 bottom-0 w-[45%] h-[75%] bg-white/80 dark:bg-black/40 backdrop-blur-sm rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-2xl p-6 translate-x-4 translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500">
-                               <div className="w-full h-32 rounded-xl bg-rose-100 dark:bg-rose-900/50 mb-4 relative overflow-hidden flex items-center justify-center">
-                                   <div className="absolute inset-0 bg-gradient-to-r from-rose-400 to-orange-400 opacity-20"></div>
-                                   <MessageCircle className="w-10 h-10 text-rose-500" />
-                               </div>
-                               <div className="h-4 w-3/4 bg-slate-200 dark:bg-white/10 rounded-full mb-3"></div>
-                               <div className="h-4 w-1/2 bg-slate-200 dark:bg-white/10 rounded-full mb-4"></div>
-                               <div className="h-10 w-full bg-[#25D366] rounded-xl flex items-center justify-center text-white text-xs font-bold gap-2">
-                                   <MessageCircle className="w-4 h-4"/> Send WhatsApp Message
-                               </div>
+                            <div className="relative md:absolute md:right-0 md:bottom-0 w-[90%] md:w-[50%] lg:w-[45%] h-64 md:h-[85%] self-end bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-[0_-10px_40px_-15px_rgba(244,63,94,0.15)] flex flex-col p-4 md:p-6 md:translate-x-4 md:translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500 overflow-hidden">
+                                {/* FB/IG Ad Header */}
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center">
+                                        <TrendingUp className="w-4 h-4 text-rose-500" />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-bold text-slate-800 dark:text-slate-200">Sponsored Ad</div>
+                                        <div className="text-[8px] text-slate-500">Active Campaign</div>
+                                    </div>
+                                    <div className="ml-auto px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 text-[8px] font-bold rounded-full">
+                                        High Converting
+                                    </div>
+                                </div>
+
+                                {/* Ad Body mockup */}
+                                <div className="w-full bg-slate-50 dark:bg-zinc-800/50 rounded-xl p-3 flex-1 mb-4 border border-slate-100 dark:border-white/5 relative overflow-hidden group/ad">
+                                    <div className="w-full h-full absolute inset-0 bg-gradient-to-br from-rose-500/5 to-orange-500/5"></div>
+                                    <div className="w-3/4 h-2 bg-slate-200 dark:bg-slate-600 rounded-full mb-2"></div>
+                                    <div className="w-1/2 h-2 bg-slate-200 dark:bg-slate-600 rounded-full mb-4"></div>
+
+                                    {/* Stats overlay */}
+                                    <div className="absolute bottom-3 left-3 right-3 flex justify-between gap-2">
+                                        <div className="flex-1 bg-white/80 dark:bg-zinc-900/80 backdrop-blur shadow-sm p-2 rounded-lg border border-slate-100 dark:border-white/5">
+                                            <div className="text-[8px] text-slate-500 mb-0.5">Reach</div>
+                                            <div className="text-xs font-black text-slate-800 dark:text-slate-200">45.2K</div>
+                                        </div>
+                                        <div className="flex-1 bg-white/80 dark:bg-zinc-900/80 backdrop-blur shadow-sm p-2 rounded-lg border border-slate-100 dark:border-white/5">
+                                            <div className="text-[8px] text-slate-500 mb-0.5">Leads</div>
+                                            <div className="text-xs font-black text-rose-600 dark:text-rose-400">1,240</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* CTA Button */}
+                                <div className="w-full bg-[#25D366] rounded-xl py-2.5 flex items-center justify-center text-white text-[11px] font-bold gap-2 shadow-lg shadow-green-500/20">
+                                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" /></svg>
+                                    WhatsApp Us
+                                </div>
                             </div>
                         )}
                     </motion.div>
 
                     {/* CARD 2: SUPPORT (Large Right) */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once:true }} transition={{ delay: 0.1 }}
-                                className="md:col-span-5 rounded-[32px] bg-[#F0FDF4] dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
+                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+                        className="md:col-span-5 rounded-[32px] bg-[#F0FDF4] dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
                         <div className="p-8 md:p-10 relative z-10 w-full">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400 mb-4">{supportCard.tag}</div>
                             <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight whitespace-pre-line">{supportCard.title}</h3>
                             <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium mb-6 md:mb-8 whitespace-pre-line">{supportCard.desc}</p>
-                            <a href="#" className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4"/></a>
+                            <a href="#" className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4" /></a>
                         </div>
                         {supportCard.image ? (
                             <div className="absolute bottom-0 inset-x-8 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-emerald-900/20 border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-6 group-hover:translate-y-0 transition-transform duration-500 h-48">
                                 <img src={supportCard.image} className="w-full h-full object-cover" alt={supportCard.title} />
                             </div>
                         ) : (
-                            <div className="absolute bottom-0 inset-x-8 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-emerald-900/20 border-t border-x border-slate-100 dark:border-white/10 p-5 translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
-                                 <div className="flex gap-3 mb-4 items-end">
-                                     <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
-                                         <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400"/>
-                                     </div>
-                                     <div className="bg-slate-100 dark:bg-white/5 py-2 px-4 rounded-2xl rounded-bl-sm text-sm dark:text-slate-300">Hi, I need help with my recent order.</div>
-                                 </div>
-                                 <div className="flex gap-3 items-end justify-end">
-                                     <div className="bg-emerald-500 text-white py-2 px-4 rounded-2xl rounded-br-sm text-sm">Sure, I'll check that for you right now! ✨</div>
-                                 </div>
+                            <div className="absolute bottom-0 inset-x-4 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-20px_50px_-15px_rgba(16,185,129,0.15)] border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-8 group-hover:translate-y-0 transition-transform duration-500 flex h-52">
+                                {/* Sidebar (Agents/Chats) */}
+                                <div className="w-1/3 bg-slate-50 dark:bg-zinc-950 border-r border-slate-100 dark:border-white/5 p-3 flex flex-col gap-2">
+                                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Open Chats</div>
+                                    {[
+                                        { name: 'Jassi', active: true, msg: 'Order status?' },
+                                        { name: 'Manish', active: false, msg: 'Thanks for help!' }
+                                    ].map((chat, i) => (
+                                        <div key={i} className={`p-2 rounded-xl flex items-center gap-2 transition-all ${chat.active ? 'bg-white dark:bg-zinc-800 shadow-sm border border-slate-200 dark:border-white/10 ring-1 ring-emerald-500/20' : 'opacity-60 grayscale hover:grayscale-0'}`}>
+                                            <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0 relative">
+                                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">{chat.name[0]}</span>
+                                                {chat.active && <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-zinc-800 rounded-full"></span>}
+                                            </div>
+                                            <div className="overflow-hidden">
+                                                <div className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">{chat.name}</div>
+                                                <div className="text-[8px] text-slate-500 truncate">{chat.msg}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Chat Area */}
+                                <div className="w-2/3 flex flex-col bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.03),transparent)] relative">
+                                    {/* Chat Header */}
+                                    <div className="px-3 py-2 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm z-10">
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-[10px] font-bold dark:text-white">Jassi</div>
+                                            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded text-[8px] font-bold uppercase tracking-wide">Waiting</span>
+                                        </div>
+                                        <div className="flex -space-x-1">
+                                            <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] text-white font-bold border border-white dark:border-zinc-900 z-20">You</div>
+                                            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[8px] text-white font-bold border border-white dark:border-zinc-900 z-10">M</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Chat Messages */}
+                                    <div className="p-3 flex-1 flex flex-col gap-3 relative">
+                                        {/* Floating Badge */}
+                                        <div className="absolute top-2 right-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-full text-[8px] font-bold flex items-center gap-1 backdrop-blur-md z-10">
+                                            <Check className="w-2.5 h-2.5" /> Assigned to You
+                                        </div>
+
+                                        <div className="flex gap-2 items-end mt-4">
+                                            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-zinc-800 shrink-0 flex items-center justify-center text-[8px] font-bold text-slate-500">S</div>
+                                            <div className="bg-slate-100 dark:bg-white/5 p-2 rounded-xl rounded-bl-sm text-[9px] dark:text-slate-300 max-w-[80%] border border-slate-200 dark:border-white/5 shadow-sm">Can you check my order status?</div>
+                                        </div>
+
+                                        <div className="flex gap-2 items-end justify-end mt-1">
+                                            <div className="bg-emerald-500 text-white p-2 rounded-xl rounded-br-sm text-[9px] max-w-[85%] shadow-md">
+                                                Checking that for you right now, Jassi! 📦
+                                            </div>
+                                        </div>
+
+                                        {/* Typing indicator */}
+                                        <div className="flex gap-1 items-center mt-auto opacity-50 px-2">
+                                            <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce"></div>
+                                            <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce delay-75"></div>
+                                            <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce delay-150"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </motion.div>
 
                     {/* CARD 3: AUTOMATION */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once:true }} transition={{ delay: 0.15 }}
-                                className="md:col-span-4 rounded-[32px] bg-[#EEF2FF] dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
+                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.15 }}
+                        className="md:col-span-4 rounded-[32px] bg-[#EEF2FF] dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
                         <div className="p-10 relative z-10 w-full mb-auto text-center">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-400 mb-4">{automationCard.tag}</div>
                             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{automationCard.title}</h3>
@@ -185,31 +289,31 @@ const CapabilitiesBento = ({ config }) => {
                             </div>
                         ) : (
                             <div className="relative h-48 w-full mt-auto flex items-center justify-center overflow-hidden">
-                                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.1)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.2)_1px,transparent_1px)] bg-[length:16px_16px]"></div>
-                                 
-                                 <div className="relative z-10 w-32 bg-white dark:bg-zinc-800 shadow-lg rounded-xl p-3 border border-indigo-100 dark:border-white/10 -translate-y-4 -translate-x-8 group-hover:-translate-y-6 transition-transform duration-500">
-                                     <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 border-b border-slate-100 dark:border-white/10 pb-1">Trigger</div>
-                                     <div className="text-xs font-semibold dark:text-white">Customer Says "Hi"</div>
-                                 </div>
-    
-                                 <svg className="absolute w-24 h-24 top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40px] text-indigo-300 dark:text-indigo-700" fill="none" viewBox="0 0 100 100">
-                                     <path d="M 10 20 Q 50 20 50 50 T 90 80" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_20s_linear_infinite]" />
-                                 </svg>
-    
-                                 <div className="relative z-10 w-36 bg-white dark:bg-zinc-800 shadow-lg rounded-xl p-3 border border-indigo-100 dark:border-white/10 translate-y-8 translate-x-8 group-hover:translate-y-6 transition-transform duration-500 delay-75">
-                                     <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 border-b border-slate-100 dark:border-white/10 pb-1">AI Action</div>
-                                     <div className="text-xs font-semibold dark:text-white mb-2">Send Welcome Msg</div>
-                                     <div className="w-full h-8 bg-indigo-50 dark:bg-indigo-900/30 rounded flex items-center justify-center">
-                                         <Layers className="w-4 h-4 text-indigo-500" />
-                                     </div>
-                                 </div>
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.1)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.2)_1px,transparent_1px)] bg-[length:16px_16px]"></div>
+
+                                <div className="relative z-10 w-32 bg-white dark:bg-zinc-800 shadow-lg rounded-xl p-3 border border-indigo-100 dark:border-white/10 -translate-y-4 -translate-x-8 group-hover:-translate-y-6 transition-transform duration-500">
+                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 border-b border-slate-100 dark:border-white/10 pb-1">Trigger</div>
+                                    <div className="text-xs font-semibold dark:text-white">Customer Says "Hi"</div>
+                                </div>
+
+                                <svg className="absolute w-24 h-24 top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40px] text-indigo-300 dark:text-indigo-700" fill="none" viewBox="0 0 100 100">
+                                    <path d="M 10 20 Q 50 20 50 50 T 90 80" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_20s_linear_infinite]" />
+                                </svg>
+
+                                <div className="relative z-10 w-36 bg-white dark:bg-zinc-800 shadow-lg rounded-xl p-3 border border-indigo-100 dark:border-white/10 translate-y-8 translate-x-8 group-hover:translate-y-6 transition-transform duration-500 delay-75">
+                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 border-b border-slate-100 dark:border-white/10 pb-1">AI Action</div>
+                                    <div className="text-xs font-semibold dark:text-white mb-2">Send Welcome Msg</div>
+                                    <div className="w-full h-8 bg-indigo-50 dark:bg-indigo-900/30 rounded flex items-center justify-center">
+                                        <Layers className="w-4 h-4 text-indigo-500" />
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </motion.div>
 
                     {/* CARD 4: COMMERCE */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once:true }} transition={{ delay: 0.2 }}
-                                className="md:col-span-4 rounded-[32px] bg-[#FFFBEB] dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
+                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+                        className="md:col-span-4 rounded-[32px] bg-[#FFFBEB] dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
                         <div className="p-10 relative z-10 w-full mb-auto text-center">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500 mb-4">{commerceCard.tag}</div>
                             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{commerceCard.title}</h3>
@@ -220,59 +324,129 @@ const CapabilitiesBento = ({ config }) => {
                                 <img src={commerceCard.image} className="w-full h-full object-cover rounded-2xl shadow-xl border border-amber-100 dark:border-white/10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500" alt={commerceCard.title} />
                             </div>
                         ) : (
-                            <div className="relative h-48 w-full mt-auto flex flex-col items-center justify-end px-8 pb-8">
-                                 <div className="w-full bg-white dark:bg-zinc-900 shadow-xl rounded-2xl border border-amber-100 dark:border-white/10 p-4 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                                     <div className="flex gap-4 items-center">
-                                         <div className="w-16 h-16 rounded-xl bg-amber-100 dark:bg-amber-900/40 shrink-0 flex items-center justify-center">
-                                            <ShoppingCart className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                                         </div>
-                                         <div>
-                                             <div className="font-bold text-slate-900 dark:text-white text-sm mb-1">Premium Collection</div>
-                                             <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">24 Items Available</div>
-                                             <div className="inline-block px-3 py-1 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                                                 View Catalog
-                                             </div>
-                                         </div>
-                                     </div>
-                                 </div>
+                            <div className="relative flex-1 w-full mt-auto overflow-hidden px-5 pb-5 flex items-end">
+                                {/* Ambient glow */}
+                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-50/40 to-amber-100/60 dark:via-amber-950/20 dark:to-amber-950/40 pointer-events-none" />
+
+                                <div className="relative w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                                    {/* Store header bar */}
+                                    <div className="w-full bg-green-600 rounded-t-2xl px-4 py-2.5 flex items-center gap-2.5 shadow-md">
+                                        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" /></svg>
+                                        </div>
+                                        <span className="text-white font-bold text-xs flex-1">My Online Store</span>
+                                        <span className="text-white/70 text-[10px] font-semibold">🛒 3 items</span>
+                                    </div>
+
+                                    {/* Product grid */}
+                                    <div className="bg-white dark:bg-zinc-900 border border-t-0 border-amber-100 dark:border-white/10 rounded-b-2xl p-3 shadow-xl">
+                                        <div className="grid grid-cols-3 gap-2 mb-3">
+                                            {[
+                                                { name: 'Sneakers', price: '₹1,299', color: 'bg-blue-100', dot: 'bg-blue-400' },
+                                                { name: 'Watch', price: '₹2,999', color: 'bg-amber-100', dot: 'bg-amber-400' },
+                                                { name: 'Bag', price: '₹899', color: 'bg-rose-100', dot: 'bg-rose-400' },
+                                            ].map((p, i) => (
+                                                <motion.div key={p.name}
+                                                    initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }}
+                                                    viewport={{ once: true }} transition={{ delay: 0.1 + i * 0.12 }}
+                                                    className="bg-slate-50 dark:bg-zinc-800 rounded-xl p-2 relative overflow-hidden">
+                                                    <div className={`w-full h-10 ${p.color} dark:opacity-40 rounded-lg mb-1.5 flex items-center justify-center`}>
+                                                        <ShoppingCart className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                                                    </div>
+                                                    <div className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate">{p.name}</div>
+                                                    <div className="text-[9px] font-black text-green-600 dark:text-green-400">{p.price}</div>
+                                                    <div className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${p.dot}`} />
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                        {/* Checkout button */}
+                                        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.5 }}
+                                            className="w-full bg-green-500 text-white text-center text-[10px] font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-green-500/30">
+                                            <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" /></svg>
+                                            Checkout
+                                        </motion.div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </motion.div>
 
-                    {/* CARD 5: CRM & SALES */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once:true }} transition={{ delay: 0.25 }}
-                                className="md:col-span-4 rounded-[32px] bg-[#F8FAFC] dark:bg-slate-900 border border-slate-200 dark:border-white/10 overflow-hidden relative group flex flex-col min-h-[360px]">
+                    {/* CARD 5: vCards */}
+                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.25 }}
+                        className="md:col-span-4 rounded-[32px] bg-[#F8FAFC] dark:bg-slate-900 border border-slate-200 dark:border-white/10 overflow-hidden relative group flex flex-col min-h-[360px]">
                         <div className="p-10 relative z-10 w-full mb-auto text-center">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400 mb-4">{crmCard.tag}</div>
-                            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{crmCard.title}</h3>
-                            {crmCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{crmCard.desc}</p>}
+                            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400 mb-4">{vcardCard.tag}</div>
+                            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{vcardCard.title}</h3>
+                            {vcardCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{vcardCard.desc}</p>}
                         </div>
-                        {crmCard.image ? (
+                        {vcardCard.image ? (
                             <div className="relative h-56 w-full mt-auto px-6 overflow-hidden flex items-end">
-                                <img src={crmCard.image} className="w-full h-full object-cover rounded-t-xl translate-y-8 group-hover:translate-y-4 transition-transform duration-500" alt={crmCard.title} />
+                                <img src={vcardCard.image} className="w-full h-full object-cover rounded-t-xl translate-y-8 group-hover:translate-y-4 transition-transform duration-500" alt={vcardCard.title} />
                             </div>
                         ) : (
-                            <div className="relative h-48 w-full mt-auto px-6 overflow-hidden flex items-end">
-                                <div className="w-full flex gap-3 translate-y-8 group-hover:translate-y-4 transition-transform duration-500">
-                                    <div className="flex-1 bg-slate-100 dark:bg-white/5 rounded-t-xl p-3 h-40">
-                                        <div className="w-1/2 h-3 bg-slate-200 dark:bg-white/10 rounded-full mb-3"></div>
-                                        <div className="bg-white dark:bg-zinc-800 shadow-sm rounded-lg p-3 mb-2 border border-slate-200 dark:border-white/5">
-                                            <div className="w-3/4 h-3 bg-slate-200 dark:bg-white/10 rounded-full mb-2"></div>
-                                            <div className="flex gap-2">
-                                                <div className="w-4 h-4 rounded-full bg-cyan-100 dark:bg-cyan-900/50"></div>
+                            <div className="relative h-56 w-full mt-auto flex items-end justify-center px-6 overflow-hidden pb-0">
+                                {/* Ambient glow */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent dark:from-cyan-500/20 pointer-events-none" />
+
+                                <div className="relative w-52 h-52 bg-white dark:bg-zinc-900 shadow-[0_-10px_40px_-15px_rgba(6,182,212,0.3)] border-t border-x border-slate-200 dark:border-white/10 rounded-t-[32px] p-5 flex flex-col items-center translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
+                                    {/* Phone notch mockup */}
+                                    <div className="absolute top-0 inset-x-0 h-4 flex justify-center">
+                                        <div className="w-16 h-3 bg-slate-100 dark:bg-zinc-800 rounded-b-xl border-x border-b border-slate-200 dark:border-white/5"></div>
+                                    </div>
+
+                                    {/* Profile Avatar with glow */}
+                                    <div className="relative mt-3 mb-4">
+                                        <div className="absolute inset-0 bg-cyan-400 rounded-full blur-md opacity-40 animate-pulse"></div>
+                                        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 p-[3px] relative z-10">
+                                            <div className="w-full h-full bg-white dark:bg-zinc-950 rounded-full flex items-center justify-center">
+                                                <User className="w-7 h-7 text-cyan-500" />
                                             </div>
                                         </div>
-                                        <div className="bg-white dark:bg-zinc-800 shadow-sm rounded-lg p-3 border border-slate-200 dark:border-white/5">
-                                            <div className="w-full h-3 bg-slate-200 dark:bg-white/10 rounded-full mb-2"></div>
+                                        {/* Verification Badge */}
+                                        <div className="absolute bottom-0 right-0 w-5 h-5 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-900 flex items-center justify-center z-20">
+                                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
                                         </div>
                                     </div>
-                                    <div className="flex-1 bg-slate-100 dark:bg-white/5 rounded-t-xl p-3 h-48">
-                                        <div className="w-1/2 h-3 bg-slate-200 dark:bg-white/10 rounded-full mb-3"></div>
-                                        <div className="bg-white dark:bg-zinc-800 shadow-sm rounded-lg p-3 border border-slate-200 dark:border-white/5">
-                                            <div className="w-full h-3 bg-slate-200 dark:bg-white/10 rounded-full mb-2"></div>
-                                            <div className="w-1/2 h-3 bg-slate-200 dark:bg-white/10 rounded-full"></div>
+
+                                    {/* Name & Role */}
+                                    <div className="text-center w-full mb-5">
+                                        <div className="h-2.5 w-24 bg-slate-800 dark:bg-slate-200 rounded-full mx-auto mb-2.5"></div>
+                                        <div className="h-1.5 w-16 bg-cyan-600/50 dark:bg-cyan-400/50 rounded-full mx-auto"></div>
+                                    </div>
+
+                                    {/* Action Buttons Mockup */}
+                                    <div className="flex gap-3 w-full mb-4">
+                                        <div className="flex-1 h-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl flex items-center justify-center">
+                                            <div className="w-4 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full"></div>
+                                        </div>
+                                        <div className="flex-1 h-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl flex items-center justify-center">
+                                            <div className="w-4 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full"></div>
+                                        </div>
+                                        <div className="flex-1 h-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl flex items-center justify-center">
+                                            <div className="w-4 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full"></div>
                                         </div>
                                     </div>
+
+                                    {/* Save Contact CTA */}
+                                    <div className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-1.5 mt-auto">
+                                        <User className="w-3.5 h-3.5" />
+                                        <span className="text-[10px] font-bold">Save Contact</span>
+                                    </div>
+                                </div>
+
+                                {/* Floating QR Code Modal (Offset) */}
+                                <div className="absolute right-4 md:right-8 top-4 w-20 h-24 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/50 dark:border-white/10 p-2 flex flex-col items-center translate-y-4 group-hover:-translate-y-2 opacity-0 group-hover:opacity-100 transition-all duration-700 delay-100">
+                                    <div className="w-full bg-cyan-50 dark:bg-cyan-900/30 rounded-xl p-1.5 mb-1.5 aspect-square flex items-center justify-center relative overflow-hidden">
+                                        {/* Scanner line animation */}
+                                        <div className="absolute top-0 inset-x-0 h-0.5 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
+
+                                        <div className="grid grid-cols-3 gap-[2px] opacity-70 w-full h-full p-1 bg-white dark:bg-transparent rounded">
+                                            <div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div>
+                                            <div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-transparent"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div>
+                                            <div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div>
+                                        </div>
+                                    </div>
+                                    <div className="text-[8px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Scan Me</div>
                                 </div>
                             </div>
                         )}
@@ -289,18 +463,8 @@ const CapabilitiesBento = ({ config }) => {
 // ──────────────────────────────────────────────────────────
 // ADVANCED FEATURES SHOWCASE — AiSensy Inspired
 // ──────────────────────────────────────────────────────────
-const advancedFeatures = [
-    {
-        id: 'broadcast', label: 'Bulk Broadcasts', icon: Send,
-        bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70',
-        barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100',
-        iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400',
-        gradientIcon: 'from-indigo-500 to-violet-500',
-        tagText: 'Marketing',
-        title: 'Import & Broadcast Instantly',
-        desc: 'Import contacts and broadcast approved WhatsApp messages to thousands in seconds. Track delivery, read, and click rates in real-time.',
-        stats: ['98% Open Rate', '45% CTR', '3x Revenue'], preview: 'broadcast'
-    },
+export const advancedFeatures = [
+    // WHATSAPP AUTOMATION
     {
         id: 'chatbot', label: 'No-Code Flow Bots', icon: Layers,
         bg: 'bg-violet-50 dark:bg-violet-950/20', previewBg: 'bg-violet-100/70',
@@ -310,7 +474,7 @@ const advancedFeatures = [
         tagText: 'Automation',
         title: 'Build No-Code Chatbot in Minutes',
         desc: 'Visual drag-and-drop flow builder for WhatsApp chatbots & product catalog journeys — no code, no complexity.',
-        stats: ['80% Auto-resolved', '24/7 Running', '5 min Setup'], preview: 'chatbot'
+        stats: ['80% Auto-resolved', '24/7 Running', '5 min Setup'], preview: 'chatbot', category: 'whatsapp'
     },
     {
         id: 'livechat', label: 'Multi-Agent Inbox', icon: HeadphonesIcon,
@@ -321,40 +485,7 @@ const advancedFeatures = [
         tagText: 'Support',
         title: 'Shared Team Inbox for WhatsApp',
         desc: 'Let multiple agents handle conversations from one WhatsApp number. Smart routing, labels, quick replies, and internal notes included.',
-        stats: ['60% Faster Support', 'Smart Routing', 'Team Collab'], preview: 'livechat'
-    },
-    {
-        id: 'analytics', label: 'Analytics & Reports', icon: BarChart,
-        bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70',
-        barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100',
-        iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400',
-        gradientIcon: 'from-amber-500 to-orange-500',
-        tagText: 'Insights',
-        title: 'Real-Time Campaign Analytics',
-        desc: 'Monitor Read, Replied & Clicked rates live. Segment audiences by engagement and auto-retarget cold leads for maximum conversions.',
-        stats: ['Live Dashboard', 'Campaign ROI', 'Retargeting'], preview: 'analytics'
-    },
-    {
-        id: 'catalog', label: 'Catalog & Payments', icon: ShoppingCart,
-        bg: 'bg-rose-50 dark:bg-rose-950/20', previewBg: 'bg-rose-100/70',
-        barColor: 'bg-rose-500', pillColor: 'bg-rose-50 text-rose-700 border-rose-100',
-        iconBg: 'bg-rose-100 dark:bg-rose-900/40', iconColor: 'text-rose-600 dark:text-rose-400',
-        gradientIcon: 'from-rose-500 to-pink-500',
-        tagText: 'Commerce',
-        title: 'Sell Products Inside WhatsApp',
-        desc: 'Share your full product catalog, collect orders and receive payments — all within WhatsApp. Zero-friction in-chat checkout.',
-        stats: ['In-chat Checkout', 'UPI & Cards', '2x Orders'], preview: 'catalog'
-    },
-    {
-        id: 'retarget', label: 'Smart Retargeting', icon: ArrowUpRight,
-        bg: 'bg-cyan-50 dark:bg-cyan-950/20', previewBg: 'bg-cyan-100/70',
-        barColor: 'bg-cyan-500', pillColor: 'bg-cyan-50 text-cyan-700 border-cyan-100',
-        iconBg: 'bg-cyan-100 dark:bg-cyan-900/40', iconColor: 'text-cyan-600 dark:text-cyan-400',
-        gradientIcon: 'from-cyan-500 to-sky-500',
-        tagText: 'Re-engagement',
-        title: 'Retarget to 3X Conversions',
-        desc: "Re-engage customers who didn't respond or purchase with hyper-personalized automated follow-up campaigns and smart audience segments.",
-        stats: ['3x Conversions', 'Auto Follow-up', 'Smart Segments'], preview: 'retarget'
+        stats: ['60% Faster Support', 'Smart Routing', 'Team Collab'], preview: 'livechat', category: 'whatsapp'
     },
     {
         id: 'aibot', label: 'Generative AI Bot', icon: Zap,
@@ -365,48 +496,351 @@ const advancedFeatures = [
         tagText: 'AI-Powered',
         title: 'Generative AI that Sells & Supports',
         desc: 'Train your own GPT-powered bot on product knowledge, FAQs, pricing and policies. It answers, qualifies and converts leads — 24/7, autonomously.',
-        stats: ['GPT-4 Powered', 'Custom Training', 'Zero Hallucination'], preview: 'aibot'
+        stats: ['GPT-4 Powered', 'Custom Training', 'Zero Hallucination'], preview: 'aibot', category: 'whatsapp'
     },
+    {
+        id: 'analytics_wa', label: 'WhatsApp Reports', icon: BarChart,
+        bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70',
+        barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100',
+        iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400',
+        gradientIcon: 'from-blue-500 to-cyan-500',
+        tagText: 'Insights',
+        title: 'Message Delivery & Read Rates',
+        desc: 'Monitor exactly how many messages are sent, delivered, and read in real-time. Understand agent performance and customer engagement.',
+        stats: ['Read Rates', 'Agent Performance', 'Engagement KPIs'], preview: 'analytics_wa', category: 'whatsapp'
+    },
+    // META MARKETING
+    {
+        id: 'broadcast', label: 'Meta Ads & Broadcasts', icon: Send,
+        bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70',
+        barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+        iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400',
+        gradientIcon: 'from-indigo-500 to-violet-500',
+        tagText: 'Marketing',
+        title: 'Click-to-WhatsApp (CTWA) & Bulk Broadcasts',
+        desc: 'Launch Meta Ads that drive traffic straight to your WhatsApp inbox, and broadcast personalized campaigns to thousands instantly.',
+        stats: ['98% Open Rate', '5x Lead Gen', '3x ROI'], preview: 'broadcast', category: 'whatsapp'
+    },
+    {
+        id: 'audience_sync', label: 'CRM Audience Sync', icon: Repeat,
+        bg: 'bg-pink-50 dark:bg-pink-950/20', previewBg: 'bg-pink-100/70',
+        barColor: 'bg-pink-500', pillColor: 'bg-pink-50 text-pink-700 border-pink-100',
+        iconBg: 'bg-pink-100 dark:bg-pink-900/40', iconColor: 'text-pink-600 dark:text-pink-400',
+        gradientIcon: 'from-pink-500 to-rose-500',
+        tagText: 'Integration',
+        title: 'Auto-Sync Contacts to Meta',
+        desc: 'Seamlessly sync your WhatsApp contacts and segmented CRM lists directly to Meta Custom Audiences for highly targeted Facebook & Instagram ads.',
+        stats: ['Lookalike Sync', 'Zero Manual Export', 'High Match Rate'], preview: 'audience_sync', category: 'whatsapp'
+    },
+    {
+        id: 'retarget', label: 'Smart Retargeting', icon: ArrowUpRight,
+        bg: 'bg-sky-50 dark:bg-sky-950/20', previewBg: 'bg-sky-100/70',
+        barColor: 'bg-sky-500', pillColor: 'bg-sky-50 text-sky-700 border-sky-100',
+        iconBg: 'bg-sky-100 dark:bg-sky-900/40', iconColor: 'text-sky-600 dark:text-sky-400',
+        gradientIcon: 'from-sky-500 to-blue-500',
+        tagText: 'Re-engagement',
+        title: 'Retarget to 3X Conversions',
+        desc: "Re-engage customers who didn't respond or purchase with hyper-personalized automated follow-up campaigns and smart audience segments.",
+        stats: ['3x Conversions', 'Auto Follow-up', 'Smart Segments'], preview: 'retarget', category: 'whatsapp'
+    },
+    {
+        id: 'analytics_meta', label: 'Ad Performance', icon: BarChart,
+        bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70',
+        barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100',
+        iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400',
+        gradientIcon: 'from-amber-500 to-orange-500',
+        tagText: 'Insights',
+        title: 'Real-Time Meta Campaign Analytics',
+        desc: 'Monitor Ad Spend, Click-to-WhatsApp conversions, and ROAS live. Track exactly which ads drive the most engaged conversations.',
+        stats: ['Live Dashboard', 'Campaign ROI', 'Ad Spend Tracking'], preview: 'analytics_meta', category: 'meta'
+    },
+    {
+        id: 'meta_lead_ads', label: 'Click-to-WhatsApp Ads', icon: Megaphone,
+        bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70',
+        barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+        iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400',
+        gradientIcon: 'from-indigo-500 to-blue-500',
+        tagText: 'Advertising',
+        title: 'Launch CTWA Ads in 1-Click',
+        desc: 'Connect your Meta Business Manager to launch high-converting Click-to-WhatsApp ads directly from our dashboard without ever logging into Ads Manager.',
+        stats: ['1-Click Ads', 'Auto-Sync', 'Lowest CPA'], preview: 'meta_lead_ads', category: 'meta'
+    },
+    {
+        id: 'meta_pixel_sync', label: 'Meta Pixel Sync', icon: Activity,
+        bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70',
+        barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100',
+        iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400',
+        gradientIcon: 'from-blue-500 to-cyan-500',
+        tagText: 'Tracking',
+        title: 'Send Conversions to Meta Pixel',
+        desc: 'Automatically send WhatsApp purchases, leads, and custom events back to your Meta Pixel via Conversion API to optimize your ad delivery engine.',
+        stats: ['CAPI Integration', 'Zero Data Loss', 'Smart Optimization'], preview: 'meta_pixel_sync', category: 'meta'
+    },
+    {
+        id: 'meta_custom_audience', label: 'Dynamic Audiences', icon: Target,
+        bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70',
+        barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100',
+        iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400',
+        gradientIcon: 'from-purple-500 to-pink-500',
+        tagText: 'Targeting',
+        title: 'Sync WhatsApp Segments to Meta',
+        desc: 'Automatically build highly targeted Facebook Custom Audiences by syncing WhatsApp segments (like VIP customers or abandoned carts) in real-time.',
+        stats: ['Lookalike Sync', 'Real-time Updates', 'Higher ROAS'], preview: 'meta_custom_audience', category: 'meta'
+    },
+    {
+        id: 'meta_catalog_sales', label: 'Advantage+ Catalog Sales', icon: Store,
+        bg: 'bg-rose-50 dark:bg-rose-950/20', previewBg: 'bg-rose-100/70',
+        barColor: 'bg-rose-500', pillColor: 'bg-rose-50 text-rose-700 border-rose-100',
+        iconBg: 'bg-rose-100 dark:bg-rose-900/40', iconColor: 'text-rose-600 dark:text-rose-400',
+        gradientIcon: 'from-rose-500 to-orange-500',
+        tagText: 'Commerce',
+        title: 'Sync Store Inventory with Meta',
+        desc: 'Keep your native WhatsApp Store catalog perfectly synced with your Meta Commerce Manager to run dynamic Advantage+ catalog sales campaigns seamlessly.',
+        stats: ['2-Way Sync', 'Dynamic Ads', 'Auto-Updates'], preview: 'meta_catalog_sales', category: 'meta'
+    },
+    {
+        id: 'meta_ab_testing', label: 'A/B Testing', icon: SplitSquareHorizontal,
+        bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70',
+        barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100',
+        iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400',
+        gradientIcon: 'from-amber-500 to-yellow-500',
+        tagText: 'Optimization',
+        title: 'A/B Test Ad Creatives & Messages',
+        desc: 'Split-test different Facebook ad creatives against varying WhatsApp welcome messages to scientifically discover the highest converting funnel.',
+        stats: ['Split Testing', 'Winner Selection', 'Funnel Optimization'], preview: 'meta_ab_testing', category: 'meta'
+    },
+    {
+        id: 'meta_campaign_builder', label: 'Unified Campaign Builder', icon: Wand2,
+        bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70',
+        barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400',
+        gradientIcon: 'from-emerald-500 to-teal-500',
+        tagText: 'Strategy',
+        title: 'AI-Powered Campaign Architect',
+        desc: 'Generate end-to-end campaigns—from Facebook ad copy to the WhatsApp chatbot flow—using our built-in Generative AI Campaign Builder.',
+        stats: ['AI Copywriting', 'Flow Generation', 'Instant Launch'], preview: 'meta_campaign_builder', category: 'meta'
+    },
+    // ONLINE STORE
+    {
+        id: 'catalog', label: 'Native Online Store', icon: ShoppingCart,
+        bg: 'bg-rose-50 dark:bg-rose-950/20', previewBg: 'bg-rose-100/70',
+        barColor: 'bg-rose-500', pillColor: 'bg-rose-50 text-rose-700 border-rose-100',
+        iconBg: 'bg-rose-100 dark:bg-rose-900/40', iconColor: 'text-rose-600 dark:text-rose-400',
+        gradientIcon: 'from-rose-500 to-pink-500',
+        tagText: 'Commerce',
+        title: 'Sell Products Inside WhatsApp',
+        desc: 'Share your full product catalog, collect orders and receive payments natively within WhatsApp. Zero-friction in-chat checkout.',
+        stats: ['In-chat Checkout', 'UPI & Cards', '2x Orders'], preview: 'catalog', category: 'store'
+    },
+    {
+        id: 'cart_payment', label: 'Cart & Payments', icon: CreditCard,
+        bg: 'bg-orange-50 dark:bg-orange-950/20', previewBg: 'bg-orange-100/70',
+        barColor: 'bg-orange-500', pillColor: 'bg-orange-50 text-orange-700 border-orange-100',
+        iconBg: 'bg-orange-100 dark:bg-orange-900/40', iconColor: 'text-orange-600 dark:text-orange-400',
+        gradientIcon: 'from-orange-400 to-amber-500',
+        tagText: 'Checkout',
+        title: 'Seamless In-Chat Checkout',
+        desc: 'Allow customers to build their cart and complete payments using UPI, credit cards, or net banking without ever leaving WhatsApp.',
+        stats: ['UPI Supported', 'One-Click Pay', 'Zero Drops'], preview: 'cart_payment', category: 'store'
+    },
+    {
+        id: 'order_track', label: 'Order Tracking', icon: Truck,
+        bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70',
+        barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400',
+        gradientIcon: 'from-emerald-400 to-teal-500',
+        tagText: 'Post-Purchase',
+        title: 'Automated Shipping Updates',
+        desc: 'Send proactive notifications for order confirmations, shipping dispatch, and live tracking updates directly to the customer\'s inbox.',
+        stats: ['Live Tracking', 'Auto Updates', 'High Trust'], preview: 'order_track', category: 'store'
+    },
+    {
+        id: 'store_categories', label: 'Smart Categories', icon: LayoutGrid,
+        bg: 'bg-pink-50 dark:bg-pink-950/20', previewBg: 'bg-pink-100/70',
+        barColor: 'bg-pink-500', pillColor: 'bg-pink-50 text-pink-700 border-pink-100',
+        iconBg: 'bg-pink-100 dark:bg-pink-900/40', iconColor: 'text-pink-600 dark:text-pink-400',
+        gradientIcon: 'from-pink-500 to-rose-500',
+        tagText: 'Navigation',
+        title: 'Intelligent Product Categories',
+        desc: 'Organize thousands of products into smart categories and collections, allowing customers to seamlessly browse your entire catalog directly inside WhatsApp.',
+        stats: ['Nested Categories', 'Smart Search', 'Easy Browsing'], preview: 'store_categories', category: 'store'
+    },
+    {
+        id: 'store_orders', label: 'Order Management', icon: ListOrdered,
+        bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70',
+        barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100',
+        iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400',
+        gradientIcon: 'from-blue-500 to-indigo-500',
+        tagText: 'Fulfillment',
+        title: 'Kanban Order Dashboard',
+        desc: 'Manage your entire fulfillment workflow with a powerful drag-and-drop Kanban dashboard. Track every order from "Placed" to "Delivered" with automatic customer notifications.',
+        stats: ['Kanban Board', 'Auto-Updates', 'Team Access'], preview: 'store_orders', category: 'store'
+    },
+    {
+        id: 'store_coupons', label: 'Dynamic Coupons', icon: Tag,
+        bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70',
+        barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100',
+        iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400',
+        gradientIcon: 'from-amber-500 to-orange-500',
+        tagText: 'Promotions',
+        title: 'Native WhatsApp Promo Codes',
+        desc: 'Create dynamic discount codes, flash sales, and BOGO offers that customers can natively apply to their cart during the seamless in-chat checkout process.',
+        stats: ['Flash Sales', 'BOGO Offers', 'Usage Limits'], preview: 'store_coupons', category: 'store'
+    },
+    {
+        id: 'store_invoices', label: 'Automated Invoices', icon: FileText,
+        bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70',
+        barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400',
+        gradientIcon: 'from-emerald-500 to-teal-500',
+        tagText: 'Accounting',
+        title: 'Instant PDF Receipts',
+        desc: 'Automatically generate and instantly send beautiful PDF invoices and payment receipts to the customer’s WhatsApp inbox the moment a payment is confirmed.',
+        stats: ['Tax Compliant', 'PDF Generation', 'Instant Delivery'], preview: 'store_invoices', category: 'store'
+    },
+    // vCARD
+    {
+        id: 'vcard', label: 'Interactive vCards', icon: Briefcase,
+        bg: 'bg-cyan-50 dark:bg-cyan-950/20', previewBg: 'bg-cyan-100/70',
+        barColor: 'bg-cyan-500', pillColor: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+        iconBg: 'bg-cyan-100 dark:bg-cyan-900/40', iconColor: 'text-cyan-600 dark:text-cyan-400',
+        gradientIcon: 'from-cyan-400 to-blue-500',
+        tagText: 'Networking',
+        title: 'Premium Digital Business Cards',
+        desc: 'Share stunning, mobile-first interactive business cards with custom QR codes to capture leads straight into your WhatsApp CRM.',
+        stats: ['10+ Themes', 'Custom QR', 'Direct Save'], preview: 'vcard', category: 'vcard'
+    },
+    {
+        id: 'vcard_lead', label: 'Instant Lead Capture', icon: Users,
+        bg: 'bg-fuchsia-50 dark:bg-fuchsia-950/20', previewBg: 'bg-fuchsia-100/70',
+        barColor: 'bg-fuchsia-500', pillColor: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100',
+        iconBg: 'bg-fuchsia-100 dark:bg-fuchsia-900/40', iconColor: 'text-fuchsia-600 dark:text-fuchsia-400',
+        gradientIcon: 'from-fuchsia-500 to-pink-500',
+        tagText: 'CRM Sync',
+        title: 'Turn Scans into WhatsApp Leads',
+        desc: 'When someone scans your vCard QR code, their details are instantly captured and they are redirected to your WhatsApp inbox to start a conversation.',
+        stats: ['Auto-Save Contacts', 'CRM Integration', '1-Click Connect'], preview: 'vcard_lead', category: 'vcard'
+    },
+    {
+        id: 'vcard_theme', label: 'Premium Themes', icon: LayoutTemplate,
+        bg: 'bg-slate-50 dark:bg-zinc-800/50', previewBg: 'bg-slate-200/70 dark:bg-zinc-800',
+        barColor: 'bg-slate-800 dark:bg-slate-200', pillColor: 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-zinc-800 dark:text-slate-200 dark:border-white/10',
+        iconBg: 'bg-slate-200 dark:bg-zinc-700', iconColor: 'text-slate-800 dark:text-slate-200',
+        gradientIcon: 'from-slate-700 to-slate-900 dark:from-slate-400 dark:to-slate-200',
+        tagText: 'Customization',
+        title: 'Stunning Designer Layouts',
+        desc: 'Choose from 10+ gorgeous, mobile-optimized business card templates. Completely customize colors, fonts, and layouts to match your brand.',
+        stats: ['10+ Themes', 'Color Customizer', 'CSS Editing'], preview: 'vcard_theme', category: 'vcard'
+    },
+    {
+        id: 'vcard_analytics', label: 'Profile Analytics', icon: LineChart,
+        bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70',
+        barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100',
+        iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400',
+        gradientIcon: 'from-blue-500 to-cyan-500',
+        tagText: 'Insights',
+        title: 'Track Scans & Link Clicks',
+        desc: 'Get deep insights into your networking performance. Monitor total QR scans, unique profile views, and see exactly which links are getting the most engagement.',
+        stats: ['Scan Tracking', 'Link Analytics', 'Lead Sources'], preview: 'vcard_analytics', category: 'vcard'
+    },
+    {
+        id: 'vcard_appointments', label: 'Appointment Booking', icon: Calendar,
+        bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70',
+        barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100',
+        iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400',
+        gradientIcon: 'from-purple-500 to-pink-500',
+        tagText: 'Scheduling',
+        title: 'Built-in Scheduling Calendar',
+        desc: 'Eliminate back-and-forth emails. Let clients book appointments directly from your vCard, and receive instant booking notifications and reminders via WhatsApp.',
+        stats: ['Time Slots', 'Auto-Reminders', 'WhatsApp Sync'], preview: 'vcard_appointments', category: 'vcard'
+    },
+    {
+        id: 'vcard_nfc', label: 'NFC Integration', icon: Wifi,
+        bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70',
+        barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+        iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400',
+        gradientIcon: 'from-indigo-500 to-violet-500',
+        tagText: 'Hardware',
+        title: 'Tap-to-Share NFC Compatibility',
+        desc: 'Connect your digital profile to a physical NFC card. Share your details instantly by simply tapping your card against any modern smartphone—no app required.',
+        stats: ['Tap-to-Share', 'No App Needed', 'Write to NFC'], preview: 'vcard_nfc', category: 'vcard'
+    },
+    {
+        id: 'vcard_domain', label: 'Custom Domains', icon: Globe,
+        bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70',
+        barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400',
+        gradientIcon: 'from-emerald-500 to-teal-500',
+        tagText: 'Branding',
+        title: 'White-Label Custom Domains',
+        desc: 'Elevate your personal brand by hosting your vCard on your own custom domain (e.g., card.yourbrand.com) rather than a generic platform URL.',
+        stats: ['SSL Included', 'White-Label', 'DNS Mapping'], preview: 'vcard_domain', category: 'vcard'
+    }
 ];
+
+const ImageMockup = ({ imageUrl, badgeText, BadgeIcon, colorClass }) => (
+    <div className="w-full h-full rounded-2xl overflow-hidden relative shadow-xl group">
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent z-10" />
+        <img src={imageUrl} alt="Feature Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+            className="absolute bottom-4 left-4 right-4 z-20 flex justify-between items-end">
+            <div className="px-3 py-1.5 backdrop-blur-md bg-white/20 border border-white/30 rounded-xl flex items-center gap-2 shadow-lg">
+                <div className="p-1 rounded-md bg-white/20">
+                    <BadgeIcon className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-[11px] font-bold text-white tracking-wide">{badgeText}</span>
+            </div>
+
+            <div className="flex gap-1.5 mb-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse delay-75" />
+                <div className="w-1.5 h-1.5 rounded-full bg-white/90 animate-pulse delay-150" />
+            </div>
+        </motion.div>
+    </div>
+);
 
 function FeaturePreview({ feature }) {
     // If admin uploaded a custom image, show it instead of the animated mockup
     if (feature.image) {
         return (
             <AnimatePresence mode="wait">
-                <motion.div key={feature.id} initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}} transition={{duration:0.35}}
+                <motion.div key={feature.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.35 }}
                     className={`w-full h-full rounded-2xl ${feature.previewBg} overflow-hidden`}>
                     <img src={feature.image} alt={feature.title} className="w-full h-full object-cover" />
                 </motion.div>
             </AnimatePresence>
         );
     }
-    const { preview, previewBg, barColor } = feature;
+    const preview = feature.preview || 'broadcast';
+    const previewBg = feature.previewBg || 'bg-slate-100/70';
+    const barColor = feature.barColor || 'bg-slate-500';
     const mockups = {
         broadcast: (
             <div className="w-full h-full flex flex-col gap-3">
                 <div className="flex items-center gap-3 pb-3 border-b border-black/10">
-                    <div className={`w-8 h-8 rounded-full ${barColor} flex items-center justify-center`}><Send className="w-4 h-4 text-white"/></div>
-                    <div><div className="w-28 h-2.5 bg-black/15 rounded-full mb-1"/><div className="w-16 h-2 bg-black/10 rounded-full"/></div>
+                    <div className={`w-8 h-8 rounded-full ${barColor} flex items-center justify-center`}><Send className="w-4 h-4 text-white" /></div>
+                    <div><div className="w-28 h-2.5 bg-black/15 rounded-full mb-1" /><div className="w-16 h-2 bg-black/10 rounded-full" /></div>
                     <div className={`ml-auto px-3 py-1 ${barColor} text-white rounded-full text-[10px] font-bold`}>LIVE</div>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                    {[['Sent','17.8K'],['Delivered','17.2K'],['Read','16.9K'],['Clicked','8.1K']].map(([l,v])=>(
+                    {[['Sent', '17.8K'], ['Delivered', '17.2K'], ['Read', '16.9K'], ['Clicked', '8.1K']].map(([l, v]) => (
                         <div key={l} className="bg-white/60 rounded-xl p-2 text-center"><div className="font-black text-xs text-slate-700">{v}</div><div className="text-[9px] text-slate-400 font-medium">{l}</div></div>
                     ))}
                 </div>
                 <div className="bg-white/70 rounded-xl p-3 flex-1">
                     <div className="flex gap-2 items-start">
-                        <div className={`w-5 h-5 rounded-full ${barColor} shrink-0 mt-0.5`}/>
+                        <div className={`w-5 h-5 rounded-full ${barColor} shrink-0 mt-0.5`} />
                         <div className="space-y-1 flex-1">
-                            <div className="w-3/4 h-2 bg-slate-300 rounded-full"/><div className="w-full h-2 bg-slate-200 rounded-full"/>
+                            <div className="w-3/4 h-2 bg-slate-300 rounded-full" /><div className="w-full h-2 bg-slate-200 rounded-full" />
                             <div className={`mt-2 px-3 py-1 ${barColor} text-white text-[10px] font-bold rounded-full w-fit`}>Shop Now →</div>
                         </div>
                     </div>
                 </div>
                 <div className="bg-white/50 rounded-xl p-2 flex items-end gap-1 h-16">
-                    {[30,55,40,75,60,90,70,85].map((h,i)=>(
-                        <motion.div key={i} initial={{height:0}} animate={{height:`${h}%`}} transition={{delay:i*0.1,duration:0.5}} className={`flex-1 ${barColor} opacity-70 rounded-t-sm`}/>
+                    {[30, 55, 40, 75, 60, 90, 70, 85].map((h, i) => (
+                        <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${h}%` }} transition={{ delay: i * 0.1, duration: 0.5 }} className={`flex-1 ${barColor} opacity-70 rounded-t-sm`} />
                     ))}
                 </div>
             </div>
@@ -414,67 +848,85 @@ function FeaturePreview({ feature }) {
         chatbot: (
             <div className="w-full h-full flex flex-col gap-3">
                 <div className="flex-1 flex flex-col items-center gap-0 justify-center">
-                    <motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="bg-white/70 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 shadow-sm">🟢 Trigger: Keyword Match</motion.div>
-                    <div className={`w-0.5 h-5 ${barColor}`}/>
-                    <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.3}} className="bg-white/70 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 shadow-sm">💬 Send Welcome Message</motion.div>
-                    <div className={`w-0.5 h-5 ${barColor}`}/>
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white/70 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 shadow-sm">🟢 Trigger: Keyword Match</motion.div>
+                    <div className={`w-0.5 h-5 ${barColor}`} />
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="bg-white/70 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 shadow-sm">💬 Send Welcome Message</motion.div>
+                    <div className={`w-0.5 h-5 ${barColor}`} />
                     <div className="flex gap-4">
-                        <div className="flex flex-col items-center"><div className={`w-0.5 h-4 ${barColor}`}/><motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.5}} className={`px-3 py-1.5 ${barColor} text-white text-[10px] font-bold rounded-xl`}>Show Catalog</motion.div></div>
-                        <div className="flex flex-col items-center"><div className="w-0.5 h-4 bg-gray-300"/><motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.6}} className="px-3 py-1.5 bg-gray-200 text-gray-600 text-[10px] font-bold rounded-xl">Talk to Agent</motion.div></div>
+                        <div className="flex flex-col items-center"><div className={`w-0.5 h-4 ${barColor}`} /><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className={`px-3 py-1.5 ${barColor} text-white text-[10px] font-bold rounded-xl`}>Show Catalog</motion.div></div>
+                        <div className="flex flex-col items-center"><div className="w-0.5 h-4 bg-gray-300" /><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="px-3 py-1.5 bg-gray-200 text-gray-600 text-[10px] font-bold rounded-xl">Talk to Agent</motion.div></div>
                     </div>
                 </div>
                 <div className="bg-white/60 rounded-xl p-3 space-y-2">
-                    <motion.div initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}} transition={{delay:0.8}} className="bg-white rounded-xl rounded-tl-sm px-3 py-1.5 text-[10px] font-medium w-3/4">Hi! Which product are you looking for?</motion.div>
-                    <motion.div initial={{opacity:0,x:10}} animate={{opacity:1,x:0}} transition={{delay:1.2}} className={`${barColor} text-white text-[10px] font-medium rounded-xl rounded-tr-sm px-3 py-1.5 w-2/3 ml-auto`}>Show me headphones</motion.div>
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="bg-white rounded-xl rounded-tl-sm px-3 py-1.5 text-[10px] font-medium w-3/4">Hi! Which product are you looking for?</motion.div>
+                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.2 }} className={`${barColor} text-white text-[10px] font-medium rounded-xl rounded-tr-sm px-3 py-1.5 w-2/3 ml-auto`}>Show me headphones</motion.div>
                 </div>
             </div>
         ),
         livechat: (
             <div className="w-full h-full flex gap-2">
                 <div className="w-2/5 flex flex-col gap-2">
-                    {[{name:'Arjun S.',msg:'Need help...',unread:2},{name:'Priya M.',msg:'Order #1234',unread:0},{name:'Rahul K.',msg:'Refund?',unread:1}].map((c2,i)=>(
-                        <motion.div key={i} initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}} transition={{delay:i*0.2}}
-                            className={`bg-white/70 rounded-xl p-2 flex gap-2 items-center ${i===0?'ring-2 ring-emerald-300':''}`}>
+                    {[{ name: 'Arjun S.', msg: 'Need help...', unread: 2 }, { name: 'Priya M.', msg: 'Order #1234', unread: 0 }, { name: 'Rahul K.', msg: 'Refund?', unread: 1 }].map((c2, i) => (
+                        <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.2 }}
+                            className={`bg-white/70 rounded-xl p-2 flex gap-2 items-center ${i === 0 ? 'ring-2 ring-emerald-300' : ''}`}>
                             <div className={`w-7 h-7 rounded-full ${barColor} text-white text-[10px] font-bold flex items-center justify-center shrink-0`}>{c2.name[0]}</div>
                             <div className="min-w-0 flex-1"><div className="text-[10px] font-bold text-slate-700 truncate">{c2.name}</div><div className="text-[9px] text-slate-400 truncate">{c2.msg}</div></div>
-                            {c2.unread>0&&<div className={`w-4 h-4 ${barColor} text-white rounded-full text-[8px] font-bold flex items-center justify-center shrink-0`}>{c2.unread}</div>}
+                            {c2.unread > 0 && <div className={`w-4 h-4 ${barColor} text-white rounded-full text-[8px] font-bold flex items-center justify-center shrink-0`}>{c2.unread}</div>}
                         </motion.div>
                     ))}
                 </div>
                 <div className="flex-1 bg-white/50 rounded-xl flex flex-col p-2 gap-2">
                     <div className="flex items-center gap-2 border-b border-white/50 pb-2">
-                        <div className={`w-6 h-6 rounded-full ${barColor}`}/><div className="text-[10px] font-bold">Arjun S.</div>
+                        <div className={`w-6 h-6 rounded-full ${barColor}`} /><div className="text-[10px] font-bold">Arjun S.</div>
                         <div className={`ml-auto px-2 py-0.5 ${barColor} text-white text-[8px] rounded-full font-bold`}>Agent: You</div>
                     </div>
                     <div className="flex-1 space-y-2">
-                        <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.4}} className="bg-white rounded-lg px-2 py-1 text-[9px] w-3/4">Need help with my order 🙏</motion.div>
-                        <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.8}} className={`${barColor} text-white rounded-lg px-2 py-1 text-[9px] w-2/3 ml-auto`}>Sure! Order ID?</motion.div>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="bg-white rounded-lg px-2 py-1 text-[9px] w-3/4">Need help with my order 🙏</motion.div>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className={`${barColor} text-white rounded-lg px-2 py-1 text-[9px] w-2/3 ml-auto`}>Sure! Order ID?</motion.div>
                     </div>
                     <div className="h-6 rounded-lg border border-white/60 bg-white/60 flex items-center px-2 gap-1">
-                        <div className="flex-1 h-1.5 bg-slate-200 rounded-full"/>
-                        <div className={`w-5 h-5 rounded-full ${barColor} flex items-center justify-center`}><Send className="w-2.5 h-2.5 text-white"/></div>
+                        <div className="flex-1 h-1.5 bg-slate-200 rounded-full" />
+                        <div className={`w-5 h-5 rounded-full ${barColor} flex items-center justify-center`}><Send className="w-2.5 h-2.5 text-white" /></div>
                     </div>
                 </div>
             </div>
         ),
-        analytics: (
+        analytics_meta: (
             <div className="w-full h-full flex flex-col gap-3">
                 <div className="grid grid-cols-3 gap-2">
-                    {[['45%','CTR'],['98%','Open Rate'],['12K','Replies']].map(([v,l])=>(
+                    {[['45%', 'CTR'], ['98%', 'Open Rate'], ['12K', 'Replies']].map(([v, l]) => (
                         <div key={l} className="bg-white/70 rounded-xl p-2 text-center"><div className="font-black text-sm text-slate-800">{v}</div><div className="text-[9px] text-slate-400 font-bold">{l}</div></div>
                     ))}
                 </div>
                 <div className="flex-1 bg-white/50 rounded-xl p-3 relative overflow-hidden">
                     <div className="text-[9px] font-bold text-slate-500 mb-2">CLICKED PER DAY</div>
                     <svg viewBox="0 0 200 55" className="w-full h-3/4" preserveAspectRatio="none">
-                        <defs><linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f59e0b" stopOpacity="0.4"/><stop offset="100%" stopColor="#f59e0b" stopOpacity="0.05"/></linearGradient></defs>
-                        <motion.path initial={{pathLength:0}} animate={{pathLength:1}} transition={{duration:1.5}} d="M 0 50 C 20 45, 40 20, 60 30 S 100 10, 120 20 S 160 5, 200 15" stroke="#f59e0b" strokeWidth="2" fill="none"/>
-                        <path d="M 0 50 C 20 45, 40 20, 60 30 S 100 10, 120 20 S 160 5, 200 15 L 200 60 L 0 60 Z" fill="url(#cg2)"/>
+                        <defs><linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f59e0b" stopOpacity="0.4" /><stop offset="100%" stopColor="#f59e0b" stopOpacity="0.05" /></linearGradient></defs>
+                        <motion.path initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.5 }} d="M 0 50 C 20 45, 40 20, 60 30 S 100 10, 120 20 S 160 5, 200 15" stroke="#f59e0b" strokeWidth="2" fill="none" />
+                        <path d="M 0 50 C 20 45, 40 20, 60 30 S 100 10, 120 20 S 160 5, 200 15 L 200 60 L 0 60 Z" fill="url(#cg2)" />
                     </svg>
                 </div>
                 <div className="bg-white/60 rounded-xl p-2 flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${barColor}`}/><div className="text-[10px] font-bold text-slate-700 flex-1">Republic Day Sale</div>
+                    <div className={`w-2 h-2 rounded-full ${barColor}`} /><div className="text-[10px] font-bold text-slate-700 flex-1">Republic Day Sale</div>
                     <div className={`px-2 py-0.5 ${barColor} text-white text-[9px] rounded-full font-bold`}>Active</div>
+                </div>
+            </div>
+        ),
+        analytics_wa: (
+            <div className="w-full h-full flex flex-col gap-3">
+                <div className="grid grid-cols-3 gap-2">
+                    {[['99%', 'Delivered'], ['94%', 'Read'], ['65%', 'Replied']].map(([v, l]) => (
+                        <div key={l} className="bg-white/70 rounded-xl p-2 text-center"><div className="font-black text-sm text-slate-800">{v}</div><div className="text-[9px] text-slate-400 font-bold">{l}</div></div>
+                    ))}
+                </div>
+                <div className="flex-1 bg-white/50 rounded-xl p-3 flex flex-col">
+                    <div className="text-[10px] font-bold text-slate-500 mb-2">Message Volume (Today)</div>
+                    <div className="flex-1 flex items-end gap-2 px-2">
+                        {[40, 65, 45, 80, 55, 90, 75].map((h, i) => (
+                            <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${h}%` }} transition={{ delay: i * 0.1, duration: 0.5 }}
+                                className={`flex-1 bg-gradient-to-t ${feature.gradientIcon || 'from-blue-500 to-cyan-500'} rounded-t-sm opacity-80`} />
+                        ))}
+                    </div>
                 </div>
             </div>
         ),
@@ -483,9 +935,9 @@ function FeaturePreview({ feature }) {
                 <div className="bg-white/70 rounded-xl p-3 flex-1 overflow-hidden">
                     <div className="text-[10px] font-bold text-slate-600 mb-2">🛍️ Our Products</div>
                     <div className="grid grid-cols-2 gap-2">
-                        {[{name:'Headphones',price:'₹1,499'},{name:'Smart Watch',price:'₹3,299'},{name:'Phone Case',price:'₹299'},{name:'Earbuds',price:'₹899'}].map((p,i)=>(
-                            <motion.div key={p.name} initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} transition={{delay:i*0.15}} className="bg-white rounded-lg p-2">
-                                <div className={`h-10 ${barColor} opacity-20 rounded-md mb-1`}/>
+                        {[{ name: 'Headphones', price: '₹1,499' }, { name: 'Smart Watch', price: '₹3,299' }, { name: 'Phone Case', price: '₹299' }, { name: 'Earbuds', price: '₹899' }].map((p, i) => (
+                            <motion.div key={p.name} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.15 }} className="bg-white rounded-lg p-2">
+                                <div className={`h-10 ${barColor} opacity-20 rounded-md mb-1`} />
                                 <div className="text-[9px] font-bold text-slate-700">{p.name}</div>
                                 <div className="flex items-center justify-between mt-1">
                                     <div className="text-[9px] font-black text-slate-800">{p.price}</div>
@@ -502,11 +954,11 @@ function FeaturePreview({ feature }) {
             <div className="w-full h-full flex flex-col gap-3">
                 <div className="bg-white/60 rounded-xl p-2 flex-1">
                     <div className="text-[10px] font-bold text-slate-600 mb-2">Smart Audience Segments</div>
-                    {[{label:'Opened, not replied',count:'4.2K',pct:78},{label:'Clicked, no purchase',count:'1.8K',pct:45},{label:'Cart abandoned',count:'892',pct:23}].map((s,i)=>(
+                    {[{ label: 'Opened, not replied', count: '4.2K', pct: 78 }, { label: 'Clicked, no purchase', count: '1.8K', pct: 45 }, { label: 'Cart abandoned', count: '892', pct: 23 }].map((s, i) => (
                         <div key={s.label} className="mb-2">
                             <div className="flex justify-between text-[9px] font-bold text-slate-600 mb-1"><span>{s.label}</span><span>{s.count}</span></div>
                             <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                <motion.div initial={{width:0}} animate={{width:`${s.pct}%`}} transition={{delay:i*0.2,duration:0.8}} className={`h-full ${barColor} rounded-full`}/>
+                                <motion.div initial={{ width: 0 }} animate={{ width: `${s.pct}%` }} transition={{ delay: i * 0.2, duration: 0.8 }} className={`h-full ${barColor} rounded-full`} />
                             </div>
                         </div>
                     ))}
@@ -515,7 +967,7 @@ function FeaturePreview({ feature }) {
                     <div className="flex-1 bg-white/60 rounded-xl p-2 text-center"><div className="font-black text-lg text-slate-800">3.1x</div><div className="text-[9px] text-slate-400 font-bold">Conversion Lift</div></div>
                     <div className="flex-1 bg-white/60 rounded-xl p-2 text-center"><div className="font-black text-lg text-slate-800">Auto</div><div className="text-[9px] text-slate-400 font-bold">Follow-up</div></div>
                 </div>
-                <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:1}} className={`${barColor} text-white text-[10px] font-bold py-2 rounded-xl text-center`}>🚀 Launch Retarget Campaign</motion.div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className={`${barColor} text-white text-[10px] font-bold py-2 rounded-xl text-center`}>🚀 Launch Retarget Campaign</motion.div>
             </div>
         ),
         aibot: (
@@ -526,29 +978,206 @@ function FeaturePreview({ feature }) {
                     <div className={`ml-auto px-2 py-0.5 ${barColor} text-white text-[8px] rounded-full font-bold`}>LIVE</div>
                 </div>
                 <div className="flex-1 space-y-2 overflow-hidden">
-                    <motion.div initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}} transition={{delay:0.2}} className="bg-white rounded-xl rounded-tl-sm px-3 py-1.5 text-[9px] font-medium text-slate-700 w-4/5">What are your pricing plans?</motion.div>
-                    <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.6}} className="flex items-end gap-1 justify-end">
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-xl rounded-tl-sm px-3 py-1.5 text-[9px] font-medium text-slate-700 w-4/5">What are your pricing plans?</motion.div>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="flex items-end gap-1 justify-end">
                         <div className={`${barColor} text-white rounded-xl rounded-tr-sm px-3 py-1.5 text-[9px] font-medium w-4/5`}>We have 3 plans — Starter ₹999/mo, Pro ₹2,499/mo and Enterprise (custom). All include unlimited contacts. Want me to compare them? 🚀</div>
                     </motion.div>
-                    <motion.div initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}} transition={{delay:1.2}} className="bg-white rounded-xl rounded-tl-sm px-3 py-1.5 text-[9px] font-medium text-slate-700 w-3/5">Yes please! Also do you have a free trial?</motion.div>
-                    <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:1.8}} className="flex justify-end">
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.2 }} className="bg-white rounded-xl rounded-tl-sm px-3 py-1.5 text-[9px] font-medium text-slate-700 w-3/5">Yes please! Also do you have a free trial?</motion.div>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 }} className="flex justify-end">
                         <div className={`${barColor} text-white rounded-xl rounded-tr-sm px-3 py-1.5 text-[9px] font-medium w-4/5 flex items-center gap-1`}>
                             <span className="animate-pulse">●</span> Typing...
                         </div>
                     </motion.div>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
-                    {[['🧠','GPT-4'],['⚡','< 1s reply'],['🔒','No Halluc.']].map(([ic,lb])=>(
+                    {[['🧠', 'GPT-4'], ['⚡', '< 1s reply'], ['🔒', 'No Halluc.']].map(([ic, lb]) => (
                         <div key={lb} className="bg-white/60 rounded-lg p-1.5 text-center"><div className="text-base">{ic}</div><div className="text-[8px] font-bold text-slate-500">{lb}</div></div>
                     ))}
                 </div>
             </div>
-        )
+        ),
+        cart_payment: (
+            <div className="w-full h-full flex flex-col gap-2">
+                <div className="bg-white/70 rounded-xl p-3 flex-1 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div className="text-[10px] font-bold text-slate-600 border-b border-black/5 pb-2 mb-2">🛒 Cart Summary</div>
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="text-[10px] font-bold text-slate-800">1x Smart Watch</div>
+                            <div className="text-[10px] text-slate-600 font-medium">₹3,299</div>
+                        </div>
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="text-[10px] font-bold text-slate-800">2x Phone Case</div>
+                            <div className="text-[10px] text-slate-600 font-medium">₹598</div>
+                        </div>
+                    </div>
+                    <div className="border-t border-black/10 pt-2 flex justify-between items-center mt-2">
+                        <div className="text-[10px] font-black text-slate-500 uppercase">Total</div>
+                        <div className="text-sm font-black text-slate-800">₹3,897</div>
+                    </div>
+                </div>
+                <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ repeat: Infinity, duration: 2, repeatType: "reverse" }} className="bg-emerald-500 text-white text-center text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20">
+                    <Check className="w-4 h-4" /> <span>Pay with UPI</span>
+                </motion.div>
+            </div>
+        ),
+        order_track: (
+            <div className="w-full h-full flex flex-col gap-2 relative">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white/80 rounded-xl p-3 shadow-sm text-[10px]">
+                    <div className="font-bold text-slate-800 mb-1 flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> Order Confirmed!</div>
+                    <div className="text-slate-600 leading-tight">Your order #ORD-8923 for <span className="font-bold text-slate-800">Smart Watch</span> is processed.</div>
+                </motion.div>
+                <div className="flex-1 flex flex-col gap-1 ml-4 border-l-2 border-emerald-200 pl-4 py-2 mt-2">
+                    <div className="relative">
+                        <div className="absolute -left-[21px] top-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white"></div>
+                        <div className="text-[10px] font-bold text-slate-800">Order Placed</div>
+                        <div className="text-[8px] text-slate-400">10:45 AM</div>
+                    </div>
+                    <div className="relative mt-4">
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1 }} className="absolute -left-[21px] top-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white"></motion.div>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
+                            <div className="text-[10px] font-bold text-slate-800">Shipped</div>
+                            <div className="text-[8px] text-slate-500 font-medium">Tracking: BLR-442 <span className="text-blue-500">Track</span></div>
+                        </motion.div>
+                    </div>
+                    <div className="relative mt-4 opacity-40">
+                        <div className="absolute -left-[21px] top-0.5 w-3.5 h-3.5 bg-slate-300 rounded-full border-2 border-white"></div>
+                        <div className="text-[10px] font-bold text-slate-800">Out for Delivery</div>
+                    </div>
+                </div>
+            </div>
+        ),
+        vcard_lead: (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+                <div className="relative">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-500 p-1 shadow-lg shadow-fuchsia-500/20">
+                        <div className="w-full h-full bg-white rounded-xl flex items-center justify-center">
+                            <QrCode className="w-10 h-10 text-slate-800" />
+                        </div>
+                    </div>
+                    <motion.div animate={{ top: ['0%', '100%', '0%'] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="absolute left-0 right-0 h-0.5 bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.8)] z-10" />
+                </div>
+                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1 }} className="bg-white/90 backdrop-blur-sm rounded-xl p-2.5 w-full max-w-[180px] shadow-sm border border-fuchsia-100">
+                    <div className="flex items-center gap-1 text-[8px] font-bold text-fuchsia-600 uppercase mb-1.5"><Users className="w-3 h-3" /> New Lead Captured</div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex-shrink-0 flex items-center justify-center text-slate-500 font-bold text-[10px]">RS</div>
+                        <div className="min-w-0">
+                            <div className="text-[11px] font-bold text-slate-800 truncate">Rahul Sharma</div>
+                            <div className="text-[9px] text-slate-500 font-medium truncate">+91 98765 43210</div>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+        ),
+        vcard_theme: (
+            <div className="w-full h-full flex items-center justify-center gap-3 relative">
+                {/* Background blurred cards */}
+                <motion.div initial={{ x: 20, rotate: 10 }} animate={{ x: -30, rotate: -15 }} transition={{ duration: 1 }} className="absolute w-24 h-36 bg-zinc-800 rounded-xl shadow-lg border border-white/10 p-2 flex flex-col items-center justify-center opacity-60">
+                    <div className="w-8 h-8 rounded-full bg-zinc-600 mb-2"></div>
+                    <div className="w-12 h-1.5 bg-zinc-600 rounded-full mb-1"></div>
+                    <div className="w-8 h-1 bg-zinc-700 rounded-full"></div>
+                </motion.div>
+
+                {/* Foreground active card */}
+                <motion.div initial={{ scale: 0.8, y: 10 }} animate={{ scale: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="w-32 h-44 bg-white rounded-xl shadow-xl shadow-slate-900/10 border border-slate-100 z-10 overflow-hidden flex flex-col">
+                    <div className="h-12 bg-gradient-to-r from-slate-800 to-slate-900 relative">
+                        <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white p-1">
+                            <div className="w-full h-full rounded-full bg-slate-200 overflow-hidden"><img src="https://ui-avatars.com/api/?name=JS&background=random" alt="avatar" className="w-full h-full object-cover" /></div>
+                        </div>
+                    </div>
+                    <div className="mt-6 flex-1 flex flex-col items-center px-3 text-center">
+                        <div className="w-20 h-2 bg-slate-800 rounded-full mb-1.5"></div>
+                        <div className="w-12 h-1.5 bg-slate-400 rounded-full mb-3"></div>
+                        <div className="w-full flex justify-center gap-1.5 mb-3">
+                            <div className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200"></div>
+                            <div className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200"></div>
+                            <div className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200"></div>
+                        </div>
+                        <div className="w-full h-7 rounded-lg bg-slate-800 mt-auto mb-3 flex items-center justify-center"><div className="w-12 h-1.5 bg-white/50 rounded-full"></div></div>
+                    </div>
+                </motion.div>
+            </div>
+        ),
+        audience_sync: (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                <div className="flex items-center gap-4 w-full px-4">
+                    <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="flex-1 bg-white/80 rounded-xl p-3 flex flex-col items-center shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mb-1"><MessageCircle className="w-4 h-4 text-emerald-600" /></div>
+                        <div className="text-[9px] font-bold text-slate-800">WhatsApp</div>
+                        <div className="text-[8px] text-slate-500">12.5k Contacts</div>
+                    </motion.div>
+
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }} className="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center shrink-0 z-10 relative">
+                        <Repeat className={`w-4 h-4 ${barColor.replace('bg-', 'text-')}`} />
+                    </motion.div>
+
+                    <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="flex-1 bg-white/80 rounded-xl p-3 flex flex-col items-center shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mb-1"><Facebook className="w-4 h-4 text-blue-600" /></div>
+                        <div className="text-[9px] font-bold text-slate-800">Meta Ads</div>
+                        <div className="text-[8px] text-slate-500">Custom Audience</div>
+                    </motion.div>
+                </div>
+                <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "80%" }} transition={{ delay: 1, duration: 1 }} className="h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] mt-2 relative overflow-hidden">
+                    <motion.div initial={{ x: "-100%" }} animate={{ x: "200%" }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} className="absolute inset-0 w-1/2 bg-white/50 -skew-x-12"></motion.div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }} className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Live Sync Active</motion.div>
+            </div>
+        ),
+        vcard: (
+            <div className="w-full h-full flex items-center justify-center relative">
+                <div className="absolute inset-0 bg-cyan-500/10 rounded-2xl"></div>
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2, type: 'spring' }} className="w-44 bg-white shadow-2xl rounded-2xl border border-cyan-100 overflow-hidden relative z-10 flex flex-col">
+                    <div className={`h-16 ${barColor} relative`}>
+                        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-white rounded-full p-1 shadow-md">
+                            <div className={`w-full h-full rounded-full ${barColor} text-white flex items-center justify-center`}>
+                                <User className="w-5 h-5" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="pt-8 pb-3 px-4 text-center flex-1">
+                        <div className="w-20 h-2.5 bg-slate-200 rounded-full mx-auto mb-2"></div>
+                        <div className="w-12 h-2 bg-slate-100 rounded-full mx-auto mb-4"></div>
+                        <div className="flex gap-2 justify-center mb-4">
+                            <div className="w-6 h-6 rounded-full bg-cyan-50 flex items-center justify-center"><Mail className="w-3 h-3 text-cyan-600" /></div>
+                            <div className="w-6 h-6 rounded-full bg-cyan-50 flex items-center justify-center"><Smartphone className="w-3 h-3 text-cyan-600" /></div>
+                            <div className="w-6 h-6 rounded-full bg-cyan-50 flex items-center justify-center"><Globe className="w-3 h-3 text-cyan-600" /></div>
+                        </div>
+                        <div className={`w-full py-1.5 ${barColor} text-white text-[9px] font-bold rounded-lg shadow-sm`}>Save to Contacts</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded-xl shadow-lg border border-slate-100 z-20">
+                    <div className="w-12 h-12 border-2 border-cyan-500/20 rounded-md flex items-center justify-center p-1 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-cyan-500/5"></div>
+                        <div className="grid grid-cols-3 gap-0.5 w-full h-full opacity-80">
+                            <div className="bg-slate-800 rounded-[1px]"></div><div className="bg-slate-800 rounded-[1px]"></div><div className="bg-slate-800 rounded-[1px]"></div>
+                            <div className="bg-slate-800 rounded-[1px]"></div><div className="bg-transparent"></div><div className="bg-slate-800 rounded-[1px]"></div>
+                            <div className="bg-slate-800 rounded-[1px]"></div><div className="bg-slate-800 rounded-[1px]"></div><div className="bg-slate-800 rounded-[1px]"></div>
+                        </div>
+                    </div>
+                    <div className="text-[8px] font-bold text-center mt-1 text-slate-500">Scan Me</div>
+                </motion.div>
+            </div>
+        ),
+        meta_lead_ads: <ImageMockup imageUrl="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800" badgeText="CTWA Ad Active" BadgeIcon={Megaphone} colorClass={barColor} />,
+        meta_pixel_sync: <ImageMockup imageUrl="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800" badgeText="Pixel Synced" BadgeIcon={Activity} colorClass={barColor} />,
+        meta_custom_audience: <ImageMockup imageUrl="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800" badgeText="Audience Match: High" BadgeIcon={Target} colorClass={barColor} />,
+        meta_catalog_sales: <ImageMockup imageUrl="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800" badgeText="Catalog Connected" BadgeIcon={Store} colorClass={barColor} />,
+        meta_ab_testing: <ImageMockup imageUrl="https://images.unsplash.com/photo-1533750349088-cd871a92f312?auto=format&fit=crop&q=80&w=800" badgeText="Variant B Winning" BadgeIcon={SplitSquareHorizontal} colorClass={barColor} />,
+        meta_campaign_builder: <ImageMockup imageUrl="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=800" badgeText="Campaign Generated" BadgeIcon={Wand2} colorClass={barColor} />,
+
+        store_categories: <ImageMockup imageUrl="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=800" badgeText="Browse Collection" BadgeIcon={LayoutGrid} colorClass={barColor} />,
+        store_orders: <ImageMockup imageUrl="https://images.unsplash.com/photo-1586880244406-556ebe35f282?auto=format&fit=crop&q=80&w=800" badgeText="Processing Order" BadgeIcon={ListOrdered} colorClass={barColor} />,
+        store_coupons: <ImageMockup imageUrl="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800" badgeText="Discount Applied" BadgeIcon={Tag} colorClass={barColor} />,
+        store_invoices: <ImageMockup imageUrl="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&q=80&w=800" badgeText="Receipt Generated" BadgeIcon={FileText} colorClass={barColor} />,
+
+        vcard_analytics: <ImageMockup imageUrl="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800" badgeText="Live Scan Tracking" BadgeIcon={LineChart} colorClass={barColor} />,
+        vcard_appointments: <ImageMockup imageUrl="https://images.unsplash.com/photo-1506784951206-39b15802353a?auto=format&fit=crop&q=80&w=800" badgeText="Meeting Scheduled" BadgeIcon={Calendar} colorClass={barColor} />,
+        vcard_nfc: <ImageMockup imageUrl="https://images.unsplash.com/photo-1563986768494-4dee2763ff0f?auto=format&fit=crop&q=80&w=800" badgeText="NFC Card Ready" BadgeIcon={Wifi} colorClass={barColor} />,
+        vcard_domain: <ImageMockup imageUrl="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800" badgeText="Domain Active" BadgeIcon={Globe} colorClass={barColor} />
     };
 
     return (
         <AnimatePresence mode="wait">
-            <motion.div key={feature.id} initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}} transition={{duration:0.35}}
+            <motion.div key={feature.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.35 }}
                 className={`w-full h-full rounded-2xl ${previewBg} p-4`}>
                 {mockups[preview]}
             </motion.div>
@@ -559,19 +1188,75 @@ function FeaturePreview({ feature }) {
 const SHOWCASE_INTERVAL = 4500;
 
 // Style defaults per feature id — these stay hardcoded on the frontend
-const FEATURE_STYLE_DEFAULTS = {
+export const FEATURE_STYLE_DEFAULTS = {
     broadcast: { icon: Send, bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70', barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100', iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', gradientIcon: 'from-indigo-500 to-violet-500', preview: 'broadcast' },
-    chatbot:   { icon: Layers, bg: 'bg-violet-50 dark:bg-violet-950/20', previewBg: 'bg-violet-100/70', barColor: 'bg-violet-500', pillColor: 'bg-violet-50 text-violet-700 border-violet-100', iconBg: 'bg-violet-100 dark:bg-violet-900/40', iconColor: 'text-violet-600 dark:text-violet-400', gradientIcon: 'from-violet-500 to-purple-500', preview: 'chatbot' },
-    livechat:  { icon: HeadphonesIcon, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'livechat' },
-    analytics: { icon: BarChart, bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-orange-500', preview: 'analytics' },
-    catalog:   { icon: ShoppingCart, bg: 'bg-rose-50 dark:bg-rose-950/20', previewBg: 'bg-rose-100/70', barColor: 'bg-rose-500', pillColor: 'bg-rose-50 text-rose-700 border-rose-100', iconBg: 'bg-rose-100 dark:bg-rose-900/40', iconColor: 'text-rose-600 dark:text-rose-400', gradientIcon: 'from-rose-500 to-pink-500', preview: 'catalog' },
-    retarget:  { icon: ArrowUpRight, bg: 'bg-cyan-50 dark:bg-cyan-950/20', previewBg: 'bg-cyan-100/70', barColor: 'bg-cyan-500', pillColor: 'bg-cyan-50 text-cyan-700 border-cyan-100', iconBg: 'bg-cyan-100 dark:bg-cyan-900/40', iconColor: 'text-cyan-600 dark:text-cyan-400', gradientIcon: 'from-cyan-500 to-sky-500', preview: 'retarget' },
-    aibot:     { icon: Zap, bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-indigo-600', preview: 'aibot' },
+    chatbot: { icon: Layers, bg: 'bg-violet-50 dark:bg-violet-950/20', previewBg: 'bg-violet-100/70', barColor: 'bg-violet-500', pillColor: 'bg-violet-50 text-violet-700 border-violet-100', iconBg: 'bg-violet-100 dark:bg-violet-900/40', iconColor: 'text-violet-600 dark:text-violet-400', gradientIcon: 'from-violet-500 to-purple-500', preview: 'chatbot' },
+    livechat: { icon: HeadphonesIcon, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'livechat' },
+    analytics_meta: { icon: BarChart, bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-orange-500', preview: 'analytics_meta' },
+    analytics_wa: { icon: BarChart, bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-cyan-500', preview: 'analytics_wa' },
+    catalog: { icon: ShoppingCart, bg: 'bg-rose-50 dark:bg-rose-950/20', previewBg: 'bg-rose-100/70', barColor: 'bg-rose-500', pillColor: 'bg-rose-50 text-rose-700 border-rose-100', iconBg: 'bg-rose-100 dark:bg-rose-900/40', iconColor: 'text-rose-600 dark:text-rose-400', gradientIcon: 'from-rose-500 to-pink-500', preview: 'catalog' },
+    retarget: { icon: ArrowUpRight, bg: 'bg-cyan-50 dark:bg-cyan-950/20', previewBg: 'bg-cyan-100/70', barColor: 'bg-cyan-500', pillColor: 'bg-cyan-50 text-cyan-700 border-cyan-100', iconBg: 'bg-cyan-100 dark:bg-cyan-900/40', iconColor: 'text-cyan-600 dark:text-cyan-400', gradientIcon: 'from-cyan-500 to-sky-500', preview: 'retarget' },
+    aibot: { icon: Zap, bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-indigo-600', preview: 'aibot' },
+    cart_payment: { icon: CreditCard, bg: 'bg-orange-50 dark:bg-orange-950/20', previewBg: 'bg-orange-100/70', barColor: 'bg-orange-500', pillColor: 'bg-orange-50 text-orange-700 border-orange-100', iconBg: 'bg-orange-100 dark:bg-orange-900/40', iconColor: 'text-orange-600 dark:text-orange-400', gradientIcon: 'from-orange-400 to-amber-500', preview: 'cart_payment' },
+    order_track: { icon: Truck, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-400 to-teal-500', preview: 'order_track' },
+    vcard: { icon: Briefcase, bg: 'bg-cyan-50 dark:bg-cyan-950/20', previewBg: 'bg-cyan-100/70', barColor: 'bg-cyan-500', pillColor: 'bg-cyan-50 text-cyan-700 border-cyan-100', iconBg: 'bg-cyan-100 dark:bg-cyan-900/40', iconColor: 'text-cyan-600 dark:text-cyan-400', gradientIcon: 'from-cyan-400 to-blue-500', preview: 'vcard' },
+    vcard_lead: { icon: Users, bg: 'bg-fuchsia-50 dark:bg-fuchsia-950/20', previewBg: 'bg-fuchsia-100/70', barColor: 'bg-fuchsia-500', pillColor: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100', iconBg: 'bg-fuchsia-100 dark:bg-fuchsia-900/40', iconColor: 'text-fuchsia-600 dark:text-fuchsia-400', gradientIcon: 'from-fuchsia-500 to-pink-500', preview: 'vcard_lead' },
+    vcard_theme: { icon: LayoutTemplate, bg: 'bg-slate-50 dark:bg-zinc-800/50', previewBg: 'bg-slate-200/70 dark:bg-zinc-800', barColor: 'bg-slate-800 dark:bg-slate-200', pillColor: 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-zinc-800 dark:text-slate-200 dark:border-white/10', iconBg: 'bg-slate-200 dark:bg-zinc-700', iconColor: 'text-slate-800 dark:text-slate-200', gradientIcon: 'from-slate-700 to-slate-900 dark:from-slate-400 dark:to-slate-200', preview: 'vcard_theme' },
+    audience_sync: { icon: Repeat, bg: 'bg-pink-50 dark:bg-pink-950/20', previewBg: 'bg-pink-100/70', barColor: 'bg-pink-500', pillColor: 'bg-pink-50 text-pink-700 border-pink-100', iconBg: 'bg-pink-100 dark:bg-pink-900/40', iconColor: 'text-pink-600 dark:text-pink-400', gradientIcon: 'from-pink-500 to-rose-500', preview: 'audience_sync' },
+
+    meta_lead_ads: { icon: Megaphone, bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70', barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100', iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', gradientIcon: 'from-indigo-500 to-blue-500', preview: 'meta_lead_ads' },
+    meta_pixel_sync: { icon: Activity, bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-cyan-500', preview: 'meta_pixel_sync' },
+    meta_custom_audience: { icon: Target, bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-pink-500', preview: 'meta_custom_audience' },
+    meta_catalog_sales: { icon: Store, bg: 'bg-rose-50 dark:bg-rose-950/20', previewBg: 'bg-rose-100/70', barColor: 'bg-rose-500', pillColor: 'bg-rose-50 text-rose-700 border-rose-100', iconBg: 'bg-rose-100 dark:bg-rose-900/40', iconColor: 'text-rose-600 dark:text-rose-400', gradientIcon: 'from-rose-500 to-orange-500', preview: 'meta_catalog_sales' },
+    meta_ab_testing: { icon: SplitSquareHorizontal, bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-yellow-500', preview: 'meta_ab_testing' },
+    meta_campaign_builder: { icon: Wand2, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'meta_campaign_builder' },
+
+    store_categories: { icon: LayoutGrid, bg: 'bg-pink-50 dark:bg-pink-950/20', previewBg: 'bg-pink-100/70', barColor: 'bg-pink-500', pillColor: 'bg-pink-50 text-pink-700 border-pink-100', iconBg: 'bg-pink-100 dark:bg-pink-900/40', iconColor: 'text-pink-600 dark:text-pink-400', gradientIcon: 'from-pink-500 to-rose-500', preview: 'store_categories' },
+    store_orders: { icon: ListOrdered, bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-indigo-500', preview: 'store_orders' },
+    store_coupons: { icon: Tag, bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-orange-500', preview: 'store_coupons' },
+    store_invoices: { icon: FileText, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'store_invoices' },
+
+    vcard_analytics: { icon: LineChart, bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-cyan-500', preview: 'vcard_analytics' },
+    vcard_appointments: { icon: Calendar, bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-pink-500', preview: 'vcard_appointments' },
+    vcard_nfc: { icon: Wifi, bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70', barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100', iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', gradientIcon: 'from-indigo-500 to-violet-500', preview: 'vcard_nfc' },
+    vcard_domain: { icon: Globe, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'vcard_domain' }
 };
 
+export const FEATURE_CATEGORIES = [
+    { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+    { id: 'meta', label: 'Meta Marketing', icon: TrendingUp },
+    { id: 'store', label: 'WA Store', icon: ShoppingCart },
+    { id: 'vcard', label: 'vCards', icon: Briefcase },
+];
+
 function AdvancedFeaturesShowcase({ config }) {
-    // Merge DB config text over hardcoded style defaults
-    const features = (config?.features || advancedFeatures).map(f => ({
+    // Ensure we always have the complete 14 features list, even if DB has an old 7-item array.
+    // We map over the hardcoded advancedFeatures and merge any custom text/stats from the DB config.
+    let baseList = [];
+    if (config?.features && config.features.length > 0) {
+        // Use DB order and merge with hardcoded properties
+        baseList = config.features.map(dbFeat => {
+            const baseFeat = advancedFeatures.find(af => af.id === dbFeat.id || (af.id === 'analytics_wa' && dbFeat.id === 'analytics'));
+            return baseFeat ? { ...baseFeat, ...dbFeat, id: baseFeat.id, category: baseFeat.category, preview: baseFeat.preview } : null;
+        }).filter(Boolean);
+
+        // Append any missing features from hardcoded list
+        advancedFeatures.forEach(af => {
+            if (!baseList.find(f => f.id === af.id || (f.id === 'analytics' && af.id === 'analytics_wa'))) {
+                baseList.push(af);
+            }
+        });
+    } else {
+        baseList = [...advancedFeatures];
+    }
+
+    // Group by category to ensure autoplay doesn't jump
+    const groupedBaseList = [];
+    ['whatsapp', 'meta', 'store', 'vcard'].forEach(cat => {
+        groupedBaseList.push(...baseList.filter(f => f.category === cat));
+    });
+
+    const allFeatures = groupedBaseList.map(f => ({
         ...(FEATURE_STYLE_DEFAULTS[f.id] || {}),
         ...f,
         stats: Array.isArray(f.stats) ? f.stats : (f.stats || '').split(',').map(s => s.trim()).filter(Boolean),
@@ -581,6 +1266,9 @@ function AdvancedFeaturesShowcase({ config }) {
     const [progress, setProgress] = useState(0);
     const scrollContainerRef = useRef(null);
 
+    const feature = allFeatures[active] || allFeatures[0];
+    const activeCategory = feature.category || 'whatsapp';
+
     useEffect(() => {
         setProgress(0);
         const start = Date.now();
@@ -588,12 +1276,13 @@ function AdvancedFeaturesShowcase({ config }) {
             const elapsed = Date.now() - start;
             const pct = Math.min((elapsed / SHOWCASE_INTERVAL) * 100, 100);
             setProgress(pct);
+
             if (elapsed >= SHOWCASE_INTERVAL) {
-                setActive(prev => (prev + 1) % features.length);
+                setActive(prev => (prev + 1) % allFeatures.length);
             }
         }, 50);
         return () => clearInterval(tick);
-    }, [active, features.length]);
+    }, [active, allFeatures.length]);
 
     // Center active tab on mobile scroll
     useEffect(() => {
@@ -606,111 +1295,138 @@ function AdvancedFeaturesShowcase({ config }) {
         }
     }, [active]);
 
-    const feature = features[active];
-    const TabIcon = feature.icon;
+    const handleCategoryClick = (catId) => {
+        const index = allFeatures.findIndex(f => f.category === catId);
+        if (index !== -1) {
+            setActive(index);
+        }
+    };
+
+    const TabIcon = resolveIcon(feature.icon, Zap);
 
     return (
-        <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 items-start">
-            {/* TOP/LEFT: Feature Tab list */}
-            <div 
-                ref={scrollContainerRef}
-                className="lg:col-span-2 flex lg:flex-col flex-row gap-2 w-full overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 hide-scrollbar scroll-smooth"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-                {features.map((f, i) => {
-                    const Icon = f.icon;
-                    const isActive = i === active;
+        <div className="flex flex-col gap-8">
+            {/* Category Tab Bar (Quick Navigation) */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+                {FEATURE_CATEGORIES.map(cat => {
+                    const isActive = cat.id === activeCategory;
+                    const CatIcon = cat.icon;
                     return (
-                        <button 
-                            key={f.id} 
-                            onClick={() => setActive(i)}
-                            className={`relative flex-shrink-0 lg:w-full text-left px-4 py-3.5 rounded-2xl transition-all border ${
-                                isActive 
-                                    ? `bg-white dark:bg-zinc-800 border-slate-200 dark:border-white/10 shadow-md` 
-                                    : 'bg-transparent border-transparent hover:bg-white/60 dark:hover:bg-white/5'
-                            }`}
+                        <button
+                            key={cat.id}
+                            onClick={() => handleCategoryClick(cat.id)}
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all ${isActive
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 scale-105'
+                                : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5'}`}
                         >
-                            <div className="flex items-center gap-3">
-                                {/* Gradient icon badge */}
-                                <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${f.gradientIcon || 'from-slate-400 to-slate-500'} flex items-center justify-center shrink-0 shadow-sm transition-transform ${
-                                    isActive ? 'scale-110' : 'opacity-50 scale-95'
-                                }`}>
-                                    <Icon className="w-4 h-4 text-white" />
-                                </div>
-                                <div className="min-w-0">
-                                    {f.tagText && isActive && (
-                                        <div className={`text-[9px] font-black uppercase tracking-widest ${f.iconColor} mb-0.5`}>{f.tagText}</div>
-                                    )}
-                                    <span className={`font-bold text-sm whitespace-nowrap lg:whitespace-normal block leading-tight ${
-                                        isActive ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'
-                                    }`}>
-                                        {f.label}
-                                    </span>
-                                </div>
-                            </div>
-                            {/* Progress bar */}
-                            {isActive && (
-                                <div className="mt-2.5 h-0.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                                    <motion.div 
-                                        className={`h-full bg-gradient-to-r ${f.gradientIcon || 'from-indigo-500 to-violet-500'} rounded-full`} 
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${progress}%` }}
-                                        transition={{ ease: "linear" }}
-                                    />
-                                </div>
-                            )}
+                            <CatIcon className="w-4 h-4" />
+                            {cat.label}
                         </button>
-                    );
+                    )
                 })}
             </div>
 
-            {/* BOTTOM/RIGHT: Info card + Demo */}
-            <div className="lg:col-span-3 w-full">
-                <AnimatePresence mode="wait">
-                    <motion.div 
-                        key={feature.id} 
-                        initial={{ opacity: 0, y: 12 }} 
-                        animate={{ opacity: 1, y: 0 }} 
-                        exit={{ opacity: 0, y: -12 }} 
-                        transition={{ duration: 0.3 }}
-                        className="rounded-3xl overflow-hidden border border-slate-200 dark:border-white/8 shadow-2xl bg-white dark:bg-zinc-900"
-                    >
-                        {/* Gradient top bar */}
-                        <div className={`h-1 w-full bg-gradient-to-r ${feature.gradientIcon || 'from-indigo-500 to-violet-500'}`} />
+            <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 items-start">
+                {/* TOP/LEFT: Feature Tab list (All Features) */}
+                <div
+                    ref={scrollContainerRef}
+                    className="lg:col-span-2 flex lg:flex-col flex-row gap-2 w-full overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 hide-scrollbar scroll-smooth"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                    {allFeatures.map((f, i) => {
+                        if (f.category !== activeCategory) return null;
 
-                        <div className="p-6 md:p-7">
-                            <div className="flex flex-wrap items-start gap-3 md:gap-4 mb-4">
-                                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${feature.gradientIcon || 'from-indigo-500 to-violet-500'} flex items-center justify-center shrink-0 shadow-lg`}>
-                                    <TabIcon className="w-6 h-6 text-white" />
+                        const Icon = resolveIcon(f.icon, Zap);
+                        const isActive = i === active;
+                        return (
+                            <button
+                                key={f.id}
+                                onClick={() => setActive(i)}
+                                className={`relative flex-shrink-0 lg:w-full text-left px-4 py-3.5 rounded-2xl transition-all border ${isActive
+                                    ? `bg-white dark:bg-zinc-800 border-slate-200 dark:border-white/10 shadow-md`
+                                    : 'bg-transparent border-transparent hover:bg-white/60 dark:hover:bg-white/5'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    {/* Gradient icon badge */}
+                                    <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${f.gradientIcon || 'from-slate-400 to-slate-500'} flex items-center justify-center shrink-0 shadow-sm transition-transform ${isActive ? 'scale-110' : 'opacity-50 scale-95'
+                                        }`}>
+                                        <Icon className="w-4 h-4 text-white" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        {f.tagText && isActive && (
+                                            <div className={`text-[9px] font-black uppercase tracking-widest ${f.iconColor} mb-0.5`}>{f.tagText}</div>
+                                        )}
+                                        <span className={`font-bold text-sm whitespace-nowrap lg:whitespace-normal block leading-tight ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'
+                                            }`}>
+                                            {f.label}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    {feature.tagText && (
-                                        <div className={`text-[10px] font-black uppercase tracking-widest ${feature.iconColor} mb-0.5`}>{feature.tagText}</div>
-                                    )}
-                                    <h3 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
-                                        {feature.title}
-                                    </h3>
+                                {/* Progress bar */}
+                                {isActive && (
+                                    <div className="mt-2.5 h-0.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                        <motion.div
+                                            className={`h-full bg-gradient-to-r ${f.gradientIcon || 'from-indigo-500 to-violet-500'} rounded-full`}
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${progress}%` }}
+                                            transition={{ ease: "linear" }}
+                                        />
+                                    </div>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* BOTTOM/RIGHT: Info card + Demo */}
+                <div className="lg:col-span-3 w-full">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={feature.id}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -12 }}
+                            transition={{ duration: 0.3 }}
+                            className="rounded-3xl overflow-hidden border border-slate-200 dark:border-white/8 shadow-2xl bg-white dark:bg-zinc-900"
+                        >
+                            {/* Gradient top bar */}
+                            <div className={`h-1 w-full bg-gradient-to-r ${feature.gradientIcon || 'from-indigo-500 to-violet-500'}`} />
+
+                            <div className="p-6 md:p-7">
+                                <div className="flex flex-wrap items-start gap-3 md:gap-4 mb-4">
+                                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${feature.gradientIcon || 'from-indigo-500 to-violet-500'} flex items-center justify-center shrink-0 shadow-lg`}>
+                                        <TabIcon className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        {feature.tagText && (
+                                            <div className={`text-[10px] font-black uppercase tracking-widest ${feature.iconColor} mb-0.5`}>{feature.tagText}</div>
+                                        )}
+                                        <h3 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
+                                            {feature.title}
+                                        </h3>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-4">
+                                    {feature.desc}
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {feature.stats.map(s => (
+                                        <span key={s} className={`px-3 py-1 text-[10px] font-bold rounded-full border whitespace-nowrap ${feature.pillColor}`}>
+                                            ✓ {s}
+                                        </span>
+                                    ))}
                                 </div>
                             </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-4">
-                                {feature.desc}
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                {feature.stats.map(s => (
-                                    <span key={s} className={`px-3 py-1 text-[10px] font-bold rounded-full border whitespace-nowrap ${feature.pillColor}`}>
-                                        ✓ {s}
-                                    </span>
-                                ))}
+
+                            <div className={`mx-4 md:mx-6 mb-6 rounded-2xl overflow-hidden h-[260px] md:h-64 ${feature.previewBg} shadow-inner flex items-center justify-center p-4`}>
+                                <div className="w-full h-full max-w-sm md:max-w-none">
+                                    <FeaturePreview feature={feature} />
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div className={`mx-4 md:mx-6 mb-6 rounded-2xl overflow-hidden h-[260px] md:h-64 ${feature.previewBg} shadow-inner flex items-center justify-center p-4`}>
-                            <div className="w-full h-full max-w-sm md:max-w-none">
-                                <FeaturePreview feature={feature} />
-                            </div>
-                        </div>
-                    </motion.div>
-                </AnimatePresence>
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
             </div>
         </div>
     );
@@ -797,10 +1513,10 @@ const HeroBackground = () => {
 
             {/* ── Layer 5: Floating WhatsApp Message Chips ── */}
             {[
-                { label: '98% Open Rate', icon: '📬', x: '8%', y: '30%', delay: 0 },
-                { label: '3x Revenue', icon: '📈', x: '82%', y: '20%', delay: 2 },
+                { label: 'Interactive vCards', icon: '💳', x: '8%', y: '30%', delay: 0 },
+                { label: 'Native WA Store', icon: '🛒', x: '82%', y: '20%', delay: 2 },
                 { label: 'AI Chatbot Ready', icon: '🤖', x: '70%', y: '72%', delay: 1.5 },
-                { label: '24/7 Live Chat', icon: '💬', x: '5%', y: '68%', delay: 3 },
+                { label: 'CTWA Meta Ads', icon: '🎯', x: '5%', y: '68%', delay: 3 },
             ].map((chip, i) => (
                 <motion.div
                     key={i}
@@ -878,7 +1594,7 @@ function FAQSection({ faqs }) {
                                 className={`rounded-2xl border transition-all duration-300 ${isOpen
                                     ? 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/50 shadow-md'
                                     : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-white/8 hover:border-indigo-200 dark:hover:border-indigo-800/40 hover:shadow-sm'
-                                }`}
+                                    }`}
                             >
                                 <button
                                     onClick={() => setOpenIdx(isOpen ? null : i)}
@@ -921,143 +1637,99 @@ function FAQSection({ faqs }) {
 }
 
 // ──────────────────────────────────────────────────────────
-// INTERACTIVE ROI CALCULATOR
+// ADDON MARKETPLACE SHOWCASE
 // ──────────────────────────────────────────────────────────
-const ROICalculator = () => {
-    const [audience, setAudience] = useState(25000);
-    const [aov, setAov] = useState(120);
-
-    const emailConversion = 0.015; // 1.5%
-    const waConversion = 0.075; // 7.5% (approx 5x)
-
-    const currentRevenue = audience * aov * emailConversion;
-    const projectedRevenue = audience * aov * waConversion;
-    const additional = projectedRevenue - currentRevenue;
-    const waMultiplier = (waConversion / emailConversion).toFixed(1);
-
-    const formatCurr = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
-    const formatNum = (val) => new Intl.NumberFormat('en-US').format(val);
+const AddonMarketplaceShowcase = () => {
+    const marketplaceBenefits = [
+        { id: 'instant', name: 'One-Click Installs', category: 'Speed', icon: Zap, color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20', glow: 'shadow-[0_0_15px_rgba(251,191,36,0.6)]', desc: 'Instantly add new capabilities to your workspace without touching a single line of code. Just click and deploy.' },
+        { id: 'tailored', name: 'Tailor-Made Workspace', category: 'Efficiency', icon: Layers, color: 'text-indigo-500 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-500/10', border: 'border-indigo-200 dark:border-indigo-500/20', glow: 'shadow-[0_0_15px_rgba(99,102,241,0.6)]', desc: 'Keep your dashboard clean. Only install the exact tools and features your business actually needs to operate.' },
+        { id: 'scale', name: 'Scale on Demand', category: 'Growth', icon: TrendingUp, color: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20', glow: 'shadow-[0_0_15px_rgba(52,211,153,0.6)]', desc: 'As your business grows, your platform grows with it. Seamlessly upgrade your toolkit to handle new challenges.' },
+        { id: 'community', name: 'Expanding Ecosystem', category: 'Innovation', icon: Globe, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/20', glow: 'shadow-[0_0_15px_rgba(59,130,246,0.6)]', desc: 'Benefit from a continuously evolving ecosystem with new tools and integrations added by our team and community.' },
+        { id: 'integrations', name: 'Native Integrations', category: 'Connectivity', icon: Repeat, color: 'text-purple-500 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-500/10', border: 'border-purple-200 dark:border-purple-500/20', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.6)]', desc: 'Seamlessly connect with your favorite CRM, support, and marketing tools via our native ecosystem bridges.' },
+        { id: 'analytics', name: 'Real-Time Insights', category: 'Data', icon: Activity, color: 'text-cyan-500 dark:text-cyan-400', bg: 'bg-cyan-100 dark:bg-cyan-500/10', border: 'border-cyan-200 dark:border-cyan-500/20', glow: 'shadow-[0_0_15px_rgba(6,182,212,0.6)]', desc: 'Unlock powerful reporting addons to visualize your message performance and agent productivity.' },
+    ];
 
     return (
-        <section className="py-24 relative bg-zinc-950 transition-colors overflow-hidden border-t border-white/5">
-            {/* Background elements */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-indigo-600/10 dark:bg-indigo-600/20 blur-[120px] rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 right-0 w-[40%] h-[50%] bg-emerald-500/5 dark:bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
+        <section className="py-24 relative bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden border-t border-slate-200 dark:border-white/5">
+            {/* Ambient Backgrounds */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/10 dark:bg-violet-500/15 rounded-full blur-[100px] pointer-events-none" />
             
-            {/* Grid Pattern */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[length:24px_24px] pointer-events-none" />
+            {/* Subtle Grid Pattern */}
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgxNTAsMTUwLDE1MCwwLjE1KSIvPjwvc3ZnPg==')] opacity-40 dark:opacity-[0.15] pointer-events-none" />
 
             <div className="max-w-7xl mx-auto px-6 relative z-10">
-                <div className="text-center mb-16">
-                    <span className="text-emerald-400 font-bold uppercase tracking-widest text-sm mb-4 flex items-center justify-center gap-2">
-                        <TrendingUp className="w-4 h-4" /> Discover Your Growth
-                    </span>
-                    <h2 className="text-3xl md:text-5xl font-extrabold mb-6 text-white tracking-tight leading-tight">
-                        Calculate your <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">WhatsApp ROI</span>
-                    </h2>
-                    <p className="text-zinc-400 text-lg font-medium max-w-2xl mx-auto">
-                        Stop leaving money on the table with low-converting emails. See how much extra revenue you could generate by switching to WhatsApp marketing.
-                    </p>
+                <div className="text-center mb-16 relative">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5 }}
+                        className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-black uppercase tracking-widest mb-5 shadow-sm"
+                    >
+                        <Layers className="w-3.5 h-3.5" /> Infinite Possibilities
+                    </motion.div>
+                    <motion.h2 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-slate-900 dark:text-white tracking-tight leading-[1.1]"
+                    >
+                        The Power of <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">Marketplace</span>
+                    </motion.h2>
+                    <motion.p 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed"
+                    >
+                        Transform your platform into exactly what you need. Our addon architecture ensures you have unlimited scalability without the bloat.
+                    </motion.p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-                    {/* Controls (Sliders) */}
-                    <motion.div initial={{ opacity: 0, x:-20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="lg:col-span-5 bg-white/5 border border-white/10 backdrop-blur-xl p-6 md:p-8 rounded-[2rem] shadow-2xl">
-                        <div className="mb-8">
-                            <div className="flex justify-between items-end mb-4">
-                                <label className="text-zinc-300 font-bold text-xs md:text-sm uppercase tracking-wider flex items-center gap-2">
-                                    <Users className="w-4 h-4 text-indigo-400" /> Monthly Audience
-                                </label>
-                                <span className="text-2xl font-black text-white">{formatNum(audience)}</span>
-                            </div>
-                            <input 
-                                type="range" min="1000" max="100000" step="1000" value={audience} onChange={(e) => setAudience(Number(e.target.value))}
-                                className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-400 hover:accent-emerald-300 transition-all"
-                            />
-                            <div className="flex justify-between text-xs text-zinc-500 mt-3 font-semibold">
-                                <span>1K</span><span>100K+</span>
-                            </div>
-                        </div>
-
-                        <div className="mb-2">
-                            <div className="flex justify-between items-end mb-4">
-                                <label className="text-zinc-300 font-bold text-xs md:text-sm uppercase tracking-wider flex items-center gap-2">
-                                    <ShoppingCart className="w-4 h-4 text-emerald-400" /> Avg. Order Value
-                                </label>
-                                <span className="text-2xl font-black text-white">{formatCurr(aov)}</span>
-                            </div>
-                            <input 
-                                type="range" min="10" max="1000" step="10" value={aov} onChange={(e) => setAov(Number(e.target.value))}
-                                className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-400 hover:accent-emerald-300 transition-all"
-                            />
-                            <div className="flex justify-between text-xs text-zinc-500 mt-3 font-semibold">
-                                <span>$10</span><span>$1,000+</span>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Visualization */}
-                    <motion.div initial={{ opacity: 0, x:20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="lg:col-span-7">
-                        <div className="bg-black/40 border border-white/10 rounded-[2rem] p-6 md:p-8 relative overflow-hidden backdrop-blur-sm shadow-2xl">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none" />
-                            
-                            <div className="flex flex-col gap-6 md:gap-8 relative z-10">
-                                {/* Current */}
-                                <div>
-                                    <div className="text-zinc-400 font-semibold text-xs md:text-sm mb-3 flex items-center gap-2">
-                                        <Mail className="w-4 h-4" /> Traditional Channels (Email/SMS) <span className="ml-auto text-zinc-500 text-[10px] uppercase font-bold tracking-widest hidden sm:inline-block">1.5% Conv.</span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex-1 bg-zinc-800/50 rounded-full h-8 md:h-10 overflow-hidden relative border border-white/5">
-                                            <motion.div 
-                                                className="h-full bg-zinc-600 rounded-full"
-                                                initial={{ width: 0 }} animate={{ width: `20%` }} transition={{ duration: 0.5 }}
-                                            />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 perspective-1000">
+                    {marketplaceBenefits.map((benefit, i) => {
+                        const Icon = benefit.icon;
+                        return (
+                            <motion.div
+                                key={benefit.id}
+                                initial={{ opacity: 0, y: 40, rotateX: 10 }}
+                                whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+                                viewport={{ once: true, margin: "-50px" }}
+                                transition={{ duration: 0.6, delay: i * 0.1, type: "spring", stiffness: 100 }}
+                                whileHover={{ y: -6, scale: 1.01 }}
+                                className="group relative rounded-3xl p-6 bg-white dark:bg-[#0c0c14] border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-200/50 dark:shadow-none hover:shadow-xl transition-all duration-300 cursor-pointer overflow-visible"
+                            >
+                                {/* Glowing backdrop that appears on hover */}
+                                <div className={`absolute -inset-1 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-15 blur-lg transition-opacity duration-500 -z-10`} />
+                                
+                                <div className="relative z-10 flex flex-col h-full">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${benefit.bg} ${benefit.border} border shadow-sm group-hover:${benefit.glow} transition-all duration-500 relative`}>
+                                            <Icon className={`w-6 h-6 ${benefit.color} relative z-10`} />
+                                            <div className="absolute inset-0 bg-white/50 dark:bg-white/0 rounded-xl group-hover:bg-transparent transition-colors" />
                                         </div>
-                                        <div className="w-24 md:w-32 text-right text-lg md:text-xl font-bold text-zinc-300">{formatCurr(currentRevenue)}</div>
+                                        <div className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest shadow-sm">
+                                            {benefit.category}
+                                        </div>
                                     </div>
+                                    
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-indigo-500 group-hover:to-purple-500 transition-all duration-300">
+                                        {benefit.name}
+                                    </h3>
+                                    
+                                    <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed flex-1">
+                                        {benefit.desc}
+                                    </p>
                                 </div>
-
-                                {/* WhatsApp Projection */}
-                                <div>
-                                    <div className="text-emerald-400 font-semibold text-xs md:text-sm mb-3 flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4" /> WhatsApp Cloud Projection <span className="ml-auto text-emerald-500/70 text-[10px] uppercase font-bold tracking-widest hidden sm:inline-block">7.5% Conv.</span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex-1 bg-zinc-800/50 rounded-full h-8 md:h-10 overflow-hidden relative border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
-                                            <motion.div 
-                                                className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full relative"
-                                                initial={{ width: 0 }} animate={{ width: `100%` }} transition={{ duration: 0.5 }}
-                                            >
-                                                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:20px_20px] opacity-20" />
-                                            </motion.div>
-                                        </div>
-                                        <div className="w-24 md:w-32 text-right text-lg md:text-xl font-bold text-white">{formatCurr(projectedRevenue)}</div>
-                                    </div>
-                                </div>
-
-                                <div className="h-px w-full bg-white/10 my-1" />
-
-                                {/* Total Impact */}
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end p-5 md:p-6 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl relative overflow-hidden">
-                                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/20 blur-[40px] rounded-full pointer-events-none" />
-                                    <div className="relative z-10 w-full">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="text-emerald-400 font-bold uppercase tracking-wider text-xs md:text-sm mb-1">Additional Revenue Potential</div>
-                                            <div className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] md:text-xs font-bold rounded-full whitespace-nowrap">
-                                                {waMultiplier}x Higher Conversions
-                                            </div>
-                                        </div>
-                                        <div className="text-3xl md:text-5xl font-extrabold text-white tracking-tight flex items-baseline gap-2">
-                                            +{formatCurr(additional)}
-                                            <span className="text-base md:text-xl text-emerald-400/80 font-semibold">/mo</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
+                            </motion.div>
+                        );
+                    })}
                 </div>
+
+
             </div>
         </section>
     );
@@ -1071,6 +1743,7 @@ const CURRENCY_SYMBOLS = {
 
 export default function LandingPage() {
     const [config, setConfig] = useState(null);
+    const [publicSettings, setPublicSettings] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [error, setError] = useState(false);
     const [plans, setPlans] = useState([]);
@@ -1080,11 +1753,27 @@ export default function LandingPage() {
 
     const industryScrollRef = useRef(null);
 
+    // Merge DB items over hardcoded industries — always ensure all 16 are present
+    const allIndustries = React.useMemo(() => {
+        const dbItems = config?.industries?.items;
+        if (!dbItems || dbItems.length === 0) return industries;
+        // Start with DB items (merged with hardcoded data)
+        const merged = dbItems.map(dbInd => {
+            const base = industries.find(i => i.id === dbInd.id);
+            return base ? { ...base, ...dbInd } : dbInd;
+        });
+        // Append any hardcoded industries missing from DB
+        industries.forEach(ind => {
+            if (!merged.find(m => m.id === ind.id)) merged.push(ind);
+        });
+        return merged;
+    }, [config]);
+
     // Auto-scroll logic for industry tabs
     useEffect(() => {
         if (industryScrollRef.current && window.innerWidth < 1024) {
             const activeTab = Array.from(industryScrollRef.current.children).find(
-                child => industries.find(ind => ind.id === activeIndustry)?.title === child.textContent
+                child => allIndustries.find(ind => ind.id === activeIndustry)?.title === child.textContent
             );
             if (activeTab) {
                 const scrollLeft = activeTab.offsetLeft - (industryScrollRef.current.offsetWidth / 2) + (activeTab.offsetWidth / 2);
@@ -1117,33 +1806,18 @@ export default function LandingPage() {
         }
     }, [plans]);
 
-    const [progressIndustries, setProgressIndustries] = useState(0);
-
-    // Auto-autoplay loop for industry tabs on mobile
+    // Auto-autoplay loop for industry tabs (all screen sizes, no progress bar)
     useEffect(() => {
-        let start = Date.now();
-        const duration = 5000;
-        const interval = setInterval(() => {
-            if (window.innerWidth < 1024) {
-                const elapsed = Date.now() - start;
-                const pct = Math.min((elapsed / duration) * 100, 100);
-                setProgressIndustries(pct);
-
-                if (elapsed >= duration) {
-                    setActiveIndustry(prev => {
-                        const currentIndex = industries.findIndex(ind => ind.id === prev);
-                        const nextIndex = (currentIndex + 1) % industries.length;
-                        return industries[nextIndex].id;
-                    });
-                    start = Date.now(); // reset timer
-                    setProgressIndustries(0);
-                }
-            } else {
-                setProgressIndustries(0);
-            }
-        }, 50);
-        return () => clearInterval(interval);
-    }, [activeIndustry]); // Re-run when manually changed
+        const duration = 4000;
+        const timer = setTimeout(() => {
+            setActiveIndustry(prev => {
+                const currentIndex = allIndustries.findIndex(ind => ind.id === prev);
+                const nextIndex = (currentIndex + 1) % allIndustries.length;
+                return allIndustries[nextIndex].id;
+            });
+        }, duration);
+        return () => clearTimeout(timer);
+    }, [activeIndustry, allIndustries]);
 
     useEffect(() => {
         fetchConfig();
@@ -1154,7 +1828,7 @@ export default function LandingPage() {
     // Update SEO Meta
     useEffect(() => {
         if (config?.seo) {
-            document.title = config.seo.title || 'WhatsApp Cloud';
+            document.title = config.seo.title || publicSettings?.appName || config?.brand?.name || 'Bluetick';
             let metaDesc = document.querySelector("meta[name='description']");
             if (!metaDesc) {
                 metaDesc = document.createElement('meta');
@@ -1167,7 +1841,7 @@ export default function LandingPage() {
 
     const fetchConfig = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/landing');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing`);
             setConfig(res.data);
         } catch (err) {
             console.error(err);
@@ -1177,7 +1851,7 @@ export default function LandingPage() {
 
     const fetchPlans = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/plans/public');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/plans/public`);
             setPlans(res.data);
         } catch (err) {
             console.error('Failed to fetch plans', err);
@@ -1186,7 +1860,8 @@ export default function LandingPage() {
 
     const fetchPublicSettings = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/settings/public');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/public`);
+            setPublicSettings(res.data);
             const currency = res.data?.currency || 'USD';
             setCurrencySymbol(CURRENCY_SYMBOLS[currency] || currency);
         } catch (err) {
@@ -1213,117 +1888,119 @@ export default function LandingPage() {
     return (
         <div className={isDark ? 'dark' : ''}>
             <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-hidden selection:bg-indigo-500/30 transition-colors duration-300">
-                
+
                 {/* 1. NAVBAR */}
-                <nav className="fixed top-0 w-full z-50 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 transition-colors duration-300">
-                    <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                        <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-                            <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-indigo-400 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                                <MessageSquare className="w-5 h-5 text-white" />
-                            </div>
-                            {config.brand.name}
-                        </div>
-
-                        <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">
-                            <a href="#platform" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Platform</a>
-                            <a href="#solutions" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Solutions</a>
-                            <a href="#pricing" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Pricing</a>
-                            <a href="#faq" className="hover:text-indigo-600 dark:hover:text-white transition-colors">FAQ</a>
-                            <div className="h-4 w-[1px] bg-slate-300 dark:bg-white/10" />
-                            <Link to="/login" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Log In</Link>
-                            <Link to="/register" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all font-bold">
-                                Get Started
-                            </Link>
-                        </div>
-
-                        <button className="md:hidden text-slate-900 dark:text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                            {isMenuOpen ? <X /> : <Menu />}
-                        </button>
-                    </div>
-
-                    <AnimatePresence>
-                        {isMenuOpen && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-white/10 overflow-hidden">
-                                <div className="flex flex-col p-6 gap-6 text-center text-slate-600 dark:text-slate-300 font-semibold">
-                                    <a href="#platform" onClick={() => setIsMenuOpen(false)}>Platform</a>
-                                    <a href="#solutions" onClick={() => setIsMenuOpen(false)}>Solutions</a>
-                                    <a href="#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
-                                    <div className="h-[1px] w-full bg-slate-200 dark:bg-white/10" />
-                                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>Log In</Link>
-                                    <Link to="/register" onClick={() => setIsMenuOpen(false)} className="bg-indigo-600 text-white py-3 rounded-full font-bold shadow-lg">Get Started</Link>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </nav>
+                <PublicHeader />
 
                 {/* 2. HERO SECTION */}
-                <section className="relative pt-32 pb-20 md:pt-48 md:pb-24 px-6 overflow-hidden">
+                <section className="relative pt-24 pb-20 md:pt-32 md:pb-24 px-6 overflow-hidden">
                     <HeroBackground />
-                    
+
                     <div className="max-w-7xl mx-auto">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-                            
-                            {/* Left Content */}
-                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center lg:text-left z-10 lg:col-span-6">
-                                <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2 max-w-fit mx-auto lg:mx-0">
-                                    <Star className="w-3.5 h-3.5" /> Next-Gen Platform
-                                </span>
-                                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
-                                    {config.hero.title}
-                                </h1>
-                                <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed font-medium">
-                                    {config.hero.subtitle}
-                                </p>
+                        {config.hero.layout === 'type2' ? (
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
+                                    <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2">
+                                        <Star className="w-3.5 h-3.5" /> Next-Gen Platform
+                                    </span>
+                                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
+                                        {config.hero.title}
+                                    </h1>
+                                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mb-10 leading-relaxed font-medium">
+                                        {config.hero.subtitle}
+                                    </p>
 
-                                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                                    <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
-                                        {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
-                                    </Link>
-                                    <a href="#platform" className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
-                                        <Play className="w-5 h-5 fill-current" /> See how it works
-                                    </a>
-                                </div>
-                            </motion.div>
+                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+                                        <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
+                                            {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
+                                        </Link>
+                                        <a href="#platform" className="w-full sm:w-auto px-10 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                            <Play className="w-5 h-5 fill-current" /> See how it works
+                                        </a>
+                                    </div>
+                                </motion.div>
 
-                            {/* Right Mock UI */}
-                            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 1 }} className="relative hidden lg:block lg:col-span-6">
-                                <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 blur-2xl rounded-full" />
-                                <div className="relative mx-auto w-[340px] h-[680px] bg-slate-900 dark:bg-[#0A0A0A] rounded-[3rem] border-[8px] border-slate-800 shadow-2xl p-4 overflow-hidden flex flex-col transition-colors ml-auto mr-0 xl:mr-10">
-                                    {/* Phone Header */}
-                                    <div className="flex items-center gap-3 pb-4 border-b border-white/10 px-2 mt-4">
-                                        <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                                            <MessageSquare className="w-5 h-5 text-white" />
+                                {(config.hero.imageType2 || config.hero.image) && (
+                                    <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1 }} className="mt-16 w-full relative z-10">
+                                        <div className={`relative ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
+                                            <img src={config.hero.imageType2 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
                                         </div>
-                                        <div>
-                                            <div className="font-bold text-white text-sm">AI Agent</div>
-                                            <div className="text-[10px] text-green-400 font-bold tracking-wider uppercase">• Online</div>
+                                    </motion.div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+                                {/* Left Content */}
+                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center lg:text-left z-10 lg:col-span-6">
+                                    <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2 max-w-fit mx-auto lg:mx-0">
+                                        <Star className="w-3.5 h-3.5" /> Next-Gen Platform
+                                    </span>
+                                    <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
+                                        {config.hero.title}
+                                    </h1>
+                                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed font-medium">
+                                        {config.hero.subtitle}
+                                    </p>
+
+                                    <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                                        <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
+                                            {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
+                                        </Link>
+                                        <a href="#platform" className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                            <Play className="w-5 h-5 fill-current" /> See how it works
+                                        </a>
+                                    </div>
+                                </motion.div>
+
+                                {/* Right Mock UI */}
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 1 }} className="relative hidden lg:block lg:col-span-6">
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 blur-2xl rounded-full" />
+                                    {(config.hero.imageType1 || config.hero.image) ? (
+                                        <div className={`relative ml-auto mr-0 xl:mr-10 ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
+                                            <img src={config.hero.imageType1 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
+                                        </div>
+                                    ) : (
+                                        <div className="relative mx-auto w-[340px] h-[680px] bg-slate-900 dark:bg-[#0A0A0A] rounded-[3rem] border-[8px] border-slate-800 shadow-2xl p-4 overflow-hidden flex flex-col transition-colors ml-auto mr-0 xl:mr-10">
+                                            {/* Phone Header */}
+                                        <div className="flex items-center gap-3 pb-4 border-b border-white/10 px-2 mt-4">
+                                            {(publicSettings?.logoUrl || config.brand?.logo) ? (
+                                                <img src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-white p-1" />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                                    <MessageSquare className="w-5 h-5 text-white" />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <div className="font-bold text-white text-sm">AI Agent</div>
+                                                <div className="text-[10px] text-green-400 font-bold tracking-wider uppercase">• Online</div>
+                                            </div>
+                                        </div>
+                                        {/* Chat UI */}
+                                        <div className="flex-1 py-4 space-y-4 text-sm font-medium">
+                                            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
+                                                Hi! 👋 Welcome to {config.brand.name}. How can we help you scale today?
+                                            </motion.div>
+                                            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.6 }} className="bg-green-600 text-white rounded-2xl rounded-tr-sm p-3 max-w-[85%] ml-auto">
+                                                I need to automate my support and broadcast offers!
+                                            </motion.div>
+                                            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2.4 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
+                                                Perfect. Our AI handles 80% of support automatically. Want to see a quick demo?
+                                            </motion.div>
+                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="flex gap-2 flex-wrap pt-2">
+                                                <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[11px] font-bold cursor-pointer">Yes, show me!</div>
+                                                <div className="px-3 py-1.5 bg-white/5 text-white border border-white/10 rounded-full text-[11px] font-bold cursor-pointer">Pricing</div>
+                                            </motion.div>
+                                        </div>
+                                        {/* Bottom Input */}
+                                        <div className="w-full h-12 bg-white/5 rounded-full mt-auto flex items-center px-4 justify-between border border-white/10">
+                                            <span className="text-white/40 text-sm font-medium">Message...</span>
+                                            <Send className="w-4 h-4 text-white/40" />
                                         </div>
                                     </div>
-                                    {/* Chat UI */}
-                                    <div className="flex-1 py-4 space-y-4 text-sm font-medium">
-                                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
-                                            Hi! 👋 Welcome to {config.brand.name}. How can we help you scale today?
-                                        </motion.div>
-                                        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.6 }} className="bg-green-600 text-white rounded-2xl rounded-tr-sm p-3 max-w-[85%] ml-auto">
-                                            I need to automate my support and broadcast offers!
-                                        </motion.div>
-                                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2.4 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
-                                            Perfect. Our AI handles 80% of support automatically. Want to see a quick demo?
-                                        </motion.div>
-                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="flex gap-2 flex-wrap pt-2">
-                                            <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[11px] font-bold cursor-pointer">Yes, show me!</div>
-                                            <div className="px-3 py-1.5 bg-white/5 text-white border border-white/10 rounded-full text-[11px] font-bold cursor-pointer">Pricing</div>
-                                        </motion.div>
-                                    </div>
-                                    {/* Bottom Input */}
-                                    <div className="w-full h-12 bg-white/5 rounded-full mt-auto flex items-center px-4 justify-between border border-white/10">
-                                        <span className="text-white/40 text-sm font-medium">Message...</span>
-                                        <Send className="w-4 h-4 text-white/40" />
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </div>
+                                    )}
+                                </motion.div>
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -1339,7 +2016,7 @@ export default function LandingPage() {
                                 className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
                                 <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20 shrink-0 group-hover:scale-110 transition-transform">
                                     <svg viewBox="0 0 24 24" className="w-8 h-8 fill-white">
-                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                                     </svg>
                                 </div>
                                 <div className="space-y-1">
@@ -1403,17 +2080,6 @@ export default function LandingPage() {
                             </p>
                         </motion.div>
 
-                        {/* Quick-glance stats strip */}
-                        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.15 }}
-                            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 mb-12 text-sm font-bold">
-                            {[['📣','Bulk Broadcast'],['🤖','AI Chatbots'],['💬','Live Inbox'],['📊','Analytics'],['🛒','Commerce'],['⚡','Quick Replies'],['🎯','Retargeting'],['🔑','API Access']].map(([icon, label], i) => (
-                                <div key={i} className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
-                                    <span>{icon}</span><span>{label}</span>
-                                    {i < 7 && <span className="ml-8 text-slate-200 dark:text-white/10">·</span>}
-                                </div>
-                            ))}
-                        </motion.div>
-
                         {/* Two-column layout: Feature tabs left, Live preview right */}
                         <AdvancedFeaturesShowcase config={config?.advancedFeatures} />
                     </div>
@@ -1427,77 +2093,139 @@ export default function LandingPage() {
                             <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">{config.industries?.subtitle || 'See how leading verticals leverage WhatsApp to cut costs and drive unprecedented revenue.'}</p>
                         </div>
 
-                        <div className="flex flex-col lg:flex-row gap-8 items-start">
-                            <div 
+                        {/* Desktop: 3-col grid (left tabs 1-8 | detail panel | right tabs 9-16). Mobile: single horizontal scroll + detail panel */}
+                        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 items-start">
+
+                            {/* LEFT: Industries 1-8 — vertical tab list on desktop, part of horizontal scroll on mobile */}
+                            <div
                                 ref={industryScrollRef}
-                                className="w-full lg:w-1/3 flex lg:flex-col flex-row gap-2 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 hide-scrollbar scroll-smooth"
+                                className="lg:col-span-3 w-full flex lg:flex-col flex-row gap-2 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 hide-scrollbar scroll-smooth"
                                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                             >
-                                {/* Merge DB config over hardcoded visual defaults */}
-                                {(config.industries?.items || industries).map(ind => {
+                                {allIndustries.slice(0, 8).map((ind) => {
                                     const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
-                                    const Icon = defaults.icon || ShoppingCart;
+                                    const Icon = defaults.icon || ind.icon || ShoppingCart;
                                     const isActive = activeIndustry === ind.id;
                                     return (
-                                        <button 
+                                        <button
                                             key={ind.id}
                                             onClick={() => setActiveIndustry(ind.id)}
-                                            className={`p-4 rounded-2xl flex items-center gap-4 transition-all text-left font-bold text-base md:text-lg shrink-0 lg:shrink-1 whitespace-nowrap lg:whitespace-normal border ${isActive ? 'bg-indigo-600 text-white shadow-lg border-transparent' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 border-slate-100 dark:border-white/5 opacity-70 lg:opacity-100'}`}
+                                            className={`relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm shrink-0 lg:shrink-1 whitespace-nowrap lg:whitespace-normal border overflow-hidden transition-colors duration-200 ${isActive
+                                                ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
+                                                : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
+                                                }`}
                                         >
-                                            <Icon className={`w-5 h-5 md:w-6 md:h-6 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                                            {ind.title}
                                             {isActive && (
-                                                <div className="absolute bottom-0 left-0 h-1 bg-white/30 w-full lg:hidden overflow-hidden">
-                                                    <motion.div 
-                                                        className="h-full bg-white" 
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${progressIndustries}%` }}
-                                                        transition={{ ease: "linear" }}
-                                                    />
-                                                </div>
+                                                <motion.span
+                                                    layoutId="industryActivePill"
+                                                    className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
+                                                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                                                />
                                             )}
+                                            <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                                            <span className="relative z-10">{ind.title}</span>
                                         </button>
-                                    )
+                                    );
+                                })}
+                                {/* Mobile only: industries 9-16 in the same horizontal scroll row */}
+                                {allIndustries.slice(8).map((ind) => {
+                                    const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
+                                    const Icon = defaults.icon || ind.icon || ShoppingCart;
+                                    const isActive = activeIndustry === ind.id;
+                                    return (
+                                        <button
+                                            key={`mob-${ind.id}`}
+                                            onClick={() => setActiveIndustry(ind.id)}
+                                            className={`lg:hidden relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm shrink-0 whitespace-nowrap border overflow-hidden transition-colors duration-200 ${isActive
+                                                ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
+                                                : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
+                                                }`}
+                                        >
+                                            {isActive && (
+                                                <motion.span
+                                                    layoutId="industryActivePill"
+                                                    className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
+                                                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                                                />
+                                            )}
+                                            <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                                            <span className="relative z-10">{ind.title}</span>
+                                        </button>
+                                    );
                                 })}
                             </div>
 
-                            <div className="md:w-2/3">
+                            {/* CENTER: Detail panel */}
+                            <div className="lg:col-span-6">
                                 <AnimatePresence mode="wait">
-                                    {(config.industries?.items || industries).map(ind => {
+                                    {allIndustries.map(ind => {
                                         const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
                                         return ind.id === activeIndustry && (
-                                        <motion.div 
-                                            key={ind.id}
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -20 }}
-                                            transition={{ duration: 0.3 }}
-                                            className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-8 shadow-xl min-h-[400px] flex flex-col"
-                                        >
-                                            <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-4">{ind.title}</h3>
-                                            <p className="text-lg text-slate-600 dark:text-slate-400 font-medium mb-8 leading-relaxed max-w-xl">
-                                                {ind.desc}
-                                            </p>
-                                            
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-auto">
-                                                {(Array.isArray(ind.metrics) ? ind.metrics : []).map((m, i) => (
-                                                    <div key={i} className="bg-slate-50 dark:bg-black/20 p-4 rounded-2xl border border-slate-100 dark:border-white/5 flex items-start gap-3">
-                                                        <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                                                        <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{m}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {ind.image ? (
-                                                <div className="mt-8 w-full h-40 md:h-64 rounded-2xl overflow-hidden">
-                                                    <img src={ind.image} alt={ind.title} className="w-full h-full object-cover" />
+                                            <motion.div
+                                                key={ind.id}
+                                                initial={{ opacity: 0, y: 16 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -16 }}
+                                                transition={{ duration: 0.3 }}
+                                                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 md:p-8 shadow-xl flex flex-col"
+                                            >
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    {(() => { const DIcon = (INDUSTRY_DEFAULTS[ind.id] || {}).icon || ind.icon || ShoppingCart; return <div className={`w-10 h-10 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} flex items-center justify-center`}><DIcon className="w-5 h-5 text-white" /></div>; })()}
+                                                    <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white">{ind.title}</h3>
                                                 </div>
-                                            ) : (
-                                                <div className={`mt-8 w-full h-40 md:h-64 rounded-2xl ${defaults.imagePattern || 'bg-indigo-500'} opacity-20 dark:opacity-10`} />
-                                            )}
-                                        </motion.div>
-                                    )})}
+                                                <p className="text-base text-slate-600 dark:text-slate-400 font-medium mb-6 leading-relaxed">
+                                                    {ind.desc}
+                                                </p>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                                    {(Array.isArray(ind.metrics) ? ind.metrics : []).map((m, i) => (
+                                                        <div key={i} className="bg-slate-50 dark:bg-black/20 p-3 rounded-2xl border border-slate-100 dark:border-white/5 flex items-start gap-2">
+                                                            <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                                                            <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{m}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {ind.image ? (
+                                                    <div className="w-full h-36 md:h-48 rounded-2xl overflow-hidden">
+                                                        <img src={ind.image} alt={ind.title} className="w-full h-full object-cover" />
+                                                    </div>
+                                                ) : (
+                                                    <div className={`w-full h-36 md:h-48 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} opacity-15 dark:opacity-10`} />
+                                                )}
+                                            </motion.div>
+                                        );
+                                    })}
                                 </AnimatePresence>
+                            </div>
+
+                            {/* RIGHT: Industries 9-16 — same vertical tab list, desktop only */}
+                            <div className="hidden lg:flex lg:col-span-3 flex-col gap-2">
+                                {allIndustries.slice(8).map((ind) => {
+                                    const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
+                                    const Icon = defaults.icon || ind.icon || ShoppingCart;
+                                    const isActive = activeIndustry === ind.id;
+                                    return (
+                                        <button
+                                            key={`right-${ind.id}`}
+                                            onClick={() => setActiveIndustry(ind.id)}
+                                            className={`relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm border overflow-hidden transition-colors duration-200 ${isActive
+                                                ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
+                                                : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
+                                                }`}
+                                        >
+                                            {isActive && (
+                                                <motion.span
+                                                    layoutId="industryActivePillR"
+                                                    className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
+                                                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                                                />
+                                            )}
+                                            <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                                            <span className="relative z-10">{ind.title}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
@@ -1505,7 +2233,7 @@ export default function LandingPage() {
 
 
 
-                <ROICalculator />
+                <AddonMarketplaceShowcase />
 
                 {/* 8. INTEGRATIONS */}
                 <section id="integrations" className="py-20 bg-white dark:bg-zinc-950 relative overflow-hidden">
@@ -1721,15 +2449,15 @@ export default function LandingPage() {
                                 {config.testimonials.map((t, i) => (
                                     <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 p-8 rounded-3xl shadow-sm hover:shadow-xl transition-shadow">
                                         <div className="flex gap-1 mb-6">
-                                            {[1,2,3,4,5].map(s => <Star key={s} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
+                                            {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
                                         </div>
                                         <p className="text-lg text-slate-700 dark:text-slate-300 font-medium mb-8">"{str(t.quote)}"</p>
                                         <div className="flex items-center gap-4">
                                             {t.avatar ? (
-                                                <img src={str(t.avatar)} className="w-12 h-12 rounded-full object-cover bg-slate-100" alt={str(t.name)}/>
+                                                <img src={str(t.avatar)} className="w-12 h-12 rounded-full object-cover bg-slate-100" alt={str(t.name)} />
                                             ) : (
                                                 <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">
-                                                    {str(t.name).substring(0,1)}
+                                                    {str(t.name).substring(0, 1)}
                                                 </div>
                                             )}
                                             <div>
@@ -1760,11 +2488,10 @@ export default function LandingPage() {
                                     {hasMonthly && (
                                         <button
                                             onClick={() => setBillingInterval('monthly')}
-                                            className={`relative flex flex-col items-center justify-center px-7 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[100px] ${
-                                                billingInterval === 'monthly'
-                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                                            }`}
+                                            className={`relative flex flex-col items-center justify-center px-7 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[100px] ${billingInterval === 'monthly'
+                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                                : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
+                                                }`}
                                         >
                                             <span className="font-extrabold text-[15px] tracking-tight">Monthly</span>
                                         </button>
@@ -1772,19 +2499,17 @@ export default function LandingPage() {
                                     {hasHalfYearly && (
                                         <button
                                             onClick={() => setBillingInterval('half-yearly')}
-                                            className={`relative flex flex-col items-center justify-center px-7 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[100px] ${
-                                                billingInterval === 'half-yearly'
-                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                                            }`}
+                                            className={`relative flex flex-col items-center justify-center px-7 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[100px] ${billingInterval === 'half-yearly'
+                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                                : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
+                                                }`}
                                         >
                                             <span className="font-extrabold text-[15px] tracking-tight">Half-Yearly</span>
                                             {maxHalfYearlySavings > 0 && (
-                                                <span className={`mt-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                                                    billingInterval === 'half-yearly'
-                                                        ? 'bg-white/20 text-white'
-                                                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
-                                                }`}>
+                                                <span className={`mt-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${billingInterval === 'half-yearly'
+                                                    ? 'bg-white/20 text-white'
+                                                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+                                                    }`}>
                                                     Save {maxHalfYearlySavings}%
                                                 </span>
                                             )}
@@ -1793,19 +2518,17 @@ export default function LandingPage() {
                                     {hasYearly && (
                                         <button
                                             onClick={() => setBillingInterval('yearly')}
-                                            className={`relative flex flex-col items-center justify-center px-7 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[100px] ${
-                                                billingInterval === 'yearly'
-                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                                            }`}
+                                            className={`relative flex flex-col items-center justify-center px-7 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[100px] ${billingInterval === 'yearly'
+                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                                : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
+                                                }`}
                                         >
                                             <span className="font-extrabold text-[15px] tracking-tight">Yearly</span>
                                             {maxYearlySavings > 0 && (
-                                                <span className={`mt-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                                                    billingInterval === 'yearly'
-                                                        ? 'bg-white/20 text-white'
-                                                        : 'bg-emerald-500 text-white dark:bg-emerald-600 shadow-sm shadow-emerald-500/30'
-                                                }`}>
+                                                <span className={`mt-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${billingInterval === 'yearly'
+                                                    ? 'bg-white/20 text-white'
+                                                    : 'bg-emerald-500 text-white dark:bg-emerald-600 shadow-sm shadow-emerald-500/30'
+                                                    }`}>
                                                     Save {maxYearlySavings}%
                                                 </span>
                                             )}
@@ -1815,15 +2538,16 @@ export default function LandingPage() {
                             </div>
 
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
+                            <div className="flex flex-wrap justify-center gap-8 items-stretch max-w-6xl mx-auto">
                                 {plans.map((plan, i) => {
                                     const isPopular = plan.name === 'Pro' || plan.name === 'Business';
-                                    
+
                                     // Determine Display Price
                                     let displayPrice = parseFloat(plan.price);
                                     let displayInterval = 'mo';
                                     let internalIntervalCode = 'month';
-                                    
+                                    let originalPrice = null;
+
                                     if (billingInterval === 'monthly' && parseFloat(plan.monthlyPrice) > 0) {
                                         displayPrice = parseFloat(plan.monthlyPrice);
                                         displayInterval = 'mo';
@@ -1832,28 +2556,48 @@ export default function LandingPage() {
                                         displayPrice = parseFloat(plan.halfYearlyPrice);
                                         displayInterval = '6mo';
                                         internalIntervalCode = 'half-year';
+                                        originalPrice = (parseFloat(plan.monthlyPrice) || 0) * 6;
                                     } else if (billingInterval === 'yearly' && parseFloat(plan.yearlyPrice) > 0) {
                                         displayPrice = parseFloat(plan.yearlyPrice);
                                         displayInterval = 'yr';
                                         internalIntervalCode = 'year';
+                                        originalPrice = (parseFloat(plan.monthlyPrice) || 0) * 12;
                                     }
 
                                     return (
                                         <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                                            className={`p-8 rounded-[2.5rem] border flex flex-col h-full transition-all ${isPopular 
-                                                ? 'bg-indigo-600 dark:bg-indigo-900/40 border-indigo-500 text-white transform md:-translate-y-4 shadow-2xl shadow-indigo-600/20 relative' 
+                                            className={`relative w-full sm:w-[340px] flex-shrink-0 p-8 rounded-[2.5rem] border flex flex-col h-full transition-all ${isPopular
+                                                ? 'bg-indigo-600 dark:bg-indigo-900/40 border-indigo-500 text-white transform md:-translate-y-4 shadow-2xl shadow-indigo-600/20'
                                                 : 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-indigo-500/30'
-                                            }`}
+                                                }`}
                                         >
                                             {isPopular && <div className="absolute top-0 right-1/2 translate-x-1/2 px-4 py-1.5 bg-indigo-500 text-white text-[10px] uppercase tracking-widest font-bold rounded-b-xl shadow-md">MOST POPULAR</div>}
+                                            {plan.trialDays > 0 && (
+                                                <div className={`absolute top-4 left-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isPopular ? 'bg-white/20 text-white' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'}`}>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                                                    {plan.trialDays}-Day Free Trial
+                                                </div>
+                                            )}
 
-                                            <h3 className="text-2xl font-bold mb-2 pt-2">{plan.name}</h3>
+                                            <h3 className={`text-2xl font-bold mb-2 ${plan.trialDays > 0 ? 'pt-8' : 'pt-2'}`}>{plan.name}</h3>
                                             <p className={`text-sm mb-8 font-medium ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>{plan.description || 'Perfect for growing businesses.'}</p>
-                                            
-                                            <div className="flex items-baseline gap-1 mb-10 pb-10 border-b border-indigo-500/20 dark:border-white/10">
-                                                <span className="text-5xl font-extrabold">{currencySymbol}{displayPrice.toLocaleString()}</span>
-                                                <span className={`font-bold ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>/{displayInterval}</span>
+
+                                            <div className="flex flex-col gap-1 mb-2 pb-10 border-b border-indigo-500/20 dark:border-white/10">
+                                                {originalPrice > displayPrice && (
+                                                    <span className={`text-lg font-bold line-through ${isPopular ? 'text-indigo-300/70' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                        {currencySymbol}{originalPrice.toLocaleString()}
+                                                    </span>
+                                                )}
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-5xl font-extrabold">{currencySymbol}{displayPrice.toLocaleString()}</span>
+                                                    <span className={`font-bold ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>/{displayInterval}</span>
+                                                </div>
                                             </div>
+                                            {plan.trialDays > 0 && (
+                                                <p className={`text-xs font-semibold mb-6 -mt-7 ${isPopular ? 'text-indigo-200' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                                    🎉 Try free for {plan.trialDays} days — no credit card required
+                                                </p>
+                                            )}
 
                                             <div className="space-y-6 mb-10 flex-1">
                                                 {/* Core Limits */}
@@ -1880,6 +2624,28 @@ export default function LandingPage() {
                                                                 <span>{plan.teamMemberLimit} Team Members</span>
                                                             </li>
                                                         )}
+                                                        {plan.vcardLimit > 0 ? (
+                                                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                <span>{plan.vcardLimit} veCards</span>
+                                                            </li>
+                                                        ) : (
+                                                            <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
+                                                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"><X className="w-3 h-3" /></div>
+                                                                <span className="text-slate-500 dark:text-slate-400">veCards</span>
+                                                            </li>
+                                                        )}
+                                                        {plan.waStoreLimit > 0 ? (
+                                                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                <span>{plan.waStoreLimit} Online Stores</span>
+                                                            </li>
+                                                        ) : (
+                                                            <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
+                                                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"><X className="w-3 h-3" /></div>
+                                                                <span className="text-slate-500 dark:text-slate-400">Online Stores</span>
+                                                            </li>
+                                                        )}
                                                         <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-70' : ''}`}>
                                                             <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? (isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400') : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
                                                                 {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
@@ -1896,35 +2662,35 @@ export default function LandingPage() {
                                                         <ul className="space-y-3">
                                                             <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowApiAccess ? 'opacity-70' : ''}`}>
                                                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? (isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400') : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                                                {plan.allowApiAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                    {plan.allowApiAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                                                 </div>
                                                                 <span>Developer API Access</span>
                                                             </li>
 
-                                                        {plan.aiTokensAllowance > 0 && (
-                                                            <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                <span>{plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
-                                                            </li>
-                                                        )}
-                                                        {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
-                                                            <li className="flex items-start gap-3 text-sm font-semibold">
-                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                <div className="flex flex-col">
-                                                                    <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
-                                                                    <ul className="mt-2 space-y-1.5">
-                                                                        {plan.includedAddons.map(addonKey => (
-                                                                            <li key={addonKey} className={`text-xs font-semibold flex items-center gap-1.5 ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                                                <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
-                                                                                {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                </div>
-                                                            </li>
-                                                        )}
-                                                    </ul>
-                                                </div>
+                                                            {plan.aiTokensAllowance > 0 && (
+                                                                <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                    <span>{plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
+                                                                </li>
+                                                            )}
+                                                            {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
+                                                                <li className="flex items-start gap-3 text-sm font-semibold">
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                    <div className="flex flex-col">
+                                                                        <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
+                                                                        <ul className="mt-2 space-y-1.5">
+                                                                            {plan.includedAddons.map(addonKey => (
+                                                                                <li key={addonKey} className={`text-xs font-semibold flex items-center gap-1.5 ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
+                                                                                    {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                                                                </li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    </div>
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    </div>
                                                 )}
 
                                                 {/* Custom Features list */}
@@ -1962,9 +2728,26 @@ export default function LandingPage() {
                                             </div>
 
 
-                                            <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all ${isPopular ? 'bg-white text-indigo-600 hover:bg-slate-50 shadow-md' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white'}`}>
-                                                Choose {plan.name}
-                                            </Link>
+                                            {plan.trialDays > 0 ? (
+                                                <div className="flex flex-col gap-2 mt-auto">
+                                                    <Link
+                                                        to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`}
+                                                        className={`w-full py-4 rounded-xl font-bold text-center transition-all text-sm ${isPopular ? 'bg-emerald-400 hover:bg-emerald-300 text-white shadow-lg shadow-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'}`}
+                                                    >
+                                                        Choose {plan.name} — {currencySymbol}{displayPrice.toLocaleString()}/{displayInterval}
+                                                    </Link>
+                                                    <Link
+                                                        to={`/register?plan=${plan.id}&trial=true`}
+                                                        className={`w-full py-3 rounded-xl font-semibold text-center text-xs transition-all ${isPopular ? 'bg-white/15 hover:bg-white/25 text-indigo-100 border border-white/20' : 'bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50'}`}
+                                                    >
+                                                        🎉 Try free for {plan.trialDays} days instead
+                                                    </Link>
+                                                </div>
+                                            ) : (
+                                                <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all ${isPopular ? 'bg-emerald-400 hover:bg-emerald-300 text-white shadow-lg shadow-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'}`}>
+                                                    Choose {plan.name}
+                                                </Link>
+                                            )}
                                         </motion.div>
                                     );
                                 })}
@@ -1978,26 +2761,79 @@ export default function LandingPage() {
                     <FAQSection faqs={config.faqs} />
                 )}
 
-                {/* 14. CTA Section */}
+                {/* 14. CTA & PARTNER ECOSYSTEM */}
+                <section className="py-32 px-6 relative z-10 bg-white dark:bg-[#05050A] overflow-hidden">
+                    {/* Background Gradients */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 blur-[150px] rounded-full pointer-events-none" />
+                    
+                    <div className="max-w-7xl mx-auto">
+                        
+                        {/* Main CTA Block */}
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                            className="rounded-[3rem] overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 relative border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 mb-12"
+                        >
+                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] pointer-events-none" />
+                            <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-3xl pointer-events-none" />
+                            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/40 rounded-full blur-3xl pointer-events-none" />
 
-                <section className="py-24 px-6 relative z-10 bg-white dark:bg-zinc-950">
-                    <div className="max-w-6xl mx-auto rounded-[3rem] overflow-hidden bg-indigo-600 dark:bg-indigo-900 relative border border-indigo-500/50 shadow-2xl">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-black/20 to-transparent pointer-events-none" />
-                        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-3xl pointer-events-none" />
-                        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/40 rounded-full blur-3xl pointer-events-none" />
+                            <div className="relative py-20 px-8 md:px-20 text-center flex flex-col items-center">
+                                <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight text-white max-w-4xl leading-[1.1]">
+                                    Become a Partner & Grow with Us
+                                </h2>
+                                <p className="text-indigo-100 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-medium">
+                                    Join our ecosystem as an affiliate or tech partner. Leverage our platform's infrastructure to generate new revenue streams and scale your own business.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4 mb-16">
+                                    <Link to="/partner" className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-white text-indigo-700 rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-900/50">
+                                        View Partner Portal <ArrowRight className="w-5 h-5" />
+                                    </Link>
+                                </div>
 
-                        <div className="relative py-24 px-8 md:px-20 text-center flex flex-col items-center">
-                            <h2 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight text-white max-w-3xl leading-[1.1]">
-                                {config.cta.title}
-                            </h2>
-                            <p className="text-indigo-100 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-bold">
-                                {config.cta.subtitle}
-                            </p>
-                            <Link to="/register" className="inline-flex items-center gap-2 px-10 py-5 bg-white text-indigo-700 rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-2xl shadow-indigo-900/50">
-                                {config.cta.buttonText} <ArrowRight className="w-5 h-5" />
-                            </Link>
+                                {/* Modern Minimal Partner Details (Moved Inside) */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+                                    className="relative w-full max-w-5xl bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2rem] p-2 shadow-2xl text-left"
+                                >
+                                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10">
+                                        {/* Referral */}
+                                        <Link to="/partner" className="p-6 md:p-8 flex items-start gap-5 group cursor-pointer hover:bg-white/10 rounded-3xl md:rounded-l-[1.5rem] md:rounded-r-none transition-colors">
+                                            <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                                                <TrendingUp className="w-6 h-6 text-emerald-400" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-xl font-bold text-white">Referral Program</h4>
+                                                    <ArrowUpRight className="w-5 h-5 text-indigo-200 group-hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0" />
+                                                </div>
+                                                <p className="text-sm text-indigo-100 font-medium leading-relaxed">
+                                                    Both you and your referral get <span className="text-emerald-400 font-bold">extra subscription months & AI tokens</span> when they sign up. Dual-sided rewards!
+                                                </p>
+                                            </div>
+                                        </Link>
+
+                                        {/* Tech Partner */}
+                                        <Link to="/partner" className="p-6 md:p-8 flex items-start gap-5 group cursor-pointer hover:bg-white/10 rounded-3xl md:rounded-r-[1.5rem] md:rounded-l-none transition-colors">
+                                            <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                                                <Layers className="w-6 h-6 text-blue-400" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="text-xl font-bold text-white">Tech Partner</h4>
+                                                    <ArrowUpRight className="w-5 h-5 text-indigo-200 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0" />
+                                                </div>
+                                                <p className="text-sm text-indigo-100 font-medium leading-relaxed">
+                                                    Join our Tech Partner program and earn <span className="text-blue-400 font-bold">up to 30% commission</span> with unique tracking links, discount coupons, and dedicated marketing assets.
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    </div>
+                                </motion.div>
+
+                            </div>
+                        </motion.div>
+
                         </div>
-                    </div>
                 </section>
 
                 {/* 14. EXPANDED FOOTER */}
@@ -2006,12 +2842,20 @@ export default function LandingPage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
                             <div className="col-span-2 lg:col-span-2 space-y-6">
                                 <div className="flex items-center gap-3 font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">
-                                    <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                                        <MessageSquare className="w-5 h-5 text-white" />
-                                    </div>
-                                    {config.brand.name}
+                                    {(publicSettings?.logoUrl || config.brand?.logo) ? (
+                                        <img src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="h-10 object-contain" />
+                                    ) : (
+                                        <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                                            <MessageSquare className="w-5 h-5 text-white" />
+                                        </div>
+                                    )}
+                                    {publicSettings?.appName || config.brand.name}
                                 </div>
-                                <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xs">{config.brand.footerText || 'The operating system for official WhatsApp Business API conversations.'}</p>
+                                <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xs">
+                                    {config.brand.footerText
+                                        ? config.brand.footerText.replace(config.brand.name, publicSettings?.appName || config.brand.name)
+                                        : 'The operating system for official WhatsApp Business API conversations.'}
+                                </p>
                                 <div className="flex gap-4">
                                     {[
                                         { id: 'twitter', icon: Twitter, defaultUrl: 'https://twitter.com' },
@@ -2029,7 +2873,7 @@ export default function LandingPage() {
                                     })}
                                 </div>
                             </div>
-                            
+
                             {/* Render Dynamic Footer Columns */}
                             {config.footer?.columns && Array.isArray(config.footer.columns) ? (
                                 config.footer.columns.map((col, idx) => (
@@ -2039,7 +2883,7 @@ export default function LandingPage() {
                                             {col.links && col.links.map((link, lIdx) => {
                                                 const isExternal = link.href.startsWith('http');
                                                 const isAnchor = link.href.startsWith('#');
-                                                
+
                                                 if (isExternal) {
                                                     return <li key={lIdx}><a href={link.href} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 dark:hover:text-white transition-colors">{link.label}</a></li>;
                                                 } else if (isAnchor) {
@@ -2052,7 +2896,7 @@ export default function LandingPage() {
                                     </div>
                                 ))
                             ) : (
-                               // Fallback to static columns if footer config is missing
+                                // Fallback to static columns if footer config is missing
                                 <>
                                     <div>
                                         <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-sm">Product</h4>
@@ -2080,12 +2924,12 @@ export default function LandingPage() {
                                 </>
                             )}
                         </div>
-                        
+
                         <div className="pt-8 border-t border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm font-medium text-slate-500 dark:text-slate-500">
                             <div>
-                                {config.footer?.bottomBarLeft 
-                                    ? config.footer.bottomBarLeft.replace('{year}', new Date().getFullYear()).replace('{brand}', config.brand.name)
-                                    : `© ${new Date().getFullYear()} ${config.brand.name}. All rights reserved.`}
+                                {config.footer?.bottomBarLeft
+                                    ? config.footer.bottomBarLeft.replace('{year}', new Date().getFullYear()).replace('{brand}', publicSettings?.appName || config.brand.name).replace(config.brand.name, publicSettings?.appName || config.brand.name)
+                                    : `© ${new Date().getFullYear()} ${publicSettings?.appName || config.brand.name}. All rights reserved.`}
                             </div>
                             <div className="flex gap-4">
                                 {config.footer?.bottomBarRight ? (
@@ -2106,6 +2950,9 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </footer>
+
+                {/* Floating Chatbot */}
+                <FloatingChatbot config={config} />
             </div>
         </div>
     );

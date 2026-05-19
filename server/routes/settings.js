@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 const router = express.Router();
 const Settings = require('../models/Settings');
 const auth = require('../middleware/auth');
@@ -39,9 +40,21 @@ const maskSettingsForClient = (settings) => {
     return json;
 };
 
+// ── In-memory cache for public settings (via centralized manager) ──
+const cacheManager = require('../utils/cacheManager');
+const _publicSettingsCache = cacheManager.createSimpleCache('public_settings', 60_000);
+
+const invalidatePublicSettingsCache = () => {
+    cacheManager.invalidate('public_settings');
+};
+
 // PUBLIC ROUTE: Get global branding settings (unauthenticated)
 router.get('/public', async (req, res) => {
     try {
+        // Return cached result if still fresh
+        const cached = _publicSettingsCache.get();
+        if (cached) return res.json(cached);
+
         // Fetch global system config for things like menuOrder
         const SystemConfig = require('../models/SystemConfig');
         const systemConfig = await SystemConfig.getConfig();
@@ -49,24 +62,28 @@ router.get('/public', async (req, res) => {
         // Find the first admin user
         const adminUser = await User.findOne({ where: { isAdmin: true } });
         if (!adminUser) {
-            return res.json({ 
-                appName: 'WhatsApp Cloud',
+            const result = { 
+                appName: 'Bluetick',
                 menuOrder: systemConfig.menuOrder 
-            }); // No admin found, return with default name
+            };
+            _publicSettingsCache.set(result);
+            return res.json(result); // No admin found, return with default name
         }
 
         // Get their settings
         const settings = await Settings.findOne({ where: { userId: adminUser.id } });
         if (!settings) {
-            return res.json({ 
-                appName: 'WhatsApp Cloud',
+            const result = { 
+                appName: 'Bluetick',
                 menuOrder: systemConfig.menuOrder 
-            });
+            };
+            _publicSettingsCache.set(result);
+            return res.json(result);
         }
 
         // Only return non-sensitive branding data
-        res.json({
-            appName: settings.appName || 'WhatsApp Cloud',
+        const result = {
+            appName: settings.appName || 'Bluetick',
             appTagline: settings.appTagline || 'Business API',
             logoUrl: settings.logoUrl,
             primaryColor: settings.primaryColor,
@@ -74,7 +91,9 @@ router.get('/public', async (req, res) => {
             theme: settings.theme,
             currency: settings.currency,
             menuOrder: systemConfig.menuOrder
-        });
+        };
+        _publicSettingsCache.set(result);
+        res.json(result);
     } catch (err) {
         console.error("Public Settings Error:", err);
         res.status(500).json({ error: 'Failed to fetch public settings' });
@@ -83,6 +102,11 @@ router.get('/public', async (req, res) => {
 
 // Protect all other routes
 router.use(auth);
+
+// GET /webhook-token — Return the webhook verify token for the UI to display
+router.get('/webhook-token', (req, res) => {
+    res.json({ verifyToken: process.env.WEBHOOK_VERIFY_TOKEN || '' });
+});
 
 router.get('/', async (req, res) => {
     try {
@@ -132,7 +156,9 @@ router.post('/', async (req, res) => {
 
         if (!settings) {
             settings = await Settings.create({
-                metaPhoneNumberId, metaAccessToken, metaBusinessAccountId,
+                metaPhoneNumberId: metaPhoneNumberId ? String(metaPhoneNumberId).replace(/\s/g, '') : undefined,
+                metaAccessToken: metaAccessToken ? String(metaAccessToken).replace(/\s/g, '') : undefined,
+                metaBusinessAccountId: metaBusinessAccountId ? String(metaBusinessAccountId).replace(/\s/g, '') : undefined,
                 appName, supportEmail, currency, timezone,
                 primaryColor, secondaryColor, logoUrl,
                 theme, language, dateFormat,
@@ -146,9 +172,9 @@ router.post('/', async (req, res) => {
             });
         } else {
             // Update fields — ignore masked values sent back from frontend
-            settings.metaPhoneNumberId = metaPhoneNumberId !== undefined ? metaPhoneNumberId : settings.metaPhoneNumberId;
-            settings.metaAccessToken = (metaAccessToken !== undefined && !isMasked(metaAccessToken)) ? metaAccessToken : settings.metaAccessToken;
-            settings.metaBusinessAccountId = metaBusinessAccountId !== undefined ? metaBusinessAccountId : settings.metaBusinessAccountId;
+            settings.metaPhoneNumberId = metaPhoneNumberId !== undefined ? String(metaPhoneNumberId).replace(/\s/g, '') : settings.metaPhoneNumberId;
+            settings.metaAccessToken = (metaAccessToken !== undefined && !isMasked(metaAccessToken)) ? String(metaAccessToken).replace(/\s/g, '') : settings.metaAccessToken;
+            settings.metaBusinessAccountId = metaBusinessAccountId !== undefined ? String(metaBusinessAccountId).replace(/\s/g, '') : settings.metaBusinessAccountId;
 
             settings.appName = appName || settings.appName;
             settings.supportEmail = supportEmail || settings.supportEmail;
@@ -242,6 +268,9 @@ router.post('/', async (req, res) => {
 
             await settings.save();
         }
+
+        // Invalidate the public settings cache so changes are reflected immediately
+        invalidatePublicSettingsCache();
 
         // Log Activity
         await logActivity(req, 'Settings Updated', 'Updated application settings');
@@ -485,24 +514,33 @@ router.post('/subscribe-waba', async (req, res) => {
     }
 });
 
-router.post('/test', async (req, res) => {
+router.post('/test', auth, async (req, res) => {
     try {
-        const { metaPhoneNumberId, metaAccessToken } = req.body;
+        let { metaPhoneNumberId, metaAccessToken } = req.body;
 
         if (!metaPhoneNumberId || !metaAccessToken) {
             return res.status(400).json({ error: 'Phone Number ID and Access Token are required.' });
         }
 
+        // If the frontend sent masked values (••••••••), read real credentials from DB
+        if (isMasked(metaAccessToken) || isMasked(metaPhoneNumberId)) {
+            const dbSettings = await Settings.findOne({ where: { userId: req.user.id } });
+            if (!dbSettings || !dbSettings.metaAccessToken || !dbSettings.metaPhoneNumberId) {
+                return res.status(400).json({ error: 'No saved WhatsApp credentials found. Please save your settings first.' });
+            }
+            metaAccessToken = dbSettings.metaAccessToken;
+            metaPhoneNumberId = dbSettings.metaPhoneNumberId;
+        }
+
+        // Strip any non-printable / non-ASCII characters to prevent header injection errors
+        metaPhoneNumberId = metaPhoneNumberId.replace(/[^\x20-\x7E]/g, '').trim();
+        metaAccessToken = metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
+
         // Verify with Meta Graph API
         // If a test phone number is provided, try to send a message
         if (req.body.testPhoneNumber) {
-            const messageResponse = await fetch(`https://graph.facebook.com/v17.0/${metaPhoneNumberId}/messages`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${metaAccessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+            try {
+                const messageResponse = await axios.post(`https://graph.facebook.com/v19.0/${metaPhoneNumberId}/messages`, {
                     messaging_product: 'whatsapp',
                     to: req.body.testPhoneNumber,
                     type: 'template',
@@ -510,48 +548,47 @@ router.post('/test', async (req, res) => {
                         name: 'hello_world',
                         language: { code: 'en_US' }
                     }
-                })
-            });
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${metaAccessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-            const messageData = await messageResponse.json();
-
-            if (messageResponse.ok) {
                 return res.json({
                     success: true,
                     message: 'Connection successful! Test message sent.',
-                    data: messageData
+                    data: messageResponse.data
                 });
-            } else {
-                console.error("Meta API Message Send Failed:", messageData);
+            } catch (err) {
+                console.error("Meta API Message Send Failed:", err.response?.data || err.message);
                 return res.status(400).json({
-                    error: messageData.error?.message || 'Failed to send test message.',
-                    details: messageData.error
+                    error: err.response?.data?.error?.message || 'Failed to send test message.',
+                    details: err.response?.data?.error
                 });
             }
         }
 
         // Fallback: Just check GET request if no phone number (Verification only)
-        const response = await fetch(`https://graph.facebook.com/v17.0/${metaPhoneNumberId}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${metaAccessToken}`
-            }
-        });
+        try {
+            const response = await axios.get(`https://graph.facebook.com/v19.0/${metaPhoneNumberId}`, {
+                headers: {
+                    'Authorization': `Bearer ${metaAccessToken}`
+                }
+            });
 
-        const data = await response.json();
-
-        if (response.ok) {
-            res.json({ success: true, message: 'Credentials verified successfully.', data });
-        } else {
+            return res.json({ success: true, message: 'Credentials verified successfully.', data: response.data });
+        } catch (err) {
+            const data = err.response?.data || {};
             console.error("Meta API Verification Failed:", data);
 
             let errorMessage = data.error?.message || 'Connection failed.';
 
             // Add helpful context based on Meta error codes
             if (data.error?.code === 190) errorMessage += " (Invalid or Expired Access Token)";
-            if (response.status === 404) errorMessage += " (Phone Number ID not found. Check if the ID is correct.)";
+            if (err.response?.status === 404) errorMessage += " (Phone Number ID not found. Check if the ID is correct.)";
 
-            res.status(400).json({
+            return res.status(400).json({
                 error: errorMessage,
                 details: data.error
             });
@@ -591,7 +628,7 @@ router.post('/test-smtp', async (req, res) => {
         await transporter.sendMail({
             from: fromEmail || user,
             to: user, // Send to self
-            subject: 'SMTP Connection Test - WhatsApp Cloud',
+            subject: 'SMTP Connection Test - Bluetick',
             text: 'If you received this email, your SMTP configuration is working correctly!',
             html: '<b>SMTP Connection Successful!</b><br>Your email settings are correctly configured.'
         });

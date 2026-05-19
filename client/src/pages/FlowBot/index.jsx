@@ -20,7 +20,7 @@ const defaultTriggerNode = {
 let idCounter = 1;
 const getId = () => `node_${Date.now()}_${idCounter++}`;
 
-const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 const FlowBotBuilder = () => {
     const reactFlowWrapper = useRef(null);

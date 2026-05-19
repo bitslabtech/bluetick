@@ -150,8 +150,8 @@ const AdminReferralSettings = () => {
         try {
             setLoading(true);
             const [resConfig, resStats] = await Promise.all([
-                axios.get('http://127.0.0.1:5000/api/system'),
-                axios.get('http://127.0.0.1:5000/api/system/referral-stats')
+                axios.get(`${import.meta.env.VITE_API_URL}/api/system`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/system/referral-stats`)
             ]);
             setConfig(resConfig.data);
             setStats(resStats.data);
@@ -168,7 +168,7 @@ const AdminReferralSettings = () => {
 
     const handleSave = async (newConfig = config) => {
         try {
-            await axios.put('http://127.0.0.1:5000/api/system/settings', newConfig);
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, newConfig);
             setConfig(newConfig);
             showToast({ type: 'success', message: 'Referral settings updated successfully.' });
         } catch (err) {

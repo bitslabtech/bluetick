@@ -45,7 +45,7 @@ const AdminNotifications = () => {
     const fetchBroadcasts = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/notifications');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`);
             setBroadcasts(res.data);
         } catch (err) {
             console.error("Error fetching broadcasts:", err);
@@ -57,8 +57,8 @@ const AdminNotifications = () => {
     const fetchMetadata = async () => {
         try {
             const [usersRes, plansRes] = await Promise.all([
-                axios.get('http://127.0.0.1:5000/api/admin/users'),
-                axios.get('http://127.0.0.1:5000/api/plans')
+                axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/plans`)
             ]);
             setUsersList(usersRes.data);
             setPlansList(plansRes.data);
@@ -70,7 +70,7 @@ const AdminNotifications = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this broadcast?")) return;
         try {
-            await axios.delete(`http://127.0.0.1:5000/api/notifications/${id}`);
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/notifications/${id}`);
             setBroadcasts(prev => prev.filter(b => b.id !== id));
             showToast({ type: 'success', title: 'Deleted', message: 'Broadcast deleted successfully.' });
         } catch (err) {
@@ -83,7 +83,7 @@ const AdminNotifications = () => {
         try {
             const payload = { ...formData };
 
-            await axios.post('http://127.0.0.1:5000/api/notifications', payload);
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/notifications`, payload);
             showToast({ type: 'success', title: 'Sent', message: 'Broadcast sent successfully!' });
             setShowPreview(false);
             setFormData({

@@ -9,7 +9,7 @@ export const ThemeProvider = ({ children }) => {
     // On mount, if no user preference is in localStorage, fetch the server default
     useEffect(() => {
         if (!localStorage.getItem('theme')) {
-            fetch('http://127.0.0.1:5000/api/settings/public')
+            fetch(`${import.meta.env.VITE_API_URL}/api/settings/public`)
                 .then(res => res.json())
                 .then(data => {
                     const serverTheme = data?.theme || 'system';
@@ -63,7 +63,7 @@ export const ThemeProvider = ({ children }) => {
     const resetToServerDefault = () => {
         localStorage.removeItem('theme');
         setTheme(null);
-        fetch('http://127.0.0.1:5000/api/settings/public')
+        fetch(`${import.meta.env.VITE_API_URL}/api/settings/public`)
             .then(res => res.json())
             .then(data => setTheme(data?.theme || 'system'))
             .catch(() => setTheme('system'));

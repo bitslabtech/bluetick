@@ -1,69 +1,99 @@
-import React, { Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import React, { Suspense, useEffect, useState } from 'react';
+import axios from 'axios';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { UIProvider } from './context/UIContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Contacts from './pages/Contacts';
-import Templates from './pages/Templates';
-import Campaigns from './pages/Campaigns';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import Marketplace from './pages/Marketplace'; // NEW
-import AddonDetail from './pages/AddonDetail'; // NEW
-import Integrations from './pages/Integrations'; // NEW Developer Ecosystem
-import WhatsAppInbox from './pages/WhatsAppInbox'; // NEW
-import WhatsAppSettings from './pages/WhatsAppSettings'; // NEW
-import PublicForm from './pages/PublicForm'; // NEW
-import Login from './pages/Login';
-import Register from './pages/Register';
-import SuperAdminDashboard from './pages/SuperAdminDashboard';
-import AdminUsers from './pages/AdminUsers';
-import AdminPlans from './pages/AdminPlans';
-import AdminPurchases from './pages/AdminPurchases';
-import AdminNotifications from './pages/AdminNotifications';
-import AdminActivityLogs from './pages/AdminActivityLogs';
-import AdminAITokenUsers from './pages/AdminAITokenUsers'; // NEW
-import AdminTechPartners from './pages/AdminTechPartners'; // NEW Tech Partner Program
-import Team from './pages/Team'; // NEW
-import TeamMemberAnalytics from './pages/TeamMemberAnalytics'; // NEW
-import AdminSupport from './pages/AdminSupport';
-import AdminLandingPage from './pages/AdminLandingPage';
-import AdminMessages from './pages/AdminMessages';
-import AdminAddons from './pages/AdminAddons'; // NEW
-import AdminAddonConfig from './pages/AdminAddonConfig';
-import AiBotSettings from './pages/AiBotSettings'; // NEW
-import WhatsAppFormsBuilder from './pages/addons/WhatsAppFormsBuilder'; // NEW
-import StorePage from './pages/Store'; // NEW
-import FlowBotBuilder from './pages/FlowBot'; // NEW
 
-const AdminSystemControls = React.lazy(() => import('./pages/AdminSystemControls')); // NEW
-const AdminReferralSettings = React.lazy(() => import('./pages/AdminReferralSettings')); // NEW
-import Support from './pages/Support';
-import UserNotifications from './pages/UserNotifications'; // NEW
-
-import AdminAlerts from './pages/AdminAlerts'; // NEW
-
-import CampaignList from './pages/CampaignList';
-import CampaignDetails from './pages/CampaignDetails';
-
-import LandingPage from './pages/LandingPage'; // NEW
-import BlogList from './pages/BlogList'; // NEW
-import BlogPost from './pages/BlogPost'; // NEW
-import Checkout from './pages/Checkout'; // NEW
-import Billing from './pages/Billing'; // NEW
-import AiTokenHistory from './pages/AiTokenHistory'; // NEW
-import Referrals from './pages/Referrals'; // NEW
-import TechPartner from './pages/TechPartner'; // NEW Tech Partner Program
-
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import AboutUs from './pages/AboutUs';
-import ContactUs from './pages/ContactUs';
-import PartnerWithUs from './pages/PartnerWithUs';
+// ── Code-Split Pages (React.lazy) ──────────────────────────────────────────
+// Each page loads as a separate JS chunk (~20-150KB) only when navigated to.
+// This reduces the initial bundle from ~3.5MB to ~300-500KB.
+const Setup = React.lazy(() => import('./pages/Setup'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Contacts = React.lazy(() => import('./pages/Contacts'));
+const Templates = React.lazy(() => import('./pages/Templates'));
+const Campaigns = React.lazy(() => import('./pages/Campaigns'));
+const Reports = React.lazy(() => import('./pages/Reports'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const Marketplace = React.lazy(() => import('./pages/Marketplace'));
+const AddonDetail = React.lazy(() => import('./pages/AddonDetail'));
+const Integrations = React.lazy(() => import('./pages/Integrations'));
+const WhatsAppInbox = React.lazy(() => import('./pages/WhatsAppInbox'));
+const WhatsAppSettings = React.lazy(() => import('./pages/WhatsAppSettings'));
+const PublicForm = React.lazy(() => import('./pages/PublicForm'));
+const Login = React.lazy(() => import('./pages/Login'));
+const Register = React.lazy(() => import('./pages/Register'));
+const SuperAdminDashboard = React.lazy(() => import('./pages/SuperAdminDashboard'));
+const AdminUsers = React.lazy(() => import('./pages/AdminUsers'));
+const AdminPlans = React.lazy(() => import('./pages/AdminPlans'));
+const AdminPurchases = React.lazy(() => import('./pages/AdminPurchases'));
+const AdminNotifications = React.lazy(() => import('./pages/AdminNotifications'));
+const AdminActivityLogs = React.lazy(() => import('./pages/AdminActivityLogs'));
+const AdminAITokenUsers = React.lazy(() => import('./pages/AdminAITokenUsers'));
+const AdminTechPartners = React.lazy(() => import('./pages/AdminTechPartners'));
+const AdminNfcManager = React.lazy(() => import('./pages/AdminNfcManager'));
+const Team = React.lazy(() => import('./pages/Team'));
+const TeamMemberAnalytics = React.lazy(() => import('./pages/TeamMemberAnalytics'));
+const AdminSupport = React.lazy(() => import('./pages/AdminSupport'));
+const AdminLandingPage = React.lazy(() => import('./pages/AdminLandingPage'));
+const AdminMessages = React.lazy(() => import('./pages/AdminMessages'));
+const AdminAddons = React.lazy(() => import('./pages/AdminAddons'));
+const AdminAddonConfig = React.lazy(() => import('./pages/AdminAddonConfig'));
+const AiBotSettings = React.lazy(() => import('./pages/AiBotSettings'));
+const WhatsAppFormsBuilder = React.lazy(() => import('./pages/addons/WhatsAppFormsBuilder'));
+const StorePage = React.lazy(() => import('./pages/Store'));
+const FlowBotBuilder = React.lazy(() => import('./pages/FlowBot'));
+const AdminSystemControls = React.lazy(() => import('./pages/AdminSystemControls'));
+const AdminReferralSettings = React.lazy(() => import('./pages/AdminReferralSettings'));
+const Support = React.lazy(() => import('./pages/Support'));
+const UserNotifications = React.lazy(() => import('./pages/UserNotifications'));
+const AdminAlerts = React.lazy(() => import('./pages/AdminAlerts'));
+const CampaignList = React.lazy(() => import('./pages/CampaignList'));
+const CampaignDetails = React.lazy(() => import('./pages/CampaignDetails'));
+const LandingPage = React.lazy(() => import('./pages/LandingPage'));
+const BlogList = React.lazy(() => import('./pages/BlogList'));
+const BlogPost = React.lazy(() => import('./pages/BlogPost'));
+const Checkout = React.lazy(() => import('./pages/Checkout'));
+const Billing = React.lazy(() => import('./pages/Billing'));
+const AiTokenHistory = React.lazy(() => import('./pages/AiTokenHistory'));
+const Referrals = React.lazy(() => import('./pages/Referrals'));
+const TechPartner = React.lazy(() => import('./pages/TechPartner'));
+const NfcSetup = React.lazy(() => import('./pages/NfcSetup'));
+const CTWAAnalytics = React.lazy(() => import('./pages/CTWAAnalytics'));
+const WALinksGenerator = React.lazy(() => import('./pages/WALinksGenerator'));
+const MetaAdsDashboard = React.lazy(() => import('./pages/MetaAdsManager/MetaAdsDashboard'));
+const MetaAdsWizard = React.lazy(() => import('./pages/MetaAdsManager/MetaAdsWizard'));
+const WaStoreList = React.lazy(() => import('./pages/WaStoreManager/WaStoreList'));
+const WaStoreLayout = React.lazy(() => import('./pages/WaStoreManager/WaStoreLayout'));
+const WaProductList = React.lazy(() => import('./pages/WaStoreManager/WaProductList'));
+const WaStoreThemes = React.lazy(() => import('./pages/WaStoreManager/WaStoreThemes'));
+const WaStoreSettings = React.lazy(() => import('./pages/WaStoreManager/WaStoreSettings'));
+const WaStoreBasicDetails = React.lazy(() => import('./pages/WaStoreManager/WaStoreBasicDetails'));
+const WaStoreOrders = React.lazy(() => import('./pages/WaStoreManager/WaStoreOrders'));
+const WaStoreCategories = React.lazy(() => import('./pages/WaStoreManager/WaStoreCategories'));
+const WaStoreCoupons = React.lazy(() => import('./pages/WaStoreManager/WaStoreCoupons'));
+const WaStoreSEO = React.lazy(() => import('./pages/WaStoreManager/WaStoreSEO'));
+const WaStorePolicies = React.lazy(() => import('./pages/WaStoreManager/WaStorePolicies'));
+const WaStoreAnalytics = React.lazy(() => import('./pages/WaStoreManager/WaStoreAnalytics'));
+const PublicWaStore = React.lazy(() => import('./pages/PublicWaStore'));
+const PublicWaProduct = React.lazy(() => import('./pages/PublicWaProduct'));
+const VcardLayout = React.lazy(() => import('./pages/VcardManager/VcardLayout'));
+const VcardDashboard = React.lazy(() => import('./pages/VcardManager/VcardDashboard'));
+const VcardList = React.lazy(() => import('./pages/VcardManager/VcardList'));
+const VcardEnquiries = React.lazy(() => import('./pages/VcardManager/VcardEnquiries'));
+const VcardBookings = React.lazy(() => import('./pages/VcardManager/VcardBookings'));
+const VcardSettings = React.lazy(() => import('./pages/VcardManager/VcardSettings'));
+const VcardBuilder = React.lazy(() => import('./pages/VcardManager/VcardBuilder'));
+const PublicVcard = React.lazy(() => import('./pages/PublicVcard'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
+const AboutUs = React.lazy(() => import('./pages/AboutUs'));
+const ContactUs = React.lazy(() => import('./pages/ContactUs'));
+const PartnerWithUs = React.lazy(() => import('./pages/PartnerWithUs'));
 
 // Simple Loading Component
 const Loading = () => (
@@ -107,6 +137,26 @@ function ReferralCapture() {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Setup Redirect ────────────────────────────────────────────────────────────
+// Checks if the app has been configured. If not, redirects to /setup.
+function SetupRedirect() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    useEffect(() => {
+        if (location.pathname === '/setup') return; // Already on setup
+        axios.get(`${import.meta.env.VITE_API_URL}/api/setup/status`)
+            .then(r => {
+                if (!r.data.setupComplete) {
+                    navigate('/setup', { replace: true });
+                }
+            })
+            .catch(() => {
+                // If backend is unreachable, let app load normally
+            });
+    }, []); // eslint-disable-line
+    return null;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -141,80 +191,157 @@ class ErrorBoundary extends React.Component {
     }
 }
 
+function CustomDomainRouter({ children }) {
+    const [storeSlug, setStoreSlug] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const hostname = window.location.hostname;
+        // Ignore local development domains and the main SaaS platform domain
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === 'whatsapp-cloud.com' || hostname.includes('ngrok.io')) {
+            setLoading(false);
+            return;
+        }
+
+        // It's a custom domain, check backend to see if it maps to any store
+        axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/domain/${hostname}`)
+            .then(res => {
+                setStoreSlug(res.data.store.slug);
+            })
+            .catch(() => {
+                console.warn('Custom domain not recognized by platform');
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, []);
+
+    if (loading) return <Loading />;
+
+    if (storeSlug) {
+        // Render custom domain store routing
+        return (
+            <Routes>
+                <Route path="/product/:productId" element={<PublicWaProduct customSlug={storeSlug} />} />
+                <Route path="*" element={<PublicWaStore customSlug={storeSlug} />} />
+            </Routes>
+        );
+    }
+
+    return children;
+}
+
 function App() {
     return (
         <ThemeProvider>
             <ErrorBoundary>
                 <AuthProvider>
                     <UIProvider>
-                        <Router>
-                            <ReferralCapture />
-                            <Toaster position="top-right" />
-                            <Suspense fallback={<Loading />}>
-                                <Routes>
-                                    <Route path="/" element={<LandingPage />} />
-                                    <Route path="/blog" element={<BlogList />} />
-                                    <Route path="/blog/:slug" element={<BlogPost />} />
-                                    <Route path="/f/:id" element={<PublicForm />} /> {/* NEW: Public form viewer */}
-                                    <Route path="/login" element={<Login />} />
-                                    <Route path="/register" element={<Register />} />
-                                    <Route path="/privacy" element={<PrivacyPolicy />} />
-                                    <Route path="/terms" element={<TermsOfService />} />
-                                    <Route path="/about" element={<AboutUs />} />
-                                    <Route path="/contact" element={<ContactUs />} />
-                                    <Route path="/partner" element={<PartnerWithUs />} />
+                        <NotificationProvider>
+                            <Router>
+                                <ReferralCapture />
+                                <Toaster position="top-right" />
+                                <Suspense fallback={<Loading />}>
+                                    <SetupRedirect />
+                                    <CustomDomainRouter>
+                                        <Routes>
+                                        <Route path="/setup" element={<Setup />} />
+                                        <Route path="/" element={<LandingPage />} />
+                                        <Route path="/blog" element={<BlogList />} />
+                                        <Route path="/blog/:slug" element={<BlogPost />} />
+                                        <Route path="/f/:id" element={<PublicForm />} /> {/* NEW: Public form viewer */}
+                                        <Route path="/vcard/:slug" element={<PublicVcard />} /> {/* NEW: Public Digital Business Card */}
+                                        <Route path="/nfc/setup/:shortCode" element={<NfcSetup />} /> {/* NEW: NFC Setup */}
+                                        <Route path="/store/:slug" element={<PublicWaStore />} /> {/* NEW: Public WhatsApp Store */}
+                                        <Route path="/store/:slug/product/:productId" element={<PublicWaProduct />} /> {/* NEW: Single Product */}
+                                        <Route path="/login" element={<Login />} />
+                                        <Route path="/register" element={<Register />} />
+                                        <Route path="/privacy" element={<PrivacyPolicy />} />
+                                        <Route path="/terms" element={<TermsOfService />} />
+                                        <Route path="/about" element={<AboutUs />} />
+                                        <Route path="/contact" element={<ContactUs />} />
+                                        <Route path="/partner" element={<PartnerWithUs />} />
 
-                                    <Route element={<ProtectedRoute />}>
-                                        <Route element={<Layout />}>
-                                            <Route path="/dashboard" element={<Dashboard />} /> {/* Changed default dashboard path */}
-                                            <Route path="/contacts" element={<Contacts />} />
-                                            <Route path="/templates" element={<Templates />} />
-                                            <Route path="/campaigns" element={<Campaigns />} />
-                                            <Route path="/campaign-list" element={<CampaignList />} />
-                                            <Route path="/campaign-details/:id" element={<CampaignDetails />} />
-                                            <Route path="/reports" element={<Reports />} />
-                                            <Route path="/settings" element={<Settings />} />
-                                            <Route path="/whatsapp" element={<WhatsAppInbox />} />
-                                            <Route path="/whatsapp-settings" element={<WhatsAppSettings />} />
-                                            <Route path="/marketplace" element={<Marketplace />} />
-                                            <Route path="/integrations" element={<Integrations />} />
-                                            <Route path="/marketplace/:id" element={<AddonDetail />} />
-                                            <Route path="/store" element={<StorePage />} />
-                                            <Route path="/addons/ai_bot" element={<AiBotSettings />} />
-                                            <Route path="/addons/forms" element={<WhatsAppFormsBuilder />} />
-                                            <Route path="/flowbot" element={<FlowBotBuilder />} />
-                                            <Route path="/team" element={<Team />} />
-                                            <Route path="/team/:id/analytics" element={<TeamMemberAnalytics />} />
-                                            <Route path="/superadmin" element={<SuperAdminDashboard />} />
-                                            <Route path="/superadmin/users" element={<AdminUsers />} />
-                                            <Route path="/superadmin/plans" element={<AdminPlans />} />
-                                            <Route path="/superadmin/purchases" element={<AdminPurchases />} />
-                                            <Route path="/superadmin/notifications" element={<AdminNotifications />} />
-                                            <Route path="/superadmin/alerts" element={<AdminAlerts />} />
-                                            <Route path="/superadmin/activity-logs" element={<AdminActivityLogs />} />
-                                            <Route path="/superadmin/ai-tokens" element={<AdminAITokenUsers />} />
-                                            <Route path="/superadmin/tech-partners" element={<AdminTechPartners />} />
-                                            <Route path="/superadmin/addons" element={<AdminAddons />} />
-                                            <Route path="/superadmin/addons/:id/config" element={<AdminAddonConfig />} />
-                                            <Route path="/superadmin/support" element={<AdminSupport />} />
-                                            <Route path="/superadmin/landing-page" element={<AdminLandingPage />} />
-                                            <Route path="/superadmin/messages" element={<AdminMessages />} />
+                                        <Route element={<ProtectedRoute />}>
+                                            <Route element={<Layout />}>
+                                                <Route path="/dashboard" element={<Dashboard />} /> {/* Changed default dashboard path */}
+                                                <Route path="/contacts" element={<Contacts />} />
+                                                <Route path="/templates" element={<Templates />} />
+                                                <Route path="/campaigns" element={<Campaigns />} />
+                                                <Route path="/campaign-list" element={<CampaignList />} />
+                                                <Route path="/campaign-details/:id" element={<CampaignDetails />} />
+                                                <Route path="/ctwa-analytics" element={<CTWAAnalytics />} />
+                                                <Route path="/meta-ads" element={<MetaAdsDashboard />} />
+                                                <Route path="/meta-ads/wizard" element={<MetaAdsWizard />} />
+                                                <Route path="/vcards" element={<VcardLayout />}>
+                                                    <Route index element={<VcardDashboard />} />
+                                                    <Route path="list" element={<VcardList />} />
+                                                    <Route path="enquiries" element={<VcardEnquiries />} />
+                                                    <Route path="bookings" element={<VcardBookings />} />
+                                                    <Route path="settings" element={<VcardSettings />} />
+                                                </Route>
+                                                <Route path="/vcards/builder" element={<VcardBuilder />} />
+                                                <Route path="/vcards/builder/:id" element={<VcardBuilder />} />
+                                                <Route path="/wastore" element={<WaStoreList />} />
+                                                <Route path="/wastore/:id" element={<WaStoreLayout />}>
+                                                    <Route path="analytics" element={<WaStoreAnalytics />} />
+                                                    <Route path="details" element={<WaStoreBasicDetails />} />
+                                                    <Route path="products" element={<WaProductList />} />
+                                                    <Route path="categories" element={<WaStoreCategories />} />
+                                                    <Route path="orders" element={<WaStoreOrders />} />
+                                                    <Route path="coupons" element={<WaStoreCoupons />} />
+                                                    <Route path="seo" element={<WaStoreSEO />} />
+                                                    <Route path="themes" element={<WaStoreThemes />} />
+                                                    <Route path="policies" element={<WaStorePolicies />} />
+                                                    <Route path="settings" element={<WaStoreSettings />} />
+                                                </Route>
+                                                <Route path="/wa-links" element={<WALinksGenerator />} />
+                                                <Route path="/reports" element={<Reports />} />
+                                                <Route path="/settings" element={<Settings />} />
+                                                <Route path="/whatsapp" element={<WhatsAppInbox />} />
+                                                <Route path="/whatsapp-settings" element={<WhatsAppSettings />} />
+                                                <Route path="/marketplace" element={<Marketplace />} />
+                                                <Route path="/integrations" element={<Integrations />} />
+                                                <Route path="/marketplace/:id" element={<AddonDetail />} />
+                                                <Route path="/store" element={<StorePage />} />
+                                                <Route path="/addons/ai_bot" element={<AiBotSettings />} />
+                                                <Route path="/addons/forms" element={<WhatsAppFormsBuilder />} />
+                                                <Route path="/flowbot" element={<FlowBotBuilder />} />
+                                                <Route path="/team" element={<Team />} />
+                                                <Route path="/team/:id/analytics" element={<TeamMemberAnalytics />} />
+                                                <Route path="/superadmin" element={<SuperAdminDashboard />} />
+                                                <Route path="/superadmin/users" element={<AdminUsers />} />
+                                                <Route path="/superadmin/plans" element={<AdminPlans />} />
+                                                <Route path="/superadmin/purchases" element={<AdminPurchases />} />
+                                                <Route path="/superadmin/notifications" element={<AdminNotifications />} />
+                                                <Route path="/superadmin/alerts" element={<AdminAlerts />} />
+                                                <Route path="/superadmin/activity-logs" element={<AdminActivityLogs />} />
+                                                <Route path="/superadmin/ai-tokens" element={<AdminAITokenUsers />} />
+                                                <Route path="/superadmin/tech-partners" element={<AdminTechPartners />} />
+                                                <Route path="/superadmin/nfc" element={<AdminNfcManager />} />
+                                                <Route path="/superadmin/addons" element={<AdminAddons />} />
+                                                <Route path="/superadmin/addons/:id/config" element={<AdminAddonConfig />} />
+                                                <Route path="/superadmin/support" element={<AdminSupport />} />
+                                                <Route path="/superadmin/landing-page" element={<AdminLandingPage />} />
+                                                <Route path="/superadmin/messages" element={<AdminMessages />} />
 
-                                            <Route path="/superadmin/system-control" element={<AdminSystemControls />} />
-                                            <Route path="/superadmin/referral-settings" element={<AdminReferralSettings />} />
-                                            <Route path="/support" element={<Support />} />
-                                            <Route path="/referrals" element={<Referrals />} />
-                                            <Route path="/tech-partner" element={<TechPartner />} />
-                                            
-                                            <Route path="/notifications" element={<UserNotifications />} />
-                                            <Route path="/checkout" element={<Checkout />} />
-                                            <Route path="/billing" element={<Billing />} />
-                                             <Route path="/ai-token-history" element={<AiTokenHistory />} />
+                                                <Route path="/superadmin/system-control" element={<AdminSystemControls />} />
+                                                <Route path="/superadmin/referral-settings" element={<AdminReferralSettings />} />
+                                                <Route path="/support" element={<Support />} />
+                                                <Route path="/referrals" element={<Referrals />} />
+                                                <Route path="/tech-partner" element={<TechPartner />} />
+                                                
+                                                <Route path="/notifications" element={<UserNotifications />} />
+                                                <Route path="/checkout" element={<Checkout />} />
+                                                <Route path="/billing" element={<Billing />} />
+                                                 <Route path="/ai-token-history" element={<AiTokenHistory />} />
+                                            </Route>
                                         </Route>
-                                    </Route>
-                                </Routes>
-                            </Suspense>
-                        </Router>
+                                    </Routes>
+                                    </CustomDomainRouter>
+                                </Suspense>
+                            </Router>
+                        </NotificationProvider>
                     </UIProvider>
                 </AuthProvider>
             </ErrorBoundary>

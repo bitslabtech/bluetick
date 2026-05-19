@@ -26,7 +26,7 @@ router.get('/privacy-policy', (req, res) => {
 </head>
 <body>
 <div class="container">
-    <h1>Privacy Policy <span class="badge">WhatsApp Cloud</span></h1>
+    <h1>Privacy Policy <span class="badge">Bluetick</span></h1>
     <p class="subtitle">Last updated: February 2026</p>
 
     <p>This Privacy Policy describes how we collect, use, and protect information when you use our WhatsApp messaging platform.</p>

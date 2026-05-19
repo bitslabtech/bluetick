@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password });
             const { token, user } = res.data;
 
             localStorage.setItem('token', token);
@@ -60,13 +60,14 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (name, email, password, selectedPlan = null, referralCode = null, partnerCode = null, phone = '') => {
+    const register = async (name, email, password, selectedPlan = null, referralCode = null, partnerCode = null, phone = '', startTrial = false) => {
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/auth/register', {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
                 name,
                 email,
                 password,
                 selectedPlan,
+                startTrial,
                 ref: referralCode,
                 partnerCode: partnerCode || undefined,
                 phone
@@ -141,7 +142,7 @@ export const AuthProvider = ({ children }) => {
 
         // 3. Fetch Admin User Profile
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/auth/me');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`);
             if (res && res.data) {
                 localStorage.setItem('user', JSON.stringify(res.data));
                 setUser(res.data);
@@ -161,13 +162,16 @@ export const AuthProvider = ({ children }) => {
 
     const fetchUser = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/auth/me');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`);
             if (res && res.data) {
                 localStorage.setItem('user', JSON.stringify(res.data));
                 setUser(res.data);
             }
         } catch (err) {
             console.error("Failed to fetch user profile:", err);
+            if (err.response && (err.response.status === 401 || err.response.status === 404)) {
+                logout();
+            }
         }
     };
 

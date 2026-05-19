@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Twitter, Facebook, Linkedin, Instagram, MessageSquare, Loader2 } from 'lucide-react';
+import DOMPurify from 'dompurify';
+import PublicHeader from './PublicHeader';
+import FloatingChatbot from './FloatingChatbot';
 
-const PublicLayout = ({ children, title, pageKey }) => {
+const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
     const [config, setConfig] = useState(null);
     const [loading, setLoading] = useState(true);
     const location = useLocation();
@@ -11,7 +14,7 @@ const PublicLayout = ({ children, title, pageKey }) => {
     useEffect(() => {
         const fetchConfig = async () => {
             try {
-                const res = await axios.get('http://127.0.0.1:5000/api/landing');
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing`);
                 setConfig(res.data);
                 if (title) document.title = `${title} - ${res.data.brand?.name || 'Platform'}`;
             } catch (err) {
@@ -42,28 +45,19 @@ const PublicLayout = ({ children, title, pageKey }) => {
 
     return (
         <div className="min-h-screen flex flex-col bg-[#F5F5F7] dark:bg-zinc-950 text-slate-900 dark:text-white font-display selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-200">
-            {/* Minimalist Header */}
-            <nav className="fixed top-0 w-full z-50 bg-[#F5F5F7]/80 dark:bg-black/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 transition-all outline-none">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <Link to="/" className="text-xl font-bold tracking-tight">{brandName}</Link>
-                    <div className="flex items-center gap-6 text-sm font-medium">
-                        <Link to="/" className="text-slate-500 hover:text-black dark:text-slate-400 dark:hover:text-white transition-colors">Home</Link>
-                        <Link to="/blog" className="text-slate-500 hover:text-black dark:text-slate-400 dark:hover:text-white transition-colors">Blog</Link>
-                        <Link to="/login" className="px-4 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-full hover:scale-105 transition-transform">Sign in</Link>
-                    </div>
-                </div>
-            </nav>
+            {/* Global Header */}
+            <PublicHeader />
 
             {/* Main Content */}
-            <main className="flex-1 pt-32 pb-20 px-6 max-w-4xl mx-auto w-full">
-                {title && (
+            <main className={`flex-1 ${fullWidth ? 'w-full' : 'pt-32 pb-20 px-6 max-w-4xl mx-auto w-full'}`}>
+                {title && !fullWidth && (
                     <header className="mb-12 border-b border-slate-200 dark:border-white/10 pb-8">
                         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">{title}</h1>
                     </header>
                 )}
-                <div className="prose prose-slate dark:prose-invert max-w-none">
+                <div className={fullWidth ? 'w-full' : 'prose prose-slate dark:prose-invert max-w-none'}>
                     {(pageKey && config.publicPages?.[pageKey]) ? (
-                        <div dangerouslySetInnerHTML={{ __html: config.publicPages[pageKey] }} />
+                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(config.publicPages[pageKey]) }} />
                     ) : (
                         children
                     )}
@@ -182,6 +176,8 @@ const PublicLayout = ({ children, title, pageKey }) => {
                     </div>
                 </div>
             </footer>
+            {/* Global Chatbot */}
+            <FloatingChatbot config={config} />
         </div>
     );
 };

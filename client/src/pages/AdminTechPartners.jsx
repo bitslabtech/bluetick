@@ -20,7 +20,7 @@ const AdminTechPartners = () => {
     const { showToast } = useUI();
     const [partners, setPartners] = useState([]);
     const [applications, setApplications] = useState([]);
-    const [activeTab, setActiveTab] = useState('partners'); // 'partners' | 'applications'
+    const [activeTab, setActiveTab] = useState('partners'); // 'partners' | 'applications' | 'assets'
     
     const [loading, setLoading] = useState(true);
     const [payoutsModal, setPayoutsModal] = useState(null);
@@ -30,6 +30,11 @@ const AdminTechPartners = () => {
     // Config for toggle
     const [config, setConfig] = useState(null);
     const [loadingConfig, setLoadingConfig] = useState(true);
+    const [showSettings, setShowSettings] = useState(false);
+    const [tempCommissionRate, setTempCommissionRate] = useState(20);
+    const [tempMinPayout, setTempMinPayout] = useState(10000);
+    const [tempRequiresYearly, setTempRequiresYearly] = useState(true);
+    const [savingSettings, setSavingSettings] = useState(false);
 
     // Form modal state
     const [showForm, setShowForm] = useState(false);
@@ -41,14 +46,19 @@ const AdminTechPartners = () => {
         commissionType: 'percentage', commissionValue: 20, notes: ''
     });
 
+    // Asset state
+    const [assetFile, setAssetFile] = useState(null);
+    const [assetName, setAssetName] = useState('');
+    const [uploadingAsset, setUploadingAsset] = useState(false);
+
     const fetchData = async () => {
         setLoading(true);
         setLoadingConfig(true);
         try {
             const [pRes, cRes, aRes] = await Promise.all([
-                axios.get('http://127.0.0.1:5000/api/admin/tech-partners'),
-                axios.get('http://127.0.0.1:5000/api/system'),
-                axios.get('http://127.0.0.1:5000/api/admin/tech-partners/applications')
+                axios.get(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/system`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/applications`)
             ]);
             setPartners(pRes.data);
             setConfig(cRes.data);
@@ -63,6 +73,15 @@ const AdminTechPartners = () => {
 
     useEffect(() => { fetchData(); }, []);
 
+    useEffect(() => {
+        if (config) {
+            const tp = config.settings?.techPartnerProgram || {};
+            setTempCommissionRate(tp.commissionRate !== undefined ? tp.commissionRate : 20);
+            setTempMinPayout(tp.minPayoutBalance !== undefined ? tp.minPayoutBalance : 10000);
+            setTempRequiresYearly(tp.requiresYearlyPlan !== false);
+        }
+    }, [config]);
+
     const tpConfig = config?.settings?.techPartnerProgram || { enabled: true };
 
     const handleToggleProgram = async (val) => {
@@ -76,10 +95,38 @@ const AdminTechPartners = () => {
         };
         setConfig(newConfig);
         try {
-            await axios.put('http://127.0.0.1:5000/api/system/settings', newConfig);
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, newConfig);
             showToast({ type: 'success', message: 'Program status updated.' });
         } catch (err) {
             showToast({ type: 'error', message: 'Failed to update program status.' });
+        }
+    };
+
+    const handleSaveProgramConfig = async (e) => {
+        if (e) e.preventDefault();
+        if (!config) return;
+        setSavingSettings(true);
+        const newConfig = {
+            ...config,
+            settings: {
+                ...config.settings,
+                techPartnerProgram: {
+                    ...tpConfig,
+                    commissionRate: tempCommissionRate,
+                    minPayoutBalance: tempMinPayout,
+                    requiresYearlyPlan: tempRequiresYearly
+                }
+            }
+        };
+        setConfig(newConfig);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, newConfig);
+            showToast({ type: 'success', message: 'Program settings updated.' });
+            setShowSettings(false);
+        } catch (err) {
+            showToast({ type: 'error', message: 'Failed to update program settings.' });
+        } finally {
+            setSavingSettings(false);
         }
     };
 
@@ -121,7 +168,7 @@ const AdminTechPartners = () => {
     const handleReject = async (userId) => {
         if (!window.confirm("Reject this application?")) return;
         try {
-            await axios.post(`http://127.0.0.1:5000/api/admin/tech-partners/applications/${userId}/reject`);
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/applications/${userId}/reject`);
             showToast({ type: 'success', message: 'Application rejected.' });
             fetchData();
         } catch(e) {
@@ -133,14 +180,14 @@ const AdminTechPartners = () => {
         setSaving(true);
         try {
             if (applicationUserId) {
-                await axios.post(`http://127.0.0.1:5000/api/admin/tech-partners/applications/${applicationUserId}/approve`, form);
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/applications/${applicationUserId}/approve`, form);
                 showToast({ type: 'success', message: 'Application Approved.' });
                 setActiveTab('partners');
             } else if (editingPartner) {
-                await axios.put(`http://127.0.0.1:5000/api/admin/tech-partners/${editingPartner.id}`, form);
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/${editingPartner.id}`, form);
                 showToast({ type: 'success', message: 'Partner updated.' });
             } else {
-                await axios.post(`http://127.0.0.1:5000/api/admin/tech-partners`, form);
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners`, form);
                 showToast({ type: 'success', message: 'Partner created.' });
             }
             setShowForm(false);
@@ -155,7 +202,7 @@ const AdminTechPartners = () => {
     const handleDeletePartner = async (id, name) => {
         if (!window.confirm(`Delete partner "${name}"?`)) return;
         try {
-            await axios.delete(`http://127.0.0.1:5000/api/admin/tech-partners/${id}`);
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/${id}`);
             showToast({ type: 'success', message: 'Partner deleted.' });
             fetchData();
         } catch (e) { 
@@ -165,7 +212,7 @@ const AdminTechPartners = () => {
 
     const handleToggleEnabledState = async (p) => {
         try {
-            await axios.put(`http://127.0.0.1:5000/api/admin/tech-partners/${p.id}`, { enabled: !p.enabled });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/${p.id}`, { enabled: !p.enabled });
             fetchData();
         } catch (e) { 
             showToast({ type: 'error', message: 'Failed to update status.' }); 
@@ -174,7 +221,7 @@ const AdminTechPartners = () => {
 
     const openPayouts = async (partner) => {
         try {
-            const res = await axios.get(`http://127.0.0.1:5000/api/admin/tech-partners/${partner.id}/payouts`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/${partner.id}/payouts`);
             setPayoutsModal(res.data);
         } catch (err) {
             showToast({ type: 'error', message: 'Failed to load payouts.' });
@@ -183,7 +230,7 @@ const AdminTechPartners = () => {
 
     const openSignups = async (partner) => {
         try {
-            const res = await axios.get(`http://127.0.0.1:5000/api/admin/tech-partners/${partner.id}/signups`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/${partner.id}/signups`);
             setSignupsModal({ partner, users: res.data });
         } catch (err) {
             showToast({ type: 'error', message: 'Failed to load signups.' });
@@ -192,7 +239,7 @@ const AdminTechPartners = () => {
 
     const markPaid = async (partnerId, payoutId) => {
         try {
-            await axios.put(`http://127.0.0.1:5000/api/admin/tech-partners/${partnerId}/payouts/${payoutId}/mark-paid`);
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/${partnerId}/payouts/${payoutId}/mark-paid`);
             showToast({ type: 'success', message: 'Payout marked as paid.' });
             openPayouts({ id: partnerId });
             fetchData(); // refresh pending balances
@@ -211,6 +258,42 @@ const AdminTechPartners = () => {
         if (type === 'percentage') return `${value}%`;
         if (type === 'flat') return `₹${value}`;
         return `${value} mo.`;
+    };
+
+    const handleUploadAsset = async (e) => {
+        e.preventDefault();
+        if (!assetFile || !assetName) return;
+        setUploadingAsset(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', assetFile);
+            formData.append('name', assetName);
+            
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/assets`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            showToast({ type: 'success', message: 'Asset uploaded successfully.' });
+            setAssetFile(null);
+            setAssetName('');
+            // Optional: reset file input using a ref, but it's simpler to just clear state
+            document.getElementById('assetFileInput').value = '';
+            fetchData();
+        } catch (err) {
+            showToast({ type: 'error', message: err.response?.data?.error || 'Upload failed.' });
+        } finally {
+            setUploadingAsset(false);
+        }
+    };
+
+    const handleDeleteAsset = async (id) => {
+        if (!window.confirm("Delete this asset?")) return;
+        try {
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/admin/tech-partners/assets/${id}`);
+            showToast({ type: 'success', message: 'Asset deleted.' });
+            fetchData();
+        } catch (err) {
+            showToast({ type: 'error', message: 'Failed to delete asset.' });
+        }
     };
 
     return (
@@ -235,6 +318,9 @@ const AdminTechPartners = () => {
                                 <Toggle enabled={!!tpConfig.enabled} onChange={handleToggleProgram} />
                             )}
                         </div>
+                        <button onClick={() => setShowSettings(!showSettings)} className={`flex items-center gap-2 text-sm px-4 py-2 rounded-xl transition-colors font-bold ${showSettings ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' : 'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/20'}`}>
+                            <Edit2 className="w-4 h-4" /> Program Settings
+                        </button>
                         <button onClick={openCreate} className="flex items-center gap-2 text-sm bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700 transition-colors shadow-lg shadow-purple-500/30 font-bold">
                             <Plus className="w-4 h-4" /> Add Partner
                         </button>
@@ -243,6 +329,68 @@ const AdminTechPartners = () => {
                         </button>
                     </div>
                 </div>
+
+                {/* Collapsible Program Settings Card */}
+                {showSettings && (
+                    <form onSubmit={handleSaveProgramConfig} className="bg-white dark:bg-surface-dark border-2 border-purple-500/30 dark:border-purple-500/20 rounded-2xl p-6 shadow-xl mb-8 transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                                <Briefcase className="w-5 h-5 text-purple-500" /> Tech Partner Program Settings
+                            </h3>
+                            <button type="button" onClick={() => setShowSettings(false)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Default Commission Rate (%)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={tempCommissionRate}
+                                    onChange={(e) => setTempCommissionRate(parseFloat(e.target.value) || 0)}
+                                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl dark:bg-black/20 dark:text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Minimum Payout Balance (₹)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={tempMinPayout}
+                                    onChange={(e) => setTempMinPayout(parseFloat(e.target.value) || 0)}
+                                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl dark:bg-black/20 dark:text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                    required
+                                />
+                            </div>
+                            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 h-[46px]">
+                                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Require Annual Plan</span>
+                                <Toggle
+                                    enabled={tempRequiresYearly}
+                                    onChange={(val) => setTempRequiresYearly(val)}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button type="button" onClick={() => setShowSettings(false)} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white font-bold text-sm hover:bg-slate-200 transition-colors">
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={savingSettings}
+                                className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm transition-colors shadow-lg shadow-purple-500/30 flex items-center gap-2 disabled:opacity-60"
+                            >
+                                {savingSettings ? <div className="w-4 h-4 rounded-full border-2 border-purple-300 border-t-white animate-spin" /> : <Check className="w-4 h-4" />}
+                                Save Settings
+                            </button>
+                        </div>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-4 leading-relaxed">
+                            * Changes apply globally to all future transactions and applications. Individual partner commission rates can still be customized within each partner's details page.
+                        </p>
+                    </form>
+                )}
 
                 {/* Summary Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
@@ -280,6 +428,12 @@ const AdminTechPartners = () => {
                         {applications.length > 0 && (
                             <span className="bg-pink-500 text-white rounded-full px-2 py-0.5 text-[10px]">{applications.length}</span>
                         )}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('assets')}
+                        className={`pb-3 px-2 text-sm font-bold border-b-2 transition-colors ${activeTab === 'assets' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white'}`}
+                    >
+                        Marketing Assets
                     </button>
                 </div>
 
@@ -389,7 +543,7 @@ const AdminTechPartners = () => {
                                 </table>
                             </div>
                         )
-                    ) : (
+                    ) : activeTab === 'applications' ? (
                         /* APPLICATIONS TABLE */
                         applications.length === 0 ? (
                             <div className="p-12 text-center">
@@ -443,7 +597,74 @@ const AdminTechPartners = () => {
                                 </table>
                             </div>
                         )
-                    )}
+                    ) : activeTab === 'assets' ? (
+                        /* ASSETS TAB */
+                        <div className="p-6">
+                            {/* Upload Form */}
+                            <div className="mb-8 bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/10">
+                                <h3 className="font-bold text-slate-900 dark:text-white mb-4">Upload New Asset</h3>
+                                <form onSubmit={handleUploadAsset} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Asset Name</label>
+                                        <input type="text" placeholder="e.g. Platform Logo" value={assetName} onChange={e => setAssetName(e.target.value)} required className="w-full px-4 py-2.5 border rounded-xl dark:bg-black/20 dark:border-white/10 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">File</label>
+                                        <input type="file" id="assetFileInput" onChange={e => setAssetFile(e.target.files[0])} required className="w-full px-4 py-2 border rounded-xl dark:bg-black/20 dark:border-white/10 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                                    </div>
+                                    <div>
+                                        <button type="submit" disabled={uploadingAsset || !assetFile || !assetName} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl transition-colors shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2 disabled:opacity-60">
+                                            {uploadingAsset ? <div className="w-4 h-4 rounded-full border-2 border-purple-300 border-t-white animate-spin" /> : <Plus className="w-4 h-4" />}
+                                            Upload Asset
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            {/* Assets Grid */}
+                            <h3 className="font-bold text-slate-900 dark:text-white mb-4">Existing Assets</h3>
+                            {(!tpConfig.assets || tpConfig.assets.length === 0) ? (
+                                <div className="p-12 text-center border border-dashed border-slate-300 dark:border-white/20 rounded-2xl">
+                                    <Briefcase className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                                    <h3 className="text-slate-900 dark:text-white font-bold mb-1">No Assets Uploaded</h3>
+                                    <p className="text-slate-500 text-sm">Upload marketing assets to share with your Tech Partners.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {tpConfig.assets.map((asset) => (
+                                        <div key={asset.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center relative group">
+                                            <button 
+                                                onClick={() => handleDeleteAsset(asset.id)}
+                                                className="absolute top-2 right-2 p-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 dark:hover:bg-red-500/20"
+                                                title="Delete Asset"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                            <div className="w-full h-36 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center mb-4 text-slate-400 group-hover:text-purple-500 group-hover:bg-purple-50 dark:group-hover:bg-purple-500/10 transition-colors overflow-hidden">
+                                                {asset.type === 'IMG' ? (
+                                                    <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
+                                                ) : asset.type === 'VIDEO' ? (
+                                                    <video src={asset.url} className="w-full h-full object-cover" muted playsInline />
+                                                ) : (
+                                                    <Briefcase className="w-8 h-8" />
+                                                )}
+                                            </div>
+                                            <h4 className="font-bold text-slate-900 dark:text-white mb-1 truncate w-full" title={asset.name}>{asset.name}</h4>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">{asset.type}</p>
+                                            <a
+                                                href={asset.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-purple-600 dark:text-purple-400 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                View/Download
+                                            </a>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : null}
                 </div>
             </main>
 

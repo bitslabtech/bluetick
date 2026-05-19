@@ -9,6 +9,10 @@ const Transaction = require('../models/Transaction');
 const ActivityLog = require('../models/ActivityLog');
 const SystemNotification = require('../models/SystemNotification');
 const AiTokenLog = require('../models/AiTokenLog');
+const Message = require('../models/Message');
+const Vcard = require('../models/Vcard');
+const WaStore = require('../models/WaStore');
+const ReferralReward = require('../models/ReferralReward');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const bcrypt = require('bcryptjs'); // Needed for password hashing
@@ -480,7 +484,7 @@ router.post('/users/:id/impersonate', async (req, res) => {
             }
         };
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }); // Short-lived token
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' }); // Short-lived token
 
         // Log Activity
         await ActivityLog.create({
@@ -494,6 +498,52 @@ router.post('/users/:id/impersonate', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// GET Full User Details (Profile, Purchases, Usage, Referrals)
+router.get('/users/:id/details', async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const targetUser = await User.findByPk(userId);
+        
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        // Run concurrent aggregations
+        const [
+            purchases,
+            contactsCount,
+            campaignsCount,
+            vcardsCount,
+            waStoreCount,
+            totalAiTokens,
+            referralsCount
+        ] = await Promise.all([
+            Transaction.findAll({ where: { userId }, order: [['createdAt', 'DESC']] }),
+            Contact.count({ where: { userId } }),
+            Message.count({ where: { userId } }),
+            Vcard.count({ where: { userId } }),
+            WaStore.count({ where: { userId } }),
+            AiTokenLog.sum('tokensUsed', { where: { userId } }),
+            User.count({ where: { referredBy: userId } }) // Total users they referred
+        ]);
+
+        res.json({
+            user: targetUser,
+            purchases,
+            usage: {
+                contactsCount,
+                campaignsCount,
+                vcardsCount,
+                waStoreCount,
+                totalAiTokens: totalAiTokens || 0,
+                storageUsed: targetUser.storageUsed || 0 // New field we added
+            },
+            referralsCount
+        });
+    } catch (err) {
+        console.error("User Details Error:", err);
+        res.status(500).json({ error: 'Server Error: ' + err.message });
     }
 });
 

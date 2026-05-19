@@ -164,20 +164,26 @@ router.get('/tech-partner', auth, async (req, res) => {
         // Count referred users
         const referredUsers = await User.findAll({
             where: { referredBy: userId },
-            attributes: ['id', 'name', 'email', 'createdAt']
+            attributes: ['id', 'name', 'email', 'createdAt', 'plan', 'planStatus']
         });
+
+        const TechPartner = require('../models/TechPartner');
+        const tpProfile = await TechPartner.findOne({ where: { userId } });
 
         res.json({
             techPartnerStatus: user.techPartnerStatus,
             techPartnerBalance: user.techPartnerBalance || 0,
+            partnerCode: tpProfile ? tpProfile.code : user.id,
             minPayoutBalance: tpConfig.minPayoutBalance || 10000,
-            commissionRate: tpConfig.commissionRate || 20,
+            commissionRate: tpProfile && tpProfile.commissionType === 'percentage' ? tpProfile.commissionValue : (tpConfig.commissionRate || 20),
             stats: {
                 totalEarned: Math.round(totalEarned * 100) / 100,
                 totalPaid: Math.round(totalPaid * 100) / 100,
                 totalPending: Math.round(totalPending * 100) / 100,
                 totalReferrals: referredUsers.length
             },
+            leads: referredUsers,
+            assets: tpConfig.assets || [],
             earnings: earnings.map(e => ({
                 id: e.id,
                 planName: e.planName,
@@ -193,6 +199,86 @@ router.get('/tech-partner', auth, async (req, res) => {
     } catch (error) {
         console.error('[TECH PARTNER DASHBOARD]', error);
         res.status(500).json({ error: 'Failed to fetch tech partner data.' });
+    }
+});
+
+// GET /api/referrals/tech-partner/coupons
+router.get('/tech-partner/coupons', auth, async (req, res) => {
+    try {
+        const userId = req.user.realId || req.user.id;
+        const TechPartner = require('../models/TechPartner');
+        const Coupon = require('../models/Coupon');
+        
+        const tpProfile = await TechPartner.findOne({ where: { userId } });
+        if (!tpProfile) return res.json([]);
+        
+        const coupons = await Coupon.findAll({ where: { techPartnerId: tpProfile.id }, order: [['createdAt', 'DESC']] });
+        res.json(coupons);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch coupons' });
+    }
+});
+
+// POST /api/referrals/tech-partner/coupons
+router.post('/tech-partner/coupons', auth, async (req, res) => {
+    try {
+        const userId = req.user.realId || req.user.id;
+        const { code, discountValue, discountType, maxUses, expiryDate } = req.body; // usually flat discount is safer
+        
+        const TechPartner = require('../models/TechPartner');
+        const Coupon = require('../models/Coupon');
+        
+        const tpProfile = await TechPartner.findOne({ where: { userId } });
+        if (!tpProfile) return res.status(403).json({ error: 'Not an approved partner' });
+
+        // Ensure code doesn't exist globally
+        const existing = await Coupon.findOne({ where: { code: code.toUpperCase() } });
+        if (existing) return res.status(400).json({ error: 'This coupon code is already taken globally. Try another one.' });
+
+        const config = require('../models/SystemConfig');
+        const sysConfig = await config.getCachedConfig();
+        const tpConfig = sysConfig.settings?.techPartnerProgram || {};
+        const maxCommission = tpProfile.commissionType === 'percentage' ? tpProfile.commissionValue : (tpConfig.commissionRate || 20);
+
+        if (discountType === 'percentage' && parseFloat(discountValue) > maxCommission) {
+            return res.status(400).json({ error: `Discount cannot exceed your commission rate (${maxCommission}%).` });
+        }
+
+        const newCoupon = await Coupon.create({
+            code: code.toUpperCase(),
+            discountType: discountType || 'fixed',
+            discountValue: parseFloat(discountValue),
+            maxUses: maxUses || 0,
+            expiryDate: expiryDate || null,
+            techPartnerId: tpProfile.id,
+            isActive: true
+        });
+
+        res.status(201).json(newCoupon);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create coupon' });
+    }
+});
+
+// DELETE /api/referrals/tech-partner/coupons/:id
+router.delete('/tech-partner/coupons/:id', auth, async (req, res) => {
+    try {
+        const userId = req.user.realId || req.user.id;
+        const TechPartner = require('../models/TechPartner');
+        const Coupon = require('../models/Coupon');
+        
+        const tpProfile = await TechPartner.findOne({ where: { userId } });
+        if (!tpProfile) return res.status(403).json({ error: 'Not an approved partner' });
+
+        const coupon = await Coupon.findByPk(req.params.id);
+        if (!coupon || coupon.techPartnerId !== tpProfile.id) {
+            return res.status(404).json({ error: 'Coupon not found or unauthorized' });
+        }
+
+        await coupon.destroy();
+        res.json({ success: true, message: 'Coupon deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete coupon' });
     }
 });
 

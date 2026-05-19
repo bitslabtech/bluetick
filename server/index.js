@@ -19,7 +19,9 @@ const http = require('http'); // NEW
 const { initSocket } = require('./socket'); // NEW
 const { sequelize, createDbIfNotExists } = require('./config/database');
 const helmet = require('helmet');
+const compression = require('compression');
 const { globalLimiter } = require('./middleware/rateLimiter');
+const setupGuard = require('./middleware/setupGuard');
 
 // Initialize Models to ensure Sequelize syncs them
 require('./models/Addon');
@@ -36,6 +38,13 @@ require('./models/TechPartner'); // B2B Tech Partner entity (admin-created)
 require('./models/TechPartnerPayout'); // Commission payout log for B2B partners
 require('./models/ContactMessage'); // Stores incoming messages from public Contact Us page
 require('./models/ApiUsageLog');    // Logs every external /api/v1/* gateway call
+require('./models/Vcard');          // Digital Business Card SaaS Module
+require('./models/VcardEnquiry');   // vCard Leads/Enquiries
+require('./models/WaStore');        // WhatsApp Store SaaS Module
+require('./models/WaProduct');      // WhatsApp Store Products
+require('./models/WaOrder');        // WhatsApp Store Orders
+require('./models/NfcCard');        // Physical NFC Products
+require('./models/NfcOrder');       // Physical NFC Orders
 
 // Import Routes
 const contactsRoute = require('./routes/contacts');
@@ -65,6 +74,10 @@ initSocket(server);
 app.use(helmet({
     crossOriginResourcePolicy: false,
 })); // Add HTTP security headers
+
+// Gzip compression — reduces response sizes by ~75%
+app.use(compression());
+
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Restrict CORS in production
     credentials: true
@@ -74,9 +87,26 @@ app.use(cors({
 app.use('/api', globalLimiter);
 
 // Parse JSON payloads strictly up to 5MB to prevent memory exhaustion
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ 
+    limit: '5mb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// ── Setup wizard — must be registered BEFORE setupGuard ─────────────────────
+app.use('/api/setup', require('./routes/setup'));
+
+// ── Block all other /api routes if setup is not complete ─────────────────────
+app.use('/api', setupGuard);
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+// Serve uploaded files — storageProvider saves to server/public/uploads
+app.use('/uploads', (req, res, next) => {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.set('Access-Control-Allow-Origin', '*');
+    next();
+}, express.static(path.join(__dirname, 'public/uploads')));
 
 // System Protection Middleware
 app.use('/api', require('./middleware/systemCheck'));
@@ -121,6 +151,14 @@ app.use('/api/referrals', require('./routes/referrals')); // Referral System
 app.use('/api/partner', require('./routes/partner')); // B2B Tech Partner tracking & application
 app.use('/api/admin/tech-partners', require('./routes/adminTechPartners')); // B2B Tech Partner CRUD & payouts
 app.use('/api/contact', require('./routes/contact')); // Public Contact Us form endpoints
+app.use('/api/ctwa', require('./routes/ctwa')); // CTWA Ads Analytics & OAuth
+app.use('/api/meta-ads', require('./routes/meta-ads')); // Meta Ads Maker
+app.use('/api/vcards', require('./routes/vcards')); // Digital Business Card Config
+app.use('/api/wastore', require('./routes/wastore')); // WhatsApp Store Config
+
+app.use('/api/admin/nfc', require('./routes/adminNfc')); // Admin NFC Management
+app.use('/api/nfc', require('./routes/nfc')); // User NFC Portal
+app.use('/n', require('./routes/publicNfc')); // Public NFC scan redirect
 
 app.use('/api/v1', require('./routes/apiV1')); // External Developer REST API
 
@@ -131,7 +169,7 @@ app.use('/api/webhook', require('./routes/webhook')); // NEW
 app.use('/', require('./routes/privacy'));
 
 app.get('/', (req, res) => {
-    res.send('WhatsApp SaaS Backend Running (PostgreSQL)');
+    res.send('Bluetick Backend Running (PostgreSQL)');
 });
 
 // Global Error Handler — always returns JSON, never raw HTML
@@ -150,6 +188,7 @@ const startServer = async () => {
         await sequelize.authenticate();
         console.log('PostgreSQL connected.');
 
+        require('./models/WaStoreCoupon'); // Ensure WaStoreCoupon is loaded before sync
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');
 
@@ -166,3 +205,6 @@ const startServer = async () => {
 };
 
 startServer();
+
+// Server restart: VcardEnquiry model UUID migration applied
+// Trigger restart to clear in-memory SETUP_COMPLETE flag

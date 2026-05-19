@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Send, Settings, LogOut, MessageSquare, BarChart3, ShieldCheck, CreditCard, ShoppingBag, Bell, Activity, LifeBuoy, LayoutTemplate, Settings2, Package, X, ChevronDown, ChevronRight, Layers, Tag, Sparkles, Calendar, Terminal, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Send, Settings, LogOut, MessageSquare, BarChart3, ShieldCheck, CreditCard, ShoppingBag, Bell, Activity, LifeBuoy, LayoutTemplate, Settings2, Package, X, ChevronDown, ChevronRight, Layers, Tag, Sparkles, Calendar, Terminal, Briefcase, TrendingUp, Gift, Contact, Store } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
@@ -8,26 +8,66 @@ import axios from 'axios';
 
 const userNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', perm: 'menu_dashboard' },
+
+    // WhatsApp — Inbox, Broadcasts, Contacts, Templates, Profile, Team
     {
         icon: MessageSquare,
         label: 'WhatsApp',
         requiredModule: 'whatsapp_inbox',
         subItems: [
-            { label: 'Inbox', path: '/whatsapp', perm: 'menu_whatsapp_inbox' },
+            { label: 'Live Chat', path: '/whatsapp', perm: 'menu_whatsapp_inbox' },
+            { label: 'Bulk Broadcast', path: '/campaigns', perm: 'menu_send_message' },
+            { label: 'Campaigns History', path: '/campaign-list', perm: 'menu_campaigns' },
+            { label: 'Contacts', path: '/contacts', perm: 'menu_contacts' },
+            { label: 'Templates', path: '/templates', perm: 'menu_templates' },
+            { label: 'WhatsApp Profile', path: '/whatsapp-settings', perm: 'menu_whatsapp_settings' },
             { label: 'Team', path: '/team', ownerOnly: true },
-            { label: 'Settings', path: '/whatsapp-settings', perm: 'menu_whatsapp_settings' }
         ]
-    }, // PROTECTED
-    { icon: Send, label: 'Send Message', path: '/campaigns', perm: 'menu_send_message' },
-    { icon: MessageSquare, label: 'Campaigns', path: '/campaign-list', perm: 'menu_campaigns' },
-    { icon: LayoutTemplate, label: 'FlowBot Builder', path: '/flowbot', ownerOnly: true, requiresFlowbot: true },
-    { icon: Users, label: 'Contacts', path: '/contacts', perm: 'menu_contacts' },
-    { icon: FileText, label: 'Templates', path: '/templates', perm: 'menu_templates' },
+    },
+
+    // Growth & Marketing — CTWA Ads only (Link Generator removed)
+    {
+        icon: TrendingUp,
+        label: 'Growth & Marketing',
+        subItems: [
+            { label: 'Click To WhatsApp Ads', path: '/ctwa-analytics', perm: 'menu_ctwa', requiresCtwa: true },
+            { label: 'Meta Ads Manager', path: '/meta-ads', perm: 'menu_meta_ads', requiresMetaAds: true },
+        ]
+    },
+
+    // Digital veCard SaaS Module
+    {
+        icon: Contact,
+        label: 'Digital veCard',
+        path: '/vcards',
+        perm: 'menu_vcard',
+        requiresVcard: true
+    },
+
+    // Online Store Builder
+    {
+        icon: Store,
+        label: 'Online Store',
+        path: '/wastore',
+        perm: 'menu_wastore',
+        requiresWaStore: true
+    },
+
+    // Automation suite
+    {
+        icon: LayoutTemplate,
+        label: 'Automation',
+        subItems: [
+            { label: 'FlowBot Builder', path: '/flowbot', ownerOnly: true, requiresFlowbot: true },
+        ]
+    },
+
+    { icon: Gift, label: 'Refer & Earn', path: '/referrals', perm: 'menu_referrals' },
+
     { icon: Package, label: 'Add-ons Market', path: '/marketplace', perm: 'menu_addons' },
     { icon: Terminal, label: 'Integrations & API', path: '/integrations', perm: 'menu_integrations', requiresApiAccess: true },
 
     { icon: BarChart3, label: 'Reports', path: '/reports', perm: 'menu_reports' },
-    { icon: Sparkles, label: 'Refer & Earn', path: '/referrals', perm: 'menu_referrals' },
 
     { icon: LifeBuoy, label: 'Support', path: '/support', perm: 'menu_support' },
     { icon: Settings, label: 'Settings', path: '/settings', perm: 'menu_settings' },
@@ -42,9 +82,10 @@ const adminNavItems = [
     { icon: Bell, label: 'Broadcast Manager', path: '/superadmin/notifications' },
     { icon: Activity, label: 'Activity Logs', path: '/superadmin/activity-logs' }, // Fixed path for logs too
     { icon: Layers, label: 'Add-ons Market', path: '/superadmin/addons' },
-    { 
-        icon: Settings2, 
-        label: 'System Controls', 
+    { icon: CreditCard, label: 'NFC Products', path: '/superadmin/nfc' },
+    {
+        icon: Settings2,
+        label: 'System Controls',
         subItems: [
             { label: 'General', path: '/superadmin/system-control' },
             { label: 'Referral', path: '/superadmin/referral-settings' },
@@ -118,12 +159,17 @@ function NavItem({ item, location, setIsOpen, unreadCount }) {
                         const isSubUser = !!user?.parentUserId;
                         const isAdmin = user?.teamRole === 'admin';
                         if (sub.ownerOnly && isSubUser && !isAdmin) return false;
-                        
+
+                        // Plan level feature restrictions
+                        if (sub.requiresCtwa && !user?.planDetails?.allowCtwaAnalytics && !user?.isAdmin) return false;
+                        if (sub.requiresMetaAds && !user?.planDetails?.allowMetaAds && !user?.isAdmin) return false;
+                        if (sub.requiresWaLinks && !user?.planDetails?.allowWaLinks && !user?.isAdmin) return false;
+
                         // Custom permissions check for sub-items
                         if (isSubUser && user?.teamRole === 'custom' && sub.perm) {
                             if (!user.teamPermissions?.includes(sub.perm)) return false;
                         }
-                        
+
                         return true;
                     }).map((sub) => (
                         <Link
@@ -162,7 +208,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     // Fetch latest version on mount
     useEffect(() => {
         if (user) {
-            axios.get('http://127.0.0.1:5000/api/versioning/latest')
+            axios.get(`${import.meta.env.VITE_API_URL}/api/versioning/latest`)
                 .then(res => {
                     setCurrentVersion(res.data);
                     // Check if the user has seen this version
@@ -179,11 +225,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     useEffect(() => {
         if (user?.isAdmin) {
             const fetchContactCount = () => {
-                axios.get('http://127.0.0.1:5000/api/contact/unread-count', {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/contact/unread-count`, {
                     headers: { 'x-auth-token': localStorage.getItem('token') }
                 })
-                .then(res => setUnreadContactMsgs(res.data.count))
-                .catch(err => console.error(err));
+                    .then(res => setUnreadContactMsgs(res.data.count))
+                    .catch(err => console.error(err));
             };
             fetchContactCount();
             const interval = setInterval(fetchContactCount, 60000); // 1 min poll
@@ -200,7 +246,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             setHasNewVersion(false);
         }
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/versioning/changelog');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/versioning/changelog`);
             setChangelog(res.data);
         } catch {
             setChangelog([]);
@@ -219,7 +265,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         if (item.ownerOnly && isSubUser && user?.teamRole !== 'admin') return false;
         if (item.requiresFlowbot && !user?.planDetails?.flowBotEnabled && !user?.isAdmin) return false;
         if (item.requiresApiAccess && !user?.planDetails?.allowApiAccess && !user?.isAdmin) return false;
-        
+        if (item.requiresVcard && !user?.planDetails?.allowVcard && !user?.isAdmin) return false;
+        if (item.requiresWaStore && !user?.planDetails?.allowWaStore && !user?.isAdmin) return false;
+
         // Custom Permissions check for main level items
         if (isSubUser && user?.teamRole === 'custom' && !user?.isAdmin) {
             if (item.subItems) {
@@ -234,7 +282,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 if (!user.teamPermissions?.includes(item.perm)) return false;
             }
         }
-        
+
         return true;
     });
 
@@ -291,15 +339,19 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 {/* Logo Area */}
                 <div className="flex gap-3 items-center px-2">
                     {publicSettings?.logoUrl ? (
-                        <img src={publicSettings.logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded-lg" />
-                    ) : (
-                        <div className="flex items-center justify-center rounded-lg bg-primary size-10 text-white shadow-lg shadow-blue-500/20">
-                            <MessageSquare className="w-6 h-6" />
-                        </div>
-                    )}
+                        <img 
+                            src={publicSettings.logoUrl} 
+                            alt="Logo" 
+                            className="w-10 h-10 object-contain rounded-lg" 
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                        />
+                    ) : null}
+                    <div className="flex items-center justify-center rounded-lg bg-primary size-10 text-white shadow-lg shadow-blue-500/20" style={{ display: publicSettings?.logoUrl ? 'none' : 'flex' }}>
+                        <MessageSquare className="w-6 h-6" />
+                    </div>
                     <div className="flex flex-col">
                         <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px]">
-                            {publicSettings?.appName || 'WhatsApp Cloud'}
+                            {publicSettings?.appName || 'Bluetick'}
                         </h1>
                         <p className="text-slate-500 dark:text-text-secondary text-xs font-normal leading-normal truncate max-w-[140px]">{publicSettings?.appTagline || 'Business API'}</p>
                     </div>
@@ -315,11 +367,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 {/* Navigation */}
                 <nav className="flex flex-col gap-2">
                     {items.map((item, index) => (
-                        <NavItem 
-                            key={item.path || index} 
-                            item={item} 
-                            location={location} 
-                            setIsOpen={setIsOpen} 
+                        <NavItem
+                            key={item.path || index}
+                            item={item}
+                            location={location}
+                            setIsOpen={setIsOpen}
                             unreadCount={item.path === '/superadmin/messages' ? unreadContactMsgs : null}
                         />
                     ))}

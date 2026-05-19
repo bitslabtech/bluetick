@@ -6,8 +6,32 @@ const TechPartner = require('../models/TechPartner');
 const TechPartnerPayout = require('../models/TechPartnerPayout');
 const User = require('../models/User');
 const SystemNotification = require('../models/SystemNotification');
+const SystemConfig = require('../models/SystemConfig');
 const logActivity = require('../utils/logger');
 const { Op } = require('sequelize');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+
+// Setup multer for Marketing Assets
+const assetsDir = path.join(__dirname, '../public/uploads/tech-partners');
+if (!fs.existsSync(assetsDir)) {
+    fs.mkdirSync(assetsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, assetsDir),
+    filename: (req, file, cb) => {
+        const uniqueSuffix = crypto.randomBytes(6).toString('hex');
+        cb(null, `tp-asset-${uniqueSuffix}${path.extname(file.originalname)}`);
+    }
+});
+
+const upload = multer({ 
+    storage,
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB max
+});
 
 const superAdmin = [auth, admin];
 
@@ -271,6 +295,91 @@ router.post('/applications/:userId/reject', superAdmin, async (req, res) => {
         await logActivity(req, 'Tech Partner Rejected', `Admin rejected application for: ${user.name}`);
         res.json({ success: true, message: 'Application rejected.' });
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─── POST /api/admin/tech-partners/assets ──────────────────────────────────────
+router.post('/assets', superAdmin, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+        
+        const { name } = req.body;
+        if (!name) return res.status(400).json({ error: 'Asset name is required.' });
+
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.headers.host;
+        const publicUrl = `${protocol}://${host}/uploads/tech-partners/${req.file.filename}`;
+
+        // Determine type based on extension or mimetype
+        let type = 'FILE';
+        if (req.file.mimetype.startsWith('image/')) type = 'IMG';
+        else if (req.file.mimetype.startsWith('video/')) type = 'VIDEO';
+        else if (req.file.mimetype === 'application/pdf') type = 'PDF';
+        else type = path.extname(req.file.originalname).replace('.', '').toUpperCase();
+        
+        const newAsset = {
+            id: crypto.randomUUID(),
+            name,
+            url: publicUrl,
+            type,
+            filename: req.file.filename,
+            size: req.file.size
+        };
+
+        const config = await SystemConfig.getConfig();
+        const settings = config.settings || {};
+        if (!settings.techPartnerProgram) settings.techPartnerProgram = {};
+        if (!settings.techPartnerProgram.assets) settings.techPartnerProgram.assets = [];
+        
+        settings.techPartnerProgram.assets.push(newAsset);
+        
+        config.changed('settings', true);
+        await config.save();
+
+        await logActivity(req, 'Marketing Asset Uploaded', `Admin uploaded new Tech Partner asset: ${name}`);
+        res.status(201).json(newAsset);
+    } catch (err) {
+        console.error('[ASSET UPLOAD ERROR]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─── DELETE /api/admin/tech-partners/assets/:id ──────────────────────────────
+router.delete('/assets/:id', superAdmin, async (req, res) => {
+    try {
+        const config = await SystemConfig.getConfig();
+        const settings = config.settings || {};
+        if (!settings.techPartnerProgram || !settings.techPartnerProgram.assets) {
+            return res.status(404).json({ error: 'No assets found.' });
+        }
+
+        const assets = settings.techPartnerProgram.assets;
+        const assetIndex = assets.findIndex(a => a.id === req.params.id);
+        
+        if (assetIndex === -1) {
+            return res.status(404).json({ error: 'Asset not found.' });
+        }
+
+        const asset = assets[assetIndex];
+        
+        // Remove from filesystem if exists
+        if (asset.filename) {
+            const filePath = path.join(assetsDir, asset.filename);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        }
+
+        // Remove from config
+        assets.splice(assetIndex, 1);
+        config.changed('settings', true);
+        await config.save();
+
+        await logActivity(req, 'Marketing Asset Deleted', `Admin deleted Tech Partner asset: ${asset.name}`);
+        res.json({ success: true, message: 'Asset deleted.' });
+    } catch (err) {
+        console.error('[ASSET DELETE ERROR]', err);
         res.status(500).json({ error: err.message });
     }
 });

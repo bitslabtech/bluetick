@@ -10,7 +10,7 @@ const ContactUs = () => {
     const [config, setConfig] = useState(null);
 
     useEffect(() => {
-        axios.get('http://127.0.0.1:5000/api/landing')
+        axios.get(`${import.meta.env.VITE_API_URL}/api/landing`)
             .then(res => setConfig(res.data))
             .catch(err => console.error(err));
     }, []);
@@ -31,7 +31,7 @@ const ContactUs = () => {
         };
 
         try {
-            await axios.post('http://127.0.0.1:5000/api/contact', data);
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/contact`, data);
             setStatus('Thanks for reaching out! We will get back to you shortly.');
             e.target.reset();
         } catch (err) {

@@ -44,7 +44,7 @@ const BlogManager = () => {
     const fetchBlogs = async () => {
         try {
             setLoading(true);
-            const res = await axios.get('http://127.0.0.1:5000/api/landing/blogs?admin=true');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing/blogs?admin=true`);
             setBlogs(res.data);
             setLoading(false);
         } catch (err) {
@@ -79,7 +79,7 @@ const BlogManager = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/landing/blogs/${id}`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/landing/blogs/${id}`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
                     showToast({ type: 'success', title: 'Deleted', message: 'Blog deleted successfully.' });
                     fetchBlogs();
                 } catch (err) {
@@ -106,10 +106,10 @@ const BlogManager = () => {
             const hdrs = { headers: { 'x-auth-token': localStorage.getItem('token') } };
 
             if (form.id) {
-                await axios.put(`http://127.0.0.1:5000/api/landing/blogs/${form.id}`, payload, hdrs);
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/landing/blogs/${form.id}`, payload, hdrs);
                 showToast({ type: 'success', title: 'Saved', message: 'Blog updated successfully.' });
             } else {
-                await axios.post('http://127.0.0.1:5000/api/landing/blogs', payload, hdrs);
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/blogs`, payload, hdrs);
                 showToast({ type: 'success', title: 'Published', message: 'New blog created successfully.' });
             }
             
@@ -131,7 +131,7 @@ const BlogManager = () => {
         formData.append('image', file);
 
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/landing/blogs/upload', formData, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/blogs/upload`, formData, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             setForm({ ...form, coverImage: res.data.url });

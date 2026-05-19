@@ -118,6 +118,8 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
     // --- Dynamic Referral System Processing ---
     try {
         if (user.referredBy && parseFloat(targetPlan.price) > 0) {
+            const config = await SystemConfig.getCachedConfig();
+            
             // Check if this is their first paid plan transaction
             const pastPaidCount = await Transaction.count({
                 where: {
@@ -127,97 +129,109 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
                 }
             });
 
-            // If it's 1, it means the transaction we just created above is their first ever.
-            if (pastPaidCount === 1) {
-                // Fetch dynamic rules
-                const config = await SystemConfig.getCachedConfig();
-                const rules = config.settings?.referralRules;
-                
-                if (rules && rules.enabled) {
-                    const referrer = await User.findByPk(user.referredBy);
+            const referrer = await User.findByPk(user.referredBy);
 
-                    // Ensure reward hasn't been given to prevent race condition abuse
-                    const existingReward = await ReferralReward.findOne({ where: { referredUserId: user.id } });
+            if (referrer) {
+                // 1. One-Time Standard Referral Rewards (First Purchase Only)
+                if (pastPaidCount === 1) {
+                    const rules = config.settings?.referralRules;
                     
-                    if (referrer && !existingReward) {
-                        const rewardLog = { referrerRewards: rules.referrerRewards, refereeRewards: rules.refereeRewards };
+                    if (rules && rules.enabled) {
+                        // Ensure reward hasn't been given to prevent race condition abuse
+                        const existingReward = await ReferralReward.findOne({ where: { referredUserId: user.id } });
                         
-                        // Process Referrer Rewards (only if NOT an approved tech partner)
-                        if (referrer.techPartnerStatus !== 'approved') {
-                            for (const reward of (rules.referrerRewards || [])) {
-                                if (reward.type === 'validity_months') {
-                                    if (referrer.plan !== 'Free' && referrer.planExpiry) {
-                                        const d = new Date(referrer.planExpiry);
-                                        d.setMonth(d.getMonth() + reward.value);
-                                        referrer.planExpiry = d;
+                        if (!existingReward) {
+                            const rewardLog = { referrerRewards: rules.referrerRewards, refereeRewards: rules.refereeRewards };
+                            
+                            // Process Referrer Rewards (only if NOT an approved tech partner)
+                            if (referrer.techPartnerStatus !== 'approved') {
+                                for (const reward of (rules.referrerRewards || [])) {
+                                    if (reward.type === 'validity_months') {
+                                        if (referrer.plan !== 'Free' && referrer.planExpiry) {
+                                            const d = new Date(referrer.planExpiry);
+                                            d.setMonth(d.getMonth() + reward.value);
+                                            referrer.planExpiry = d;
+                                        }
+                                    } else if (reward.type === 'ai_tokens') {
+                                        referrer.aiTokenBalance = (referrer.aiTokenBalance || 0) + reward.value;
+                                    } else if (reward.type === 'extra_messages') {
+                                        referrer.extraTopupMessages = (referrer.extraTopupMessages || 0) + reward.value;
+                                    } else if (reward.type === 'extra_contacts') {
+                                        referrer.extraTopupContacts = (referrer.extraTopupContacts || 0) + reward.value;
                                     }
+                                }
+                                await referrer.save();
+                            }
+
+                            // Process Referee (Current User) Rewards
+                            for (const reward of (rules.refereeRewards || [])) {
+                                if (reward.type === 'validity_months') {
+                                    const d = new Date(user.planExpiry);
+                                    d.setMonth(d.getMonth() + reward.value);
+                                    user.planExpiry = d;
                                 } else if (reward.type === 'ai_tokens') {
-                                    referrer.aiTokenBalance = (referrer.aiTokenBalance || 0) + reward.value;
+                                    user.aiTokenBalance = (user.aiTokenBalance || 0) + reward.value;
                                 } else if (reward.type === 'extra_messages') {
-                                    referrer.extraTopupMessages = (referrer.extraTopupMessages || 0) + reward.value;
+                                    user.extraTopupMessages = (user.extraTopupMessages || 0) + reward.value;
                                 } else if (reward.type === 'extra_contacts') {
-                                    referrer.extraTopupContacts = (referrer.extraTopupContacts || 0) + reward.value;
+                                    user.extraTopupContacts = (user.extraTopupContacts || 0) + reward.value;
                                 }
                             }
+                            await user.save();
+
+                            // Log it
+                            await ReferralReward.create({
+                                referrerId: referrer.id,
+                                referredUserId: user.id,
+                                rewardLog
+                            });
+                            console.log(`[REFERRAL ALERTS] Processed rewards for ${user.id} referred by ${referrer.id}`);
+                        }
+                    }
+                }
+
+                // 2. Tech Partner Recurring Commission (Every Purchase)
+                if (referrer.techPartnerStatus === 'approved') {
+                    try {
+                        const tpConfig = config.settings?.techPartnerProgram || {};
+                        if (tpConfig.enabled !== false) {
+                            const commissionRate = tpConfig.commissionRate || 20;
+                            let commissionAmount = Math.round((parseFloat(targetPlan.price) * commissionRate / 100) * 100) / 100;
+
+                            // --- NEW: Subsidize custom tech partner coupon ---
+                            if (extraTxnFields && extraTxnFields.couponCode) {
+                                const Coupon = require('../models/Coupon');
+                                const usedCoupon = await Coupon.findOne({ where: { code: extraTxnFields.couponCode.toUpperCase() } });
+                                const TechPartner = require('../models/TechPartner');
+                                const tpProfile = await TechPartner.findOne({ where: { userId: referrer.id } });
+                                if (usedCoupon && tpProfile && usedCoupon.techPartnerId === tpProfile.id) {
+                                    const discountAmount = extraTxnFields.discountApplied || 0;
+                                    commissionAmount = commissionAmount - discountAmount;
+                                    console.log(`[TECH PARTNER] Deducted ${discountAmount} from commission due to subsidized coupon. Net commission: ${commissionAmount}`);
+                                }
+                            }
+                            // ---------------------------------------------------
+
+                            const TechPartnerEarning = require('../models/TechPartnerEarning');
+                            await TechPartnerEarning.create({
+                                referrerId: referrer.id,
+                                referredUserId: user.id,
+                                planName: targetPlan.name,
+                                planPrice: parseFloat(targetPlan.price),
+                                commissionRate,
+                                commissionAmount,
+                                currency: targetPlan.currency || 'INR',
+                                status: 'pending'
+                            });
+
+                            // Accumulate balance on the partner user
+                            referrer.techPartnerBalance = Math.round(((referrer.techPartnerBalance || 0) + commissionAmount) * 100) / 100;
                             await referrer.save();
+
+                            console.log(`[TECH PARTNER] Commission of ${commissionAmount} logged for partner ${referrer.id}`);
                         }
-
-                        // Process Referee (Current User) Rewards
-                        for (const reward of (rules.refereeRewards || [])) {
-                            if (reward.type === 'validity_months') {
-                                const d = new Date(user.planExpiry);
-                                d.setMonth(d.getMonth() + reward.value);
-                                user.planExpiry = d;
-                            } else if (reward.type === 'ai_tokens') {
-                                user.aiTokenBalance = (user.aiTokenBalance || 0) + reward.value;
-                            } else if (reward.type === 'extra_messages') {
-                                user.extraTopupMessages = (user.extraTopupMessages || 0) + reward.value;
-                            } else if (reward.type === 'extra_contacts') {
-                                user.extraTopupContacts = (user.extraTopupContacts || 0) + reward.value;
-                            }
-                        }
-                        await user.save();
-
-                        // Log it
-                        await ReferralReward.create({
-                            referrerId: referrer.id,
-                            referredUserId: user.id,
-                            rewardLog
-                        });
-                        console.log(`[REFERRAL ALERTS] Processed rewards for ${user.id} referred by ${referrer.id}`);
-
-                        // ── Tech Partner Commission ───────────────────────────
-                        // If the referrer is an approved Tech Partner, also log a commission earning
-                        if (referrer.techPartnerStatus === 'approved') {
-                            try {
-                                const tpConfig = config.settings?.techPartnerProgram || {};
-                                if (tpConfig.enabled !== false) {
-                                    const commissionRate = tpConfig.commissionRate || 20;
-                                    const commissionAmount = Math.round((parseFloat(targetPlan.price) * commissionRate / 100) * 100) / 100;
-
-                                    const TechPartnerEarning = require('../models/TechPartnerEarning');
-                                    await TechPartnerEarning.create({
-                                        referrerId: referrer.id,
-                                        referredUserId: user.id,
-                                        planName: targetPlan.name,
-                                        planPrice: parseFloat(targetPlan.price),
-                                        commissionRate,
-                                        commissionAmount,
-                                        currency: targetPlan.currency || 'INR',
-                                        status: 'pending'
-                                    });
-
-                                    // Accumulate balance on the partner user
-                                    referrer.techPartnerBalance = Math.round(((referrer.techPartnerBalance || 0) + commissionAmount) * 100) / 100;
-                                    await referrer.save();
-
-                                    console.log(`[TECH PARTNER] Commission of ${commissionAmount} logged for partner ${referrer.id}`);
-                                }
-                            } catch (tpErr) {
-                                console.error('[TECH PARTNER COMMISSION ERROR]', tpErr);
-                            }
-                        }
-                        // ─────────────────────────────────────────────────────
+                    } catch (tpErr) {
+                        console.error('[TECH PARTNER COMMISSION ERROR]', tpErr);
                     }
                 }
             }
@@ -228,64 +242,63 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
 
     // --- B2B Tech Partner Payout Processing ---
     // Independent of the user referral system above.
-    // Triggered when a user who signed up via ?partner=CODE makes their first paid plan.
+    // Triggered on EVERY purchase for recurring commissions.
     try {
         if (user.techPartnerId && parseFloat(targetPlan.price) > 0) {
             const config = await SystemConfig.getCachedConfig();
             const tpProgramConfig = config.settings?.techPartnerProgram || {};
 
             if (tpProgramConfig.enabled !== false) {
-                // Check first paid plan only
-                const pastPaidCount = await Transaction.count({
-                    where: {
-                        userId: user.id,
-                        status: 'COMPLETED',
-                        planName: { [Op.notLike]: 'Store:%' }
+                const TechPartner = require('../models/TechPartner');
+                const partner = await TechPartner.findByPk(user.techPartnerId);
+
+                if (partner && partner.enabled) {
+                    const planPrice = parseFloat(targetPlan.price);
+                    let commissionAmount = 0;
+
+                    if (partner.commissionType === 'percentage') {
+                        commissionAmount = Math.round((planPrice * partner.commissionValue / 100) * 100) / 100;
+                    } else if (partner.commissionType === 'flat') {
+                        commissionAmount = partner.commissionValue;
+                    } else if (partner.commissionType === 'validity_months') {
+                        commissionAmount = partner.commissionValue; // #months
                     }
-                });
 
-                if (pastPaidCount === 1) {
-                    // Ensure no double payout for this user
-                    const TechPartnerPayout = require('../models/TechPartnerPayout');
-                    const existing = await TechPartnerPayout.findOne({ where: { userId: user.id } });
-
-                    if (!existing) {
-                        const TechPartner = require('../models/TechPartner');
-                        const partner = await TechPartner.findByPk(user.techPartnerId);
-
-                        if (partner && partner.enabled) {
-                            const planPrice = parseFloat(targetPlan.price);
-                            let commissionAmount = 0;
-
-                            if (partner.commissionType === 'percentage') {
-                                commissionAmount = Math.round((planPrice * partner.commissionValue / 100) * 100) / 100;
-                            } else if (partner.commissionType === 'flat') {
-                                commissionAmount = partner.commissionValue;
-                            } else if (partner.commissionType === 'validity_months') {
-                                commissionAmount = partner.commissionValue; // #months
+                    // --- NEW: Subsidize custom tech partner coupon ---
+                    if (extraTxnFields && extraTxnFields.couponCode) {
+                        const Coupon = require('../models/Coupon');
+                        const usedCoupon = await Coupon.findOne({ where: { code: extraTxnFields.couponCode.toUpperCase() } });
+                        if (usedCoupon && usedCoupon.techPartnerId === partner.id) {
+                            const discountAmount = extraTxnFields.discountApplied || 0;
+                            // Only deduct if it's cash commission
+                            if (partner.commissionType !== 'validity_months') {
+                                commissionAmount = commissionAmount - discountAmount;
+                                if (commissionAmount < 0) commissionAmount = 0;
+                                console.log(`[B2B TECH PARTNER] Deducted ${discountAmount} from commission due to subsidized coupon.`);
                             }
-
-                            await TechPartnerPayout.create({
-                                techPartnerId: partner.id,
-                                userId: user.id,
-                                planName: targetPlan.name,
-                                planPrice,
-                                currency: targetPlan.currency || 'INR',
-                                commissionType: partner.commissionType,
-                                commissionValue: partner.commissionValue,
-                                commissionAmount,
-                                status: 'pending'
-                            });
-
-                            // Update partner balances
-                            partner.pendingBalance = Math.round(((partner.pendingBalance || 0) + commissionAmount) * 100) / 100;
-                            partner.totalPayouts = Math.round(((partner.totalPayouts || 0) + commissionAmount) * 100) / 100;
-                            partner.totalSignups = (partner.totalSignups || 0) + 1;
-                            await partner.save();
-
-                            console.log(`[B2B TECH PARTNER] Payout of ${commissionAmount} logged for partner ${partner.name} (${partner.code})`);
                         }
                     }
+                    // ---------------------------------------------------
+
+                    const TechPartnerPayout = require('../models/TechPartnerPayout');
+                    await TechPartnerPayout.create({
+                        techPartnerId: partner.id,
+                        userId: user.id,
+                        planName: targetPlan.name,
+                        planPrice,
+                        currency: targetPlan.currency || 'INR',
+                        commissionType: partner.commissionType,
+                        commissionValue: partner.commissionValue,
+                        commissionAmount,
+                        status: 'pending'
+                    });
+
+                    // Update partner balances
+                    partner.pendingBalance = Math.round(((partner.pendingBalance || 0) + commissionAmount) * 100) / 100;
+                    partner.totalPayouts = Math.round(((partner.totalPayouts || 0) + commissionAmount) * 100) / 100;
+                    await partner.save();
+
+                    console.log(`[B2B TECH PARTNER] Payout of ${commissionAmount} logged for partner ${partner.name} (${partner.code})`);
                 }
             }
         }

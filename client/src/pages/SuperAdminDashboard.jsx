@@ -66,7 +66,7 @@ const SuperAdminDashboard = () => {
             try {
                 const startStr = startDate.toISOString();
                 const endStr = endDate.toISOString();
-                const res = await axios.get(`http://127.0.0.1:5000/api/admin/stats?startDate=${startStr}&endDate=${endStr}`);
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/stats?startDate=${startStr}&endDate=${endStr}`);
                 setData(res.data);
             } catch (err) {
                 console.error("Error loading admin data:", err);

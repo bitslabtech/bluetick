@@ -102,25 +102,26 @@ const Register = () => {
         setPhone(dialCode + localNumber.replace(/^0+/, ''));
     }, [dialCode, localNumber]);
 
-    // Get plan ID from URL
+    // Get plan ID and trial flag from URL
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const planId = searchParams.get('plan');
+        const isTrial = searchParams.get('trial') === 'true';
 
         if (planId) {
-            fetchPlanDetails(planId);
+            fetchPlanDetails(planId, isTrial);
         }
     }, [location]);
 
-    const fetchPlanDetails = async (planId) => {
+    const fetchPlanDetails = async (planId, isTrial = false) => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/plans');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/plans`);
             const plan = res.data.find(p => p.id === planId);
             if (plan) {
                 const searchParams = new URLSearchParams(location.search);
                 const reqInterval = searchParams.get('interval');
-                if (reqInterval) plan.interval = reqInterval; // Save chosen interval!
-                
+                if (reqInterval) plan.interval = reqInterval;
+                plan.startTrial = isTrial && plan.trialDays > 0; // flag trial intent
                 setSelectedPlan(plan);
             }
         } catch (err) {
@@ -132,8 +133,14 @@ const Register = () => {
         e.preventDefault();
         setError('');
 
-        // Pass selected plan ID and phone to backend
-        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone);
+        if (localNumber.length < 5) {
+            setError('Please enter a valid phone number.');
+            return;
+        }
+
+        // Pass selected plan ID, trial intent, and phone to backend
+        const isTrial = selectedPlan?.startTrial || false;
+        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial);
 
         if (res.success) {
             // Clear persisted codes so they can't be reused
@@ -142,14 +149,14 @@ const Register = () => {
             // Process Team Invite if present
             if (inviteToken) {
                 try {
-                    await axios.post('http://127.0.0.1:5000/api/team/join', { token: inviteToken });
+                    await axios.post(`${import.meta.env.VITE_API_URL}/api/team/join`, { token: inviteToken });
                 } catch (inviteErr) {
                     console.error('Failed to join team during registration:', inviteErr);
                 }
             }
 
-            // If user selected a paid plan, AND it doesn't have a trial, redirect to checkout
-            if (selectedPlan && selectedPlan.price > 0 && (!selectedPlan.trialDays || selectedPlan.trialDays <= 0)) {
+            // If user selected a paid plan, AND it doesn't have a trial, AND didn't request trial → redirect to checkout
+            if (selectedPlan && selectedPlan.price > 0 && !isTrial && (!selectedPlan.trialDays || selectedPlan.trialDays <= 0)) {
                 // Store plan info for checkout
                 localStorage.setItem('pendingPlan', JSON.stringify(selectedPlan));
                 navigate('/checkout');
@@ -177,13 +184,13 @@ const Register = () => {
                         )}
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 min-h-[1.75rem]">
-                        {!publicSettingsLoading && (publicSettings?.appName || 'WhatsApp Cloud')}
+                        {!publicSettingsLoading && (publicSettings?.appName || 'Bluetick')}
                     </h2>
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
                         Create Account
                     </h1>
                     <p className="text-slate-500 min-h-[1.5rem] flex items-center justify-center">
-                        {!publicSettingsLoading && `Get started with ${publicSettings?.appName || 'WhatsApp Cloud'}`}
+                        {!publicSettingsLoading && `Get started with ${publicSettings?.appName || 'Bluetick'}`}
                     </p>
                 </div>
 
@@ -207,8 +214,13 @@ const Register = () => {
                         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
                             <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
                                 <Check className="w-4 h-4 text-primary" />
-                                Selected Plan: {selectedPlan.name}
+                                {selectedPlan.startTrial ? `🎉 Starting ${selectedPlan.trialDays}-Day Free Trial` : `Selected Plan: ${selectedPlan.name}`}
                             </h3>
+                            {selectedPlan.startTrial && (
+                                <div className="mb-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-semibold">
+                                    ✅ No payment needed now. You'll get full access to <strong>{selectedPlan.name}</strong> for {selectedPlan.trialDays} days free.
+                                </div>
+                            )}
                             <p className="text-sm text-slate-600 mb-2">
                                 {sym}{displayPrice.toLocaleString()}{intervalLabel}{selectedPlan.description ? ` — ${selectedPlan.description}` : ''}
                             </p>
@@ -217,7 +229,7 @@ const Register = () => {
                                 <li>• {selectedPlan.contactLimit?.toLocaleString()} contacts</li>
                                 {selectedPlan.templateLimit > 0 && <li>• {selectedPlan.templateLimit} templates</li>}
                                 {selectedPlan.teamMemberLimit > 0 && <li>• {selectedPlan.teamMemberLimit} team members</li>}
-                                {selectedPlan.trialDays > 0 && <li>• {selectedPlan.trialDays}-day free trial</li>}
+                                {selectedPlan.trialDays > 0 && <li>• {selectedPlan.trialDays}-day free trial included</li>}
                             </ul>
                         </div>
                     );
@@ -295,7 +307,11 @@ const Register = () => {
                         type="submit"
                         className="w-full py-2.5 bg-primary text-white rounded-lg hover:opacity-90 font-medium transition-colors shadow-sm shadow-blue-500/20"
                     >
-                        {selectedPlan && selectedPlan.price > 0 ? 'Continue to Payment' : 'Create Account'}
+                        {selectedPlan?.startTrial
+                            ? `🎉 Start ${selectedPlan.trialDays}-Day Free Trial`
+                            : selectedPlan && selectedPlan.price > 0
+                            ? 'Continue to Payment'
+                            : 'Create Account'}
                     </button>
                 </form>
 

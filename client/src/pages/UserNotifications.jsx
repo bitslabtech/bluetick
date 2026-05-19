@@ -18,7 +18,7 @@ const UserNotifications = () => {
     const fetchNotifications = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/notifications');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`);
             setNotifications(res.data);
         } catch (err) {
             console.error("Error fetching notifications:", err);
@@ -156,9 +156,14 @@ const UserNotifications = () => {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-start">
                                                     <h3 className={`text-lg font-bold ${style.text} mb-1`}>{n.title}</h3>
-                                                    <span className="text-xs font-medium text-slate-400 bg-white/50 dark:bg-black/20 px-2 py-1 rounded-md">
-                                                        {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                                                    </span>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className="text-xs font-medium text-slate-400 bg-white/50 dark:bg-black/20 px-2 py-1 rounded-md">
+                                                            {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-500">
+                                                            {new Date(n.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm md:text-base">
                                                     {n.message}

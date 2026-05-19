@@ -9,7 +9,7 @@ router.get('/', (req, res) => {
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    const verifyToken = '12345678'; // Hardcoded as per the new unified standard
+    const verifyToken = process.env.WEBHOOK_VERIFY_TOKEN; // Use environment variable
 
     if (mode && token) {
         if (mode === 'subscribe' && token === verifyToken) {

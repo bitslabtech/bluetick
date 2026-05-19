@@ -1,0 +1,725 @@
+const express = require('express');
+const router = express.Router();
+const WaStore = require('../models/WaStore');
+const WaProduct = require('../models/WaProduct');
+const WaOrder = require('../models/WaOrder');
+const User = require('../models/User');
+const Plan = require('../models/Plan');
+const AiTokenLog = require('../models/AiTokenLog');
+const SystemConfig = require('../models/SystemConfig');
+const auth = require('../middleware/auth');
+const axios = require('axios');
+const storageProvider = require('../utils/storageProvider');
+const { Op, fn, col, literal } = require('sequelize');
+
+// ==========================================
+// PUBLIC ROUTES
+// ==========================================
+
+// Get Public Store by slug
+router.get('/public/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const store = await WaStore.findOne({
+            where: { slug, isActive: true }
+        });
+
+        if (!store) {
+            return res.status(404).json({ error: 'Store not found or inactive' });
+        }
+
+        const owner = await User.findByPk(store.userId, {
+            attributes: ['id', 'plan', 'planStatus']
+        });
+
+        if (!owner || owner.planStatus !== 'Active') {
+            return res.status(403).json({ error: 'This store is currently unavailable.' });
+        }
+
+        // Fetch owner's plan limit/access
+        const ownerPlan = await Plan.findOne({ where: { name: owner.plan } });
+        if (!ownerPlan || !ownerPlan.allowWaStore) {
+             return res.status(403).json({ error: 'This store is currently unavailable due to plan restrictions.' });
+        }
+
+        // ⚠️ View increment moved to dedicated POST /public/:slug/view endpoint
+        // to prevent double-counting from React StrictMode / multiple re-renders
+
+        // Fetch active products
+        const products = await WaProduct.findAll({
+            where: { storeId: store.id, inStock: true }
+        });
+
+        const responseData = store.toJSON();
+        delete responseData.User; // Hide user obj
+
+        res.json({ store: responseData, products });
+    } catch (error) {
+        console.error("Fetch Public Store error:", error);
+        res.status(500).json({ error: 'Server error fetching store' });
+    }
+});
+
+// POST /api/wastore/public/:slug/view  — Dedicated view counter (called once per session from frontend)
+router.post('/public/:slug/view', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { slug: req.params.slug, isActive: true } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+        await store.increment('views');
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('View increment error:', error);
+        res.status(500).json({ error: 'Failed to record view' });
+    }
+});
+
+
+// Get Public Store by Domain
+router.get('/public/domain/:domain', async (req, res) => {
+    try {
+        const { domain } = req.params;
+        const store = await WaStore.findOne({
+            where: { customDomain: domain, isActive: true }
+        });
+
+        if (!store) {
+            return res.status(404).json({ error: 'Store not found or inactive' });
+        }
+
+        const owner = await User.findByPk(store.userId, {
+            attributes: ['id', 'plan', 'planStatus']
+        });
+
+        if (!owner || owner.planStatus !== 'Active') {
+            return res.status(403).json({ error: 'This store is currently unavailable.' });
+        }
+
+        // Fetch owner's plan limit/access
+        const ownerPlan = await Plan.findOne({ where: { name: owner.plan } });
+        if (!ownerPlan || !ownerPlan.allowWaStore) {
+             return res.status(403).json({ error: 'This store is currently unavailable due to plan restrictions.' });
+        }
+
+        // ⚠️ View increment handled by POST /public/:slug/view (called once per session)
+
+        // Fetch active products
+        const products = await WaProduct.findAll({
+            where: { storeId: store.id, inStock: true }
+        });
+
+        const responseData = store.toJSON();
+        delete responseData.User; // Hide user obj
+
+        res.json({ store: responseData, products });
+    } catch (error) {
+        console.error("Fetch Public Store Domain error:", error);
+        res.status(500).json({ error: 'Server error fetching store by domain' });
+    }
+});
+
+// POST /api/wastore/orders  — Public: record a new order (called from storefront before WhatsApp redirect)
+router.post('/orders', async (req, res) => {
+    try {
+        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, items, subtotal, originalTotal, discountAmount, couponCode, currency } = req.body;
+
+        if (!storeId || !items || !subtotal) {
+            return res.status(400).json({ error: 'Missing required order fields' });
+        }
+
+        const store = await WaStore.findByPk(storeId);
+        if (!store || !store.isActive) return res.status(404).json({ error: 'Store not found' });
+
+        // Generate human-readable order number
+        const count = await WaOrder.count({ where: { storeId } });
+        const orderNumber = `ORD-${String(count + 1001).padStart(4, '0')}`;
+
+        const order = await WaOrder.create({
+            storeId, orderNumber,
+            customerName, customerPhone, customerEmail, customerAddress, customerNote,
+            items, subtotal, currency: currency || store.currency,
+            originalTotal: originalTotal || null,
+            discountAmount: parseFloat(discountAmount) || 0,
+            couponCode: couponCode || null,
+            status: 'pending'
+        });
+
+        res.json({ order, orderNumber });
+    } catch (error) {
+        console.error('Create order error:', error);
+        res.status(500).json({ error: 'Failed to create order' });
+    }
+});
+
+
+// ==========================================
+// PROTECTED USER ROUTES
+// ==========================================
+router.use(auth);
+
+// POST /api/wastore/upload/logo  — Upload store logo image
+router.post('/upload/logo', storageProvider('wastore-logos').single('logo'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+        res.json({ url: req.file.publicUrl });
+    } catch (error) {
+        console.error('Store logo upload error:', error);
+        res.status(500).json({ error: 'Upload failed' });
+    }
+});
+
+// POST /api/wastore/upload/seo  — Upload SEO og:image
+router.post('/upload/seo', storageProvider('wastore-seo').single('image'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+        res.json({ url: req.file.publicUrl });
+    } catch (error) {
+        console.error('Store SEO upload error:', error);
+        res.status(500).json({ error: 'Upload failed' });
+    }
+});
+
+// POST /api/wastore/upload/cover  — Upload store cover image
+router.post('/upload/cover', storageProvider('wastore-covers').single('cover'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+        res.json({ url: req.file.publicUrl });
+    } catch (error) {
+        console.error('Store cover upload error:', error);
+        res.status(500).json({ error: 'Upload failed' });
+    }
+});
+
+// POST /api/wastore/upload/slide  — Upload a hero slider image
+router.post('/upload/slide', storageProvider('wastore-slides').single('slide'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+        res.json({ url: req.file.publicUrl });
+    } catch (error) {
+        console.error('Store slide upload error:', error);
+        res.status(500).json({ error: 'Upload failed' });
+    }
+});
+
+// POST /api/wastore/upload/product  — Upload a product image
+router.post('/upload/product', storageProvider('wastore-products').single('product'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+        res.json({ url: req.file.publicUrl });
+    } catch (error) {
+        console.error('Product image upload error:', error);
+        res.status(500).json({ error: 'Upload failed' });
+    }
+});
+
+// POST /api/wastore/upload/category  — Upload a category image
+router.post('/upload/category', storageProvider('wastore-categories').single('category'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+        res.json({ url: req.file.publicUrl });
+    } catch (error) {
+        console.error('Category image upload error:', error);
+        res.status(500).json({ error: 'Upload failed' });
+    }
+});
+
+// Get all stores for logged in user
+router.get('/', async (req, res) => {
+    try {
+        const stores = await WaStore.findAll({
+            where: { userId: req.user.id },
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(stores);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch stores' });
+    }
+});
+
+// Create new store
+router.post('/', async (req, res) => {
+    try {
+        // Enforce Plan Limits
+        const userPlan = await Plan.findOne({ where: { name: req.user.plan } });
+        if (!userPlan || !userPlan.allowWaStore) {
+            return res.status(403).json({ error: 'Your current plan does not support WhatsApp Stores' });
+        }
+
+        const currentCount = await WaStore.count({ where: { userId: req.user.id } });
+        if (userPlan.waStoreLimit > 0 && currentCount >= userPlan.waStoreLimit) {
+            return res.status(403).json({ error: `Plan limit reached. You can only create ${userPlan.waStoreLimit} stores.` });
+        }
+
+        // Validate Slug uniqueness
+        const { slug } = req.body;
+        if (!slug) return res.status(400).json({ error: 'Slug is required' });
+
+        const existingSlug = await WaStore.findOne({ where: { slug } });
+        if (existingSlug) {
+            return res.status(400).json({ error: 'This URL slug is already taken.' });
+        }
+
+        const newStore = await WaStore.create({
+            ...req.body,
+            userId: req.user.id
+        });
+
+        res.status(201).json(newStore);
+    } catch (error) {
+        console.error("Create store error:", error);
+        res.status(500).json({ error: 'Failed to create store' });
+    }
+});
+
+// Update store
+router.put('/:id', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        // If trying to change slug, check uniqueness
+        if (req.body.slug && req.body.slug !== store.slug) {
+            const existingSlug = await WaStore.findOne({ where: { slug: req.body.slug } });
+            if (existingSlug) {
+                return res.status(400).json({ error: 'This URL slug is already taken.' });
+            }
+        }
+
+        await store.update(req.body);
+        res.json(store);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update store' });
+    }
+});
+
+// Delete store
+router.delete('/:id', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        // Delete all products first
+        await WaProduct.destroy({ where: { storeId: store.id } });
+        
+        await store.destroy();
+        res.json({ success: true, message: 'Store deleted' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete store' });
+    }
+});
+
+// ==========================================
+// PRODUCTS MANAGEMENT
+// ==========================================
+
+// Get all products for a store
+router.get('/:storeId/products', async (req, res) => {
+    try {
+        // verify owner
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id }});
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const products = await WaProduct.findAll({
+            where: { storeId: req.params.storeId },
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(products);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch products' });
+    }
+});
+
+// Create product
+router.post('/:storeId/products', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id }});
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const product = await WaProduct.create({
+            ...req.body,
+            storeId: req.params.storeId
+        });
+        res.status(201).json(product);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create product' });
+    }
+});
+
+// Update product
+router.put('/products/:productId', async (req, res) => {
+    try {
+        const product = await WaProduct.findByPk(req.params.productId);
+        if (!product) return res.status(404).json({ error: 'Product not found' });
+
+        const store = await WaStore.findOne({ where: { id: product.storeId, userId: req.user.id } });
+        if (!store) return res.status(403).json({ error: 'Unauthorized' });
+
+        await product.update(req.body);
+        res.json(product);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update product' });
+    }
+});
+
+// Delete product
+router.delete('/products/:productId', async (req, res) => {
+    try {
+        const product = await WaProduct.findByPk(req.params.productId);
+        if (!product) return res.status(404).json({ error: 'Product not found' });
+
+        const store = await WaStore.findOne({ where: { id: product.storeId, userId: req.user.id } });
+        if (!store) return res.status(403).json({ error: 'Unauthorized' });
+
+        await product.destroy();
+        res.json({ success: true, message: 'Product deleted' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete product' });
+    }
+});
+
+
+// ==========================================
+// AI PRODUCT DESCRIPTION GENERATOR
+// ==========================================
+router.post('/ai-description', async (req, res) => {
+    const { productName, keywords } = req.body;
+    try {
+        if (!productName) return res.status(400).json({ error: 'Product name is required' });
+
+        const user = await User.findByPk(req.user.id);
+        const sysConfig = await SystemConfig.getConfig();
+        const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_wastore ?? 3;
+        const BASE_COST = 5; 
+        const finalCost = Math.ceil(BASE_COST * multiplier);
+
+        if (user.aiTokenBalance < finalCost) {
+            return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured.' });
+
+        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
+
+        const systemInstruction = `You are an expert e-commerce copywriter. 
+The user is providing a product name and some optional keywords.
+Your job is to generate a highly converting, SEO-optimized, and persuasive product description.
+Do not use markdown formatting like ** or #. Just return pure text formatted nicely with line breaks if needed.
+Be concise but extremely compelling. Max 2 short paragraphs.`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
+        const prompt = `Product Name: ${productName}\nKeywords: ${keywords || 'None'}`;
+        
+        const payload = {
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 300 }
+        };
+
+        const aiRes = await axios.post(url, payload);
+        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        await user.decrement('aiTokenBalance', { by: finalCost });
+        const newBal = (user.aiTokenBalance - finalCost);
+
+        try {
+            await AiTokenLog.create({
+                userId: req.user.id,
+                feature: 'ai_wastore_product_desc',
+                tokensUsed: finalCost,
+                balanceAfter: Math.max(0, newBal)
+            });
+        } catch (e) { console.warn(e); }
+
+        res.json({
+            description: replyText.trim(),
+            tokensDeducted: finalCost,
+            newBalance: newBal
+        });
+    } catch (err) {
+        console.error('Error generating AI description:', err);
+        res.status(500).json({ error: 'Failed to communicate with AI.' });
+    }
+});
+
+
+// ==========================================
+// ORDER MANAGEMENT (PROTECTED)
+// ==========================================
+
+// GET /api/wastore/:storeId/orders  — list all orders for a store
+router.get('/:storeId/orders', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const orders = await WaOrder.findAll({
+            where: { storeId: req.params.storeId },
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(orders);
+    } catch (error) {
+        console.error('Fetch orders error:', error);
+        res.status(500).json({ error: 'Failed to fetch orders' });
+    }
+});
+
+// GET /api/wastore/:storeId/orders/:orderId  — single order detail
+router.get('/:storeId/orders/:orderId', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const order = await WaOrder.findOne({ where: { id: req.params.orderId, storeId: req.params.storeId } });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        res.json(order);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch order' });
+    }
+});
+
+// PATCH /api/wastore/:storeId/orders/:orderId  — update order status / notes
+router.patch('/:storeId/orders/:orderId', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const order = await WaOrder.findOne({ where: { id: req.params.orderId, storeId: req.params.storeId } });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        const { status, notes } = req.body;
+        if (status) order.status = status;
+        if (notes !== undefined) order.notes = notes;
+        await order.save();
+
+        res.json(order);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update order' });
+    }
+});
+
+// ==========================================
+// COUPON MANAGEMENT
+// ==========================================
+
+// Get coupons for a store
+router.get('/:storeId/coupons', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+        
+        const coupons = await require('../models/WaStoreCoupon').findAll({ where: { storeId: req.params.storeId } });
+        res.json(coupons);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch coupons' });
+    }
+});
+
+// Create a coupon
+router.post('/:storeId/coupons', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        // Sanitize numeric fields — empty strings from form inputs must become numbers/null
+        const body = req.body;
+        const coupon = await require('../models/WaStoreCoupon').create({
+            storeId: store.id,
+            code: (body.code || '').toUpperCase().trim(),
+            discountType: body.discountType || 'percentage',
+            discountValue: parseFloat(body.discountValue) || 0,
+            minOrderValue: body.minOrderValue !== '' && body.minOrderValue != null ? parseFloat(body.minOrderValue) : 0,
+            isActive: body.isActive !== undefined ? body.isActive : true,
+            expiresAt: body.expiresAt || null
+        });
+        res.status(201).json(coupon);
+    } catch (error) {
+        console.error('Create coupon error:', error);
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(400).json({ error: 'A coupon with this code already exists in your store.' });
+        }
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({ error: error.errors.map(e => e.message).join(', ') });
+        }
+        res.status(500).json({ error: error.message || 'Failed to create coupon' });
+    }
+});
+
+// Update a coupon
+router.put('/:storeId/coupons/:couponId', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+        
+        const coupon = await require('../models/WaStoreCoupon').findOne({ where: { id: req.params.couponId, storeId: store.id } });
+        if (!coupon) return res.status(404).json({ error: 'Coupon not found' });
+
+        const body = req.body;
+        await coupon.update({
+            ...(body.code !== undefined && { code: body.code.toUpperCase().trim() }),
+            ...(body.discountType !== undefined && { discountType: body.discountType }),
+            ...(body.discountValue !== undefined && { discountValue: parseFloat(body.discountValue) || 0 }),
+            ...(body.minOrderValue !== undefined && { minOrderValue: body.minOrderValue !== '' ? parseFloat(body.minOrderValue) : 0 }),
+            ...(body.isActive !== undefined && { isActive: body.isActive }),
+            ...(body.expiresAt !== undefined && { expiresAt: body.expiresAt || null })
+        });
+        res.json(coupon);
+    } catch (error) {
+        console.error('Update coupon error:', error);
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(400).json({ error: 'A coupon with this code already exists in your store.' });
+        }
+        res.status(500).json({ error: error.message || 'Failed to update coupon' });
+    }
+});
+
+// Delete a coupon
+router.delete('/:storeId/coupons/:couponId', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+        
+        const coupon = await require('../models/WaStoreCoupon').findOne({ where: { id: req.params.couponId, storeId: store.id } });
+        if (!coupon) return res.status(404).json({ error: 'Coupon not found' });
+        
+        await coupon.destroy();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete coupon' });
+    }
+});
+
+// Public Endpoint: Validate Coupon
+router.post('/public/:slug/validate-coupon', async (req, res) => {
+    try {
+        const { code, cartTotal } = req.body;
+        const store = await WaStore.findOne({ where: { slug: req.params.slug, isActive: true } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const WaStoreCoupon = require('../models/WaStoreCoupon');
+
+        // First check if coupon exists at all (ignoring isActive)
+        const couponAny = await WaStoreCoupon.findOne({
+            where: { storeId: store.id, code: code.toUpperCase().trim() }
+        });
+
+        if (!couponAny) {
+            return res.status(400).json({ error: 'Invalid coupon code. Please check and try again.' });
+        }
+        if (!couponAny.isActive) {
+            return res.status(400).json({ error: 'This coupon is currently inactive.' });
+        }
+
+        // Expiry check
+        if (couponAny.expiresAt && new Date() > new Date(couponAny.expiresAt)) {
+            return res.status(400).json({ error: 'This coupon has expired.' });
+        }
+
+        // Minimum order value check — fix: use cartTotal != null (not truthy check, so 0 is handled)
+        const minOrder = parseFloat(couponAny.minOrderValue) || 0;
+        if (minOrder > 0 && cartTotal != null && parseFloat(cartTotal) < minOrder) {
+            const currSymbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AED: 'د.إ', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
+            const sym = currSymbols[store.currency] || store.currency || '';
+            return res.status(400).json({
+                error: `Minimum order value of ${sym}${minOrder.toFixed(2)} required for this coupon.`
+            });
+        }
+
+        res.json(couponAny);
+    } catch (error) {
+        console.error('Validate coupon error:', error);
+        res.status(500).json({ error: 'Failed to validate coupon' });
+    }
+
+});
+
+// ==========================================
+// STORE ANALYTICS
+// ==========================================
+
+// GET /api/wastore/:storeId/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD
+router.get('/:storeId/analytics', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        // Default range: last 30 days
+        const to = req.query.to ? new Date(req.query.to) : new Date();
+        const from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        to.setHours(23, 59, 59, 999);
+        from.setHours(0, 0, 0, 0);
+
+        const whereClause = {
+            storeId: store.id,
+            createdAt: { [Op.between]: [from, to] }
+        };
+
+        // --- KPI Summary ---
+        const allOrders = await WaOrder.findAll({ where: whereClause });
+        const totalOrders = allOrders.length;
+        const totalRevenue = allOrders.reduce((sum, o) => sum + parseFloat(o.subtotal || 0), 0);
+        const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+        // Status counts
+        const statusCounts = { pending: 0, confirmed: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 };
+        allOrders.forEach(o => { if (statusCounts[o.status] !== undefined) statusCounts[o.status]++; });
+
+        // --- Daily Trend (orders count + revenue per day) ---
+        const dailyMap = {};
+        allOrders.forEach(order => {
+            const day = new Date(order.createdAt).toISOString().slice(0, 10);
+            if (!dailyMap[day]) dailyMap[day] = { date: day, orders: 0, revenue: 0 };
+            dailyMap[day].orders++;
+            dailyMap[day].revenue = parseFloat((dailyMap[day].revenue + parseFloat(order.subtotal || 0)).toFixed(2));
+        });
+
+        // Fill in missing dates in range
+        const dailyTrend = [];
+        const cursor = new Date(from);
+        while (cursor <= to) {
+            const key = cursor.toISOString().slice(0, 10);
+            dailyTrend.push(dailyMap[key] || { date: key, orders: 0, revenue: 0 });
+            cursor.setDate(cursor.getDate() + 1);
+        }
+
+        // --- Top Products (aggregate items JSON) ---
+        const productCounts = {};
+        allOrders.forEach(order => {
+            const items = Array.isArray(order.items) ? order.items : [];
+            items.forEach(item => {
+                const name = item.name || 'Unknown';
+                if (!productCounts[name]) productCounts[name] = { name, orders: 0, revenue: 0 };
+                productCounts[name].orders += (item.qty || 1);
+                productCounts[name].revenue = parseFloat((productCounts[name].revenue + (parseFloat(item.price || 0) * (item.qty || 1))).toFixed(2));
+            });
+        });
+        const topProducts = Object.values(productCounts)
+            .sort((a, b) => b.orders - a.orders)
+            .slice(0, 5);
+
+        // --- Total products & coupons count ---
+        const totalProducts = await WaProduct.count({ where: { storeId: store.id } });
+
+        res.json({
+            storeViews: store.views || 0,
+            totalOrders,
+            totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+            avgOrderValue: parseFloat(avgOrderValue.toFixed(2)),
+            totalProducts,
+            statusCounts,
+            dailyTrend,
+            topProducts,
+            currency: store.currency || 'USD',
+            dateRange: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }
+        });
+    } catch (error) {
+        console.error('Analytics error:', error);
+        res.status(500).json({ error: 'Failed to fetch analytics' });
+    }
+});
+
+module.exports = router;

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 
-const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 // Dynamically load Razorpay checkout script
 const loadRazorpayScript = () =>
@@ -114,7 +114,7 @@ const Checkout = () => {
                 key: orderData.keyId,
                 amount: orderData.amount,
                 currency: orderData.currency,
-                name: 'WhatsApp Cloud',
+                name: 'Bluetick',
                 description: `${plan.name} Plan Subscription`,
                 order_id: orderData.orderId,
                 prefill: {

@@ -31,12 +31,12 @@ const countryCodes = [
 const PhoneField = ({ value, onChange, required, minDigits, maxDigits, isDark, primaryColor }) => {
     const parentClass = `flex w-full rounded-xl outline-none text-base transition-all focus-within:ring-2 overflow-hidden ${isDark ? 'bg-white/5 border border-white/10 text-white shadow-inner shadow-black' : 'bg-slate-50 border border-slate-200 text-black shadow-inner shadow-slate-100'}`;
     const parsedCode = countryCodes.find(c => value && value.startsWith(c.code))?.code || '+91';
-    
+
     let initialNum = value || '';
     if (initialNum.startsWith(parsedCode)) {
         initialNum = initialNum.slice(parsedCode.length).trim();
     }
-    
+
     const [code, setCode] = useState(parsedCode);
     const [num, setNum] = useState(initialNum);
 
@@ -202,9 +202,9 @@ const PublicForm = () => {
                 const hasViewed = sessionStorage.getItem(sessionKey);
                 const trackQuery = !hasViewed ? '?trackView=true' : '';
 
-                const res = await axios.get(`http://127.0.0.1:5000/api/forms/${id}${trackQuery}`);
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/forms/${id}${trackQuery}`);
                 setForm(res.data);
-                
+
                 if (!hasViewed) {
                     sessionStorage.setItem(sessionKey, 'true');
                 }
@@ -221,9 +221,9 @@ const PublicForm = () => {
         fetchForm();
 
         // Fetch platform branding name from public settings
-        axios.get('http://127.0.0.1:5000/api/settings/public')
+        axios.get(`${import.meta.env.VITE_API_URL}/api/settings/public`)
             .then(res => { if (res.data?.appName) setPlatformName(res.data.appName); })
-            .catch(() => {});
+            .catch(() => { });
     }, [id]);
 
     const handleFieldChange = (fieldId, value) => {
@@ -323,7 +323,7 @@ const PublicForm = () => {
     const initiatePayment = async (sessionData, primaryColorArg) => {
         setPaymentProcessing(true);
         try {
-            const initRes = await axios.post(`http://127.0.0.1:5000/api/checkout/init/${sessionData.sessionId}`);
+            const initRes = await axios.post(`${import.meta.env.VITE_API_URL}/api/checkout/init/${sessionData.sessionId}`);
             const data = initRes.data;
 
             if (data.gateway === 'razorpay') {
@@ -345,7 +345,7 @@ const PublicForm = () => {
                     handler: async function (response) {
                         try {
                             setPaymentProcessing(true); // stay loading while verifying
-                            await axios.post('http://127.0.0.1:5000/api/checkout/verify', {
+                            await axios.post(`${import.meta.env.VITE_API_URL}/api/checkout/verify`, {
                                 sessionId: sessionData.sessionId,
                                 status: 'success',
                                 gatewayResponse: response
@@ -360,7 +360,7 @@ const PublicForm = () => {
                         }
                     },
                     modal: {
-                        ondismiss: function() {
+                        ondismiss: function () {
                             setPaymentProcessing(false);
                             setSubmitError('Payment was cancelled.');
                         }
@@ -374,7 +374,7 @@ const PublicForm = () => {
                 alert(`Gateway ${data.gateway} integration pending.`);
                 setPaymentProcessing(false);
             }
-        } catch(err) {
+        } catch (err) {
             console.error('Checkout init error', err);
             setSubmitError(err.response?.data?.msg || 'Error initiating checkout.');
             setPaymentProcessing(false);
@@ -392,13 +392,13 @@ const PublicForm = () => {
             const originalAuth = axios.defaults.headers.common['Authorization'];
             delete axios.defaults.headers.common['Authorization'];
 
-            const res = await axios.post(`http://127.0.0.1:5000/api/forms/submit/${id}`, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/forms/submit/${id}`, {
                 contactNumber: resolvedContact || null,
                 answers: formData
             });
 
             if (originalAuth) axios.defaults.headers.common['Authorization'] = originalAuth;
-            
+
             if (res.data.paymentRequired) {
                 const pColor = form?.brandConfig?.primaryColor || '#4f46e5';
                 setSubmitting(false); // End standard submission loading
@@ -434,11 +434,11 @@ const PublicForm = () => {
     if (submitted) {
         return (
             <div className={`min-h-screen flex items-center justify-center p-4 ${isDark ? 'bg-[#1C1C1E] text-white' : 'bg-slate-50 text-slate-900'}`}>
-                <Confetti 
-                    width={window.innerWidth} 
-                    height={window.innerHeight} 
-                    recycle={false} 
-                    numberOfPieces={600} 
+                <Confetti
+                    width={window.innerWidth}
+                    height={window.innerHeight}
+                    recycle={false}
+                    numberOfPieces={600}
                     gravity={0.15}
                 />
                 <div className={`w-full max-w-md p-10 rounded-3xl text-center shadow-2xl overflow-hidden relative z-10 ${isDark ? 'bg-black border border-white/10' : 'bg-white border shadow-sm border-slate-200'}`}>

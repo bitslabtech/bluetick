@@ -3,7 +3,7 @@ import { X, Plus, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     // Local state to prevent constant re-renders on every keystroke in input fields

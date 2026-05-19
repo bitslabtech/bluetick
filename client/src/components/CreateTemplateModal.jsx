@@ -127,7 +127,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         setEnhancingSection(sectionId);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://127.0.0.1:5000/api/templates/enhance-ai', 
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/enhance-ai`, 
                 { text: textToEnhance },
                 { headers: { 'x-auth-token': token } }
             );
@@ -400,7 +400,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         const fd = new FormData();
         fd.append('file', file);
         const token = localStorage.getItem('token');
-        const res = await axios.post('http://127.0.0.1:5000/api/templates/upload', fd, {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload`, fd, {
             headers: {
                 'Content-Type': 'multipart/form-data',
                 'Authorization': `Bearer ${token}`
@@ -522,7 +522,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                 cards: processedCards
             };
 
-            await axios.post('http://127.0.0.1:5000/api/templates', payload);
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/templates`, payload);
             showToast({ type: 'success', title: 'Template Created', message: 'Template successfully submitted to Meta.' });
             onSuccess();
         } catch (err) {

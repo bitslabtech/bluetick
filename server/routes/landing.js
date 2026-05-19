@@ -5,13 +5,20 @@ const Blog = require('../models/Blog');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const { Op } = require('sequelize');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const cacheManager = require('../utils/cacheManager');
+const _landingCache = cacheManager.createSimpleCache('landing_page', 60_000);
  // Multer Setup for Blog Images replaced by storageProvider 
 
 // @route   GET /api/landing
 // @desc    Get landing page configuration (Public)
 router.get('/', async (req, res) => {
     try {
+        const cached = _landingCache.get();
+        if (cached) return res.json(cached);
+
         const settings = await LandingPage.getSettings();
+        _landingCache.set(settings);
         res.json(settings);
     } catch (err) {
         console.error(err.message);
@@ -47,13 +54,118 @@ router.put('/', [auth, admin], async (req, res) => {
             contactInfo: req.body.contactInfo || settings.contactInfo,
             capabilities: req.body.capabilities || settings.capabilities,
             advancedFeatures: req.body.advancedFeatures || settings.advancedFeatures,
-            industries: req.body.industries || settings.industries
+            industries: req.body.industries || settings.industries,
+            aiChatbot: req.body.aiChatbot || settings.aiChatbot
         });
+
+        // Invalidate landing page cache
+        cacheManager.invalidate('landing_page');
 
         res.json(settings);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
+    }
+});
+
+// @route   POST /api/landing/chat
+// @desc    Interact with public AI chatbot
+router.post('/chat', async (req, res) => {
+    try {
+        const { message, history } = req.body;
+
+        if (!message) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
+
+        let settings = _landingCache.get();
+        if (!settings) {
+            settings = await LandingPage.getSettings();
+        }
+
+        if (!settings || !settings.aiChatbot || !settings.aiChatbot.enabled) {
+            return res.status(403).json({ error: 'Chatbot is currently disabled.' });
+        }
+
+        const aiConfig = settings.aiChatbot;
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ error: 'AI API Key not configured.' });
+        }
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+        // Use the same model as the rest of the app (from SystemConfig, fallback to gemini-2.0-flash)
+        let aiModelName = 'gemini-2.0-flash';
+        try {
+            const SystemConfig = require('../models/SystemConfig');
+            const sysConfig = await SystemConfig.getConfig();
+            aiModelName = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
+        } catch (e) { /* use default if SystemConfig not available */ }
+
+        const systemInstruction = `You are a helpful and polite customer support AI assistant for this platform.
+        
+Your only goal is to assist users by answering questions strictly related to the platform based on the knowledge base provided below.
+If a user asks about anything outside the scope of this platform (e.g., coding, general knowledge, math, other companies), politely decline and tell them you can only assist with platform-related inquiries.
+Keep your answers concise, engaging, and friendly. Do not use markdown that a simple chat UI cannot render (use standard text).
+
+Knowledge Base:
+${aiConfig.knowledgeBase}
+`;
+
+        // Gemini requires history to start with a 'user' turn.
+        // Strip any leading 'model' messages (e.g. the welcome message).
+        // If no user message exists in history, send empty history.
+        const rawHistory = history || [];
+        const firstUserIdx = rawHistory.findIndex(m => m.role === 'user');
+        const validHistory = firstUserIdx === -1 ? [] : rawHistory.slice(firstUserIdx);
+
+        const formattedHistory = validHistory.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.content || '' }]
+        }));
+
+        // Fallback chain: if configured model hits quota/overload, try cheaper ones automatically
+        const modelFallbackChain = [
+            aiModelName,
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-lite',
+        ].filter((m, i, arr) => arr.indexOf(m) === i); // deduplicate
+
+        let responseText = null;
+        let lastError = null;
+
+        for (const modelName of modelFallbackChain) {
+            try {
+                const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
+                const chat = model.startChat({ history: formattedHistory });
+                const result = await chat.sendMessage(message);
+                responseText = result.response.text();
+                if (modelName !== aiModelName) {
+                    console.warn(`[Chat] Fell back from ${aiModelName} → ${modelName}`);
+                }
+                break; // success — stop trying
+            } catch (err) {
+                const msg = err?.message || '';
+                const isRetryable = msg.includes('503') || msg.includes('429') || msg.includes('quota') || msg.includes('Unavailable');
+                lastError = err;
+                if (!isRetryable) throw err; // non-recoverable error — don't retry
+                console.warn(`[Chat] Model ${modelName} failed (retryable): ${msg.slice(0, 120)}`);
+            }
+        }
+
+        if (responseText === null) throw lastError;
+
+        res.json({ reply: responseText });
+    } catch (error) {
+        const errMsg = error?.message || '';
+        console.error('Chat API Error:', errMsg || error?.status || error);
+
+        // Give users a more helpful message when quota is exhausted
+        if (errMsg.includes('429') || errMsg.includes('quota')) {
+            return res.status(429).json({ error: 'AI service is temporarily at capacity. Please try again in a minute.' });
+        }
+        res.status(500).json({ error: 'Failed to process chat message.' });
     }
 });
 
@@ -100,12 +212,30 @@ router.post('/upload-industry', [auth, admin], storageProvider('industries').sin
     }
 });
 
+// @route   POST /api/landing/upload-hero
+// @desc    Upload image for hero section (Admin only)
+router.post('/upload-hero', [auth, admin], storageProvider('hero').single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image provided' });
+        }
+        res.json({ success: true, imageUrl: req.file.publicUrl });
+    } catch (err) {
+        console.error('Hero Image Upload Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // @route   POST /api/landing/reset
 // @desc    Reset landing page to default (Admin only)
 router.post('/reset', [auth, admin], async (req, res) => {
     try {
         await LandingPage.destroy({ where: {}, truncate: true });
         const settings = await LandingPage.getSettings(); // Re-creates with defaults
+
+        // Invalidate landing page cache
+        cacheManager.invalidate('landing_page');
+
         res.json(settings);
     } catch (err) {
         console.error(err.message);

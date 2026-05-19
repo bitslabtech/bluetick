@@ -40,7 +40,7 @@ export default function WhatsAppSettings() {
     const webhookUrl = publicBaseUrl
         ? `${publicBaseUrl.replace(/\/$/, '')}${webhookPath}`
         : `[Enter your public URL below]${webhookPath}`;
-    const verifyToken = '12345678';
+    const [verifyToken, setVerifyToken] = useState('Loading...');
 
     const handlePublicBaseUrlChange = (val) => {
         setPublicBaseUrl(val);
@@ -72,13 +72,25 @@ export default function WhatsAppSettings() {
 
     useEffect(() => {
         fetchSettings();
+        // Fetch the verify token dynamically from the server
+        (async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/webhook-token`, {
+                    headers: { 'x-auth-token': token }
+                });
+                setVerifyToken(res.data.verifyToken || '');
+            } catch (e) {
+                setVerifyToken('Error loading token');
+            }
+        })();
     }, []);
 
     const fetchSettings = async () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://127.0.0.1:5000/api/settings', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
                 headers: { 'x-auth-token': token }
             });
             const data = res.data;
@@ -126,7 +138,7 @@ export default function WhatsAppSettings() {
             cleanProfile.websites = cleanProfile.websites.filter(w => w.trim() !== '');
             if (cleanProfile.websites.length > 2) cleanProfile.websites = cleanProfile.websites.slice(0, 2);
 
-            await axios.post('http://127.0.0.1:5000/api/settings', {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, {
                 whatsappProfile: cleanProfile,
                 whatsappAutomations: automations
             }, {
@@ -163,7 +175,7 @@ export default function WhatsAppSettings() {
             formData.append('image', file);
 
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://127.0.0.1:5000/api/settings/upload-whatsapp-profile-img', formData, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/upload-whatsapp-profile-img`, formData, {
                 headers: {
                     'x-auth-token': token,
                     'Content-Type': 'multipart/form-data'
@@ -185,7 +197,7 @@ export default function WhatsAppSettings() {
         try {
             setSyncing(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://127.0.0.1:5000/api/settings/sync-whatsapp-profile', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/sync-whatsapp-profile`, {
                 headers: { 'x-auth-token': token }
             });
             if (res.data.success) {
@@ -474,9 +486,10 @@ export default function WhatsAppSettings() {
                                             {tokenCopied ? 'Copied!' : 'Copy'}
                                         </button>
                                     </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                        <strong>How to use:</strong> Open your Meta App's dashboard at <strong>developers.facebook.com</strong>, navigate to <strong>WhatsApp → Configuration</strong>, click <strong>Edit</strong> next to the Webhook section, and paste this token into the <strong>"Verify Token"</strong> field along with the Callback URL above. This lets Meta confirm that the webhook belongs to your account.
+                                    </p>
                                 </div>
-
-                                {/* Subscription Fields reminder */}
                                 <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700/40 rounded-xl p-3 text-xs text-amber-700 dark:text-amber-400">
                                     <strong>Required Webhook Fields:</strong> Make sure <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">messages</code> is subscribed under Webhook Fields in Meta Dashboard for button tracking to work.
                                 </div>

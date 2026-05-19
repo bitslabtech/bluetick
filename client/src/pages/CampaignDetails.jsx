@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +28,9 @@ import {
     BarChart, Bar 
 } from 'recharts';
 
+const FAST_POLL_MS = 3000;   // 3s when campaign is actively sending
+const SLOW_POLL_MS = 30000;  // 30s when campaign is finished
+
 export default function CampaignDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -47,6 +50,7 @@ export default function CampaignDetails() {
         clicked: true,
         failed: true
     });
+    const intervalRef = useRef(null);
     
     // Calculate Chart Data
     const generateChartData = () => {
@@ -125,7 +129,7 @@ export default function CampaignDetails() {
     useEffect(() => {
         const fetchCampaign = async () => {
             try {
-                const res = await axios.get(`http://127.0.0.1:5000/api/messages/${id}`);
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/messages/${id}`);
                 const msg = res.data;
 
                 // Process logs with SAME STRICT LOGIC as Campaign List
@@ -156,6 +160,17 @@ export default function CampaignDetails() {
                     }
                 });
 
+                // Smart polling: fast for active campaigns, slow for finished ones
+                const status = (msg.status || '').toLowerCase();
+                const isActive = ['sending', 'active', 'queued', 'scheduled'].includes(status);
+                const nextInterval = isActive ? FAST_POLL_MS : SLOW_POLL_MS;
+
+                if (intervalRef.current?.speed !== nextInterval) {
+                    clearInterval(intervalRef.current?.id);
+                    const newId = setInterval(fetchCampaign, nextInterval);
+                    intervalRef.current = { id: newId, speed: nextInterval };
+                }
+
             } catch (err) {
                 console.error("Error fetching campaign details:", err);
             } finally {
@@ -164,8 +179,9 @@ export default function CampaignDetails() {
         };
 
         fetchCampaign();
-        const interval = setInterval(fetchCampaign, 2000); // Auto-refresh every 2s
-        return () => clearInterval(interval);
+        const initId = setInterval(fetchCampaign, FAST_POLL_MS);
+        intervalRef.current = { id: initId, speed: FAST_POLL_MS };
+        return () => clearInterval(intervalRef.current?.id);
     }, [id]);
 
     const getStatusIcon = (status) => {
@@ -677,7 +693,7 @@ export default function CampaignDetails() {
                                 cancelText: 'Cancel',
                                 onConfirm: async () => {
                                     try {
-                                        await axios.delete(`http://127.0.0.1:5000/api/messages/${id}`);
+                                        await axios.delete(`${import.meta.env.VITE_API_URL}/api/messages/${id}`);
                                         showToast({ type: 'success', title: 'Deleted', message: 'Campaign deleted successfully' });
                                         navigate('/campaigns');
                                     } catch (err) {

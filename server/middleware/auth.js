@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
 
 module.exports = async function (req, res, next) {
-    // Get token from header
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Get token from header — support both 'x-auth-token' (app convention) and 'Authorization: Bearer'
+    const token = req.header('x-auth-token') || req.header('Authorization')?.replace('Bearer ', '');
 
     // Check if not token
     if (!token) {
@@ -11,7 +11,7 @@ module.exports = async function (req, res, next) {
 
     // Verify token
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
         req.user = decoded.user;
 
         // Fetch fresh db user to attach team/workspace data
@@ -20,6 +20,7 @@ module.exports = async function (req, res, next) {
 
         if (dbUser) {
             req.user.realId = req.user.id;
+            req.user.isAdmin = dbUser.isAdmin; // Override JWT with DB truth
             req.user.parentUserId = dbUser.parentUserId;
             req.user.teamRole = dbUser.teamRole;
             req.user.teamPermissions = dbUser.teamPermissions;
@@ -30,6 +31,8 @@ module.exports = async function (req, res, next) {
             if (dbUser.parentUserId) {
                 req.user.id = dbUser.parentUserId;
             }
+        } else {
+            return res.status(401).json({ error: 'User account no longer exists' });
         }
 
         // NEW: Check for Global Session Kill
@@ -46,7 +49,7 @@ module.exports = async function (req, res, next) {
         const adminToken = req.header('x-admin-token');
         if (adminToken) {
             try {
-                const adminDecoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+                const adminDecoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
                 if (adminDecoded.user && adminDecoded.user.isAdmin) {
                     req.impersonator = adminDecoded.user;
                 }

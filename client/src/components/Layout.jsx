@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
-import { LogOut, Info, AlertTriangle, Menu, X } from 'lucide-react';
+import { LogOut, Info, AlertTriangle, AlertOctagon, Menu, X } from 'lucide-react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -18,7 +18,7 @@ export default function Layout() {
         const fetchSystemConfig = async () => {
             try {
                 // Use the new public status endpoint
-                const res = await axios.get('http://127.0.0.1:5000/api/system/status');
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/system/status`);
 
                 setSystemStatus(res.data);
 
@@ -50,14 +50,18 @@ export default function Layout() {
                 <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-background-dark border-b border-slate-200 dark:border-surface-dark shrink-0 z-30 shadow-sm relative">
                     <div className="flex items-center gap-3">
                         {publicSettings?.logoUrl ? (
-                            <img src={publicSettings.logoUrl} alt="Logo" className="w-8 h-8 object-contain rounded-lg" />
-                        ) : (
-                            <div className="flex items-center justify-center rounded-lg bg-indigo-600 size-8 text-white shadow-sm">
-                                <span className="font-bold text-sm">Wa</span>
-                            </div>
-                        )}
+                            <img 
+                                src={publicSettings.logoUrl} 
+                                alt="Logo" 
+                                className="w-8 h-8 object-contain rounded-lg" 
+                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            />
+                        ) : null}
+                        <div className="flex items-center justify-center rounded-lg bg-primary size-8 text-white shadow-lg shadow-blue-500/20" style={{ display: publicSettings?.logoUrl ? 'none' : 'flex' }}>
+                            <span className="font-bold text-sm">Wa</span>
+                        </div>
                         <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px] min-h-[1.5rem]">
-                            {!publicSettingsLoading && (publicSettings?.appName || 'WhatsApp Cloud')}
+                            {!publicSettingsLoading && (publicSettings?.appName || 'Bluetick')}
                         </h1>
                     </div>
                     <button
@@ -75,14 +79,31 @@ export default function Layout() {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className={`w-full flex items-center justify-center px-4 py-2 font-bold text-sm text-white shadow-md cursor-pointer relative z-50 ${systemStatus.globalAnnouncement.type === 'error' ? 'bg-red-500' :
+                            className={`w-full flex items-center justify-center gap-3 px-4 py-2 font-bold text-sm text-white shadow-md relative z-50 ${systemStatus.globalAnnouncement.type === 'error' ? 'bg-red-500' :
                                 systemStatus.globalAnnouncement.type === 'warning' ? 'bg-amber-500' :
                                     'bg-gradient-to-r from-indigo-600 to-violet-600'
                                 }`}
                             layout
                         >
-                            <AlertTriangle className="w-4 h-4 mr-2" />
-                            {systemStatus.globalAnnouncement.message}
+                            {systemStatus.globalAnnouncement.type === 'error' ? (
+                                <AlertOctagon className="w-4 h-4 shrink-0" />
+                            ) : systemStatus.globalAnnouncement.type === 'warning' ? (
+                                <AlertTriangle className="w-4 h-4 shrink-0" />
+                            ) : (
+                                <Info className="w-4 h-4 shrink-0" />
+                            )}
+                            <span>{systemStatus.globalAnnouncement.message}</span>
+                            {systemStatus.globalAnnouncement.buttonUrl && (
+                                <a
+                                    href={systemStatus.globalAnnouncement.buttonUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="shrink-0 ml-2 px-3 py-0.5 bg-white/25 hover:bg-white/40 border border-white/40 rounded-full text-white text-xs font-bold transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    {systemStatus.globalAnnouncement.buttonText || 'Learn More'}
+                                </a>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>

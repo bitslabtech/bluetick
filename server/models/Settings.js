@@ -26,7 +26,7 @@ const Settings = sequelize.define('Settings', {
     // Branding
     appName: {
         type: DataTypes.STRING,
-        defaultValue: 'WhatsApp Cloud'
+        defaultValue: 'Bluetick'
     },
     supportEmail: {
         type: DataTypes.STRING,

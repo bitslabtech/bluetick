@@ -8,6 +8,7 @@ const Settings = require('../models/Settings');
 const AdminNotification = require('../models/AdminNotification');
 
 const logActivity = require('../utils/logger');
+const { sendSystemMessage } = require('../services/systemMessenger');
 
 // Generate Token Helper
 const generateToken = (user) => {
@@ -19,21 +20,25 @@ const generateToken = (user) => {
             isAdmin: user.isAdmin // Include isAdmin
         }
     };
-    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' });
 };
 
 // REGISTER
 router.post('/register', authLimiter, async (req, res) => {
     try {
-        const { name, email, password, selectedPlan, ref, partnerCode, phone } = req.body;
+        const { name, email, password, selectedPlan, startTrial, ref, partnerCode, phone } = req.body;
 
         // Fetch Global Security Settings from the primary admin
         const adminUser = await User.findOne({ where: { isAdmin: true } });
         let securityConfig = null;
+        let notificationTemplates = null;
+        let appName = 'Bluetick';
         if (adminUser) {
             const adminSettings = await Settings.findOne({ where: { userId: adminUser.id } });
-            if (adminSettings && adminSettings.securityConfig) {
+            if (adminSettings) {
                 securityConfig = adminSettings.securityConfig;
+                notificationTemplates = adminSettings.notificationTemplates;
+                if (adminSettings.appName) appName = adminSettings.appName;
             }
         }
 
@@ -42,7 +47,12 @@ router.post('/register', authLimiter, async (req, res) => {
             return res.status(403).json({ error: 'User registration is currently disabled by the administrator.' });
         }
 
-        // 2. Enforce Minimum Password Length
+        // 2. Enforce Mandatory Phone
+        if (!phone) {
+            return res.status(400).json({ error: 'WhatsApp Phone number is required for registration.' });
+        }
+
+        // 3. Enforce Minimum Password Length
         const minLen = securityConfig?.minPasswordLength || 6;
         if (password.length < minLen) {
             return res.status(400).json({ error: `Password must be at least ${minLen} characters long.` });
@@ -51,14 +61,25 @@ router.post('/register', authLimiter, async (req, res) => {
         // Check if user exists
         let user = await User.findOne({ where: { email } });
         if (user) {
-            return res.status(400).json({ error: 'User already exists' });
+            return res.status(400).json({ error: 'An account with this email address already exists.' });
+        }
+
+        let phoneUser = await User.findOne({ where: { phone } });
+        if (phoneUser) {
+            return res.status(400).json({ error: 'An account with this phone number already exists.' });
         }
 
         // Lookup Referrer (user-to-user referral)
         let referredBy = null;
+        let isReferredByTechPartner = false;
         if (ref) {
             const referrer = await User.findOne({ where: { referralCode: ref } });
-            if (referrer) referredBy = referrer.id;
+            if (referrer) {
+                referredBy = referrer.id;
+                if (referrer.techPartnerStatus === 'approved') {
+                    isReferredByTechPartner = true;
+                }
+            }
         }
 
         // Lookup B2B Tech Partner (if user came via ?partner=CODE)
@@ -68,6 +89,7 @@ router.post('/register', authLimiter, async (req, res) => {
             const partner = await TechPartner.findOne({ where: { code: partnerCode.toUpperCase(), enabled: true } });
             if (partner) {
                 techPartnerId = partner.id;
+                isReferredByTechPartner = true;
                 // Increment signup counter on the partner
                 partner.totalSignups = (partner.totalSignups || 0) + 1;
                 await partner.save();
@@ -87,36 +109,134 @@ router.post('/register', authLimiter, async (req, res) => {
         // Get default plan
         const Plan = require('../models/Plan');
         const defaultPlan = await Plan.findOne({ where: { isDefault: true } });
-        
+
         let assignedPlan = defaultPlan ? defaultPlan.name : 'Free';
         let planExpiry = null;
         let planStatus = 'Active';
 
-        // Under Option 1: Automatic Trials are disabled for public signups. 
-        // We only fetch the plan to verify existence, but we strictly enforce "Free" baseline in DB until paid.
+        // Fix: If direct signup AND the default plan has a trial period, enforce the trial.
+        if (!selectedPlan && defaultPlan) {
+            let trialDaysToGive = defaultPlan.trialDays || 0;
+            if (isReferredByTechPartner) {
+                trialDaysToGive = 30; // 1-Month Extended License for Tech Partner referrals
+            }
+
+            if (trialDaysToGive > 0) {
+                planStatus = 'Trial';
+                planExpiry = new Date();
+                planExpiry.setDate(planExpiry.getDate() + trialDaysToGive);
+            }
+        }
+
+        // Plan assignment: if user requested a trial and plan supports it, activate trial immediately.
+        // Otherwise keep them on Free until checkout succeeds (Option 1 policy).
         let requestedPlanObj = null;
         if (selectedPlan) {
             requestedPlanObj = await Plan.findByPk(selectedPlan);
-            if (requestedPlanObj) {
-                // Keep them on Free internally until Checkout succeeds
+            if (requestedPlanObj && startTrial) {
+                let trialDaysToGive = requestedPlanObj.trialDays || 0;
+                if (isReferredByTechPartner) {
+                    trialDaysToGive = 30; // 1-Month Extended License for Tech Partner referrals
+                }
+
+                if (trialDaysToGive > 0) {
+                    // ✅ Auto-activate trial
+                    assignedPlan = requestedPlanObj.name;
+                    planStatus = 'Trial';
+                    planExpiry = new Date();
+                    planExpiry.setDate(planExpiry.getDate() + trialDaysToGive);
+                } else {
+                    // Keep on Free until payment completes
+                    assignedPlan = defaultPlan ? defaultPlan.name : 'Free';
+                }
+            } else {
+                // Keep on Free until payment completes
                 assignedPlan = defaultPlan ? defaultPlan.name : 'Free';
             }
         }
 
+        // Check if this is the very first user in the system
+        const userCount = await User.count();
+        const isFirstUser = userCount === 0;
+
         // Create User with assigned plan
         user = await User.create({
-            name,
-            email,
-            password: hashedPassword,
+            name, email, password: hashedPassword,
             plan: assignedPlan,
-            planStatus: planStatus,
             planExpiry: planExpiry,
-            phone: phone || '',
+            planStatus: planStatus,
             referralCode: ownReferralCode,
-            referredBy: referredBy,
+            referredBy,
+            company: req.body.company || null,
+            phone: phone, // Save the phone number
+            jobTitle: req.body.jobTitle || null,
             techPartnerId: techPartnerId,
+            isAdmin: isFirstUser, // Automatically make first user the superadmin
             lastLogin: new Date()
         });
+
+        // ==========================================
+        // OFFICIAL APP CRM AUTO-SYNC HOOK
+        // ==========================================
+        try {
+            const SystemConfig = require('../models/SystemConfig');
+            const sysConfig = await SystemConfig.getCachedConfig();
+            const linkedAdminId = sysConfig?.settings?.linkedAdminUserId;
+
+            if (linkedAdminId && user.id !== linkedAdminId) {
+                const Contact = require('../models/Contact');
+                // Ensure duplicate contacts aren't created for same phone under the linked account
+                const existingContact = await Contact.findOne({ where: { userId: linkedAdminId, phone: user.phone } });
+                if (!existingContact) {
+                    await Contact.create({
+                        userId: linkedAdminId,
+                        name: user.name,
+                        phone: user.phone,
+                        email: user.email,
+                        tags: ['App User', `Plan: ${user.plan}`]
+                    });
+                }
+            }
+        } catch (syncErr) {
+            console.error("Auto-sync to linked CRM failed:", syncErr);
+            // Non-blocking, continue registration
+        }
+        // ==========================================
+
+        // ==========================================
+        // WELCOME WHATSAPP NOTIFICATION
+        // ==========================================
+        try {
+            const welcomeConfig = notificationTemplates?.whatsapp?.newUser;
+            if (welcomeConfig?.enabled && user.phone && welcomeConfig.templateName) {
+                const cleanPhone = user.phone.replace(/\D/g, '');
+                if (cleanPhone) {
+                    const components = [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: user.name || 'User' },
+                                { type: 'text', text: user.email || 'No Email' },
+                                { type: 'text', text: appName }
+                            ]
+                        }
+                    ];
+                    const result = await sendSystemMessage(cleanPhone, 'template', {
+                        templateName: welcomeConfig.templateName,
+                        languageCode: welcomeConfig.languageCode || 'en',
+                        components
+                    });
+                    if (result.success) {
+                        console.log(`[REGISTER] Welcome WhatsApp sent to ${cleanPhone} for user ${user.email}`);
+                    } else {
+                        console.warn(`[REGISTER] Welcome WhatsApp failed for ${user.email}:`, result.error);
+                    }
+                }
+            }
+        } catch (waMsgErr) {
+            console.error('[REGISTER] Welcome WhatsApp notification failed:', waMsgErr.message);
+        }
+        // ==========================================
 
         // Log Activity
         await logActivity(req, 'User Registered', `New user registration: ${email} - Plan: ${assignedPlan}`);
@@ -141,20 +261,26 @@ router.post('/register', authLimiter, async (req, res) => {
 
         // Return Token
         const token = generateToken(user);
+        // Fetch the actual assigned plan details to return to frontend
+        const assignedPlanDetails = await Plan.findOne({ where: { name: assignedPlan } });
         res.json({
             token,
             user: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                phone: user.phone || '',
+                company: user.company || '',
                 plan: user.plan,
-                planDetails: defaultPlan || null,
+                planStatus: user.planStatus,
+                planExpiry: user.planExpiry,
+                planDetails: assignedPlanDetails || null,
                 isAdmin: user.isAdmin,
                 createdAt: user.createdAt,
                 lastLogin: user.lastLogin,
                 parentUserId: user.parentUserId,
                 teamPolicy: user.teamPolicy,
-                selectedPlan: selectedPlan || null // Return selected plan for frontend to handle payment
+                selectedPlan: selectedPlan || null
             }
         });
 
@@ -201,7 +327,10 @@ router.post('/login', authLimiter, async (req, res) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                phone: user.phone || '',
+                company: user.company || '',
                 plan: user.plan,
+                planStatus: user.planStatus,
                 planDetails: planDetails || null,
                 isAdmin: user.isAdmin,
                 createdAt: user.createdAt,
@@ -228,7 +357,7 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
 
         const Plan = require('../models/Plan');
         const planDetails = await Plan.findOne({ where: { name: user.plan } });
-        
+
         const userData = user.toJSON();
         userData.planDetails = planDetails || null;
 

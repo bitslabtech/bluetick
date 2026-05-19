@@ -15,8 +15,8 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
         const fetchTemplates = async () => {
             try {
                 const [tmplRes, billingRes] = await Promise.all([
-                    axios.get('http://127.0.0.1:5000/api/templates'),
-                    axios.get('http://127.0.0.1:5000/api/billing')
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/templates`),
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/billing`)
                 ]);
                 // Sort oldest first — first N are the plan-active ones
                 const sorted = [...tmplRes.data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));

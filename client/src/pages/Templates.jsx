@@ -45,8 +45,8 @@ const Templates = () => {
         try {
             setLoading(true);
             const [tmplRes, billingRes] = await Promise.all([
-                axios.get('http://127.0.0.1:5000/api/templates'),
-                axios.get('http://127.0.0.1:5000/api/billing')
+                axios.get(`${import.meta.env.VITE_API_URL}/api/templates`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/billing`)
             ]);
             // Sort oldest first so the first N are always the "active" ones
             const sorted = [...tmplRes.data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -65,7 +65,7 @@ const Templates = () => {
     const handleSyncTemplates = async () => {
         try {
             setSyncing(true);
-            const res = await axios.post('http://127.0.0.1:5000/api/templates/sync');
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/sync`);
             showToast({ type: 'success', title: 'Sync Complete', message: res.data.message });
             fetchTemplates();
         } catch (err) {
@@ -90,7 +90,7 @@ const Templates = () => {
 
     const checkSettingsAndOpenModal = async (draft = null) => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/settings', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             const s = res.data;
@@ -117,7 +117,7 @@ const Templates = () => {
         if (!aiDraftPrompt.trim()) return;
         setIsDrafting(true);
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/templates/draft-ai', { prompt: aiDraftPrompt }, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/draft-ai`, { prompt: aiDraftPrompt }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             showToast({ type: 'success', title: 'AI Draft Complete', message: `Template drafted successfully! Used ${res.data.tokensDeducted} Tokens.` });
@@ -150,7 +150,7 @@ const Templates = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/templates/${id}`);
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/templates/${id}`);
                     fetchTemplates();
                     showToast({ type: 'success', title: 'Deleted', message: 'Template deleted successfully' });
                 } catch (err) {

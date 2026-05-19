@@ -4,7 +4,9 @@ import axios from 'axios';
 import { ChevronLeft, Calendar, Share2, Facebook, Twitter, Linkedin, Link as LinkIcon, Loader2, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useUI } from '../context/UIContext';
+import PublicLayout from '../components/landing/PublicLayout';
 import 'react-quill-new/dist/quill.snow.css'; // Import quill styles for correct rendering of editor content
+import DOMPurify from 'dompurify';
 
 const BlogPost = () => {
     const { slug } = useParams();
@@ -20,7 +22,7 @@ const BlogPost = () => {
     const fetchBlog = async () => {
         try {
             // view=true increments the view counter
-            const res = await axios.get(`http://127.0.0.1:5000/api/landing/blogs/${slug}?view=true`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing/blogs/${slug}?view=true`);
             const data = res.data;
             setBlog(data);
             setLoading(false);
@@ -90,22 +92,15 @@ const BlogPost = () => {
     }
 
     return (
-        <div className="min-h-screen bg-white dark:bg-[#1C1C1E] text-slate-900 dark:text-white font-display selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-200">
-            {/* Minimalist Header */}
-            <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 transition-all">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <Link to="/blog" className="text-sm font-bold tracking-tight flex items-center gap-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                        <ChevronLeft className="w-4 h-4" /> Back to Blog
-                    </Link>
-                    <div className="flex items-center gap-6 text-sm font-medium">
-                        <button onClick={handleShare} className="p-2 bg-slate-100 dark:bg-white/10 rounded-full hover:scale-105 transition-transform"><Share2 className="w-4 h-4" /></button>
-                    </div>
-                </div>
-            </nav>
+        <PublicLayout pageKey="blog" fullWidth={true}>
+            <div className="bg-white dark:bg-[#1C1C1E] text-slate-900 dark:text-white font-display selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-200">
 
             <article className="pt-32 pb-40">
                 {/* Article Header */}
                 <header className="max-w-4xl mx-auto px-6 text-center mb-16">
+                    <Link to="/blog" className="inline-flex items-center gap-2 text-sm font-bold tracking-tight hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors mb-12 bg-slate-100 dark:bg-white/5 px-4 py-2 rounded-full">
+                        <ChevronLeft className="w-4 h-4" /> Back to Blog
+                    </Link>
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest text-xs mb-6">
                         <Calendar className="w-4 h-4" /> {new Date(blog.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                         <span className="mx-2 text-slate-300 dark:text-slate-700">•</span>
@@ -136,7 +131,7 @@ const BlogPost = () => {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="max-w-3xl mx-auto px-6">
                     <div 
                         className="prose prose-lg md:prose-xl dark:prose-invert max-w-none prose-indigo prose-headings:font-extrabold prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-img:rounded-3xl prose-img:shadow-xl"
-                        dangerouslySetInnerHTML={{ __html: blog.content }} 
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content) }} 
                     />
 
                     {/* Tags */}
@@ -177,7 +172,8 @@ const BlogPost = () => {
                     <Link to="/blog" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all">View All Articles</Link>
                 </div>
             </div>
-        </div>
+            </div>
+        </PublicLayout>
     );
 };
 

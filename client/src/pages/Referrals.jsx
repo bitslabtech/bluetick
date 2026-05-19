@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import TechPartner from './TechPartner';
 import { Gift, Copy, CheckCircle, Users, ArrowRight, Activity, Calendar, Award, Briefcase, DollarSign, TrendingUp, AlertCircle, X } from 'lucide-react';
 import TopHeader from '../components/TopHeader';
 import { useAuth } from '../context/AuthContext';
@@ -34,13 +35,13 @@ const Referrals = () => {
                 // If they are an approved tech partner, fetch the tech partner dashboard
                 if (user?.techPartnerStatus === 'approved') {
                     try {
-                        const pdRes = await axios.get('http://127.0.0.1:5000/api/partner/dashboard', { headers });
+                        const pdRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/partner/dashboard`, { headers });
                         setPartnerData(pdRes.data);
                     } catch (pdErr) {
                         if (pdErr.response?.status === 404 || pdErr.response?.status === 403) {
                             // User's TechPartner profile was deleted or status auto-healed previously.
                             // Fetch standard standard referrals stats instead.
-                            const res = await axios.get('http://127.0.0.1:5000/api/referrals/stats', { headers });
+                            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/referrals/stats`, { headers });
                             setStats(res.data);
                             setPartnerData({ status: 'none' });
                         } else {
@@ -49,12 +50,12 @@ const Referrals = () => {
                     }
                 } else {
                     // Fetch standard referral stats
-                    const res = await axios.get('http://127.0.0.1:5000/api/referrals/stats', { headers });
+                    const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/referrals/stats`, { headers });
                     setStats(res.data);
 
                     // Fetch status just in case it updated
                     try {
-                        const meRes = await axios.get('http://127.0.0.1:5000/api/auth/me', { headers });
+                        const meRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, { headers });
                         setPartnerData({ status: meRes.data.user.techPartnerStatus });
                     } catch (e) { }
                 }
@@ -86,7 +87,7 @@ const Referrals = () => {
                 phoneNumber: `${applyForm.countryCode} ${applyForm.phoneDigits}`,
                 notes: applyForm.notes
             };
-            const res = await axios.post('http://127.0.0.1:5000/api/partner/apply', payload, { headers });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/partner/apply`, payload, { headers });
             showToast({ type: 'success', message: 'Tech Partner application submitted!' });
             setPartnerData({ ...partnerData, status: res.data.status });
             setShowApplyModal(false);
@@ -108,10 +109,7 @@ const Referrals = () => {
     // ─────────────────────────────────────────────────────────────────
     // TECH PARTNER DASHBOARD (APPROVED)
     // ─────────────────────────────────────────────────────────────────
-    if (tpStatus === 'approved' && partnerData?.profile) {
-        const { profile } = partnerData;
-        const partnerLink = `${window.location.origin}/register?partner=${profile.code}`;
-
+    if (tpStatus === 'approved') {
         return (
             <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display transition-colors duration-300">
                 <TopHeader 
@@ -123,73 +121,8 @@ const Referrals = () => {
                         </div>
                     }
                 />
-                <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative px-4 py-8 lg:px-12 max-w-7xl mx-auto pb-32">
-
-                {/* Tracking Link Banner */}
-                <div className="bg-gradient-to-br from-purple-700 to-indigo-900 rounded-2xl p-8 lg:p-10 text-white shadow-xl relative overflow-hidden mb-8">
-                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                        <TrendingUp className="w-48 h-48 transform -rotate-12" />
-                    </div>
-                    <div className="relative z-10 max-w-3xl">
-                        <h2 className="text-2xl font-bold mb-2">Your Unique Tracking Link</h2>
-                        <p className="text-purple-200 text-sm mb-6">Users who register via this link will be attributed to your partner account forever.</p>
-
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <div className="flex-1 bg-black/40 border border-white/20 rounded-xl px-5 py-4 font-mono text-sm sm:text-base truncate shadow-inner flex items-center">
-                                {partnerLink}
-                            </div>
-                            <button
-                                onClick={() => handleCopy(partnerLink)}
-                                className="flex items-center justify-center gap-2 bg-white text-purple-700 hover:bg-slate-50 font-bold px-8 py-4 rounded-xl transition-all shadow-lg min-w-[160px]"
-                            >
-                                {copying ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
-                                {copying ? 'Copied!' : 'Copy Link'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Dashboard Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-                        <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center shadow-sm">
-                            <DollarSign className="w-7 h-7" />
-                        </div>
-                        <div>
-                            <div className="text-3xl font-bold text-slate-900 dark:text-white">₹{(profile.pendingBalance || 0).toLocaleString()}</div>
-                            <div className="text-xs font-bold uppercase text-slate-400 tracking-wider">Unpaid Balance</div>
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-                        <div className="w-14 h-14 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center shadow-sm">
-                            <Users className="w-7 h-7" />
-                        </div>
-                        <div>
-                            <div className="text-3xl font-bold text-slate-900 dark:text-white">{profile.totalSignups || 0}</div>
-                            <div className="text-xs font-bold uppercase text-slate-400 tracking-wider">Attributed Signups</div>
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4 justify-between">
-                        <div>
-                            <div className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2">Commission Rate</div>
-                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                {profile.commissionType === 'percentage' ? `${profile.commissionValue}%` : `₹${profile.commissionValue} flat`}
-                            </div>
-                        </div>
-                        <div className="text-right border-l border-slate-100 dark:border-white/5 pl-4">
-                            <div className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2">Total Earned</div>
-                            <div className="text-xl font-bold text-slate-900 dark:text-white">₹{(profile.totalPayouts || 0).toLocaleString()}</div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Additional Info Box */}
-                <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl p-6">
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-2">How Payouts Work</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                        Whenever an attributed user purchases a paid plan, a commission is automatically tracked and added to your <b>Unpaid Balance</b>. At the end of the billing cycle, our administrators will review your pending balance and initiate a payout to your registered bank account. Make sure your billing details are up to date with support.
-                    </p>
-                </div>
+                <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative pb-32">
+                    <TechPartner />
                 </div>
             </div>
         );

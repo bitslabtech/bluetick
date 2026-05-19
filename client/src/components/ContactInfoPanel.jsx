@@ -4,7 +4,7 @@ import { X, User, Phone, Tag, FileText, Trash2, MessageSquare, Clock, Tags, User
 import { format } from 'date-fns';
 import ManageLabelsModal from './ManageLabelsModal';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 export default function ContactInfoPanel({ conversation, onClose, onUpdate, teamPolicy, isSubMember }) {
     const panelRef = useRef(null);

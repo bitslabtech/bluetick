@@ -13,7 +13,7 @@ import {
 import { motion } from 'framer-motion';
 import ThemeToggle from '../components/ThemeToggle';
 
-const API_BASE = 'http://127.0.0.1:5000';
+const API_BASE = `${import.meta.env.VITE_API_URL}`;
 
 const RANGE_OPTIONS = [
     { id: '7d', label: '7 Days' },

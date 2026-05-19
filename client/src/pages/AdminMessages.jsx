@@ -15,7 +15,7 @@ const AdminMessages = () => {
 
     const fetchMessages = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/contact', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contact`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             setMessages(res.data);
@@ -34,7 +34,7 @@ const AdminMessages = () => {
     const handleToggleRead = async (id, currentStatus) => {
         try {
             const newStatus = currentStatus === 'read' ? 'unread' : 'read';
-            await axios.put(`http://127.0.0.1:5000/api/contact/${id}`, { status: newStatus }, {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/contact/${id}`, { status: newStatus }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             setMessages(messages.map(m => m.id === id ? { ...m, status: newStatus } : m));

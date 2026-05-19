@@ -40,32 +40,7 @@ const AdminAddonConfig = () => {
         badge: ''
     });
 
-    const [aiModel, setAiModel] = useState('gemini-2.0-flash');
-    const [savingModel, setSavingModel] = useState(false);
-
-    useEffect(() => { fetchAddon(); fetchSystemAiModel(); }, [id]);
-
-    const fetchSystemAiModel = async () => {
-        try {
-            const res = await axios.get('/api/system', { headers: { Authorization: `Bearer ${token}` } });
-            setAiModel(res.data?.settings?.aiModel || 'gemini-2.0-flash');
-        } catch (e) { console.error('Failed to fetch system config', e); }
-    };
-
-    const saveAiModel = async (model) => {
-        setSavingModel(true);
-        try {
-            await axios.put('/api/system/settings', { settings: { aiModel: model } }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setAiModel(model);
-            toast.success('AI model updated!');
-        } catch (e) {
-            toast.error('Failed to save AI model');
-        } finally {
-            setSavingModel(false);
-        }
-    };
+    useEffect(() => { fetchAddon(); }, [id]);
 
     const fetchAddon = async () => {
         try {
@@ -364,53 +339,6 @@ const AdminAddonConfig = () => {
                         </div>
                     </div>
 
-                    {/* AI Model Config — only shown for ai_bot */}
-                    {addon.module_key === 'ai_bot' && (
-                        <div className={cardClass}>
-                            <div className={cardHeaderClass}>
-                                <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <Zap className="w-4 h-4 text-violet-500" /> AI Model Configuration
-                                </h2>
-                            </div>
-                            <div className="p-5 space-y-4">
-                                <div>
-                                    <label className={labelClass}>Gemini Model <span className="text-gray-400 font-normal">(applies globally to all users)</span></label>
-                                    <select
-                                        className={inputClass}
-                                        value={aiModel}
-                                        onChange={(e) => saveAiModel(e.target.value)}
-                                        disabled={savingModel}
-                                    >
-                                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite — Cheapest / Fastest</option>
-                                        <option value="gemini-2.0-flash">Gemini 2.0 Flash — Best Balance (Recommended)</option>
-                                        <option value="gemini-2.5-flash">Gemini 2.5 Flash — Smarter, Latest Generation</option>
-                                        <option value="gemini-2.5-pro">Gemini 2.5 Pro — Most Powerful</option>
-                                    </select>
-                                    <p className="text-xs text-gray-400 mt-2">
-                                        This model is used by both the AI Auto-Responder addon and the AI Node in FlowBot for all users on this platform.
-                                    </p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        { model: 'gemini-2.0-flash-lite', label: 'Lite', desc: 'Free tier friendly, fast', color: 'text-emerald-500' },
-                                        { model: 'gemini-2.0-flash', label: '2.0 Flash', desc: 'Speed + quality balance', color: 'text-blue-500' },
-                                        { model: 'gemini-2.5-flash', label: '2.5 Flash', desc: 'Latest generation AI', color: 'text-violet-500' },
-                                        { model: 'gemini-2.5-pro', label: '2.5 Pro', desc: 'Highest capability', color: 'text-amber-500' },
-                                    ].map(m => (
-                                        <button
-                                            key={m.model}
-                                            type="button"
-                                            onClick={() => saveAiModel(m.model)}
-                                            className={`p-3 rounded-xl border-2 text-left transition-all ${aiModel === m.model ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/10' : 'border-gray-100 dark:border-gray-700'}`}
-                                        >
-                                            <div className={`text-sm font-bold ${m.color}`}>{m.label}</div>
-                                            <div className="text-[11px] text-gray-500">{m.desc}</div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                 </div>
 

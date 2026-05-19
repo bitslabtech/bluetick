@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { Sequelize } = require('sequelize');
 const { getIo } = require('../socket');
 const Conversation = require('../models/Conversation');
@@ -25,7 +26,7 @@ router.get('/:userId', async (req, res) => {
         const userId = req.params.userId;
 
         // Hardcoded Token
-        const verify_token = '12345678';
+        const verify_token = process.env.WEBHOOK_VERIFY_TOKEN;
 
         const mode = req.query['hub.mode'];
         const token = req.query['hub.verify_token'];
@@ -48,7 +49,31 @@ router.get('/:userId', async (req, res) => {
 });
 
 // POST /api/webhook/:userId - Receive Messages and Status Updates
-router.post('/:userId', async (req, res) => {
+router.post('/:userId', (req, res, next) => {
+    // HMAC signature verification
+    const signature = req.headers['x-hub-signature-256'];
+    if (!signature) {
+        console.warn(`[WEBHOOK] No signature provided`);
+        return res.sendStatus(403);
+    }
+    
+    const secret = process.env.FB_CLIENT_SECRET;
+    if (!secret) {
+        console.warn(`[WEBHOOK] FB_CLIENT_SECRET is not configured!`);
+        return res.sendStatus(500);
+    }
+
+    const expectedSig = 'sha256=' + crypto
+        .createHmac('sha256', secret)
+        .update(req.rawBody || JSON.stringify(req.body))
+        .digest('hex');
+
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
+        console.warn(`[WEBHOOK] Invalid signature`);
+        return res.sendStatus(403);
+    }
+    next();
+}, async (req, res) => {
     try {
         console.log('==========================================');
         console.log(`[WEBHOOK] POST /api/webhook/${req.params.userId}`);
@@ -191,6 +216,23 @@ router.post('/:userId', async (req, res) => {
                         const messageId = message.id;
                         const timestamp = message.timestamp * 1000; // Unix seconds → ms
 
+                        // ─── CTWA: Extract referral data from Meta Ad clicks ───
+                        // Meta attaches a `referral` object when a customer messages via a WhatsApp Ad
+                        const referralData = message.referral ? {
+                            source_id: message.referral.source_id,       // The Facebook Ad ID
+                            source_url: message.referral.source_url,     // URL of the ad creative
+                            source_type: message.referral.source_type,   // 'ad', 'post', etc.
+                            headline: message.referral.headline,          // Ad headline text
+                            body: message.referral.body,                  // Ad body text
+                            media_type: message.referral.media_type,      // 'image', 'video'
+                            image_url: message.referral.image_url,        // Ad image URL
+                            ctwa_clid: message.referral.ctwa_clid,        // Click tracking ID
+                        } : null;
+
+                        if (referralData) {
+                            console.log(`[WEBHOOK][CTWA] Ad referral detected! Ad ID: ${referralData.source_id} | Headline: "${referralData.headline}"`);
+                        }
+
                         let messageType = message.type;
                         let messageBody = '';
 
@@ -288,7 +330,8 @@ router.post('/:userId', async (req, res) => {
                                 type: messageType,
                                 body: messageBody,
                                 status: 'delivered',
-                                timestamp: new Date(timestamp)
+                                timestamp: new Date(timestamp),
+                                referral: referralData // CTWA: store ad referral data on the message
                             }
                         });
 
@@ -363,7 +406,16 @@ router.post('/:userId', async (req, res) => {
                                         // 1. Ensure we have the Contact
                                         let contact = await Contact.findOne({ where: { phone: contactWaId, userId } });
                                         if (!contact) {
-                                            contact = await Contact.create({ phone: contactWaId, name: contactName, userId });
+                                            contact = await Contact.create({
+                                                phone: contactWaId,
+                                                name: contactName,
+                                                userId,
+                                                // CTWA: stamp the ad source on the contact's first touch
+                                                ctwaSource: referralData || null
+                                            });
+                                            if (referralData) {
+                                                console.log(`[WEBHOOK][CTWA] New contact ${contactWaId} attributed to Ad ID: ${referralData.source_id}`);
+                                            }
                                         }
 
                                     const runner = new FlowRunner(settings, conversation, userId);

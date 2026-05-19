@@ -53,9 +53,9 @@ const LandingPage = sequelize.define('LandingPage', {
     brand: {
         type: DataTypes.JSON,
         defaultValue: {
-            name: 'WhatsApp Cloud',
+            name: 'Bluetick',
             logo: '',
-            footerText: '© 2024 WhatsApp Cloud. All rights reserved.'
+            footerText: '© 2024 Bluetick. All rights reserved.'
         }
     },
     trustedBy: {
@@ -86,7 +86,7 @@ const LandingPage = sequelize.define('LandingPage', {
     seo: {
         type: DataTypes.JSON,
         defaultValue: {
-            title: 'WhatsApp Cloud - Bulk Messaging Platform',
+            title: 'Bluetick - Bulk Messaging Platform',
             description: 'The best platform for WhatsApp marketing and automation.',
             keywords: 'whatsapp, marketing, bulk sender, automation, business api',
             ogImage: '',
@@ -151,6 +151,14 @@ const LandingPage = sequelize.define('LandingPage', {
             terms: ''
         }
     },
+    aiChatbot: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            enabled: false,
+            welcomeMessage: 'Hi there! How can I help you learn more about our platform?',
+            knowledgeBase: 'We are a powerful WhatsApp Business API platform designed to automate your marketing, sales, and customer support.'
+        }
+    },
     contactInfo: {
         type: DataTypes.JSON,
         defaultValue: {
@@ -181,13 +189,37 @@ const LandingPage = sequelize.define('LandingPage', {
             title: 'Advanced Features that drive Conversions',
             subtitle: 'Everything you need to market, sell, and support customers — all inside WhatsApp.',
             features: [
-                { id: 'broadcast', label: 'Bulk Broadcasts', tagText: 'Marketing', title: 'Import & Broadcast Instantly', desc: 'Import contacts and broadcast approved WhatsApp messages to thousands in seconds. Track delivery, read, and click rates in real-time.', stats: ['98% Open Rate', '45% CTR', '3x Revenue'], image: '' },
                 { id: 'chatbot', label: 'No-Code Flow Bots', tagText: 'Automation', title: 'Build No-Code Chatbot in Minutes', desc: 'Visual drag-and-drop flow builder for WhatsApp chatbots & product catalog journeys — no code, no complexity.', stats: ['80% Auto-resolved', '24/7 Running', '5 min Setup'], image: '' },
                 { id: 'livechat', label: 'Multi-Agent Inbox', tagText: 'Support', title: 'Shared Team Inbox for WhatsApp', desc: 'Let multiple agents handle conversations from one WhatsApp number. Smart routing, labels, quick replies, and internal notes included.', stats: ['60% Faster Support', 'Smart Routing', 'Team Collab'], image: '' },
-                { id: 'analytics', label: 'Analytics & Reports', tagText: 'Insights', title: 'Real-Time Campaign Analytics', desc: 'Monitor Read, Replied & Clicked rates live. Segment audiences by engagement and auto-retarget cold leads for maximum conversions.', stats: ['Live Dashboard', 'Campaign ROI', 'Retargeting'], image: '' },
-                { id: 'catalog', label: 'Catalog & Payments', tagText: 'Commerce', title: 'Sell Products Inside WhatsApp', desc: 'Share your full product catalog, collect orders and receive payments — all within WhatsApp. Zero-friction in-chat checkout.', stats: ['In-chat Checkout', 'UPI & Cards', '2x Orders'], image: '' },
+                { id: 'analytics_wa', label: 'Delivery Reports', tagText: 'Insights', title: 'Message Delivery & Read Rates', desc: 'Monitor exactly how many messages are sent, delivered, and read in real-time. Understand agent performance and customer engagement.', stats: ['Read Rates', 'Agent Performance', 'Engagement KPIs'], image: '' },
+                { id: 'aibot', label: 'Generative AI Bot', tagText: 'AI-Powered', title: 'Generative AI that Sells & Supports', desc: 'Train your own GPT-powered bot on product knowledge, FAQs, pricing and policies. It answers, qualifies and converts leads — 24/7, autonomously.', stats: ['GPT-4 Powered', 'Custom Training', 'Zero Hallucination'], image: '' },
+                { id: 'broadcast', label: 'Meta Ads & Broadcasts', tagText: 'Marketing', title: 'Click-to-WhatsApp (CTWA) & Bulk Broadcasts', desc: 'Launch Meta Ads that drive traffic straight to your WhatsApp inbox, and broadcast personalized campaigns to thousands instantly.', stats: ['98% Open Rate', '5x Lead Gen', '3x ROI'], image: '' },
                 { id: 'retarget', label: 'Smart Retargeting', tagText: 'Re-engagement', title: 'Retarget to 3X Conversions', desc: "Re-engage customers who didn't respond or purchase with hyper-personalized automated follow-up campaigns and smart audience segments.", stats: ['3x Conversions', 'Auto Follow-up', 'Smart Segments'], image: '' },
-                { id: 'aibot', label: 'Generative AI Bot', tagText: 'AI-Powered', title: 'Generative AI that Sells & Supports', desc: 'Train your own GPT-powered bot on product knowledge, FAQs, pricing and policies. It answers, qualifies and converts leads — 24/7, autonomously.', stats: ['GPT-4 Powered', 'Custom Training', 'Zero Hallucination'], image: '' }
+                { id: 'audience_sync', label: 'CRM Audience Sync', tagText: 'Integration', title: 'Auto-Sync Contacts to Meta', desc: 'Seamlessly sync your WhatsApp contacts and segmented CRM lists directly to Meta Custom Audiences for highly targeted Facebook & Instagram ads.', stats: ['Lookalike Sync', 'Zero Manual Export', 'High Match Rate'], image: '' },
+                
+                { id: 'analytics_meta', label: 'Ad Performance', tagText: 'Insights', title: 'Real-Time Meta Campaign Analytics', desc: 'Monitor Ad Spend, Click-to-WhatsApp conversions, and ROAS live. Track exactly which ads drive the most engaged conversations.', stats: ['Live Dashboard', 'Campaign ROI', 'Ad Spend Tracking'], image: '' },
+                { id: 'meta_lead_ads', label: 'Click-to-WhatsApp Ads', tagText: 'Advertising', title: 'Launch CTWA Ads in 1-Click', desc: 'Connect your Meta Business Manager to launch high-converting Click-to-WhatsApp ads directly from our dashboard without ever logging into Ads Manager.', stats: ['1-Click Ads', 'Auto-Sync', 'Lowest CPA'], image: '' },
+                { id: 'meta_pixel_sync', label: 'Meta Pixel Sync', tagText: 'Tracking', title: 'Send Conversions to Meta Pixel', desc: 'Automatically send WhatsApp purchases, leads, and custom events back to your Meta Pixel via Conversion API to optimize your ad delivery engine.', stats: ['CAPI Integration', 'Zero Data Loss', 'Smart Optimization'], image: '' },
+                { id: 'meta_custom_audience', label: 'Dynamic Audiences', tagText: 'Targeting', title: 'Sync WhatsApp Segments to Meta', desc: 'Automatically build highly targeted Facebook Custom Audiences by syncing WhatsApp segments (like VIP customers or abandoned carts) in real-time.', stats: ['Lookalike Sync', 'Real-time Updates', 'Higher ROAS'], image: '' },
+                { id: 'meta_catalog_sales', label: 'Advantage+ Catalog Sales', tagText: 'Commerce', title: 'Sync Store Inventory with Meta', desc: 'Keep your native Online Store catalog perfectly synced with your Meta Commerce Manager to run dynamic Advantage+ catalog sales campaigns seamlessly.', stats: ['2-Way Sync', 'Dynamic Ads', 'Auto-Updates'], image: '' },
+                { id: 'meta_ab_testing', label: 'A/B Testing', tagText: 'Optimization', title: 'A/B Test Ad Creatives & Messages', desc: 'Split-test different Facebook ad creatives against varying WhatsApp welcome messages to scientifically discover the highest converting funnel.', stats: ['Split Testing', 'Winner Selection', 'Funnel Optimization'], image: '' },
+                { id: 'meta_campaign_builder', label: 'Unified Campaign Builder', tagText: 'Strategy', title: 'AI-Powered Campaign Architect', desc: 'Generate end-to-end campaigns—from Facebook ad copy to the WhatsApp chatbot flow—using our built-in Generative AI Campaign Builder.', stats: ['AI Copywriting', 'Flow Generation', 'Instant Launch'], image: '' },
+
+                { id: 'catalog', label: 'Native Online Store', tagText: 'Commerce', title: 'Sell Products Inside WhatsApp', desc: 'Share your full product catalog, collect orders and receive payments natively within WhatsApp. Zero-friction in-chat checkout.', stats: ['In-chat Checkout', 'UPI & Cards', '2x Orders'], image: '' },
+                { id: 'cart_payment', label: 'Cart & Payments', tagText: 'Checkout', title: 'Seamless In-Chat Checkout', desc: 'Allow customers to build their cart and complete payments using UPI, credit cards, or net banking without ever leaving WhatsApp.', stats: ['UPI Supported', 'One-Click Pay', 'Zero Drops'], image: '' },
+                { id: 'order_track', label: 'Order Tracking', tagText: 'Post-Purchase', title: 'Automated Shipping Updates', desc: 'Send proactive notifications for order confirmations, shipping dispatch, and live tracking updates directly to the customer\'s inbox.', stats: ['Live Tracking', 'Auto Updates', 'High Trust'], image: '' },
+                { id: 'store_categories', label: 'Smart Categories', tagText: 'Navigation', title: 'Intelligent Product Categories', desc: 'Organize thousands of products into smart categories and collections, allowing customers to seamlessly browse your entire catalog directly inside WhatsApp.', stats: ['Nested Categories', 'Smart Search', 'Easy Browsing'], image: '' },
+                { id: 'store_orders', label: 'Order Management', tagText: 'Fulfillment', title: 'Kanban Order Dashboard', desc: 'Manage your entire fulfillment workflow with a powerful drag-and-drop Kanban dashboard. Track every order from "Placed" to "Delivered" with automatic customer notifications.', stats: ['Kanban Board', 'Auto-Updates', 'Team Access'], image: '' },
+                { id: 'store_coupons', label: 'Dynamic Coupons', tagText: 'Promotions', title: 'Native WhatsApp Promo Codes', desc: 'Create dynamic discount codes, flash sales, and BOGO offers that customers can natively apply to their cart during the seamless in-chat checkout process.', stats: ['Flash Sales', 'BOGO Offers', 'Usage Limits'], image: '' },
+                { id: 'store_invoices', label: 'Automated Invoices', tagText: 'Accounting', title: 'Instant PDF Receipts', desc: 'Automatically generate and instantly send beautiful PDF invoices and payment receipts to the customer’s WhatsApp inbox the moment a payment is confirmed.', stats: ['Tax Compliant', 'PDF Generation', 'Instant Delivery'], image: '' },
+
+                { id: 'vcard', label: 'Interactive veCards', tagText: 'Networking', title: 'Premium Digital Business Cards', desc: 'Share stunning, mobile-first interactive business cards with custom QR codes to capture leads straight into your WhatsApp CRM.', stats: ['10+ Themes', 'Custom QR', 'Direct Save'], image: '' },
+                { id: 'vcard_lead', label: 'Instant Lead Capture', tagText: 'CRM Sync', title: 'Turn Scans into WhatsApp Leads', desc: 'When someone scans your veCard QR code, their details are instantly captured and they are redirected to your WhatsApp inbox to start a conversation.', stats: ['Auto-Save Contacts', 'CRM Integration', '1-Click Connect'], image: '' },
+                { id: 'vcard_theme', label: 'Premium Themes', tagText: 'Customization', title: 'Stunning Designer Layouts', desc: 'Choose from 10+ gorgeous, mobile-optimized business card templates. Completely customize colors, fonts, and layouts to match your brand.', stats: ['10+ Themes', 'Color Customizer', 'CSS Editing'], image: '' },
+                { id: 'vcard_analytics', label: 'Profile Analytics', tagText: 'Insights', title: 'Track Scans & Link Clicks', desc: 'Get deep insights into your networking performance. Monitor total QR scans, unique profile views, and see exactly which links are getting the most engagement.', stats: ['Scan Tracking', 'Link Analytics', 'Lead Sources'], image: '' },
+                { id: 'vcard_appointments', label: 'Appointment Booking', tagText: 'Scheduling', title: 'Built-in Scheduling Calendar', desc: 'Eliminate back-and-forth emails. Let clients book appointments directly from your veCard, and receive instant booking notifications and reminders via WhatsApp.', stats: ['Time Slots', 'Auto-Reminders', 'WhatsApp Sync'], image: '' },
+                { id: 'vcard_nfc', label: 'NFC Integration', tagText: 'Hardware', title: 'Tap-to-Share NFC Compatibility', desc: 'Connect your digital profile to a physical NFC card. Share your details instantly by simply tapping your card against any modern smartphone—no app required.', stats: ['Tap-to-Share', 'No App Needed', 'Write to NFC'], image: '' },
+                { id: 'vcard_domain', label: 'Custom Domains', tagText: 'Branding', title: 'White-Label Custom Domains', desc: 'Elevate your personal brand by hosting your veCard on your own custom domain (e.g., card.yourbrand.com) rather than a generic platform URL.', stats: ['SSL Included', 'White-Label', 'DNS Mapping'], image: '' }
             ]
         }
     },

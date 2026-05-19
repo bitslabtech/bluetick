@@ -73,7 +73,7 @@ export default function Team() {
     useEffect(() => {
         const checkUserStatus = async () => {
             try {
-                const res = await axios.get('http://127.0.0.1:5000/api/auth/me', {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
                 const liveUser = res.data;
@@ -94,7 +94,7 @@ export default function Team() {
 
         checkUserStatus();
 
-        const socket = io('http://127.0.0.1:5000', {
+        const socket = io(`${import.meta.env.VITE_API_URL}`, {
             transports: ['websocket'],
             autoConnect: true
         });
@@ -126,7 +126,7 @@ export default function Team() {
         }
 
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/team', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/team`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             setTeam(res.data.members || []);
@@ -171,7 +171,7 @@ export default function Team() {
     const handleGenerateInvite = async () => {
         setGenerating(true);
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/team/invite', {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/team/invite`, {
                 role: formRole,
                 permissions: formPermissions,
                 teamPolicy: {
@@ -194,7 +194,7 @@ export default function Team() {
     const handleUpdateMember = async () => {
         if (!editingMember) return;
         try {
-            await axios.put(`http://127.0.0.1:5000/api/team/${editingMember.id}/permissions`, {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/team/${editingMember.id}/permissions`, {
                 role: formRole,
                 permissions: formPermissions,
                 teamPolicy: {
@@ -233,7 +233,7 @@ export default function Team() {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/team/${memberId}`, {
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/team/${memberId}`, {
                         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                     });
                     showToast({ type: 'success', message: 'Member removed successfully.' });

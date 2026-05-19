@@ -64,6 +64,11 @@ const Message = sequelize.define('Message', {
         type: DataTypes.UUID,
         allowNull: true,
         comment: 'Tracks the specific team member who created this resource'
+    },
+    referral: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+        comment: 'CTWA referral data from Meta (source_id=ad_id, headline, source_type, source_url, body, media_type, image_url, ctwa_clid)'
     }
 }, {
     timestamps: true,

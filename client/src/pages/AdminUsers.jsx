@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Trash2, MoreVertical, History, Edit, Eye, Clock, ShieldCheck, User, ChevronDown, ChevronUp, Settings, Plus } from 'lucide-react';
+import { Trash2, MoreVertical, History, Edit, Eye, Clock, ShieldCheck, User, ChevronDown, ChevronUp, Settings, Plus, CreditCard, Activity, Server, DollarSign, Calendar, MapPin, Hash, Share2, Package, Layers, Zap, ExternalLink, Users, Store } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import AdminHeader from '../components/AdminHeader';
@@ -24,6 +24,11 @@ const AdminUsers = () => {
     const [isTrialModalOpen, setIsTrialModalOpen] = useState(false);
     const [historyLogs, setHistoryLogs] = useState([]);
     const [editingUser, setEditingUser] = useState(null);
+    
+    // View User State
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [viewUserDetails, setViewUserDetails] = useState(null);
+    const [detailsLoading, setDetailsLoading] = useState(false);
 
     // Fetch Users
     useEffect(() => {
@@ -31,8 +36,8 @@ const AdminUsers = () => {
         const fetchUsers = async () => {
             try {
                 const [usersRes, plansRes] = await Promise.all([
-                    axios.get('http://127.0.0.1:5000/api/admin/users'),
-                    axios.get('http://127.0.0.1:5000/api/plans')
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users`),
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/plans`)
                 ]);
 
                 if (Array.isArray(usersRes.data)) {
@@ -60,7 +65,7 @@ const AdminUsers = () => {
     const handleDelete = async () => {
         if (!deleteId) return;
         try {
-            await axios.delete(`http://127.0.0.1:5000/api/admin/users/${deleteId}`);
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/admin/users/${deleteId}`);
             setUsers(users.filter(u => u.id !== deleteId));
             setDeleteId(null);
         } catch (err) {
@@ -95,7 +100,7 @@ const AdminUsers = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    const res = await axios.post(`http://127.0.0.1:5000/api/admin/users/${targetUser.id}/impersonate`);
+                    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/users/${targetUser.id}/impersonate`);
                     const { token, user } = res.data;
 
                     // impersonate() swaps tokens in localStorage and does window.location.href
@@ -116,7 +121,7 @@ const AdminUsers = () => {
 
     const handleHistory = async (targetUser) => {
         try {
-            const res = await axios.get(`http://127.0.0.1:5000/api/admin/users/${targetUser.id}/impersonation-history`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users/${targetUser.id}/impersonation-history`);
             setHistoryLogs(res.data);
             setEditingUser(targetUser); // Reuse this state just to track which user we are viewing
             setIsHistoryOpen(true);
@@ -129,6 +134,29 @@ const AdminUsers = () => {
                 message: 'Failed to load history.',
                 confirmText: 'Close'
             });
+        }
+    };
+
+    const handleViewUser = async (targetUser) => {
+        setEditingUser(targetUser);
+        setViewUserDetails(null);
+        setIsViewModalOpen(true);
+        setDetailsLoading(true);
+        setActiveMenu(null);
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users/${targetUser.id}/details`);
+            setViewUserDetails(res.data);
+        } catch (err) {
+            console.error("Failed to load user details", err);
+            showModal({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to load details.',
+                confirmText: 'Close'
+            });
+            setIsViewModalOpen(false);
+        } finally {
+            setDetailsLoading(false);
         }
     };
 
@@ -153,11 +181,11 @@ const AdminUsers = () => {
         try {
             if (editingUser) {
                 // Update
-                const res = await axios.put(`http://127.0.0.1:5000/api/admin/users/${editingUser.id}`, formData);
+                const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/admin/users/${editingUser.id}`, formData);
                 setUsers(users.map(u => u.id === editingUser.id ? res.data : u));
             } else {
                 // Create
-                const res = await axios.post('http://127.0.0.1:5000/api/admin/users', formData);
+                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/users`, formData);
                 setUsers([res.data, ...users]);
             }
             setIsModalOpen(false);
@@ -174,7 +202,7 @@ const AdminUsers = () => {
 
     const handleGrantTrial = async (planName) => {
         try {
-            const res = await axios.post(`http://127.0.0.1:5000/api/admin/users/${editingUser.id}/grant-trial`, { planName });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/users/${editingUser.id}/grant-trial`, { planName });
             setUsers(users.map(u => u.id === editingUser.id ? { ...u, plan: res.data.user.plan, planStatus: res.data.user.planStatus, planExpiry: res.data.user.planExpiry } : u));
             setIsTrialModalOpen(false);
             showModal({
@@ -314,10 +342,14 @@ const AdminUsers = () => {
 
                                             {/* Actions */}
                                             <td className="px-6 py-4 relative">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        // Calculate position
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button onClick={() => handleViewUser(u)} className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold px-3 shadow-sm border border-blue-200 dark:border-blue-800">
+                                                        <Eye className="w-4 h-4" /> View
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // Calculate position
                                                         const rect = e.currentTarget.getBoundingClientRect();
                                                         setActiveMenu(activeMenu?.id === u.id ? null : {
                                                             id: u.id,
@@ -329,6 +361,7 @@ const AdminUsers = () => {
                                                 >
                                                     <MoreVertical className="w-5 h-5" />
                                                 </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -496,6 +529,18 @@ const AdminUsers = () => {
                         plans={availablePlans.filter(p => p.trialDays && p.trialDays > 0)}
                         onClose={() => setIsTrialModalOpen(false)}
                         onSave={handleGrantTrial}
+                    />
+                )
+            }
+
+            {/* View User Modal */}
+            {
+                isViewModalOpen && (
+                    <ViewUserModal 
+                        user={editingUser} 
+                        details={viewUserDetails} 
+                        loading={detailsLoading} 
+                        onClose={() => setIsViewModalOpen(false)} 
                     />
                 )
             }
@@ -741,6 +786,258 @@ const GrantTrialModal = ({ user, plans, onClose, onSave }) => {
                          <button onClick={onClose} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg text-sm">Close</button>
                      </div>
                 )}
+            </div>
+        </div>
+    );
+};
+
+// ════════════════════════════════════════════
+// VIEW USER MODAL (Tabbed)
+// ════════════════════════════════════════════
+const ViewUserModal = ({ user, details, loading, onClose }) => {
+    const [activeTab, setActiveTab] = useState('profile');
+
+    const tabs = [
+        { id: 'profile', label: 'Profile', icon: User },
+        { id: 'usage', label: 'Usage & Quotas', icon: Activity },
+        { id: 'purchases', label: 'Purchases', icon: CreditCard },
+        { id: 'referrals', label: 'Referrals', icon: Share2 }
+    ];
+
+    // Helpers
+    const formatBytes = (bytes, decimals = 2) => {
+        if (!+bytes) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white dark:bg-surface-dark rounded-[24px] shadow-2xl max-w-5xl w-full h-[85vh] min-h-[600px] max-h-[900px] flex flex-col md:flex-row overflow-hidden border border-slate-200 dark:border-white/10">
+                
+                {/* ────── SIDEBAR TABS ────── */}
+                <div className="w-full md:w-64 bg-slate-50 dark:bg-black/20 border-b md:border-b-0 md:border-r border-slate-200 dark:border-white/10 flex flex-col shrink-0">
+                    <div className="p-6">
+                        <h3 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight truncate">
+                            {user?.name || 'Loading...'}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-emerald-500"/> {user?.plan || 'Free Plan'}</p>
+                    </div>
+                    <div className="flex-1 overflow-x-auto md:overflow-y-auto px-4 pb-4 flex md:flex-col gap-2 no-scrollbar">
+                        {tabs.map(tab => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm whitespace-nowrap md:whitespace-normal text-left ${
+                                        isActive 
+                                            ? 'bg-white dark:bg-surface-dark text-[#0088cc] shadow-sm border border-slate-200 dark:border-white/10' 
+                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-white/5 border border-transparent'
+                                    }`}
+                                >
+                                    <Icon className={`w-5 h-5 ${isActive ? 'text-[#0088cc]' : 'text-slate-400'}`} />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* ────── MAIN CONTENT AREA ────── */}
+                <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-surface-dark relative">
+                    
+                    {loading && (
+                        <div className="absolute inset-0 z-10 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0088cc]"></div>
+                            <p className="mt-4 text-slate-600 dark:text-slate-400 font-medium">Fetching deep user metrics...</p>
+                        </div>
+                    )}
+
+                    <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                        
+                        {/* ════ PROFILE TAB ════ */}
+                        {activeTab === 'profile' && details && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div>
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Identity Overview</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                                            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Email</p>
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-white break-all">{details.user?.email}</p>
+                                        </div>
+                                        <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                                            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Company</p>
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{details.user?.company || 'N/A'}</p>
+                                        </div>
+                                        <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                                            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Phone</p>
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{details.user?.phone || 'N/A'}</p>
+                                        </div>
+                                        <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                                            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Role</p>
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{details.user?.isAdmin ? 'Superadmin' : 'User'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Account Status</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                                            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Join Date</p>
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{formatDate(details.user?.createdAt)}</p>
+                                        </div>
+                                        <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                                            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Last Login</p>
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{formatDate(details.user?.lastLogin)}</p>
+                                        </div>
+                                        <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                                            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Plan Expiry</p>
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{formatDate(details.user?.planExpiry)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ════ USAGE TAB ════ */}
+                        {activeTab === 'usage' && details && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div>
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">SaaS Usage Metrics</h4>
+                                    <p className="text-sm text-slate-500 mb-6">Total assets and resources generated by this user.</p>
+                                    
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center">
+                                            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center mb-3"><Users className="w-6 h-6"/></div>
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white">{details.usage?.contactsCount}</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase mt-1">Contacts</p>
+                                        </div>
+                                        
+                                        <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center">
+                                            <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center mb-3"><ExternalLink className="w-6 h-6"/></div>
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white">{details.usage?.campaignsCount}</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase mt-1">Campaigns</p>
+                                        </div>
+                                        
+                                        <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center">
+                                            <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 flex items-center justify-center mb-3"><Zap className="w-6 h-6"/></div>
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white">{details.usage?.totalAiTokens}</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase mt-1">AI Tokens Used</p>
+                                        </div>
+
+                                        <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center">
+                                            <div className="w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 flex items-center justify-center mb-3"><CreditCard className="w-6 h-6"/></div>
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white">{details.usage?.vcardsCount}</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase mt-1">veCards Built</p>
+                                        </div>
+
+                                        <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center">
+                                            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center mb-3"><Store className="w-6 h-6"/></div>
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white">{details.usage?.waStoreCount}</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase mt-1">Stores Built</p>
+                                        </div>
+
+                                        <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center relative overflow-hidden group">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 group-hover:from-indigo-500/10 group-hover:to-purple-500/10 transition-colors"></div>
+                                            <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center mb-3 relative z-10"><Server className="w-6 h-6"/></div>
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white relative z-10">{formatBytes(details.usage?.storageUsed)}</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase mt-1 relative z-10">Disk Storage</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ════ PURCHASES TAB ════ */}
+                        {activeTab === 'purchases' && details && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div>
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Transaction History</h4>
+                                    
+                                    {details.purchases?.length === 0 ? (
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-8 text-center border border-slate-200 dark:border-white/10">
+                                            <DollarSign className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                                            <p className="text-slate-500 font-medium">No purchase history found for this user.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-slate-50 dark:bg-white/5 text-slate-500 uppercase text-xs font-bold">
+                                                    <tr>
+                                                        <th className="px-4 py-3">Date</th>
+                                                        <th className="px-4 py-3">Plan/Item</th>
+                                                        <th className="px-4 py-3">Amount</th>
+                                                        <th className="px-4 py-3">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                                    {details.purchases?.map((tx, i) => (
+                                                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{formatDate(tx.createdAt)}</td>
+                                                            <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{tx.planName}</td>
+                                                            <td className="px-4 py-3 font-bold text-emerald-600">{tx.currency} {tx.amount}</td>
+                                                            <td className="px-4 py-3">
+                                                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                                                    tx.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                                                                }`}>
+                                                                    {tx.status}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ════ REFERRALS TAB ════ */}
+                        {activeTab === 'referrals' && details && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+                                    <h4 className="text-lg font-bold mb-1 opacity-90">Affiliate / Referrals</h4>
+                                    <p className="text-sm opacity-80 mb-6">Users who registered using this account's referral link.</p>
+                                    
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-4xl font-black">{details.referralsCount}</p>
+                                            <p className="text-sm font-medium opacity-90 mt-1">Total Referees Joined</p>
+                                        </div>
+                                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                                            <Share2 className="w-8 h-8 text-white" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl border border-amber-200 dark:border-amber-800/30 text-sm">
+                                    Detailed referral breakdown and commission history is available via the Tech Partner / Affiliate manager section.
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+
+                    {/* ────── FOOTER ACTION BAR ────── */}
+                    <div className="p-4 md:p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex justify-end shrink-0">
+                        <button type="button" onClick={onClose} className="px-8 py-2.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
+                            Close Profile
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

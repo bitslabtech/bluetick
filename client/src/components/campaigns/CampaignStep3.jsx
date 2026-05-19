@@ -174,12 +174,12 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
             try {
                 let dbCount = 0;
                 if (data.recipients?.includes('all')) {
-                    const res = await axios.get('http://127.0.0.1:5000/api/contacts/campaign-summary', {
+                    const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/campaign-summary`, {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                     });
                     dbCount = parseInt(res.data.totalContacts, 10) || 0;
                 } else if (data.recipients?.length > 0) {
-                    const res = await axios.get('http://127.0.0.1:5000/api/contacts/campaign-summary', {
+                    const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/campaign-summary`, {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                     });
                     let sum = 0;
@@ -244,7 +244,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         const fd = new FormData();
         fd.append('file', file);
         const token = localStorage.getItem('token');
-        const res = await axios.post('http://127.0.0.1:5000/api/templates/upload-message-media', fd, {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload-message-media`, fd, {
             headers: {
                 'Content-Type': 'multipart/form-data',
                 'Authorization': `Bearer ${token}`

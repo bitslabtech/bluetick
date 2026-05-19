@@ -4,6 +4,7 @@ const multerS3 = require('multer-s3');
 const fs = require('fs');
 const path = require('path');
 const SystemConfig = require('../models/SystemConfig');
+const User = require('../models/User');
 
 const createUploader = async (folderName) => {
     const config = await SystemConfig.getCachedConfig();
@@ -13,6 +14,10 @@ const createUploader = async (folderName) => {
         const s3Conf = storageConfig.s3;
         const endpoint = s3Conf.endpoint ? (s3Conf.endpoint.startsWith('http') ? s3Conf.endpoint : `https://${s3Conf.endpoint}`) : undefined;
         
+        const forcePathStyleVal = s3Conf.forcePathStyle !== undefined 
+            ? (s3Conf.forcePathStyle === 'true' || s3Conf.forcePathStyle === true) 
+            : !!endpoint; // fallback to !!endpoint if not explicitly set
+
         const s3Client = new S3Client({
             region: s3Conf.region || 'us-east-1',
             credentials: {
@@ -20,13 +25,13 @@ const createUploader = async (folderName) => {
                 secretAccessKey: s3Conf.secretAccessKey,
             },
             endpoint: endpoint,
-            forcePathStyle: !!endpoint // Required for Wasabi / MinIO / DigitalOcean Spaces
+            forcePathStyle: forcePathStyleVal // Required for Wasabi / MinIO / DigitalOcean Spaces
         });
 
         const storage = multerS3({
             s3: s3Client,
             bucket: s3Conf.bucket,
-            acl: 'public-read',
+            acl: s3Conf.acl || 'public-read',
             contentType: multerS3.AUTO_CONTENT_TYPE,
             metadata: function (req, file, cb) {
                 cb(null, { fieldName: file.fieldname });
@@ -40,7 +45,7 @@ const createUploader = async (folderName) => {
         });
         return { uploader: multer({ storage, limits: { fileSize: 200 * 1024 * 1024 } }), type: 's3', parsedConfig: s3Conf };
     } else {
-        const uploadDir = path.join(__dirname, '../../public/uploads', folderName || '');
+        const uploadDir = path.join(__dirname, '../public/uploads', folderName || '');
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
@@ -64,7 +69,7 @@ const storageProvider = (folderName) => {
             return async (req, res, next) => {
                 try {
                     const { uploader, type, parsedConfig } = await createUploader(folderName);
-                    uploader.single(fieldName)(req, res, (err) => {
+                    uploader.single(fieldName)(req, res, async (err) => {
                         if (err) return next(err);
                         
                         // Wait if there is no file uploaded (optional fields)
@@ -83,6 +88,18 @@ const storageProvider = (folderName) => {
                                 const host = req.headers['x-forwarded-host'] || req.get('host');
                                 const subPath = folderName ? `${folderName}/${req.file.filename}` : req.file.filename;
                                 req.file.publicUrl = `${protocol}://${host}/uploads/${subPath}`;
+                            }
+
+                            // Increment User Storage if authenticated
+                            if (req.user && req.user.id && req.file.size) {
+                                try {
+                                    await User.increment('storageUsed', { 
+                                        by: req.file.size, 
+                                        where: { id: req.user.id } 
+                                    });
+                                } catch(e) {
+                                    console.error("Storage Tracking Error:", e);
+                                }
                             }
                         }
                         

@@ -16,7 +16,7 @@ import QuickReplySuggestions from '../components/QuickReplySuggestions';
 import ContactInfoPanel from '../components/ContactInfoPanel';
 import AssignAgentPopover from '../components/AssignAgentPopover';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 // Notification sound (simple beep via AudioContext)
 const playNotificationSound = () => {
@@ -857,9 +857,15 @@ const WhatsAppInbox = () => {
                         </div>
                         <div>
                             <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">{user?.name}</p>
-                            {totalUnread > 0 && (
-                                <p className="text-xs text-green-600 dark:text-green-400">{totalUnread} unread</p>
-                            )}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{conversations.length} Chat{conversations.length !== 1 ? 's' : ''}</p>
+                                {totalUnread > 0 && (
+                                    <>
+                                        <span className="text-slate-300 dark:text-white/10 text-[10px]">•</span>
+                                        <p className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider">{totalUnread} Unread</p>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <button
@@ -1547,9 +1553,24 @@ const WhatsAppInbox = () => {
                                     Send campaigns to engage with your contacts.
                                 </p>
                                 {conversations.length > 0 && (
-                                    <p className="text-xs text-slate-400 dark:text-slate-500 bg-white/50 dark:bg-white/5 px-4 py-2 rounded-full">
-                                        {conversations.length} conversation{conversations.length !== 1 ? 's' : ''} â€¢ {totalUnread} unread
-                                    </p>
+                                    <div className="flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
+                                        <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">
+                                            Inbox Overview
+                                        </p>
+                                        <div className="flex items-center gap-4 bg-white/80 dark:bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm">
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-lg font-bold text-slate-900 dark:text-white">{conversations.length}</span>
+                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</span>
+                                            </div>
+                                            <div className="w-px h-8 bg-slate-200 dark:bg-white/10" />
+                                            <div className="flex flex-col items-center">
+                                                <span className={`text-lg font-bold ${totalUnread > 0 ? 'text-green-600 dark:text-green-400' : 'text-slate-900 dark:text-white'}`}>
+                                                    {totalUnread}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Unread</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         )}

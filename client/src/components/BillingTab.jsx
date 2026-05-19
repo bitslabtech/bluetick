@@ -17,10 +17,10 @@ const BillingTab = () => {
     const fetchBillingData = async () => {
         try {
             const [infoRes, invoicesRes] = await Promise.all([
-                axios.get('http://127.0.0.1:5000/api/billing', {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/billing`, {
                     headers: { 'x-auth-token': localStorage.getItem('token') }
                 }),
-                axios.get('http://127.0.0.1:5000/api/billing/invoices', {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/billing/invoices`, {
                     headers: { 'x-auth-token': localStorage.getItem('token') }
                 })
             ]);

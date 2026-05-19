@@ -34,7 +34,7 @@ const Campaigns = () => {
 
     useEffect(() => {
         if (user?.id) {
-            axios.get('http://127.0.0.1:5000/api/dashboard/stats', {
+            axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/stats`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             }).then(res => {
                 setIsConfigured(res.data.isWhatsappConfigured);
@@ -73,7 +73,7 @@ const Campaigns = () => {
                 ...payload,
                 name: campaignData.name
             };
-            await axios.post('http://127.0.0.1:5000/api/messages/send', finalPayload);
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/messages/send`, finalPayload);
 
             showModal({
                 type: 'success',

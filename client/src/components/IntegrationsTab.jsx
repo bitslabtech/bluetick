@@ -46,15 +46,15 @@ const IntegrationsTab = () => {
             const headers = { 'x-auth-token': token };
 
             // Fetch Market Data (which should be public or accessible by all logged-in users)
-            const addonsRes = await axios.get('http://127.0.0.1:5000/api/addons', { headers });
+            const addonsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/addons`, { headers });
             setAddons(addonsRes.data.addons || []);
             setUserAddons(addonsRes.data.userAddons || []);
 
             // Attempt to fetch secure Developer Data
-            const keysRes = await axios.get('http://127.0.0.1:5000/api/integrations/keys', { headers });
+            const keysRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/integrations/keys`, { headers });
             setApiKeys(keysRes.data);
 
-            const webhooksRes = await axios.get('http://127.0.0.1:5000/api/integrations/webhooks', { headers });
+            const webhooksRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/integrations/webhooks`, { headers });
             setWebhooks(webhooksRes.data);
 
         } catch (error) {
@@ -75,7 +75,7 @@ const IntegrationsTab = () => {
             // NOTE: This calls /v1/usage authenticated via session token passed as x-api-key
             // In the real flow, a client would use their sk_live_ key. Here in the dashboard
             // we use a special dashboard proxy endpoint that resolves usage for the logged-in user.
-            const res = await axios.get('http://127.0.0.1:5000/api/integrations/usage', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/integrations/usage`, {
                 headers: { 'x-auth-token': token }
             });
             setUsageData(res.data);
@@ -94,7 +94,7 @@ const IntegrationsTab = () => {
         
         setIsGeneratingKey(true);
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/integrations/keys', 
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/integrations/keys`, 
                 { label: newKeyLabel }, 
                 { headers: { 'x-auth-token': localStorage.getItem('token') } }
             );
@@ -147,7 +147,7 @@ const IntegrationsTab = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/integrations/keys/${id}`, {
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/integrations/keys/${id}`, {
                         headers: { 'x-auth-token': localStorage.getItem('token') }
                     });
                     setApiKeys(apiKeys.filter(k => k.id !== id));
@@ -168,7 +168,7 @@ const IntegrationsTab = () => {
         
         setIsCreatingWebhook(true);
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/integrations/webhooks', 
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/integrations/webhooks`, 
                 { url: newWebhookUrl, events: selectedEvents }, 
                 { headers: { 'x-auth-token': localStorage.getItem('token') } }
             );
@@ -185,7 +185,7 @@ const IntegrationsTab = () => {
 
     const handleDeleteWebhook = async (id) => {
         try {
-            await axios.delete(`http://127.0.0.1:5000/api/integrations/webhooks/${id}`, {
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/integrations/webhooks/${id}`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             setWebhooks(webhooks.filter(w => w.id !== id));

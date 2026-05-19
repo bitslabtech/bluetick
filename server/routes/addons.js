@@ -140,8 +140,12 @@ router.post('/:id/create-order', async (req, res) => {
             return res.status(400).json({ error: 'You already own this add-on' });
         }
 
-        // If it's a FREE add-on, activate instantly without Stripe/Razorpay
-        if (!addon.price || parseFloat(addon.price) === 0) {
+        const SystemConfig = require('../models/SystemConfig');
+        const sysConfig = await SystemConfig.getConfig();
+        const isGodMode = sysConfig?.settings?.linkedAdminUserId === req.user.id || req.user.plan === 'System CRM';
+
+        // If it's a FREE add-on OR user is the System CRM account, activate instantly without Stripe/Razorpay
+        if (!addon.price || parseFloat(addon.price) === 0 || isGodMode) {
             let nextEnd = null;
             if (addon.isRecurring && addon.recurringInterval) {
                 const now = new Date();

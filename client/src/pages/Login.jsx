@@ -46,7 +46,7 @@ const Login = () => {
                         )}
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 min-h-[1.75rem]">
-                        {!publicSettingsLoading && (publicSettings?.appName || 'WhatsApp Cloud')}
+                        {!publicSettingsLoading && (publicSettings?.appName || 'Bluetick')}
                     </h2>
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
                         Welcome Back

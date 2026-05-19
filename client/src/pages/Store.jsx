@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 import ThemeToggle from '../components/ThemeToggle';
 
-const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 // Load Razorpay script
 const loadRazorpayScript = () =>
@@ -82,7 +82,7 @@ const StorePage = () => {
                 key: orderData.keyId,
                 amount: orderData.amount,
                 currency: orderData.currency,
-                name: 'WhatsApp Cloud Store',
+                name: 'Bluetick Store',
                 description: `Purchase: ${item.name}`,
                 order_id: orderData.orderId,
                 prefill: {

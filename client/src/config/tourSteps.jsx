@@ -2,7 +2,7 @@
 export const tourSteps = [
     {
         target: 'body',
-        content: '🎉 Welcome to WhatsApp Cloud! Let\'s take a quick 2-minute tour to get you started.',
+        content: '🎉 Welcome to Bluetick! Let\'s take a quick 2-minute tour to get you started.',
         placement: 'center',
         disableBeacon: true,
     },

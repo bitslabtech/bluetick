@@ -5,6 +5,8 @@ const { Op } = require('sequelize');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const logActivity = require('../utils/logger');
+const cacheManager = require('../utils/cacheManager');
+const _publicPlansCache = cacheManager.createSimpleCache('public_plans', 60_000);
 
 // GET All Plans (Admin - shows all plans)
 router.get('/', async (req, res) => {
@@ -22,6 +24,9 @@ router.get('/', async (req, res) => {
 // GET Public Plans Only (for landing page pricing)
 router.get('/public', async (req, res) => {
     try {
+        const cached = _publicPlansCache.get();
+        if (cached) return res.json(cached);
+
         const plans = await Plan.findAll({
             where: {
                 isPublic: true,
@@ -29,6 +34,7 @@ router.get('/public', async (req, res) => {
             },
             order: [['price', 'ASC']]
         });
+        _publicPlansCache.set(plans);
         res.json(plans);
     } catch (err) {
         console.error("Fetch Public Plans Error:", err);
@@ -63,7 +69,8 @@ router.post('/', async (req, res) => {
             name, description, price, monthlyPrice, halfYearlyPrice, yearlyPrice, currency, interval, 
             features, color, isPopular, isActive, isDefault, isPublic, messageLimit, contactLimit, 
             templateLimit, aiTokensAllowance, includedAddons, teamMemberLimit, allowApiAccess, trialDays,
-            quickReplyLimit, tagLimit, groupLimit
+            quickReplyLimit, tagLimit, groupLimit, allowCtwaAnalytics, allowMetaAds,
+            allowVcard, vcardLimit
         } = req.body;
 
         if (!name) return res.status(400).json({ error: 'Plan name is required' });
@@ -100,9 +107,16 @@ router.post('/', async (req, res) => {
             isPopular,
             isActive,
             allowApiAccess: allowApiAccess || false,
+            allowCtwaAnalytics: allowCtwaAnalytics || false,
+            allowMetaAds: allowMetaAds || false,
+            allowVcard: allowVcard || false,
+            vcardLimit: vcardLimit || 0,
             isDefault: isDefault || false,
             isPublic: isPublic !== undefined ? isPublic : true
         });
+
+        // Invalidate public plans cache
+        cacheManager.invalidate('public_plans');
 
         // Log Activity
         await logActivity(req, 'Plan Created', `Admin created plan: ${name} (${price} ${currency})${isDefault ? ' [DEFAULT]' : ''}`);
@@ -130,6 +144,9 @@ router.put('/:id', async (req, res) => {
 
         await plan.update(req.body);
 
+        // Invalidate public plans cache
+        cacheManager.invalidate('public_plans');
+
         // Log Activity
         await logActivity(req, 'Plan Updated', `Admin updated plan: ${plan.name}${plan.isDefault ? ' [DEFAULT]' : ''}`);
 
@@ -148,6 +165,9 @@ router.delete('/:id', async (req, res) => {
 
         const name = plan.name;
         await plan.destroy();
+
+        // Invalidate public plans cache
+        cacheManager.invalidate('public_plans');
 
         // Log Activity
         await logActivity(req, 'Plan Deleted', `Admin deleted plan: ${name}`);

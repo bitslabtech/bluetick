@@ -20,7 +20,7 @@ const AdminAlerts = () => {
 
     const fetchNotifications = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/admin-notifications');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin-notifications`);
             setNotifications(res.data.notifications || []);
         } catch (err) {
             console.error("Error fetching notifications:", err);
@@ -31,7 +31,7 @@ const AdminAlerts = () => {
 
     const handleMarkRead = async (id) => {
         try {
-            await axios.put(`http://127.0.0.1:5000/api/admin-notifications/${id}/read`);
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/admin-notifications/${id}/read`);
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
         } catch (err) {
             showToast('Failed to mark read', 'error');
@@ -40,7 +40,7 @@ const AdminAlerts = () => {
 
     const handleMarkAllRead = async () => {
         try {
-            await axios.put('http://127.0.0.1:5000/api/admin-notifications/read-all');
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/admin-notifications/read-all`);
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             showToast('All marked as read', 'success');
         } catch (err) {
@@ -51,7 +51,7 @@ const AdminAlerts = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Delete this notification?")) return;
         try {
-            await axios.delete(`http://127.0.0.1:5000/api/admin-notifications/${id}`);
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/admin-notifications/${id}`);
             setNotifications(prev => prev.filter(n => n.id !== id));
             showToast('Notification deleted', 'success');
         } catch (err) {
@@ -62,7 +62,7 @@ const AdminAlerts = () => {
     const handleClearAll = async () => {
         if (!window.confirm("Are you sure you want to delete ALL notifications? This cannot be undone.")) return;
         try {
-            await axios.delete('http://127.0.0.1:5000/api/admin-notifications/clear-all');
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/admin-notifications/clear-all`);
             setNotifications([]);
             showToast('All notifications cleared', 'success');
         } catch (err) {
@@ -138,9 +138,14 @@ const AdminAlerts = () => {
                                             <p className={`text-sm font-medium ${!n.isRead ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300'}`}>
                                                 {n.message}
                                             </p>
-                                            <span className="text-xs text-slate-400 whitespace-nowrap ml-2">
-                                                {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                                            </span>
+                                            <div className="flex flex-col items-end whitespace-nowrap ml-2">
+                                                <span className="text-xs font-medium text-slate-400">
+                                                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 mt-0.5">
+                                                    {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-2 mt-2">
                                             <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-white/10 text-slate-500 uppercase font-bold tracking-wider">

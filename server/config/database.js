@@ -16,11 +16,13 @@ async function createDbIfNotExists() {
 
     try {
         await client.connect();
-        const res = await client.query(`SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'`);
+        const res = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [DB_NAME]);
         if (res.rowCount === 0) {
             console.log(`Database ${DB_NAME} not found. Creating...`);
-            await client.query(`CREATE DATABASE "${DB_NAME}"`);
-            console.log(`Database ${DB_NAME} created successfully.`);
+            // Sanitize DB_NAME to prevent SQL injection in CREATE DATABASE (which doesn't support parameters)
+            const safeDbName = DB_NAME.replace(/[^a-zA-Z0-9_]/g, '');
+            await client.query(`CREATE DATABASE "${safeDbName}"`);
+            console.log(`Database ${safeDbName} created successfully.`);
         } else {
             console.log(`Database ${DB_NAME} already exists.`);
         }

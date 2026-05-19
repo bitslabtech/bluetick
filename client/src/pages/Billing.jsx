@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
-    Sparkles, Zap, Check, MessageSquare, Users, Layout,
+    Sparkles, Zap, Check, X, MessageSquare, Users, Layout,
     Clock, TrendingUp, Shield, ChevronRight, RefreshCw, Menu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 // Color themes for plan cards
 const PLAN_THEMES = {
@@ -173,6 +173,28 @@ const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) 
                                 {f}
                             </div>
                         ))}
+                        {plan.allowWaStore ? (
+                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                Online Store Builder (Limit: {plan.waStoreLimit})
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
+                                <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                                <span>Online Store Builder</span>
+                            </div>
+                        )}
+                        {plan.allowVcard ? (
+                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                Digital veCards (Limit: {plan.vcardLimit})
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
+                                <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                                <span>Digital veCards</span>
+                            </div>
+                        )}
                     </div>
                 )}
 

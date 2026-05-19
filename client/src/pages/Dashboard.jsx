@@ -9,8 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
-import UserDropdown from '../components/UserDropdown';
-import ThemeToggle from '../components/ThemeToggle';
+import TopHeader from '../components/TopHeader';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
@@ -54,27 +53,7 @@ const Dashboard = () => {
     const [customStart, setCustomStart] = useState(new Date(new Date().setDate(new Date().getDate() - 7)));
     const [customEnd, setCustomEnd] = useState(new Date());
 
-    // Notification State
-    const [notifications, setNotifications] = useState([]);
-    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
-
-    const fetchNotifications = useCallback(async () => {
-        try {
-            const res = await axios.get('http://127.0.0.1:5000/api/notifications');
-            setNotifications(res.data);
-            if (!isNotificationsOpen) {
-                setUnreadCount(res.data.length);
-            }
-        } catch (err) {
-            console.error("Error loading notifications:", err);
-        }
-    }, [isNotificationsOpen]);
-
     useEffect(() => {
-        fetchNotifications();
-        // Poll every 5 seconds for live updates
-        const interval = setInterval(fetchNotifications, 5000);
 
         // Initialize Facebook JS SDK for Connect Button
         if (window.FB) {
@@ -83,7 +62,7 @@ const Dashboard = () => {
             console.log('Loading FB SDK...');
             window.fbAsyncInit = function () {
                 window.FB.init({
-                    appId: import.meta.env.VITE_FB_APP_ID, // Ensure this is in your .env
+                    appId: import.meta.env.VITE_FB_APP_ID,
                     cookie: true,
                     xfbml: true,
                     version: 'v22.0'
@@ -99,21 +78,12 @@ const Dashboard = () => {
                 fjs.parentNode.insertBefore(js, fjs);
             }(document, 'script', 'facebook-jssdk'));
         }
-
-        return () => clearInterval(interval);
-    }, [fetchNotifications]);
-
-    // Also fetch when opening to be sure
-    useEffect(() => {
-        if (isNotificationsOpen) {
-            fetchNotifications();
-        }
-    }, [isNotificationsOpen, fetchNotifications]);
+    }, []);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await axios.get(`http://127.0.0.1:5000/api/dashboard/stats?range=${dateRange}${dateRange === 'custom' ? `&startDate=${customStart.toISOString()}&endDate=${customEnd.toISOString()}` : ''}`);
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/stats?range=${dateRange}${dateRange === 'custom' ? `&startDate=${customStart.toISOString()}&endDate=${customEnd.toISOString()}` : ''}`);
                 // Handle both old and new backend response structures to prevent crash
                 setStats(prev => ({
                     ...prev,
@@ -145,7 +115,7 @@ const Dashboard = () => {
                     params.startDate = customStart.toISOString();
                     params.endDate = customEnd.toISOString();
                 }
-                const res = await axios.get('http://127.0.0.1:5000/api/dashboard/chart', { params });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/chart`, { params });
                 setChartData(res.data);
             } catch (err) {
                 console.error("Error fetching chart data:", err);
@@ -158,7 +128,7 @@ const Dashboard = () => {
 
     const exchangeFbCode = async (code) => {
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/whatsapp/exchange-token', { code }, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, { code }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') } // Authenticate request
             });
 
@@ -259,108 +229,10 @@ const Dashboard = () => {
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
-
-
-            {/* Top Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
-                <div className="flex items-center gap-6 w-full">
-                    {/* Welcome Title */}
-                    <div className="flex flex-col gap-0.5">
-                        <h2 className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight">Welcome back, {user?.name?.split(' ')[0]}</h2>
-                        <p className="text-slate-500 dark:text-text-secondary text-sm">Here is your messaging performance overview.</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    <ThemeToggle />
-                    {/* <button className="hidden sm:flex items-center justify-center h-10 px-4 rounded-lg bg-surface-dark text-white text-sm font-bold hover:bg-[#2f455a] transition-colors gap-2">
-                        <HelpCircle className="w-5 h-5" /> Help
-                    </button> */}
-                    <div className="relative">
-                        <motion.button
-                            whileHover={{ rotate: 15, scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => {
-                                setIsNotificationsOpen(!isNotificationsOpen);
-                                if (!isNotificationsOpen) setUnreadCount(0); // Clear badge on open
-                            }}
-                            className="relative flex items-center justify-center size-10 rounded-lg bg-slate-100 dark:bg-surface-dark text-slate-600 dark:text-white hover:bg-slate-200 dark:hover:bg-[#2f455a] transition-colors focus:outline-none"
-                        >
-                            <Bell className="w-5 h-5" />
-                            {unreadCount > 0 && (
-                                <motion.span
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-dark"
-                                >
-                                    {unreadCount}
-                                </motion.span>
-                            )}
-                        </motion.button>
-
-                        <AnimatePresence>
-                            {isNotificationsOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-surface-dark rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 z-50 overflow-hidden"
-                                >
-                                    <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5 backdrop-blur-sm">
-                                        <h3 className="font-bold text-slate-900 dark:text-white">Notifications</h3>
-                                        <button className="text-xs text-primary font-medium hover:underline">Mark all read</button>
-                                    </div>
-                                    <div className="max-h-[400px] overflow-y-auto">
-                                        {notifications.length === 0 ? (
-                                            <div className="p-8 text-center text-slate-500 dark:text-text-secondary">
-                                                <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                                <p className="text-sm">No new notifications</p>
-                                            </div>
-                                        ) : (
-                                            <div className="divide-y divide-slate-100 dark:divide-white/5">
-                                                {notifications.map((notif, i) => (
-                                                    <div key={notif.id || i} className="p-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group relative">
-                                                        <div className="flex gap-3">
-                                                            <div className={`mt-1 size-8 rounded-full flex items-center justify-center flex-shrink-0 ${notif.type === 'Warning' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' :
-                                                                notif.type === 'Error' ? 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400' :
-                                                                    notif.type === 'Success' ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400' :
-                                                                        'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                                                                }`}>
-                                                                {notif.type === 'Warning' ? <AlertTriangle className="w-4 h-4" /> :
-                                                                    notif.type === 'Error' ? <XCircle className="w-4 h-4" /> :
-                                                                        notif.type === 'Success' ? <CheckCircle2 className="w-4 h-4" /> :
-                                                                            <Info className="w-4 h-4" />}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate pr-6">{notif.title}</p>
-                                                                <p className="text-xs text-slate-500 dark:text-text-secondary mt-0.5 line-clamp-2">{notif.message}</p>
-                                                                <p className="text-[10px] text-slate-400 mt-2 font-medium">
-                                                                    {notif.createdAt ? formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true }) : 'Just now'}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-3 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 text-center">
-                                        <button
-                                            onClick={() => {
-                                                setIsNotificationsOpen(false);
-                                                navigate('/notifications');
-                                            }}
-                                            className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
-                                            View All Notifications
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                    <UserDropdown />
-                </div>
-            </header>
+            <TopHeader 
+                title={`Welcome back, ${user?.name?.split(' ')[0]}`}
+                subtitle="Here is your messaging performance overview."
+            />
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">

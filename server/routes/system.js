@@ -18,7 +18,18 @@ const superAdmin = [auth, admin];
 router.get('/', superAdmin, async (req, res) => {
     try {
         const config = await SystemConfig.getConfig();
-        res.json(config);
+        const configJson = config.toJSON();
+
+        // Attach linked admin user details
+        if (configJson.settings && configJson.settings.linkedAdminUserId) {
+            const User = require('../models/User');
+            const linkedUser = await User.findByPk(configJson.settings.linkedAdminUserId, {
+                attributes: ['id', 'name', 'email', 'phone', 'plan']
+            });
+            configJson.linkedAdminUser = linkedUser;
+        }
+
+        res.json(configJson);
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');
@@ -65,6 +76,9 @@ router.put('/settings', superAdmin, async (req, res) => {
         if (req.body.globalAnnouncement) config.globalAnnouncement = req.body.globalAnnouncement;
         if (req.body.ipBlacklist) config.ipBlacklist = req.body.ipBlacklist;
         if (req.body.menuOrder) config.menuOrder = req.body.menuOrder;
+        if (req.body.integrations) {
+            config.integrations = { ...config.integrations, ...req.body.integrations };
+        }
         if (req.body.settings) {
             config.settings = { ...config.settings, ...req.body.settings };
         }
@@ -158,10 +172,134 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
 
     try {
         switch (action) {
+            case 'link-crm': {
+                const { userId } = req.body;
+                if (!userId) return res.status(400).json({ error: 'User ID is required' });
+
+                const User = require('../models/User');
+                const Plan = require('../models/Plan');
+                const targetUser = await User.findByPk(userId);
+                
+                if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+                // Ensure a System CRM plan exists
+                let crmPlan = await Plan.findOne({ where: { name: 'System CRM' } });
+                if (!crmPlan) {
+                    crmPlan = await Plan.create({
+                        name: 'System CRM',
+                        description: 'Unlimited Internal Plan for App Communications',
+                        price: 0,
+                        messageLimit: 999999999,
+                        contactLimit: 999999999,
+                        templateLimit: 999,
+                        teamMemberLimit: 999,
+                        features: ['Unlimited']
+                    });
+                }
+
+                // Upgrade User
+                targetUser.plan = 'System CRM';
+                targetUser.aiTokenBalance = 999999999;
+                targetUser.isAdmin = false; // Ensure they are a STANDARD user so they can access the normal dashboard
+                await targetUser.save();
+
+                // Link to config
+                const config = await SystemConfig.getConfig();
+                if (!config.settings) config.settings = {};
+                config.settings.linkedAdminUserId = targetUser.id;
+                // Important: Need to flag Sequelize that JSON changed
+                config.changed('settings', true); 
+                await config.save();
+
+                return res.json({ success: true, message: `Successfully linked ${targetUser.email} as the Official Communications Account.` });
+            }
+
+            case 'create-crm': {
+                const { name, email, phone, password } = req.body;
+                if (!name || !email || !phone || !password) return res.status(400).json({ error: 'All fields are required' });
+
+                const User = require('../models/User');
+                const Plan = require('../models/Plan');
+                const bcrypt = require('bcryptjs');
+
+                let existing = await User.findOne({ where: { email } });
+                if (existing) return res.status(400).json({ error: 'User with this email already exists.' });
+
+                // Ensure a System CRM plan exists
+                let crmPlan = await Plan.findOne({ where: { name: 'System CRM' } });
+                if (!crmPlan) {
+                    crmPlan = await Plan.create({
+                        name: 'System CRM',
+                        description: 'Unlimited Internal Plan for App Communications',
+                        price: 0,
+                        messageLimit: 999999999,
+                        contactLimit: 999999999,
+                        templateLimit: 999,
+                        teamMemberLimit: 999,
+                        features: ['Unlimited']
+                    });
+                }
+
+                const salt = await bcrypt.genSalt(10);
+                const hashedPassword = await bcrypt.hash(password, salt);
+
+                const newUser = await User.create({
+                    name,
+                    email,
+                    phone,
+                    password: hashedPassword,
+                    plan: 'System CRM',
+                    aiTokenBalance: 999999999,
+                    isAdmin: false // Ensure they are a STANDARD user
+                });
+
+                // Link to config
+                const config = await SystemConfig.getConfig();
+                if (!config.settings) config.settings = {};
+                config.settings.linkedAdminUserId = newUser.id;
+                config.changed('settings', true); 
+                await config.save();
+
+                return res.json({ success: true, message: `Successfully created and linked new Communications Account.` });
+            }
+
+            case 'sync-crm-contacts': {
+                const config = await SystemConfig.getConfig();
+                const linkedAdminId = config.settings?.linkedAdminUserId;
+                if (!linkedAdminId) return res.status(400).json({ error: 'No CRM account linked.' });
+
+                const User = require('../models/User');
+                const Contact = require('../models/Contact');
+
+                const allUsers = await User.findAll({
+                    where: { id: { [require('sequelize').Op.ne]: linkedAdminId } }
+                });
+
+                let syncedCount = 0;
+                for (let u of allUsers) {
+                    if (!u.phone) continue; // Skip if no phone
+                    
+                    const exists = await Contact.findOne({ where: { userId: linkedAdminId, phone: u.phone } });
+                    if (!exists) {
+                        await Contact.create({
+                            userId: linkedAdminId,
+                            name: u.name,
+                            phone: u.phone,
+                            email: u.email,
+                            tags: ['App User', `Plan: ${u.plan}`]
+                        });
+                        syncedCount++;
+                    }
+                }
+
+                return res.json({ success: true, message: `Successfully synced ${syncedCount} new contacts to the CRM.` });
+            }
+
             case 'purge-cache':
-                // Implement Redis flush or internal cache clear
+                const cacheManager = require('../utils/cacheManager');
+                const cleared = cacheManager.purgeAll();
                 console.log('System Action: Cache Purged');
-                return res.json({ success: true, message: 'System cache cleared successfully.' });
+                return res.json({ success: true, message: `All server caches cleared (${cleared.length} caches: ${cleared.join(', ')}).` });
 
             case 'kill-sessions':
                 const config = await SystemConfig.getConfig();

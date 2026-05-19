@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Workflow, Clock, Zap, Search } from 'lucide-react';
 import TopHeader from '../../components/TopHeader';
 
-const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 const FlowList = ({ onEditFlow, onCreateNew }) => {
     const [flows, setFlows] = useState([]);

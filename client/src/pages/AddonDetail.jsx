@@ -62,7 +62,7 @@ const AddonDetail = () => {
                 key: response.data.keyId,
                 amount: response.data.amount,
                 currency: response.data.currency,
-                name: "WhatsApp Cloud",
+                name: "Bluetick",
                 description: `Purchase Add-on: ${response.data.addonName}`,
                 order_id: response.data.orderId,
                 handler: async function (paymentResponse) {

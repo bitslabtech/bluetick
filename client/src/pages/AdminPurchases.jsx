@@ -20,7 +20,7 @@ const AdminPurchases = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`http://127.0.0.1:5000/api/purchases?status=${statusFilter}`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchases?status=${statusFilter}`);
             setTransactions(res.data);
         } catch (err) {
             console.error("Error fetching transactions:", err);
@@ -31,7 +31,7 @@ const AdminPurchases = () => {
 
     const fetchStats = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/purchases/stats');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/purchases/stats`);
             setStats(res.data);
         } catch (err) {
             console.error("Error fetching stats:", err);

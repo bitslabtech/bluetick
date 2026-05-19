@@ -39,7 +39,7 @@ const AdminAITokenUsers = () => {
         const fetchTokens = async () => {
             setLoading(true);
             try {
-                const res = await axios.get(`http://127.0.0.1:5000/api/admin/ai-tokens`, {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/ai-tokens`, {
                     params: {
                         search: searchTerm,
                         page,

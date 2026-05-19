@@ -47,7 +47,60 @@ dist-ssr
 ehthumbs.db
 Thumbs.db
 
+# Uploaded media / user-generated content
+server/public/uploads/
+
+# Workspace files
+*.code-workspace
+
+# Package lock files (optional — remove if you want deterministic installs)
+# server/package-lock.json
+# client/package-lock.json
+
 # Optional generic
 tmp/
 temp/
 coverage/
+
+# Debug / test / scratch files
+server/test_*
+server/debug_*
+server/fix*
+server/check*
+server/clear_*
+server/cleanup*
+server/dump_*
+server/mock_*
+server/make_zip.js
+server/make_admin.js
+server/migrate_*
+server/replace_*
+server/speed_*
+server/sync_*
+server/dummy.*
+server/*.zip
+server/test_extract/
+server/scripts/
+server/test_out.*
+server/debug_out.txt
+server/error_dump.txt
+server/server_out.txt
+server/flows_summary.json
+server/states_summary.json
+server/ngrok_tunnels.json
+
+# Root-level scratch files
+debug_*
+dump_*
+test_*
+todos.txt
+Todo.txt
+*.txt.bak
+
+# Client lint/error outputs
+client/*.txt
+
+# Design & docs (local-only reference)
+design/
+docs/
+scripts/

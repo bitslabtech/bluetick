@@ -7,13 +7,14 @@ import {
     Layout, Type, Palette, Image as ImageIcon, Check, RefreshCw,
     Bell, Mail, MessageCircle, UserPlus, CreditCard, AlertTriangle, BarChart, Zap,
     Server, Smartphone, Send, Terminal, Shield, Key, Search, User, Sparkles,
-    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye
+    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2
 } from 'lucide-react';
 import BillingTab from '../components/BillingTab';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import NotificationBell from '../components/NotificationBell';
 import ThemeToggle from '../components/ThemeToggle';
+import CRMLinkingPanel from '../components/CRMLinkingPanel';
 import UserDropdown from '../components/UserDropdown';
 import GlobalSearch from '../components/GlobalSearch';
 
@@ -55,6 +56,7 @@ const Settings = () => {
     // Facebook Login State
     const [fbLoading, setFbLoading] = useState(false);
     const [logoUploading, setLogoUploading] = useState(false);
+    const [webhookVerifyToken, setWebhookVerifyToken] = useState('Loading...');
     const logoInputRef = useRef(null);
 
     const handleLogoUpload = async (e) => {
@@ -64,7 +66,7 @@ const Settings = () => {
         try {
             const fd = new FormData();
             fd.append('logo', file);
-            const res = await axios.post('http://127.0.0.1:5000/api/settings/upload-logo', fd, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/upload-logo`, fd, {
                 headers: { 'x-auth-token': localStorage.getItem('token'), 'Content-Type': 'multipart/form-data' }
             });
             setFormData(prev => ({ ...prev, logoUrl: res.data.logoUrl }));
@@ -84,7 +86,7 @@ const Settings = () => {
         language: 'en',
         dateFormat: 'DD/MM/YYYY',
         // Branding
-        appName: 'WhatsApp Cloud',
+        appName: 'Bluetick',
         appTagline: 'Business API',
         supportEmail: '',
         currency: 'USD',
@@ -124,6 +126,19 @@ const Settings = () => {
     useEffect(() => {
         fetchSettings();
 
+        // Fetch the webhook verify token dynamically
+        (async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/webhook-token`, {
+                    headers: { 'x-auth-token': token }
+                });
+                setWebhookVerifyToken(res.data.verifyToken || '');
+            } catch (e) {
+                setWebhookVerifyToken('Error loading token');
+            }
+        })();
+
         // Initialize Facebook JS SDK
         if (window.FB) {
             console.log('FB SDK already loaded');
@@ -160,7 +175,7 @@ const Settings = () => {
 
             // If createdAt isn't available (old session), fetch full profile
             if (!user.createdAt) {
-                axios.get('http://127.0.0.1:5000/api/auth/me', {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
                     headers: { 'x-auth-token': localStorage.getItem('token') }
                 }).then(res => {
                     if (res.data) {
@@ -180,12 +195,12 @@ const Settings = () => {
     const fetchSettings = async () => {
         try {
             // Also fetch Landing Page config for branding integration
-            const landingRes = await axios.get('http://127.0.0.1:5000/api/landing');
+            const landingRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing`);
             if (landingRes.data) {
                 setLandingConfig(landingRes.data);
             }
 
-            const res = await axios.get('http://127.0.0.1:5000/api/settings', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             if (res.data) {
@@ -281,7 +296,7 @@ const Settings = () => {
                         // To clear Embedded (which might reside in User model like fbAccessToken), we may optionally call disconnect first.
                         try {
                             setSaving(true);
-                            await axios.delete('http://127.0.0.1:5000/api/whatsapp/disconnect', { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                            await axios.delete(`${import.meta.env.VITE_API_URL}/api/whatsapp/disconnect`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
                             await saveSettingsData();
                         } catch (err) {
                             console.error(err);
@@ -300,12 +315,12 @@ const Settings = () => {
         setSaving(true);
         try {
             if (landingConfig && activeTab === 'branding') {
-                await axios.put('http://127.0.0.1:5000/api/landing', landingConfig, {
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/landing`, landingConfig, {
                     headers: { 'x-auth-token': localStorage.getItem('token') }
                 });
             }
 
-            const res = await axios.post('http://127.0.0.1:5000/api/settings', formData, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, formData, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             originalSettings.current = res.data;
@@ -340,7 +355,7 @@ const Settings = () => {
 
         setChangingPassword(true);
         try {
-            await axios.put('http://127.0.0.1:5000/api/auth/password',
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/auth/password`,
                 { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword },
                 { headers: { 'x-auth-token': localStorage.getItem('token') } }
             );
@@ -357,7 +372,7 @@ const Settings = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            await axios.put('http://127.0.0.1:5000/api/auth/profile', profileData, {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/auth/profile`, profileData, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             showToast({
@@ -384,16 +399,55 @@ const Settings = () => {
         { id: 'general', label: 'System Settings', icon: Layout },
         { id: 'notifications', label: 'Notification Config', icon: Bell },
         { id: 'whatsapp_gateway', label: 'WhatsApp Gateway', icon: Server },
+        { id: 'crm_linking', label: 'CRM Linking', icon: Link2 }, // NEW
         { id: 'payment_gateway', label: 'Payment Gateway', icon: CreditCard },
         { id: 'smtp', label: 'Email SMTP', icon: Mail },
         { id: 'storage', label: 'Cloud Storage', icon: Database },
         { id: 'security', label: 'Security', icon: Shield },
+        { id: 'integrations', label: 'Integrations', icon: Globe2 },
     ];
 
     const tabs = user?.isAdmin
-        // Admins see everything EXCEPT billing/subscription
-        ? allTabs.filter(tab => tab.id !== 'billing')
-        : allTabs.filter(tab => ['profile', 'billing', 'general', 'whatsapp_gateway', 'payment_gateway'].includes(tab.id));
+        // Admins see everything EXCEPT billing/subscription and whatsapp_gateway
+        ? allTabs.filter(tab => !['billing', 'whatsapp_gateway'].includes(tab.id))
+        : allTabs.filter(tab => ['profile', 'billing', 'general', 'whatsapp_gateway', 'payment_gateway', 'smtp'].includes(tab.id));
+
+    // ── Google Integration state (admin only) ──
+    const [googleIntegration, setGoogleIntegration] = useState({ enabled: false, clientId: '', clientSecret: '', redirectUri: '' });
+    const [integrationSaving, setIntegrationSaving] = useState(false);
+    const [integrationLoaded, setIntegrationLoaded] = useState(false);
+
+    useEffect(() => {
+        if (activeTab === 'integrations' && !integrationLoaded) {
+            axios.get(`${import.meta.env.VITE_API_URL}/api/system`, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            }).then(res => {
+                const g = res.data?.integrations?.google || {};
+                setGoogleIntegration({
+                    enabled: g.enabled || false,
+                    clientId: g.clientId || '',
+                    clientSecret: g.clientSecret || '',
+                    redirectUri: g.redirectUri || ''
+                });
+                setIntegrationLoaded(true);
+            }).catch(err => console.error('Failed to load integrations:', err));
+        }
+    }, [activeTab, integrationLoaded]);
+
+    const saveGoogleIntegration = async (newVals) => {
+        const vals = newVals || googleIntegration;
+        setIntegrationSaving(true);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, {
+                integrations: { google: vals }
+            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            showToast({ type: 'success', title: 'Integration Saved', message: 'Google OAuth settings updated.' });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Save Failed', message: err.response?.data?.error || err.message });
+        } finally {
+            setIntegrationSaving(false);
+        }
+    };
 
     const handleTestMessage = async () => {
         if (!formData.metaPhoneNumberId || !formData.metaAccessToken || !testPhoneNumber) {
@@ -408,10 +462,12 @@ const Settings = () => {
 
         setTestLoading(true);
         try {
-            const response = await axios.post('http://127.0.0.1:5000/api/settings/test', {
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/test`, {
                 metaPhoneNumberId: formData.metaPhoneNumberId,
                 metaAccessToken: formData.metaAccessToken,
                 testPhoneNumber
+            }, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             showModal({
                 type: 'success',
@@ -446,8 +502,8 @@ const Settings = () => {
         try {
             // Must save first so backend gets the creds
             await saveSettingsData();
-            
-            const response = await axios.post('http://127.0.0.1:5000/api/system/actions/test-s3', {}, {
+
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/test-s3`, {}, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             showModal({
@@ -461,6 +517,43 @@ const Settings = () => {
                 type: 'error',
                 title: 'Test Failed',
                 message: 'Test failed: ' + (error.response?.data?.error || error.response?.data?.msg || error.message),
+                confirmText: 'Close'
+            });
+        } finally {
+            setTestLoading(false);
+        }
+    };
+
+    const handleTestSMTP = async () => {
+        if (!formData.smtpConfig?.host || !formData.smtpConfig?.user || !formData.smtpConfig?.pass) {
+            showModal({
+                type: 'warning',
+                title: 'Missing Credentials',
+                message: 'Please fill in SMTP Host, Username, and Password before testing.',
+                confirmText: 'OK'
+            });
+            return;
+        }
+
+        setTestLoading(true);
+        try {
+            // Save first so backend has latest creds
+            await saveSettingsData();
+
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/test-smtp`, formData.smtpConfig, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            showModal({
+                type: 'success',
+                title: 'Test Successful',
+                message: response.data.message || 'SMTP connection verified successfully.',
+                confirmText: 'OK'
+            });
+        } catch (error) {
+            showModal({
+                type: 'error',
+                title: 'Test Failed',
+                message: 'Test failed: ' + (error.response?.data?.error || error.message),
                 confirmText: 'Close'
             });
         } finally {
@@ -517,13 +610,13 @@ const Settings = () => {
 
     const exchangeFbCode = async (code, wipeManual) => {
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/whatsapp/exchange-token', { code }, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, { code }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') } // Authenticate request
             });
 
             // If wiping manual configuration, let's clear the settings on the backend
             if (wipeManual) {
-                await axios.post('http://127.0.0.1:5000/api/settings', {
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, {
                     ...formData,
                     metaAccessToken: '',
                     metaPhoneNumberId: '',
@@ -560,7 +653,7 @@ const Settings = () => {
             onConfirm: async () => {
                 try {
                     setFbLoading(true);
-                    await axios.delete('http://127.0.0.1:5000/api/whatsapp/disconnect', {
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/whatsapp/disconnect`, {
                         headers: { 'x-auth-token': localStorage.getItem('token') }
                     });
 
@@ -589,7 +682,7 @@ const Settings = () => {
         {
             id: 'newUser',
             label: 'New User Registration',
-            variables: ['{name}', '{email}', '{app_name}', '{login_url}']
+            variables: ['{name}', '{email}', '{app_name}']
         },
         {
             id: 'planPurchase',
@@ -619,7 +712,7 @@ const Settings = () => {
             label: 'New User Registration',
             icon: UserPlus,
             description: 'Sent immediately after a new user creates an account.',
-            variables: ['{name}', '{email}', '{app_name}', '{login_url}']
+            variables: ['{name}', '{email}', '{app_name}']
         },
         {
             id: 'planPurchase',
@@ -662,7 +755,7 @@ const Settings = () => {
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-y-auto">
             {/* Top Bar */}
             {/* Top Bar matching Support.jsx */}
-            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-30">
                 <div className="flex items-center gap-6 w-full">
                     {/* Search Bar */}
                     <div className="flex items-center w-full max-w-md transition-colors">
@@ -697,7 +790,7 @@ const Settings = () => {
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white dark:bg-background-dark rounded-2xl border border-slate-200 dark:border-white/5 text-sm">
+                <div className="flex-1 flex flex-col md:flex-row bg-white dark:bg-background-dark rounded-2xl border border-slate-200 dark:border-white/5 text-sm">
                     {/* Mobile Tabs */}
                     <div className="md:hidden w-full overflow-x-auto border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-surface-dark/50 p-2 shrink-0 custom-scrollbar">
                         <div className="flex gap-2">
@@ -747,6 +840,13 @@ const Settings = () => {
                     {/* Content Area */}
                     <div className="flex-1 overflow-y-auto p-4 sm:p-8 shrink-0">
                         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+                            {/* CRM LINKING TAB */}
+                            {activeTab === 'crm_linking' && (
+                                <div className="space-y-6">
+                                    <CRMLinkingPanel />
+                                </div>
+                            )}
 
                             {/* PROFILE TAB */}
                             {activeTab === 'profile' && (
@@ -947,7 +1047,7 @@ const Settings = () => {
                                                     cancelText: 'Cancel',
                                                     onConfirm: async () => {
                                                         try {
-                                                            await axios.delete('http://127.0.0.1:5000/api/auth/me', {
+                                                            await axios.delete(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
                                                                 headers: { 'x-auth-token': localStorage.getItem('token') }
                                                             });
                                                             showToast({ type: 'success', title: 'Account Deleted', message: 'Your account has been permanently deleted.' });
@@ -1361,11 +1461,14 @@ const Settings = () => {
                                                             <input
                                                                 type="text"
                                                                 readOnly
-                                                                value="12345678"
+                                                                value={webhookVerifyToken}
                                                                 className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy"
                                                                 onClick={(e) => { e.target.select(); navigator.clipboard.writeText(e.target.value); showToast({ type: 'success', title: 'Copied', message: 'Token copied to clipboard.' }); }}
                                                             />
                                                         </div>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                                            This token is automatically configured when you connect via Embedded Signup. No manual setup is needed — your webhook is already linked to your account.
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1445,12 +1548,14 @@ const Settings = () => {
                                                             <input
                                                                 type="text"
                                                                 readOnly
-                                                                value="12345678"
+                                                                value={webhookVerifyToken}
                                                                 className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy"
                                                                 onClick={(e) => { e.target.select(); navigator.clipboard.writeText(e.target.value); showToast({ type: 'success', title: 'Copied', message: 'Token copied to clipboard.' }); }}
                                                             />
                                                         </div>
-                                                        <p className="text-xs text-slate-500 mt-2">Required by Meta when verifying your webhook endpoints in the dashboard.</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                                            <strong>How to use:</strong> Open your Meta App's dashboard at <strong>developers.facebook.com</strong>, navigate to <strong>WhatsApp → Configuration</strong>, click <strong>Edit</strong> next to the Webhook section, and paste this token into the <strong>"Verify Token"</strong> field. This lets Meta confirm that the Callback URL above belongs to your account.
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </section>
@@ -1798,7 +1903,7 @@ const Settings = () => {
                                                     onClick={async () => {
                                                         setTestLoading(true);
                                                         try {
-                                                            await axios.post('http://127.0.0.1:5000/api/settings/test-smtp', formData.smtpConfig);
+                                                            await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/test-smtp`, formData.smtpConfig);
                                                             showModal({
                                                                 type: 'success',
                                                                 title: 'Success',
@@ -1960,7 +2065,7 @@ const Settings = () => {
                                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Active Storage Backend</label>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         {/* Local Drive */}
-                                                        <div 
+                                                        <div
                                                             className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 'local' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
                                                             onClick={() => setFormData(prev => ({ ...prev, storage: { ...prev.storage, type: 'local' } }))}
                                                         >
@@ -1969,7 +2074,7 @@ const Settings = () => {
                                                             <span className="text-xs text-center text-slate-500 dark:text-slate-400">Store uploads directly on this server.</span>
                                                         </div>
                                                         {/* S3 Storage */}
-                                                        <div 
+                                                        <div
                                                             className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 's3' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
                                                             onClick={() => setFormData(prev => ({ ...prev, storage: { ...prev.storage, type: 's3' } }))}
                                                         >
@@ -1979,7 +2084,7 @@ const Settings = () => {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 {formData.storage?.type === 's3' && (
                                                     <>
                                                         <div className="md:col-span-2 mb-2 pb-4 border-b border-slate-100 dark:border-white/5">
@@ -2066,6 +2171,50 @@ const Settings = () => {
                                                                 placeholder="••••••••••••••••••••••••••••••••"
                                                             />
                                                         </div>
+
+                                                        {/* Advanced Settings Divider */}
+                                                        <div className="md:col-span-2 mt-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                                                            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+                                                                <Settings2 className="w-4 h-4 text-slate-400" />
+                                                                Advanced Configuration
+                                                            </h3>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Object ACL</label>
+                                                            <select
+                                                                value={formData.storage?.s3?.acl || 'public-read'}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, acl: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                            >
+                                                                <option value="public-read">public-read (Default)</option>
+                                                                <option value="private">private</option>
+                                                                <option value="public-read-write">public-read-write</option>
+                                                                <option value="authenticated-read">authenticated-read</option>
+                                                            </select>
+                                                            <p className="text-xs text-slate-500 mt-2">Determines the access control list applied to uploaded files.</p>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Force Path Style</label>
+                                                            <select
+                                                                value={formData.storage?.s3?.forcePathStyle !== undefined ? String(formData.storage?.s3?.forcePathStyle) : 'auto'}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value === 'auto' ? undefined : e.target.value === 'true';
+                                                                    setFormData(prev => ({
+                                                                        ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, forcePathStyle: val } }
+                                                                    }));
+                                                                }}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                            >
+                                                                <option value="auto">Auto-detect (Default)</option>
+                                                                <option value="true">True (Required for MinIO / Wasabi)</option>
+                                                                <option value="false">False (Standard AWS S3)</option>
+                                                            </select>
+                                                            <p className="text-xs text-slate-500 mt-2">Forces the client to use path-style addressing for buckets.</p>
+                                                        </div>
                                                     </>
                                                 )}
                                             </div>
@@ -2073,6 +2222,8 @@ const Settings = () => {
                                     </div>
                                 )
                             }
+
+
 
                             {/* SECURITY SETTINGS TAB */}
                             {
@@ -2169,6 +2320,120 @@ const Settings = () => {
                                         </section>
                                     </div>
                                 )}
+
+                            {/* INTEGRATIONS TAB */}
+                            {activeTab === 'integrations' && (
+                                <div className="space-y-6">
+                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                        <div className="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-white/5 pb-4">
+                                            <Globe2 className="w-5 h-5 text-emerald-500" />
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Integrations</h3>
+                                        </div>
+
+                                        <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
+                                            <div className="flex items-center justify-between px-5 py-4 bg-slate-50 dark:bg-white/5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shadow-sm">
+                                                        <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4" />
+                                                            <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853" />
+                                                            <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04" />
+                                                            <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335" />
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-slate-900 dark:text-white">Google Contacts</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400">Allow users to import contacts via Google OAuth 2.0</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        const updated = { ...googleIntegration, enabled: !googleIntegration.enabled };
+                                                        setGoogleIntegration(updated);
+                                                        saveGoogleIntegration(updated);
+                                                    }}
+                                                    className={`w-14 h-8 rounded-full p-1 transition-colors ${googleIntegration.enabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                                                >
+                                                    <div className={`w-6 h-6 rounded-full bg-white shadow-sm transition-transform ${googleIntegration.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                </button>
+                                            </div>
+
+                                            <div className="p-6 space-y-5">
+                                                <div className="bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 flex gap-3">
+                                                    <AlertTriangle className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                                                    <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                                                        <strong>Prerequisites:</strong> Create a project in{' '}
+                                                        <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" className="underline font-bold">Google Cloud Console</a>,
+                                                        enable the <strong>People API</strong>, and create <strong>OAuth 2.0 credentials</strong> (Web Application type).
+                                                        Set the Redirect URI in Google to match the value below.
+                                                    </p>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Client ID</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all font-mono text-sm"
+                                                            placeholder="123456789-abc.apps.googleusercontent.com"
+                                                            value={googleIntegration.clientId}
+                                                            onChange={e => setGoogleIntegration(prev => ({ ...prev, clientId: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Client Secret</label>
+                                                        <input
+                                                            type="password"
+                                                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all font-mono text-sm"
+                                                            placeholder="GOCSPX-..."
+                                                            value={googleIntegration.clientSecret}
+                                                            onChange={e => setGoogleIntegration(prev => ({ ...prev, clientSecret: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Redirect URI</label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="url"
+                                                            className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all font-mono text-sm"
+                                                            placeholder="https://yourdomain.com/api/contacts/google/callback"
+                                                            value={googleIntegration.redirectUri}
+                                                            onChange={e => setGoogleIntegration(prev => ({ ...prev, redirectUri: e.target.value }))}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const suggested = `${window.location.origin.replace(':5173', ':5000')}/api/contacts/google/callback`;
+                                                                setGoogleIntegration(prev => ({ ...prev, redirectUri: suggested }));
+                                                            }}
+                                                            className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-600 dark:text-white text-xs font-bold transition-colors border border-slate-200 dark:border-white/10 whitespace-nowrap"
+                                                        >
+                                                            Auto-fill
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-xs text-slate-400 mt-1.5">Must match exactly what you registered in Google Cloud Console → Authorized Redirect URIs.</p>
+                                                </div>
+
+                                                <div className="flex justify-end pt-2">
+                                                    <button
+                                                        onClick={() => saveGoogleIntegration()}
+                                                        disabled={integrationSaving}
+                                                        className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-60 shadow-sm"
+                                                    >
+                                                        {integrationSaving
+                                                            ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                                                            : <><CheckCircle2 className="w-4 h-4" /> Save Integration</>
+                                                        }
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 </div >

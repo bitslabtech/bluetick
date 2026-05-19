@@ -1,4 +1,5 @@
 const socketIo = require('socket.io');
+const jwt = require('jsonwebtoken');
 
 let io;
 
@@ -11,8 +12,20 @@ const userRooms = new Map();
 const initSocket = (server) => {
     io = socketIo(server, {
         cors: {
-            origin: "*", // allow frontend
+            origin: process.env.FRONTEND_URL || 'http://localhost:5173', // allow frontend
             methods: ["GET", "POST"]
+        }
+    });
+
+    io.use((socket, next) => {
+        const token = socket.handshake.auth?.token;
+        if (!token) return next(new Error('Authentication required'));
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+            socket.user = decoded.user;
+            next();
+        } catch (e) {
+            next(new Error('Invalid token'));
         }
     });
 

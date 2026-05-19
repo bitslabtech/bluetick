@@ -102,6 +102,41 @@ const Plan = sequelize.define('Plan', {
         defaultValue: 0,
         comment: 'One-time bulk addition of AI tokens granted when purchasing or renewing this plan'
     },
+    allowCtwaAnalytics: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Whether this plan includes access to CTWA (Click to WhatsApp Ads) Analytics'
+    },
+    allowMetaAds: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Whether this plan includes access to the Meta Ads Manager'
+    },
+    allowVcard: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Whether this plan allows access to create vCards'
+    },
+    vcardLimit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'Limit for number of digital business cards/vCards'
+    },
+    allowWaLinks: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true, // Default to true as it's a basic utility
+        comment: 'Whether this plan allows access to the WhatsApp Link & QR Generator'
+    },
+    allowWaStore: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Whether this plan allows access to create WhatsApp Stores'
+    },
+    waStoreLimit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'Limit for number of WhatsApp Stores'
+    },
     color: {
         type: DataTypes.STRING,
         defaultValue: 'blue' // blue, purple, amber, etc. for UI themes

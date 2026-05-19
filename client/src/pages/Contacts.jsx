@@ -29,6 +29,37 @@ const groupColors = [
     { name: 'Slate', value: '#64748B' },
 ];
 
+// ── VCF (vCard) client-side parser — no npm package needed ──────────────
+const parseVCF = (text) => {
+    const cards = text.split(/BEGIN:VCARD/i).slice(1);
+    return cards.map(card => {
+        const lines = card.split(/\r?\n/);
+        let name = '', phone = '', email = '';
+        for (const line of lines) {
+            if (/^FN[;:]/i.test(line) && !name)
+                name = line.split(':').slice(1).join(':').trim();
+            else if (/^TEL[;:]/i.test(line) && !phone)
+                phone = line.split(':').slice(1).join(':').replace(/[\s\-\(\)]/g, '').trim();
+            else if (/^EMAIL[;:]/i.test(line) && !email)
+                email = line.split(':').slice(1).join(':').trim();
+        }
+        return { name, phone, email };
+    }).filter(c => c.name || c.phone);
+};
+
+// ── CSV flexible column normaliser — matches common header variations ─────
+const normaliseCSVRow = (row) => {
+    const find = (patterns) => {
+        const key = Object.keys(row).find(k => patterns.some(p => p.test(k)));
+        return key ? String(row[key] || '').trim() : '';
+    };
+    return {
+        name: find([/^name$/i, /^full.?name$/i, /^contact.?name$/i, /^first.?name$/i]),
+        phone: find([/^phone$/i, /^mobile$/i, /^tel/i, /^number$/i, /^whatsapp$/i, /^cell$/i]),
+        email: find([/^email$/i, /^e-mail$/i, /^mail$/i]),
+    };
+};
+
 const Contacts = () => {
     const location = useLocation();
     const { showModal, showToast } = useUI();
@@ -48,7 +79,9 @@ const Contacts = () => {
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [showImportModal, setShowImportModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false); // kept for backward compat
+    const [showContactModal, setShowContactModal] = useState(false); // unified add/import modal
+    const [contactModalTab, setContactModalTab] = useState('file'); // 'file' | 'google' | 'manual'
     const [newContact, setNewContact] = useState({ name: '', phone: '', email: '', tags: '', labelId: '' });
     const [showGroupsModal, setShowGroupsModal] = useState(false);
     const [availableGroups, setAvailableGroups] = useState([]);
@@ -102,7 +135,7 @@ const Contacts = () => {
 
     const fetchGroups = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/groups');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/groups`);
             setAvailableGroups(res.data);
         } catch (err) {
             console.error(err);
@@ -113,9 +146,9 @@ const Contacts = () => {
     const handleSaveGroup = async () => {
         try {
             if (editingGroup) {
-                await axios.put(`http://127.0.0.1:5000/api/groups/${editingGroup.id}`, groupForm);
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/groups/${editingGroup.id}`, groupForm);
             } else {
-                await axios.post('http://127.0.0.1:5000/api/groups', groupForm);
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/groups`, groupForm);
             }
             fetchGroups();
             setEditingGroup(null);
@@ -135,7 +168,7 @@ const Contacts = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/groups/${id}`);
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/groups/${id}`);
                     fetchGroups();
                     showToast({ type: 'success', title: 'Group Deleted', message: 'Group deleted successfully' });
                 } catch (err) {
@@ -156,7 +189,7 @@ const Contacts = () => {
         try {
             setLoading(true);
             const currentPage = forcePage || page;
-            const res = await axios.get(`http://127.0.0.1:5000/api/contacts`, {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts`, {
                 params: {
                     page: currentPage,
                     limit: limit,
@@ -180,7 +213,7 @@ const Contacts = () => {
 
     const fetchLabels = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/labels', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/labels`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             setAvailableLabels(res.data);
@@ -191,7 +224,7 @@ const Contacts = () => {
 
     const fetchBilling = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/billing');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/billing`);
             setContactLimit(res.data?.usage?.contactLimit ?? -1);
         } catch (err) {
             console.error('Failed to fetch billing info:', err);
@@ -218,12 +251,22 @@ const Contacts = () => {
             window.history.replaceState({}, document.title);
         }
         if (location.state?.openAddContact) {
-            setShowAddModal(true);
+            setContactModalTab('manual');
+            setShowContactModal(true);
             window.history.replaceState({}, document.title);
         }
         if (location.state?.openImportModal) {
-            setShowImportModal(true);
+            setContactModalTab('file');
+            setShowContactModal(true);
             window.history.replaceState({}, document.title);
+        }
+        // Handle Google OAuth callback redirect
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('import') === 'google') {
+            const count = params.get('count') || 0;
+            showToast({ type: 'success', title: 'Google Import Complete', message: `${count} contacts imported from Google Contacts.` });
+            fetchContacts();
+            window.history.replaceState({}, '', '/contacts');
         }
     }, [location]);
 
@@ -244,7 +287,7 @@ const Contacts = () => {
             }
 
             if (editingContact) {
-                await axios.put(`http://127.0.0.1:5000/api/contacts/${editingContact.id}`, {
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/contacts/${editingContact.id}`, {
                     ...newContact,
                     tags: tagsArray,
                     labels: labelsArray
@@ -253,7 +296,7 @@ const Contacts = () => {
                 });
                 showToast({ type: 'success', title: 'Contact Updated', message: 'Contact details updated successfully.' });
             } else {
-                await axios.post('http://127.0.0.1:5000/api/contacts', {
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/contacts`, {
                     ...newContact,
                     tags: tagsArray,
                     labels: labelsArray
@@ -262,6 +305,7 @@ const Contacts = () => {
             }
 
             setShowAddModal(false);
+            setShowContactModal(false); // close unified modal if add was triggered from there
             setEditingContact(null);
             setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' });
             fetchContacts();
@@ -279,7 +323,7 @@ const Contacts = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/contacts/${contact.id}`, {
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/contacts/${contact.id}`, {
                         headers: { 'x-auth-token': localStorage.getItem('token') }
                     });
                     setViewingContact(null);
@@ -330,7 +374,7 @@ const Contacts = () => {
             const hasLabel = currentLabels.some(l => l.id === label.id);
             const updatedLabels = hasLabel ? [] : [{ id: label.id, name: label.name, color: label.color }];
 
-            await axios.put(`http://127.0.0.1:5000/api/contacts/${contact.id}`, {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/contacts/${contact.id}`, {
                 labels: updatedLabels
             }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
@@ -354,7 +398,7 @@ const Contacts = () => {
             const hasGroup = currentTags.includes(groupName);
             const updatedTags = hasGroup ? currentTags.filter(t => t !== groupName) : [...currentTags, groupName];
 
-            await axios.put(`http://127.0.0.1:5000/api/contacts/${contact.id}`, {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/contacts/${contact.id}`, {
                 tags: updatedTags
             }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
@@ -381,7 +425,7 @@ const Contacts = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.post('http://127.0.0.1:5000/api/contacts/bulk-delete', { ids: selectedIds });
+                    await axios.post(`${import.meta.env.VITE_API_URL}/api/contacts/bulk-delete`, { ids: selectedIds });
                     fetchContacts();
                     setSelectedIds([]);
                     showToast({ type: 'success', title: 'Contacts Deleted', message: 'Selected contacts have been deleted.' });
@@ -394,7 +438,7 @@ const Contacts = () => {
 
     const handleBulkAddToGroup = async (groupName) => {
         try {
-            await axios.post('http://127.0.0.1:5000/api/contacts/bulk-tag', { ids: selectedIds, tag: groupName });
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/contacts/bulk-tag`, { ids: selectedIds, tag: groupName });
             fetchContacts();
             showToast({ type: 'success', title: 'Group Updated', message: `Added ${selectedIds.length} contacts to "${groupName}"` });
             setShowGroupsModal(false);
@@ -466,15 +510,14 @@ const Contacts = () => {
                                 <span className="sm:hidden">Groups</span>
                             </button>
                             <button
-                                onClick={() => contacts.length >= contactLimit && contactLimit !== -1 ? showToast({ type: 'warning', title: 'Limit Reached', message: 'You have reached your contact limit. Upgrade to add more.' }) : setShowImportModal(true)}
-                                className={`flex-1 md:flex-none justify-center ${contacts.length >= contactLimit && contactLimit !== -1 ? 'opacity-50 cursor-not-allowed' : ''} bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm`}
-                            >
-                                <UploadCloud className="w-4 h-4" />
-                                <span className="hidden sm:inline">Upload CSV</span>
-                                <span className="sm:hidden">Import</span>
-                            </button>
-                            <button
-                                onClick={() => contacts.length >= contactLimit && contactLimit !== -1 ? showToast({ type: 'warning', title: 'Limit Reached', message: 'You have reached your contact limit. Upgrade to add more.' }) : setShowAddModal(true)}
+                                onClick={() => {
+                                    if (contacts.length >= contactLimit && contactLimit !== -1) {
+                                        showToast({ type: 'warning', title: 'Limit Reached', message: 'You have reached your contact limit. Upgrade to add more.' });
+                                    } else {
+                                        setContactModalTab('file');
+                                        setShowContactModal(true);
+                                    }
+                                }}
                                 className={`flex-1 md:flex-none justify-center ${contacts.length >= contactLimit && contactLimit !== -1 ? 'opacity-50 cursor-not-allowed shadow-none' : 'shadow-lg shadow-blue-500/20 active:scale-95'} bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all`}
                             >
                                 <Plus className="w-4 h-4" />
@@ -1220,7 +1263,290 @@ const Contacts = () => {
                 )}
             </div>
 
-            {/* Import CSV Modal */}
+            {/* ── Unified Contact Modal (3 tabs) ─────────────────────────── */}
+            {showContactModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                    <div className="bg-surface-dark border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden flex flex-col max-h-[92vh]">
+
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                                    <UserPlus className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">Add Contacts</h3>
+                                    <p className="text-xs text-text-secondary">Upload a file, sync Google, or add manually</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { setShowContactModal(false); setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' }); }}
+                                className="p-2 rounded-lg text-text-secondary hover:text-white hover:bg-white/10 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex border-b border-white/10 shrink-0">
+                            {[
+                                { id: 'file',   label: 'Upload CSV/VCF',   shortLabel: 'Upload',  icon: UploadCloud },
+                                { id: 'google', label: 'Google Contacts',   shortLabel: 'Google',  icon: Users },
+                                { id: 'manual', label: 'Add Manually',      shortLabel: 'Manual',  icon: UserPlus },
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setContactModalTab(tab.id)}
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 text-xs font-bold transition-all border-b-2 ${
+                                        contactModalTab === tab.id
+                                            ? 'text-white border-white bg-white/10'
+                                            : 'text-text-secondary border-transparent hover:text-white hover:bg-white/5'
+                                    }`}
+                                >
+                                    <tab.icon className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">{tab.label}</span>
+                                    <span className="sm:hidden">{tab.shortLabel}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Tab Content */}
+                        <div className="overflow-y-auto flex-1 custom-scrollbar">
+
+                            {/* ── Tab 1: Upload CSV / VCF ── */}
+                            {contactModalTab === 'file' && (
+                                <div className="p-6 space-y-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <p className="text-sm text-text-secondary leading-relaxed">
+                                            Upload a <span className="text-white font-semibold">.csv</span> or{' '}
+                                            <span className="text-white font-semibold">.vcf</span> (vCard) file to bulk-import contacts.
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                const csv = "Name,Phone,Email\nJohn Doe,+1234567890,john@example.com\nJane Smith,+9876543210,jane@test.com";
+                                                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url; a.download = 'contacts_template.csv';
+                                                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                                            }}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-white transition-colors border border-white/10 shrink-0"
+                                        >
+                                            <Download className="w-3.5 h-3.5" /> CSV Template
+                                        </button>
+                                    </div>
+
+                                    <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-white/10 rounded-xl cursor-pointer bg-background-dark/40 hover:bg-background-dark hover:border-primary/50 transition-all group">
+                                        <UploadCloud className="w-9 h-9 text-text-secondary group-hover:text-primary mb-2 transition-colors" />
+                                        <p className="text-sm text-text-secondary">
+                                            <span className="font-bold text-primary">Click to upload</span> or drag and drop
+                                        </p>
+                                        <p className="text-xs text-text-secondary mt-1">.csv or .vcf — max 5MB</p>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept=".csv,.vcf,text/vcard,text/csv,application/vnd.ms-excel"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (!file) return;
+                                                const ext = file.name.split('.').pop().toLowerCase();
+
+                                                const doImport = (contactsToImport) => {
+                                                    if (contactsToImport.length === 0) {
+                                                        showToast({ type: 'warning', title: 'No Valid Contacts', message: 'No valid contacts found. Ensure Name and Phone columns are present.' });
+                                                        return;
+                                                    }
+                                                    showModal({
+                                                        type: 'info',
+                                                        title: 'Confirm Import',
+                                                        message: `Found ${contactsToImport.length} valid contact(s). Import them now?`,
+                                                        confirmText: 'Import',
+                                                        cancelText: 'Cancel',
+                                                        onConfirm: () => {
+                                                            axios.post(`${import.meta.env.VITE_API_URL}/api/contacts/import`, { contacts: contactsToImport })
+                                                                .then(res => {
+                                                                    showToast({ type: 'success', title: 'Import Successful', message: `${res.data.count} contacts imported!` });
+                                                                    setShowContactModal(false);
+                                                                    fetchContacts();
+                                                                })
+                                                                .catch(err => {
+                                                                    showToast({ type: 'error', title: 'Import Failed', message: err.response?.data?.error || err.message });
+                                                                });
+                                                        }
+                                                    });
+                                                };
+
+                                                if (ext === 'vcf') {
+                                                    const reader = new FileReader();
+                                                    reader.onload = (ev) => {
+                                                        const parsed = parseVCF(ev.target.result);
+                                                        doImport(parsed.filter(c => c.phone).map(c => ({
+                                                            name: c.name || c.phone,
+                                                            phone: c.phone,
+                                                            email: c.email || '',
+                                                            tags: ['Apple Contacts']
+                                                        })));
+                                                    };
+                                                    reader.readAsText(file);
+                                                } else {
+                                                    // CSV (flexible column detection)
+                                                    Papa.parse(file, {
+                                                        header: true,
+                                                        skipEmptyLines: true,
+                                                        complete: (results) => {
+                                                            const contacts = results.data
+                                                                .map(normaliseCSVRow)
+                                                                .filter(r => r.name && r.phone);
+                                                            doImport(contacts);
+                                                        },
+                                                        error: (err) => {
+                                                            showToast({ type: 'error', title: 'Parse Error', message: 'Could not read file: ' + err.message });
+                                                        }
+                                                    });
+                                                }
+                                                e.target.value = ''; // reset input
+                                            }}
+                                        />
+                                    </label>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-white/5 rounded-xl p-4 border border-white/5">
+                                            <p className="text-xs font-bold text-white mb-1 flex items-center gap-1.5">📄 CSV Files</p>
+                                            <p className="text-[10px] text-text-secondary leading-relaxed">Exported from Excel, Google Sheets. Columns: <span className="text-white">Name</span>, <span className="text-white">Phone</span>, Email.</p>
+                                        </div>
+                                        <div className="bg-white/5 rounded-xl p-4 border border-white/5">
+                                            <p className="text-xs font-bold text-white mb-1 flex items-center gap-1.5">📱 VCF / vCard</p>
+                                            <p className="text-[10px] text-text-secondary leading-relaxed">From iPhone, Android, iCloud, Mac Address Book, or Google Takeout.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Tab 2: Google Contacts ── */}
+                            {contactModalTab === 'google' && (
+                                <div className="p-8 flex flex-col items-center text-center gap-5">
+                                    <div className="w-20 h-20 rounded-2xl bg-white dark:bg-white/5 border border-white/10 flex items-center justify-center shadow-lg">
+                                        <svg width="42" height="42" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4"/>
+                                            <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853"/>
+                                            <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04"/>
+                                            <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-lg font-bold text-white mb-2">Import from Google Contacts</h4>
+                                        <p className="text-sm text-text-secondary max-w-xs leading-relaxed">Connect your Google account to import contacts directly into your list. Read-only access — nothing is stored without your confirmation.</p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/google/auth-url`);
+                                                window.location.href = res.data.url;
+                                            } catch {
+                                                showToast({
+                                                    type: 'warning',
+                                                    title: 'Not Configured',
+                                                    message: 'Google Contacts integration is not enabled. Ask your administrator to configure Google OAuth in Admin Settings → Integrations.'
+                                                });
+                                            }
+                                        }}
+                                        className="flex items-center gap-3 px-6 py-3 bg-white text-slate-800 font-bold rounded-xl hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4"/>
+                                            <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853"/>
+                                            <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04"/>
+                                            <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335"/>
+                                        </svg>
+                                        Continue with Google
+                                    </button>
+                                    <div className="flex items-start gap-2 bg-white/5 rounded-xl p-4 border border-white/5 text-left max-w-xs">
+                                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                                        <p className="text-[10px] text-text-secondary leading-relaxed">This requires Google OAuth to be configured by your admin in <span className="text-white">Superadmin → System Controls → Integrations</span>.</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Tab 3: Add Manually ── */}
+                            {contactModalTab === 'manual' && (
+                                <div className="p-6">
+                                    <form onSubmit={handleAddContact} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm text-text-secondary mb-1">Name <span className="text-red-400">*</span></label>
+                                            <input
+                                                required
+                                                value={newContact.name}
+                                                onChange={e => setNewContact({ ...newContact, name: e.target.value })}
+                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
+                                                placeholder="John Doe"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-text-secondary mb-1">Phone — with country code <span className="text-red-400">*</span></label>
+                                            <input
+                                                required
+                                                value={newContact.phone}
+                                                onChange={e => setNewContact({ ...newContact, phone: e.target.value })}
+                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
+                                                placeholder="+91 9876543210"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-text-secondary mb-1">Email <span className="text-text-secondary text-xs">(optional)</span></label>
+                                            <input
+                                                value={newContact.email}
+                                                onChange={e => setNewContact({ ...newContact, email: e.target.value })}
+                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
+                                                placeholder="john@example.com"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-text-secondary mb-1">Group <span className="text-text-secondary text-xs">(optional)</span></label>
+                                            <select
+                                                value={newContact.tags}
+                                                onChange={e => setNewContact({ ...newContact, tags: e.target.value })}
+                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
+                                            >
+                                                <option value="">No Group</option>
+                                                {availableGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-text-secondary mb-1">Tag <span className="text-text-secondary text-xs">(optional)</span></label>
+                                            <select
+                                                value={newContact.labelId}
+                                                onChange={e => setNewContact({ ...newContact, labelId: e.target.value })}
+                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
+                                            >
+                                                <option value="">No Tag</option>
+                                                {availableLabels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="flex justify-end gap-3 pt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setShowContactModal(false); setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' }); }}
+                                                className="px-4 py-2 rounded-lg text-text-secondary hover:text-white transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-6 py-2.5 bg-primary rounded-lg text-white font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+                                            >
+                                                Save Contact
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Import CSV Modal (legacy — no longer opened from UI, kept for safety) */}
             {
                 showImportModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -1301,7 +1627,7 @@ const Contacts = () => {
                                                                         return;
                                                                     }
 
-                                                                    axios.post('http://127.0.0.1:5000/api/contacts/import', { contacts: contactsToImport })
+                                                                    axios.post(`${import.meta.env.VITE_API_URL}/api/contacts/import`, { contacts: contactsToImport })
                                                                         .then(res => {
                                                                             showModal({
                                                                                 type: 'success',

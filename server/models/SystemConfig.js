@@ -5,6 +5,14 @@ const NodeCache = require('node-cache');
 // Cache config for 60 seconds
 const configCache = new NodeCache({ stdTTL: 60 });
 
+// Register with centralized cache manager so admin "Purge Cache" flushes this too
+const cacheManager = require('../utils/cacheManager');
+cacheManager.register('system_config', {
+    get: () => configCache.get('system_config'),
+    set: (data) => configCache.set('system_config', data),
+    clear: () => configCache.flushAll()
+});
+
 
 const SystemConfig = sequelize.define('SystemConfig', {
     id: {
@@ -35,12 +43,26 @@ const SystemConfig = sequelize.define('SystemConfig', {
         defaultValue: {
             active: false,
             message: '',
-            type: 'info' // info, warning, error
+            type: 'info', // info, warning, error
+            buttonText: '',  // optional CTA button label
+            buttonUrl: ''    // optional CTA button URL
         }
     },
     ipBlacklist: {
         type: DataTypes.JSON,
         defaultValue: [] // Array of IP strings
+    },
+    integrations: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            google: {
+                enabled: false,
+                clientId: '',
+                clientSecret: '',
+                redirectUri: ''
+            }
+        },
+        comment: 'Third-party OAuth / integration credentials managed by superadmin'
     },
     menuOrder: {
         type: DataTypes.JSON,
@@ -50,13 +72,15 @@ const SystemConfig = sequelize.define('SystemConfig', {
     settings: {
         type: DataTypes.JSON,
         defaultValue: {
+            appName: 'Bluetick',
             allowRegistration: true,
             debugMode: false,
+            linkedAdminUserId: null, // Used for official Platform-as-a-CRM communication
             rateLimit: {
                 windowMs: 15 * 60 * 1000, // 15 minutes
                 maxRequests: 1000 // Limit each IP to 1000 requests per `window`
             },
-            aiTokenMultipliers: { ai_chatbot: 1, ai_form_generator: 1 },
+            aiTokenMultipliers: { ai_chatbot: 1, ai_form_generator: 1, ai_meta_ads_builder: 5 },
             aiModel: 'gemini-2.0-flash',
             storage: {
                 type: 'local', // 'local' | 's3'

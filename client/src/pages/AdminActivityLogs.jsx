@@ -20,7 +20,7 @@ const AdminActivityLogs = () => {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/admin/activity-logs');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/activity-logs`);
             setLogs(res.data);
         } catch (err) {
             console.error("Error fetching logs:", err);

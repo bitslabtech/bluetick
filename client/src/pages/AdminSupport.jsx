@@ -63,13 +63,13 @@ const AdminSupport = () => {
         if (showLoader) setLoading(true);
         try {
             if (activeTab === 'tickets') {
-                const res = await axios.get('http://127.0.0.1:5000/api/support/tickets');
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/tickets`);
                 setTickets(res.data);
             } else if (activeTab === 'kb') {
-                const res = await axios.get('http://127.0.0.1:5000/api/support/kb');
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/kb`);
                 setKbArticles(res.data);
             } else if (activeTab === 'roadmap') {
-                const res = await axios.get('http://127.0.0.1:5000/api/support/roadmap');
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/roadmap`);
                 setRoadmap(res.data);
             }
         } catch (err) {
@@ -241,7 +241,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
         if (!reply.trim()) return;
         setSending(true);
         try {
-            await axios.post(`http://127.0.0.1:5000/api/support/tickets/${ticket.id}/reply`, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${ticket.id}/reply`, {
                 text: reply,
                 status: 'In Progress'
             });
@@ -415,7 +415,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
 
     const fetchCategories = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/support/kb/categories');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/kb/categories`);
             setCategories(res.data);
         } catch (err) { console.error(err); }
     };
@@ -424,9 +424,9 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
         if (!newCatName) return;
         try {
             if (editingCategory) {
-                await axios.put(`http://127.0.0.1:5000/api/support/kb/categories/${editingCategory.id}`, { name: newCatName, icon: newCatIcon });
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/support/kb/categories/${editingCategory.id}`, { name: newCatName, icon: newCatIcon });
             } else {
-                await axios.post('http://127.0.0.1:5000/api/support/kb/categories', { name: newCatName, icon: newCatIcon });
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/support/kb/categories`, { name: newCatName, icon: newCatIcon });
             }
             fetchCategories();
             setNewCatName('');
@@ -437,7 +437,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
     const deleteCategory = async (id) => {
         if (!window.confirm("Delete this category? Articles will remain but category reference will be broken.")) return;
         try {
-            await axios.delete(`http://127.0.0.1:5000/api/support/kb/categories/${id}`);
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/support/kb/categories/${id}`);
             fetchCategories();
         } catch (err) { console.error(err); }
     };
@@ -448,7 +448,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
         const formData = new FormData();
         formData.append('image', file);
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/support/kb/upload-image', formData);
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/support/kb/upload-image`, formData);
             const markdownImage = `\n![Image](${res.data.url})\n`;
             setNewContent(prev => prev + markdownImage);
             showToast({ type: 'success', title: 'Image Uploaded', message: 'Image inserted into article.' });
@@ -464,10 +464,10 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
 
         try {
             if (selectedArticleId) {
-                await axios.put(`http://127.0.0.1:5000/api/support/kb/${selectedArticleId}`, data);
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/support/kb/${selectedArticleId}`, data);
                 showToast({ type: 'success', title: 'Article Updated', message: 'Changes saved successfully.' });
             } else {
-                await axios.post('http://127.0.0.1:5000/api/support/kb', data);
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/support/kb`, data);
                 showToast({ type: 'success', title: 'Article Created', message: 'Knowledge Base article published.' });
             }
             resetEditor();
@@ -503,7 +503,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/support/kb/${id}`);
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/support/kb/${id}`);
                     if (selectedArticleId === id) resetEditor();
                     refresh();
                     showToast({ type: 'success', title: 'Deleted', message: 'Article deleted.' });
@@ -787,14 +787,14 @@ const RoadmapManager = ({ items, refresh }) => {
     const [activeConfettiId, setActiveConfettiId] = useState(null);
 
     const handleCreate = async () => {
-        await axios.post('http://127.0.0.1:5000/api/support/roadmap', { title: newTitle, status: 'Requested' });
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/support/roadmap`, { title: newTitle, status: 'Requested' });
         setNewTitle('');
         refresh();
     };
 
     const handleUpdateStatus = async (id, newStatus) => {
         try {
-            await axios.put(`http://127.0.0.1:5000/api/support/roadmap/${id}`, { status: newStatus });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/support/roadmap/${id}`, { status: newStatus });
             refresh();
         } catch (err) {
             console.error(err);
@@ -868,7 +868,7 @@ const RoadmapManager = ({ items, refresh }) => {
                                                             whileTap={{ scale: 0.9 }}
                                                             onClick={async () => {
                                                                 const wasVoted = item.voters?.includes(user?.id);
-                                                                await axios.post(`http://127.0.0.1:5000/api/support/roadmap/${item.id}/upvote`);
+                                                                await axios.post(`${import.meta.env.VITE_API_URL}/api/support/roadmap/${item.id}/upvote`);
                                                                 if (!wasVoted) {
                                                                     setActiveConfettiId(item.id);
                                                                     setTimeout(() => setActiveConfettiId(null), 1000);

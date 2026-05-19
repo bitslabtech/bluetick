@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Plus, Search, Filter, MoreVertical, Calendar,
@@ -9,16 +9,20 @@ import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
 
+const FAST_POLL_MS = 3000;   // 3s when campaigns are actively sending
+const SLOW_POLL_MS = 30000;  // 30s when all campaigns are idle
+
 export default function CampaignList() {
     const [campaigns, setCampaigns] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const intervalRef = useRef(null);
 
     useEffect(() => {
         const fetchCampaigns = async () => {
             try {
-                const res = await axios.get('http://127.0.0.1:5000/api/messages');
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/messages`);
                 const formattedCampaigns = res.data.map(msg => {
                     return {
                         id: msg.id,
@@ -42,6 +46,19 @@ export default function CampaignList() {
                     }
                     return prev;
                 });
+
+                // Smart polling: fast when campaigns are active, slow when all idle
+                const hasActive = formattedCampaigns.some(c =>
+                    ['sending', 'active', 'queued', 'scheduled'].includes(c.status)
+                );
+                const nextInterval = hasActive ? FAST_POLL_MS : SLOW_POLL_MS;
+
+                // Only reset interval if the speed changed
+                if (intervalRef.current?.speed !== nextInterval) {
+                    clearInterval(intervalRef.current?.id);
+                    const id = setInterval(fetchCampaigns, nextInterval);
+                    intervalRef.current = { id, speed: nextInterval };
+                }
             } catch (err) {
                 console.error("Error fetching campaigns:", err);
             } finally {
@@ -50,8 +67,10 @@ export default function CampaignList() {
         };
 
         fetchCampaigns();
-        const interval = setInterval(fetchCampaigns, 2000); // Auto-refresh every 2s
-        return () => clearInterval(interval);
+        // Start with fast poll; fetchCampaigns will adjust speed after first response
+        const id = setInterval(fetchCampaigns, FAST_POLL_MS);
+        intervalRef.current = { id, speed: FAST_POLL_MS };
+        return () => clearInterval(intervalRef.current?.id);
     }, []);
 
     const getStatusColor = (status) => {

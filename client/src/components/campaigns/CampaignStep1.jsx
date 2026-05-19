@@ -31,7 +31,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
             // Subset selected
             setRetargetCount(data.retargetLogIds.length);
         } else if (data.retargetCampaignId && data.retargetStatus) {
-            axios.get(`http://127.0.0.1:5000/api/messages/${data.retargetCampaignId}`)
+            axios.get(`${import.meta.env.VITE_API_URL}/api/messages/${data.retargetCampaignId}`)
                 .then(res => {
                     const logs = res.data.logs || [];
                     let count = 0;
@@ -51,7 +51,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
             setLoadingStats(true);
             try {
                 // Fetch summary (total count + groups with counts)
-                const summaryRes = await axios.get('http://127.0.0.1:5000/api/contacts/campaign-summary');
+                const summaryRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/campaign-summary`);
                 const { totalContacts, groups } = summaryRes.data;
 
                 setTotalContactsCount(parseInt(totalContacts, 10));
@@ -62,7 +62,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                 ]);
 
                 // Fetch real plan limits from billing API
-                const billingRes = await axios.get('http://127.0.0.1:5000/api/billing');
+                const billingRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/billing`);
                 const usage = billingRes.data?.usage;
                 setAccountStats({
                     usage: usage?.messagesSent ?? 0,
@@ -168,7 +168,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                 let addedCount = 0;
                 for (const rec of newRecipients) {
                     try {
-                        await axios.post('http://127.0.0.1:5000/api/contacts', {
+                        await axios.post(`${import.meta.env.VITE_API_URL}/api/contacts`, {
                             name: rec.name,
                             phone: rec.phone,
                             tags: 'Manual Import'

@@ -23,7 +23,7 @@ const AdminVersioning = () => {
     const fetchVersions = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/versioning');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/versioning`);
             setVersions(res.data);
         } catch (err) {
             console.error('Error fetching versions:', err);
@@ -59,13 +59,13 @@ const AdminVersioning = () => {
         setSaving(true);
         try {
             if (editing) {
-                await axios.put(`http://127.0.0.1:5000/api/versioning/${editing.id}`, {
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/versioning/${editing.id}`, {
                     ...form,
                     releasedAt: form.releasedAt ? new Date(form.releasedAt).toISOString() : undefined
                 });
                 showToast({ type: 'success', message: 'Version updated.' });
             } else {
-                await axios.post('http://127.0.0.1:5000/api/versioning', {
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/versioning`, {
                     ...form,
                     releasedAt: form.releasedAt ? new Date(form.releasedAt).toISOString() : undefined
                 });
@@ -89,7 +89,7 @@ const AdminVersioning = () => {
             confirmText: 'Delete',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:5000/api/versioning/${v.id}`);
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/versioning/${v.id}`);
                     showToast({ type: 'success', message: 'Version deleted.' });
                     fetchVersions();
                 } catch (err) {

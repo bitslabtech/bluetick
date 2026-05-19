@@ -35,6 +35,11 @@ const Contact = sequelize.define('Contact', {
         type: DataTypes.UUID,
         allowNull: true,
         comment: 'Tracks the specific team member who created this resource'
+    },
+    ctwaSource: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+        comment: 'Stores origin ad referral data (e.g. source_id, headline) if contact was created via a Click to WhatsApp Ad'
     }
 }, {
     timestamps: true,
