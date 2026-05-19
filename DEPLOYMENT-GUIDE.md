@@ -1,6 +1,6 @@
 # Bluetick — Complete Production Deployment Guide
 
-**Version:** 2.2 (Includes Installation Wizard + VITE_API_URL Environment Setup + NFC Routes)
+**Version:** 2.1 (Includes Installation Wizard + VITE_API_URL Environment Setup)
 **Stack:** Node.js + Express + PostgreSQL + React (Vite) + Socket.IO  
 **Estimated Setup Time:** 20–40 minutes
 
