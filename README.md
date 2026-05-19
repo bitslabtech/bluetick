@@ -88,6 +88,8 @@ npm run dev
 
 The frontend dev server starts at `http://localhost:5173` and the backend API at `http://localhost:5000`.
 
+> 📖 **For full production deployment** (Nginx, SSL, PM2, Installation Wizard), see the [Deployment Guide](DEPLOYMENT-GUIDE.md).
+
 ---
 
 ## ⚙️ Environment Variables
