@@ -38,9 +38,12 @@ A full-stack SaaS platform for WhatsApp Business Cloud API management. Built wit
 - **Template Manager** — Create and manage WhatsApp message templates
 - **Flow Bot Builder** — Visual chatbot flow configurator
 - **AI Bot (Gemini)** — AI-powered auto-replies using Google Gemini
+- **Meta Ads Manager** — Create and manage Click-to-WhatsApp (CTWA) ad campaigns directly from the dashboard
+- **CTWA Analytics** — Track Click-to-WhatsApp ad performance, conversation attribution, and ROI metrics
 - **Team Collaboration** — Multi-user access with role-based permissions
 - **WA Store** — WhatsApp-based storefront with product catalog & checkout
-- **vCard Manager** — Digital business card builder with NFC support
+- **vCard Manager** — Digital business card builder with themed templates
+- **NFC Cards** — NFC-enabled digital business cards with order management
 - **Addon Marketplace** — Extensible plugin system
 - **Admin Dashboard** — User management, analytics, system controls
 - **Referral & Partner Program** — Built-in referral tracking and tech partner system
