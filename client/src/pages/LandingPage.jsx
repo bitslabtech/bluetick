@@ -122,9 +122,9 @@ const CapabilitiesBento = ({ config }) => {
 
     return (
         <section className="py-24 bg-white dark:bg-[#05050A] transition-colors relative overflow-hidden">
-            {/* Subtle background glow */}
-            <div className="absolute top-0 right-0 w-1/2 h-[500px] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/3" />
-            <div className="absolute bottom-0 left-0 w-1/2 h-[500px] bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none translate-y-1/3 -translate-x-1/3" />
+            {/* Subtle background glow (reduced blur for GPU perf) */}
+            <div className="absolute top-0 right-0 w-1/2 h-[500px] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[80px] pointer-events-none -translate-y-1/2 translate-x-1/3" style={{ transform: 'translateZ(0) translate(33%, -50%)' }} />
+            <div className="absolute bottom-0 left-0 w-1/2 h-[500px] bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none translate-y-1/3 -translate-x-1/3" style={{ transform: 'translateZ(0) translate(-33%, 33%)' }} />
 
             <div className="max-w-7xl mx-auto px-6">
                 <div className="mb-12 md:mb-16">
@@ -1436,7 +1436,7 @@ function AdvancedFeaturesShowcase({ config }) {
 // PREMIUM HERO BACKGROUND ANIMATION (Aurora + Particles)
 // ──────────────────────────────────────────────────────────
 
-const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
+const PARTICLES = Array.from({ length: 12 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,
@@ -1454,7 +1454,7 @@ const BEAMS = [
 
 const HeroBackground = () => {
     return (
-        <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none select-none">
+        <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none select-none" style={{ willChange: 'auto', contain: 'layout style paint' }}>
 
             {/* ── Layer 1: Dot Grid ── */}
             <div
@@ -1467,85 +1467,91 @@ const HeroBackground = () => {
                 }}
             />
 
-            {/* ── Layer 2: Aurora Beams ── */}
+            {/* ── Layer 2: Aurora Beams (CSS animation for GPU compositing) ── */}
             {BEAMS.map((b, i) => (
-                <motion.div
+                <div
                     key={i}
-                    initial={{ opacity: 0, scaleY: 0 }}
-                    animate={{ opacity: [0, 1, 0.6, 1, 0], scaleY: [0.8, 1, 1.05, 1, 0.8] }}
-                    transition={{ duration: b.duration, repeat: Infinity, ease: 'easeInOut', delay: i * 3 }}
-                    className={`absolute top-[-10%] h-[130vh] w-[120px] bg-gradient-to-b ${b.color} blur-[60px] origin-top`}
-                    style={{ left: b.left, rotate: `${b.rotate}deg` }}
-                />
-            ))}
-
-            {/* ── Layer 3: Central Radial Glow ── */}
-            <motion.div
-                animate={{ scale: [1, 1.12, 1], opacity: [0.4, 0.7, 0.4] }}
-                transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-indigo-500/15 dark:bg-indigo-600/25 blur-[100px]"
-            />
-            <motion.div
-                animate={{ scale: [1.1, 1, 1.1], opacity: [0.2, 0.4, 0.2] }}
-                transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-                className="absolute top-[20%] left-[60%] w-[500px] h-[500px] rounded-full bg-violet-500/10 dark:bg-violet-600/20 blur-[80px]"
-            />
-            <motion.div
-                animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.3, 0.15] }}
-                transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-                className="absolute top-[30%] right-[5%] w-[400px] h-[400px] rounded-full bg-emerald-500/10 dark:bg-emerald-600/15 blur-[80px]"
-            />
-
-            {/* ── Layer 4: Floating Star Particles ── */}
-            {PARTICLES.map(p => (
-                <motion.div
-                    key={p.id}
-                    className="absolute rounded-full bg-indigo-400 dark:bg-white"
-                    style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size }}
-                    animate={{
-                        y: [0, -24, 0],
-                        opacity: [p.opacity, p.opacity * 2, p.opacity],
-                        scale: [1, 1.5, 1],
+                    className={`absolute top-[-10%] h-[130vh] w-[120px] bg-gradient-to-b ${b.color} blur-[40px] origin-top hero-beam`}
+                    style={{
+                        left: b.left,
+                        rotate: `${b.rotate}deg`,
+                        animationDuration: `${b.duration}s`,
+                        animationDelay: `${i * 3}s`,
+                        willChange: 'transform, opacity',
+                        transform: 'translateZ(0)',
                     }}
-                    transition={{ duration: p.duration, repeat: Infinity, ease: 'easeInOut', delay: p.delay }}
                 />
             ))}
 
-            {/* ── Layer 5: Floating WhatsApp Message Chips ── */}
+            {/* ── Layer 3: Central Radial Glow (CSS animation, reduced blur) ── */}
+            <div
+                className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-indigo-500/15 dark:bg-indigo-600/25 blur-[60px] hero-glow-1"
+                style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+            />
+            <div
+                className="absolute top-[20%] left-[60%] w-[500px] h-[500px] rounded-full bg-violet-500/10 dark:bg-violet-600/20 blur-[50px] hero-glow-2"
+                style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+            />
+            <div
+                className="absolute top-[30%] right-[5%] w-[400px] h-[400px] rounded-full bg-emerald-500/10 dark:bg-emerald-600/15 blur-[50px] hero-glow-3"
+                style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+            />
+
+            {/* ── Layer 4: Floating Star Particles (CSS animation) ── */}
+            {PARTICLES.map(p => (
+                <div
+                    key={p.id}
+                    className="absolute rounded-full bg-indigo-400 dark:bg-white hero-particle"
+                    style={{
+                        left: `${p.x}%`,
+                        top: `${p.y}%`,
+                        width: p.size,
+                        height: p.size,
+                        opacity: p.opacity,
+                        animationDuration: `${p.duration}s`,
+                        animationDelay: `${p.delay}s`,
+                        willChange: 'transform, opacity',
+                        transform: 'translateZ(0)',
+                    }}
+                />
+            ))}
+
+            {/* ── Layer 5: Floating WhatsApp Message Chips (CSS animation, no backdrop-blur) ── */}
             {[
                 { label: 'Interactive vCards', icon: '💳', x: '8%', y: '30%', delay: 0 },
                 { label: 'Native WA Store', icon: '🛒', x: '82%', y: '20%', delay: 2 },
                 { label: 'AI Chatbot Ready', icon: '🤖', x: '70%', y: '72%', delay: 1.5 },
                 { label: 'CTWA Meta Ads', icon: '🎯', x: '5%', y: '68%', delay: 3 },
             ].map((chip, i) => (
-                <motion.div
+                <div
                     key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: [0, 1, 1, 0], y: [20, 0, -5, 0] }}
-                    transition={{ duration: 6, repeat: Infinity, delay: chip.delay + 1, ease: 'easeInOut' }}
-                    className="absolute hidden md:flex items-center gap-2 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-xl px-3 py-1.5 rounded-full text-xs font-bold text-slate-700 dark:text-white"
-                    style={{ left: chip.x, top: chip.y }}
+                    className="absolute hidden md:flex items-center gap-2 bg-white/90 dark:bg-white/10 border border-white/60 dark:border-white/10 shadow-xl px-3 py-1.5 rounded-full text-xs font-bold text-slate-700 dark:text-white hero-chip"
+                    style={{
+                        left: chip.x,
+                        top: chip.y,
+                        animationDelay: `${chip.delay + 1}s`,
+                        willChange: 'transform, opacity',
+                        transform: 'translateZ(0)',
+                    }}
                 >
                     <span>{chip.icon}</span>
                     <span>{chip.label}</span>
-                </motion.div>
+                </div>
             ))}
 
-            {/* ── Layer 6: Orbiting Ring (decorative) ── */}
-            <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
-                className="absolute top-[5%] left-[55%] w-[520px] h-[520px] border border-indigo-300/10 dark:border-indigo-500/10 rounded-full hidden lg:block"
+            {/* ── Layer 6: Orbiting Ring (CSS animation for pure GPU rotation) ── */}
+            <div
+                className="absolute top-[5%] left-[55%] w-[520px] h-[520px] border border-indigo-300/10 dark:border-indigo-500/10 rounded-full hidden lg:block hero-orbit"
+                style={{ animationDuration: '40s', willChange: 'transform', transform: 'translateZ(0)' }}
             >
                 <div className="absolute -top-1.5 left-1/2 w-3 h-3 rounded-full bg-indigo-400/60 blur-[2px]" />
-            </motion.div>
-            <motion.div
-                animate={{ rotate: [360, 0] }}
-                transition={{ duration: 55, repeat: Infinity, ease: 'linear' }}
-                className="absolute top-[15%] left-[60%] w-[380px] h-[380px] border border-violet-400/10 dark:border-violet-500/10 rounded-full hidden lg:block"
+            </div>
+            <div
+                className="absolute top-[15%] left-[60%] w-[380px] h-[380px] border border-violet-400/10 dark:border-violet-500/10 rounded-full hidden lg:block hero-orbit-reverse"
+                style={{ animationDuration: '55s', willChange: 'transform', transform: 'translateZ(0)' }}
             >
                 <div className="absolute -bottom-1.5 right-1/4 w-2 h-2 rounded-full bg-violet-400/60 blur-[2px]" />
-            </motion.div>
+            </div>
 
             {/* ── Radial Edge Fade Mask ── */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-50 dark:to-zinc-950" />
@@ -1651,9 +1657,9 @@ const AddonMarketplaceShowcase = () => {
 
     return (
         <section className="py-24 relative bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden border-t border-slate-200 dark:border-white/5">
-            {/* Ambient Backgrounds */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/10 dark:bg-violet-500/15 rounded-full blur-[100px] pointer-events-none" />
+            {/* Ambient Backgrounds (reduced blur for GPU perf) */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[80px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/10 dark:bg-violet-500/15 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateZ(0)' }} />
             
             {/* Subtle Grid Pattern */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgxNTAsMTUwLDE1MCwwLjE1KSIvPjwvc3ZnPg==')] opacity-40 dark:opacity-[0.15] pointer-events-none" />
@@ -2063,7 +2069,7 @@ export default function LandingPage() {
                 {/* 5. ADVANCED FEATURES */}
                 <section id="platform" className="py-20 bg-slate-50 dark:bg-zinc-950 transition-colors overflow-hidden relative">
                     {/* Ambient glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-400/5 dark:bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-400/5 dark:bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
 
                     <div className="max-w-7xl mx-auto px-6">
                         {/* Premium Header */}
@@ -2764,7 +2770,7 @@ export default function LandingPage() {
                 {/* 14. CTA & PARTNER ECOSYSTEM */}
                 <section className="py-32 px-6 relative z-10 bg-white dark:bg-[#05050A] overflow-hidden">
                     {/* Background Gradients */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 blur-[150px] rounded-full pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" style={{ transform: 'translate(-50%, -50%) translateZ(0)' }} />
                     
                     <div className="max-w-7xl mx-auto">
                         
@@ -2774,8 +2780,8 @@ export default function LandingPage() {
                             className="rounded-[3rem] overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 relative border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 mb-12"
                         >
                             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] pointer-events-none" />
-                            <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-3xl pointer-events-none" />
-                            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/40 rounded-full blur-3xl pointer-events-none" />
+                            <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
+                            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/40 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
 
                             <div className="relative py-20 px-8 md:px-20 text-center flex flex-col items-center">
                                 <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight text-white max-w-4xl leading-[1.1]">
@@ -2793,7 +2799,7 @@ export default function LandingPage() {
                                 {/* Modern Minimal Partner Details (Moved Inside) */}
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                                    className="relative w-full max-w-5xl bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2rem] p-2 shadow-2xl text-left"
+                                    className="relative w-full max-w-5xl bg-white/10 backdrop-blur-md border border-white/20 rounded-[2rem] p-2 shadow-2xl text-left"
                                 >
                                     <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10">
                                         {/* Referral */}

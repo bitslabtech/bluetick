@@ -107,3 +107,107 @@ body {
 .dark .carousel-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 212, 168, 0.5);
 }
+
+/* ──────────────────────────────────────────────────────────
+   HERO BACKGROUND — GPU-accelerated CSS animations
+   These replace Framer Motion infinite animations to run
+   on the compositor thread instead of the main JS thread.
+   ────────────────────────────────────────────────────────── */
+
+/* Aurora Beams */
+@keyframes heroBeam {
+  0%, 100% { opacity: 0; transform: scaleY(0.8) translateZ(0); }
+  25%      { opacity: 1; transform: scaleY(1) translateZ(0); }
+  50%      { opacity: 0.6; transform: scaleY(1.05) translateZ(0); }
+  75%      { opacity: 1; transform: scaleY(1) translateZ(0); }
+}
+
+.hero-beam {
+  animation: heroBeam 8s ease-in-out infinite;
+}
+
+/* Central Radial Glows */
+@keyframes heroGlow1 {
+  0%, 100% { opacity: 0.4; transform: scale(1) translateZ(0); }
+  50%      { opacity: 0.7; transform: scale(1.12) translateZ(0); }
+}
+
+@keyframes heroGlow2 {
+  0%, 100% { opacity: 0.2; transform: scale(1.1) translateZ(0); }
+  50%      { opacity: 0.4; transform: scale(1) translateZ(0); }
+}
+
+@keyframes heroGlow3 {
+  0%, 100% { opacity: 0.15; transform: scale(1) translateZ(0); }
+  50%      { opacity: 0.3; transform: scale(1.15) translateZ(0); }
+}
+
+.hero-glow-1 { animation: heroGlow1 7s ease-in-out infinite; }
+.hero-glow-2 { animation: heroGlow2 10s ease-in-out 2s infinite; }
+.hero-glow-3 { animation: heroGlow3 13s ease-in-out 1s infinite; }
+
+/* Floating Star Particles */
+@keyframes heroParticle {
+  0%, 100% { transform: translateY(0) scale(1) translateZ(0); }
+  50%      { transform: translateY(-24px) scale(1.5) translateZ(0); }
+}
+
+.hero-particle {
+  animation: heroParticle 8s ease-in-out infinite;
+}
+
+/* Floating Chips */
+@keyframes heroChip {
+  0%   { opacity: 0; transform: translateY(20px) translateZ(0); }
+  15%  { opacity: 1; transform: translateY(0) translateZ(0); }
+  75%  { opacity: 1; transform: translateY(-5px) translateZ(0); }
+  100% { opacity: 0; transform: translateY(0) translateZ(0); }
+}
+
+.hero-chip {
+  animation: heroChip 6s ease-in-out infinite;
+}
+
+/* Orbiting Rings */
+@keyframes heroOrbit {
+  from { transform: rotate(0deg) translateZ(0); }
+  to   { transform: rotate(360deg) translateZ(0); }
+}
+
+@keyframes heroOrbitReverse {
+  from { transform: rotate(360deg) translateZ(0); }
+  to   { transform: rotate(0deg) translateZ(0); }
+}
+
+.hero-orbit { animation: heroOrbit 40s linear infinite; }
+.hero-orbit-reverse { animation: heroOrbitReverse 55s linear infinite; }
+
+/* ──────────────────────────────────────────────────────────
+   PERFORMANCE — content-visibility for off-screen sections
+   ────────────────────────────────────────────────────────── */
+section {
+  contain-intrinsic-size: auto 800px;
+}
+
+/* ──────────────────────────────────────────────────────────
+   ACCESSIBILITY — respect reduced motion preference
+   ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hero-beam,
+  .hero-glow-1,
+  .hero-glow-2,
+  .hero-glow-3,
+  .hero-particle,
+  .hero-chip,
+  .hero-orbit,
+  .hero-orbit-reverse {
+    animation: none !important;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
