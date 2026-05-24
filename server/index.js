@@ -65,6 +65,7 @@ const teamRoute = require('./routes/team');
 const formsRoute = require('./routes/forms');
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Coolify/Traefik)
 const server = http.createServer(app); // NEW HTTP server
 
 // Initialize WebSockets
