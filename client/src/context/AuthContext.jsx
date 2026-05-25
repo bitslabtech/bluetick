@@ -41,9 +41,9 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (email, password, turnstileToken = '') => {
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password, 'cf-turnstile-response': turnstileToken });
             const { token, user } = res.data;
 
             localStorage.setItem('token', token);
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (name, email, password, selectedPlan = null, referralCode = null, partnerCode = null, phone = '', startTrial = false) => {
+    const register = async (name, email, password, selectedPlan = null, referralCode = null, partnerCode = null, phone = '', startTrial = false, turnstileToken = '') => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
                 name,
@@ -70,7 +70,8 @@ export const AuthProvider = ({ children }) => {
                 startTrial,
                 ref: referralCode,
                 partnerCode: partnerCode || undefined,
-                phone
+                phone,
+                'cf-turnstile-response': turnstileToken
             });
             const { token, user } = res.data;
 

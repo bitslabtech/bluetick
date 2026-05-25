@@ -4,9 +4,10 @@ const ContactMessage = require('../models/ContactMessage');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const AdminNotification = require('../models/AdminNotification');
+const verifyTurnstile = require('../middleware/turnstile');
 
 // POST /api/contact - Public endpoint to submit a message
-router.post('/', async (req, res) => {
+router.post('/', verifyTurnstile, async (req, res) => {
     try {
         const { name, email, countryCode, phone, message } = req.body;
         

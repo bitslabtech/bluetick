@@ -1,4 +1,5 @@
 const ActivityLog = require('../models/ActivityLog');
+const { getRealIp } = require('./ip');
 
 const logActivity = async (req, action, details) => {
     try {
@@ -11,7 +12,7 @@ const logActivity = async (req, action, details) => {
             userId: req.user ? req.user.id : null,
             action,
             details: finalDetails,
-            ip: req.ip
+            ip: getRealIp(req)
         });
     } catch (err) {
         console.error("Logging Error:", err);

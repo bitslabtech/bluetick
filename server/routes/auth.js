@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authLimiter } = require('../middleware/rateLimiter');
+const verifyTurnstile = require('../middleware/turnstile');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -24,7 +25,7 @@ const generateToken = (user) => {
 };
 
 // REGISTER
-router.post('/register', authLimiter, async (req, res) => {
+router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
     try {
         const { name, email, password, selectedPlan, startTrial, ref, partnerCode, phone } = req.body;
 
@@ -290,7 +291,7 @@ router.post('/register', authLimiter, async (req, res) => {
 });
 
 // LOGIN
-router.post('/login', authLimiter, async (req, res) => {
+router.post('/login', authLimiter, verifyTurnstile, async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -313,7 +314,7 @@ router.post('/login', authLimiter, async (req, res) => {
         // Log Activity
         // Manually attach user to req for logger since this is a public route
         req.user = user;
-        await logActivity(req, 'User Login', `User logged in from ${req.ip}`);
+        await logActivity(req, 'User Login', `User logged in successfully`);
 
         // Fetch Plan Details
         const Plan = require('../models/Plan');

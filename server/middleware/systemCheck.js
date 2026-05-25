@@ -1,12 +1,13 @@
 const jwt = require('jsonwebtoken');
 const SystemConfig = require('../models/SystemConfig');
+const { getRealIp } = require('../utils/ip');
 
 const systemCheck = async (req, res, next) => {
     try {
         const config = await SystemConfig.getCachedConfig();
 
         // 1. IP Blacklist Check
-        const clientIp = req.ip || req.connection.remoteAddress;
+        const clientIp = getRealIp(req);
         if (config.ipBlacklist && config.ipBlacklist.includes(clientIp)) {
             return res.status(403).json({ error: 'Access Denied: Your IP is blacklisted.' });
         }

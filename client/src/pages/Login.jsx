@@ -3,11 +3,14 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { LayoutDashboard } from 'lucide-react';
 import { useUI } from '../context/UIContext';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
     const { login } = useAuth();
     const { publicSettings, publicSettingsLoading } = useUI();
     const navigate = useNavigate();
@@ -21,7 +24,13 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        const res = await login(email, password);
+        
+        if (TURNSTILE_SITE_KEY && !turnstileToken) {
+            setError('Please complete the security check.');
+            return;
+        }
+
+        const res = await login(email, password, turnstileToken);
         if (res.success) {
             const isAdmin = res.user?.isAdmin || (res.token && JSON.parse(atob(res.token.split('.')[1])).user.isAdmin);
             const defaultDest = isAdmin ? '/superadmin' : '/dashboard';
@@ -83,6 +92,18 @@ const Login = () => {
                             placeholder="••••••••"
                         />
                     </div>
+
+                    {TURNSTILE_SITE_KEY && (
+                        <div className="flex justify-center mt-4">
+                            <Turnstile 
+                                siteKey={TURNSTILE_SITE_KEY} 
+                                onSuccess={(token) => setTurnstileToken(token)}
+                                onError={() => setError('Captcha verification failed. Please refresh.')}
+                                onExpire={() => setTurnstileToken('')}
+                            />
+                        </div>
+                    )}
+
                     <button
                         type="submit"
                         className="w-full py-2.5 bg-primary text-white rounded-lg hover:opacity-90 font-medium transition-colors shadow-sm shadow-blue-500/20"

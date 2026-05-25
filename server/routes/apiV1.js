@@ -57,7 +57,7 @@ router.use((req, res, next) => {
                     metaMessageId: body?.messageId || null,
                     errorCode: body?.code || (statusCode >= 400 ? 'HTTP_ERROR' : null),
                     errorMessage: statusCode >= 400 ? (body?.error || null) : null,
-                    ipAddress: req.ip || req.connection?.remoteAddress,
+                    ipAddress: require('../utils/ip').getRealIp(req),
                     userAgent: req.headers['user-agent']?.slice(0, 512) || null
                 });
             } catch (logErr) {

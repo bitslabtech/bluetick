@@ -4,6 +4,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Check } from 'lucide-react';
 import axios from 'axios';
 import { useUI } from '../context/UIContext';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 const CURRENCY_SYMBOLS = {
     USD: '$', INR: '₹', EUR: '€', GBP: '£',
@@ -45,6 +46,8 @@ const Register = () => {
     const [phone, setPhone] = useState('+91');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
     const [selectedPlan, setSelectedPlan] = useState(null);
     const { register } = useAuth();
     const { publicSettings, publicSettingsLoading } = useUI();
@@ -138,9 +141,14 @@ const Register = () => {
             return;
         }
 
+        if (TURNSTILE_SITE_KEY && !turnstileToken) {
+            setError('Please complete the security check.');
+            return;
+        }
+
         // Pass selected plan ID, trial intent, and phone to backend
         const isTrial = selectedPlan?.startTrial || false;
-        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial);
+        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial, turnstileToken);
 
         if (res.success) {
             // Clear persisted codes so they can't be reused
@@ -303,6 +311,18 @@ const Register = () => {
                             placeholder="••••••••"
                         />
                     </div>
+
+                    {TURNSTILE_SITE_KEY && (
+                        <div className="flex justify-center mt-4">
+                            <Turnstile 
+                                siteKey={TURNSTILE_SITE_KEY} 
+                                onSuccess={(token) => setTurnstileToken(token)}
+                                onError={() => setError('Captcha verification failed. Please refresh.')}
+                                onExpire={() => setTurnstileToken('')}
+                            />
+                        </div>
+                    )}
+
                     <button
                         type="submit"
                         className="w-full py-2.5 bg-primary text-white rounded-lg hover:opacity-90 font-medium transition-colors shadow-sm shadow-blue-500/20"

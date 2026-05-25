@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PublicLayout from '../components/landing/PublicLayout';
 import { Mail, MessageSquare, Phone, MapPin, Send, Loader2 } from 'lucide-react';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 const ContactUs = () => {
     const [status, setStatus] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [config, setConfig] = useState(null);
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
     useEffect(() => {
         axios.get(`${import.meta.env.VITE_API_URL}/api/landing`)
@@ -27,8 +30,15 @@ const ContactUs = () => {
             email: formData.get('email'),
             countryCode: formData.get('countryCode'),
             phone: formData.get('phone'),
-            message: formData.get('message')
+            message: formData.get('message'),
+            'cf-turnstile-response': turnstileToken
         };
+
+        if (TURNSTILE_SITE_KEY && !turnstileToken) {
+            setError('Please complete the security check.');
+            setLoading(false);
+            return;
+        }
 
         try {
             await axios.post(`${import.meta.env.VITE_API_URL}/api/contact`, data);
@@ -125,6 +135,18 @@ const ContactUs = () => {
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Message</label>
                             <textarea name="message" rows="4" required className="w-full px-4 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-black/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white resize-none"></textarea>
                         </div>
+                        
+                        {TURNSTILE_SITE_KEY && (
+                            <div className="flex justify-center mt-4">
+                                <Turnstile 
+                                    siteKey={TURNSTILE_SITE_KEY} 
+                                    onSuccess={(token) => setTurnstileToken(token)}
+                                    onError={() => setError('Captcha verification failed. Please refresh.')}
+                                    onExpire={() => setTurnstileToken('')}
+                                />
+                            </div>
+                        )}
+
                         <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
                             {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : <>Send Message <Send className="w-4 h-4" /></>}
                         </button>

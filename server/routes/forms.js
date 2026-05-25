@@ -181,7 +181,8 @@ router.post('/submit/:id', async (req, res) => {
             }
         }
 
-        const ipAddress = req.ip || req.connection.remoteAddress;
+        const { getRealIp } = require('../utils/ip');
+        const ipAddress = getRealIp(req);
         if (restrictions.preventDuplicates) {
             // --- Primary: phone number dedup ---
             if (contactNumber) {
