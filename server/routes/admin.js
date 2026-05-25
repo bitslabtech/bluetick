@@ -456,7 +456,11 @@ router.post('/users/:id/grant-trial', async (req, res) => {
             details: `Admin granted ${reqPlan.trialDays}-day trial of ${reqPlan.name} to ${targetUser.email}`
         });
 
-        res.json({ success: true, message: `Granted ${reqPlan.trialDays}-day trial for ${reqPlan.name}.`, user: targetUser });
+        res.json({ success: true, message: `Granted ${reqPlan.trialDays}-day trial for ${reqPlan.name}.`, user: {
+            id: targetUser.id, name: targetUser.name, email: targetUser.email, plan: targetUser.plan,
+            planStatus: targetUser.planStatus, planExpiry: targetUser.planExpiry, isAdmin: targetUser.isAdmin,
+            lastLogin: targetUser.lastLogin, createdAt: targetUser.createdAt
+        } });
     } catch (err) {
         console.error("Grant Trial Error:", err);
         res.status(500).json({ error: 'Server Error: ' + err.message });
@@ -528,8 +532,15 @@ router.get('/users/:id/details', async (req, res) => {
             User.count({ where: { referredBy: userId } }) // Total users they referred
         ]);
 
+        // Exclude sensitive fields from response
+        const userJson = targetUser.toJSON();
+        delete userJson.password;
+        delete userJson.fbAccessToken;
+        delete userJson.metaAdsToken;
+        delete userJson.inviteToken;
+
         res.json({
-            user: targetUser,
+            user: userJson,
             purchases,
             usage: {
                 contactsCount,

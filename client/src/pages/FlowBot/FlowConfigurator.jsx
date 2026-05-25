@@ -809,7 +809,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                                                 <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mx-auto"></div>
                                                 <p className="text-xs text-slate-500">Uploading media...</p>
                                             </div>
-                                        ) : localData.mediaUrl && localData.mediaUrl.includes('/uploads/') ? (
+                                        ) : localData.mediaUrl && localData.sourceType !== 'url' ? (
                                             <div className="space-y-2">
                                                 <div className="bg-slate-100 dark:bg-slate-900 rounded-lg p-2 truncate text-[10px] text-slate-500 mb-2">
                                                     {localData.originalName || 'File uploaded'}

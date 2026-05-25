@@ -13,12 +13,41 @@ const logActivity = require('../utils/logger'); // Import Logger
 // Middleware: Ensure Super Admin (skipped for now, using standard admin)
 const superAdmin = [auth, admin];
 
+// ── Security: Mask sensitive values before sending to client ──
+const MASK = '••••••••';
+const isMasked = (val) => typeof val === 'string' && val.startsWith('••••••••');
+
+const maskSecret = (value) => {
+    if (!value || typeof value !== 'string') return value;
+    if (value.length <= 4) return MASK;
+    return MASK + value.slice(-4);
+};
+
+const maskSystemConfigForClient = (config) => {
+    const json = config.toJSON ? config.toJSON() : { ...config };
+
+    // Mask S3 storage credentials
+    if (json.settings?.storage?.s3) {
+        const s3 = json.settings.storage.s3;
+        if (s3.accessKeyId) s3.accessKeyId = maskSecret(s3.accessKeyId);
+        if (s3.secretAccessKey) s3.secretAccessKey = maskSecret(s3.secretAccessKey);
+    }
+
+    // Mask Google OAuth credentials
+    if (json.integrations?.google) {
+        const g = json.integrations.google;
+        if (g.clientSecret) g.clientSecret = maskSecret(g.clientSecret);
+    }
+
+    return json;
+};
+
 // @route   GET /api/system
 // @desc    Get full system config
 router.get('/', superAdmin, async (req, res) => {
     try {
         const config = await SystemConfig.getConfig();
-        const configJson = config.toJSON();
+        const configJson = maskSystemConfigForClient(config);
 
         // Attach linked admin user details
         if (configJson.settings && configJson.settings.linkedAdminUserId) {
@@ -77,17 +106,36 @@ router.put('/settings', superAdmin, async (req, res) => {
         if (req.body.ipBlacklist) config.ipBlacklist = req.body.ipBlacklist;
         if (req.body.menuOrder) config.menuOrder = req.body.menuOrder;
         if (req.body.integrations) {
-            config.integrations = { ...config.integrations, ...req.body.integrations };
+            // Preserve existing Google clientSecret if client sent back masked value
+            const existingIntegrations = config.integrations || {};
+            const safeIntegrations = { ...req.body.integrations };
+            if (safeIntegrations.google?.clientSecret && isMasked(safeIntegrations.google.clientSecret)) {
+                safeIntegrations.google.clientSecret = existingIntegrations.google?.clientSecret || '';
+            }
+            config.integrations = { ...existingIntegrations, ...safeIntegrations };
         }
         if (req.body.settings) {
-            config.settings = { ...config.settings, ...req.body.settings };
+            // Preserve existing S3 secrets if client sent back masked values
+            const existingSettings = config.settings || {};
+            const safeSettings = { ...req.body.settings };
+            if (safeSettings.storage?.s3) {
+                const existingS3 = existingSettings.storage?.s3 || {};
+                if (safeSettings.storage.s3.accessKeyId && isMasked(safeSettings.storage.s3.accessKeyId)) {
+                    safeSettings.storage.s3.accessKeyId = existingS3.accessKeyId || '';
+                }
+                if (safeSettings.storage.s3.secretAccessKey && isMasked(safeSettings.storage.s3.secretAccessKey)) {
+                    safeSettings.storage.s3.secretAccessKey = existingS3.secretAccessKey || '';
+                }
+            }
+            config.settings = { ...existingSettings, ...safeSettings };
         }
 
         await config.save();
 
         await logActivity(req, 'System Settings Update', 'Admin updated global system configuration');
 
-        res.json(config);
+        // Return masked version — secrets are never sent to the browser
+        res.json(maskSystemConfigForClient(config));
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');
@@ -405,6 +453,40 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                 } catch (s3Err) {
                     console.error("Test S3 Error:", s3Err);
                     return res.status(400).json({ msg: 'Failed to connect to S3: ' + s3Err.message });
+                }
+
+            case 'test-r2':
+                const r2SysConfig = await SystemConfig.getConfig();
+                const r2Conf = r2SysConfig?.settings?.storage?.r2;
+                if (!r2Conf || !r2Conf.accountId || !r2Conf.accessKeyId || !r2Conf.secretAccessKey || !r2Conf.bucket) {
+                    return res.status(400).json({ msg: 'Cloudflare R2 credentials not fully configured in your global settings.' });
+                }
+
+                try {
+                    const { S3Client: R2S3Client, ListObjectsV2Command: R2ListCmd } = require('@aws-sdk/client-s3');
+                    const r2Endpoint = `https://${r2Conf.accountId}.r2.cloudflarestorage.com`;
+
+                    const r2Client = new R2S3Client({
+                        region: 'auto',
+                        credentials: {
+                            accessKeyId: r2Conf.accessKeyId,
+                            secretAccessKey: r2Conf.secretAccessKey,
+                        },
+                        endpoint: r2Endpoint,
+                        forcePathStyle: true
+                    });
+
+                    const r2Command = new R2ListCmd({
+                        Bucket: r2Conf.bucket,
+                        MaxKeys: 1
+                    });
+
+                    await r2Client.send(r2Command);
+
+                    return res.json({ success: true, message: 'Successfully connected to Cloudflare R2 Bucket!' });
+                } catch (r2Err) {
+                    console.error("Test R2 Error:", r2Err);
+                    return res.status(400).json({ msg: 'Failed to connect to R2: ' + r2Err.message });
                 }
 
             default:

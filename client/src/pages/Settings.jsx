@@ -119,7 +119,8 @@ const Settings = () => {
         // Storage
         storage: {
             type: 'local',
-            s3: { endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrlPrefix: '' }
+            s3: { endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrlPrefix: '' },
+            r2: { accountId: '', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrl: '' }
         }
     });
 
@@ -239,6 +240,7 @@ const Settings = () => {
                     storage: {
                         type: 'local',
                         s3: { endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrlPrefix: '' },
+                        r2: { accountId: '', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrl: '' },
                         ...(res.data.storage || {})
                     }
                 }));
@@ -510,6 +512,43 @@ const Settings = () => {
                 type: 'success',
                 title: 'Test Successful',
                 message: response.data.message || 'S3 connection verified successfully.',
+                confirmText: 'OK'
+            });
+        } catch (error) {
+            showModal({
+                type: 'error',
+                title: 'Test Failed',
+                message: 'Test failed: ' + (error.response?.data?.error || error.response?.data?.msg || error.message),
+                confirmText: 'Close'
+            });
+        } finally {
+            setTestLoading(false);
+        }
+    };
+
+    const handleTestR2 = async () => {
+        if (!formData.storage?.r2?.accountId || !formData.storage?.r2?.bucket || !formData.storage?.r2?.accessKeyId || !formData.storage?.r2?.secretAccessKey) {
+            showModal({
+                type: 'warning',
+                title: 'Missing Credentials',
+                message: 'Please fill in all required R2 credentials (Account ID, Bucket, Access Key ID, Secret Access Key) before testing.',
+                confirmText: 'OK'
+            });
+            return;
+        }
+
+        setTestLoading(true);
+        try {
+            // Must save first so backend gets the creds
+            await saveSettingsData();
+
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/test-r2`, {}, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            showModal({
+                type: 'success',
+                title: 'Test Successful',
+                message: response.data.message || 'R2 connection verified successfully.',
                 confirmText: 'OK'
             });
         } catch (error) {
@@ -2049,21 +2088,33 @@ const Settings = () => {
                                                     <Database className="w-6 h-6 text-indigo-500" />
                                                     Cloud Storage Configuration
                                                 </h2>
-                                                <button
-                                                    onClick={handleTestS3}
-                                                    disabled={testLoading}
-                                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
-                                                >
-                                                    {testLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
-                                                    Test S3 Connection
-                                                </button>
+                                                {formData.storage?.type === 's3' && (
+                                                    <button
+                                                        onClick={handleTestS3}
+                                                        disabled={testLoading}
+                                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+                                                    >
+                                                        {testLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+                                                        Test S3 Connection
+                                                    </button>
+                                                )}
+                                                {formData.storage?.type === 'r2' && (
+                                                    <button
+                                                        onClick={handleTestR2}
+                                                        disabled={testLoading}
+                                                        className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+                                                    >
+                                                        {testLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+                                                        Test R2 Connection
+                                                    </button>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
                                                 {/* Storage Engine Selection */}
                                                 <div className="md:col-span-2 mb-4">
                                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Active Storage Backend</label>
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                    <div className="grid grid-cols-3 gap-4">
                                                         {/* Local Drive */}
                                                         <div
                                                             className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 'local' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
@@ -2081,6 +2132,15 @@ const Settings = () => {
                                                             <Cloud className={`w-8 h-8 ${formData.storage?.type === 's3' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
                                                             <span className={`font-bold ${formData.storage?.type === 's3' ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>S3 Compatible</span>
                                                             <span className="text-xs text-center text-slate-500 dark:text-slate-400">AWS S3, Wasabi, DigitalOcean Spaces, etc.</span>
+                                                        </div>
+                                                        {/* Cloudflare R2 */}
+                                                        <div
+                                                            className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 'r2' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
+                                                            onClick={() => setFormData(prev => ({ ...prev, storage: { ...prev.storage, type: 'r2' } }))}
+                                                        >
+                                                            <Cloud className={`w-8 h-8 ${formData.storage?.type === 'r2' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-400'}`} />
+                                                            <span className={`font-bold ${formData.storage?.type === 'r2' ? 'text-orange-700 dark:text-orange-300' : 'text-slate-700 dark:text-slate-300'}`}>Cloudflare R2</span>
+                                                            <span className="text-xs text-center text-slate-500 dark:text-slate-400">Cloudflare R2 object storage with zero egress fees.</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2149,13 +2209,14 @@ const Settings = () => {
                                                         <div>
                                                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Access Key ID</label>
                                                             <input
-                                                                type="text"
+                                                                type="password"
+                                                                autoComplete="off"
                                                                 value={formData.storage?.s3?.accessKeyId || ''}
                                                                 onChange={(e) => setFormData(prev => ({
                                                                     ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, accessKeyId: e.target.value } }
                                                                 }))}
                                                                 className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                                                placeholder="AKIAIOSFODNN7EXAMPLE"
+                                                                placeholder="••••••••••••••••••••"
                                                             />
                                                         </div>
 
@@ -2163,6 +2224,7 @@ const Settings = () => {
                                                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Secret Access Key</label>
                                                             <input
                                                                 type="password"
+                                                                autoComplete="off"
                                                                 value={formData.storage?.s3?.secretAccessKey || ''}
                                                                 onChange={(e) => setFormData(prev => ({
                                                                     ...prev, storage: { ...prev.storage, s3: { ...prev.storage.s3, secretAccessKey: e.target.value } }
@@ -2214,6 +2276,99 @@ const Settings = () => {
                                                                 <option value="false">False (Standard AWS S3)</option>
                                                             </select>
                                                             <p className="text-xs text-slate-500 mt-2">Forces the client to use path-style addressing for buckets.</p>
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {/* ── Cloudflare R2 Configuration Form ── */}
+                                                {formData.storage?.type === 'r2' && (
+                                                    <>
+                                                        <div className="md:col-span-2 mb-2 pb-4 border-b border-slate-100 dark:border-white/5">
+                                                            <h3 className="text-md font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                                <ServerCog className="w-5 h-5 text-orange-500" />
+                                                                Cloudflare R2 Credentials
+                                                            </h3>
+                                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                                Create an R2 API Token from your Cloudflare Dashboard → R2 → Manage R2 API Tokens.
+                                                            </p>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Account ID</label>
+                                                            <input
+                                                                type="password"
+                                                                autoComplete="off"
+                                                                value={formData.storage?.r2?.accountId || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, r2: { ...prev.storage.r2, accountId: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                                                                placeholder="••••••••••••••••"
+                                                            />
+                                                            <p className="text-xs text-slate-500 mt-1">Found in your Cloudflare Dashboard URL: dash.cloudflare.com/<span className="font-mono">{'<account_id>'}</span></p>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Bucket Name</label>
+                                                            <input
+                                                                type="text"
+                                                                value={formData.storage?.r2?.bucket || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, r2: { ...prev.storage.r2, bucket: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                                                                placeholder="my-r2-bucket"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Access Key ID</label>
+                                                            <input
+                                                                type="password"
+                                                                autoComplete="off"
+                                                                value={formData.storage?.r2?.accessKeyId || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, r2: { ...prev.storage.r2, accessKeyId: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                                                                placeholder="••••••••••••••••••••"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Secret Access Key</label>
+                                                            <input
+                                                                type="password"
+                                                                autoComplete="off"
+                                                                value={formData.storage?.r2?.secretAccessKey || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, r2: { ...prev.storage.r2, secretAccessKey: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                                                                placeholder="••••••••••••••••••••••••••••••••"
+                                                            />
+                                                        </div>
+
+                                                        <div className="md:col-span-2">
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Public URL (Optional)</label>
+                                                            <input
+                                                                type="text"
+                                                                value={formData.storage?.r2?.publicUrl || ''}
+                                                                onChange={(e) => setFormData(prev => ({
+                                                                    ...prev, storage: { ...prev.storage, r2: { ...prev.storage.r2, publicUrl: e.target.value } }
+                                                                }))}
+                                                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                                                                placeholder="https://pub-xxxxx.r2.dev or https://cdn.yourdomain.com"
+                                                            />
+                                                            <p className="text-xs text-slate-500 mt-1">Your R2 public bucket URL or custom domain. Required for public file access. Configure in R2 → Bucket → Settings → Public Access.</p>
+                                                        </div>
+
+                                                        {/* R2 Info Notice */}
+                                                        <div className="md:col-span-2 mt-2 p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800/30 rounded-xl">
+                                                            <p className="text-xs text-orange-800 dark:text-orange-300 flex items-start gap-2">
+                                                                <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                                                <span><strong>Security:</strong> All credentials are server-side masked. Only the last 4 characters are visible in responses for visual verification. Even if input type is changed via DevTools, the actual values are never sent to the browser.</span>
+                                                            </p>
                                                         </div>
                                                     </>
                                                 )}

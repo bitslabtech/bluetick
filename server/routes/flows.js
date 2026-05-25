@@ -23,7 +23,7 @@ router.post('/upload', auth, storageProvider('flows_media').single('file'), asyn
 
         res.json({ 
             url: publicUrl,
-            filename: req.file.filename,
+            filename: req.file.filename || req.file.key,
             originalName: req.file.originalname,
             size: req.file.size
         });

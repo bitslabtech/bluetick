@@ -297,7 +297,11 @@ router.put('/:id/permissions', auth, async (req, res) => {
 
         await logActivity(req, 'TEAM_MEMBER_UPDATED', `Updated permissions for ${targetMember.email}`);
 
-        res.json({ msg: 'Member updated successfully.', member: targetMember });
+        res.json({ msg: 'Member updated successfully.', member: {
+            id: targetMember.id, name: targetMember.name, email: targetMember.email,
+            teamRole: targetMember.teamRole, teamPermissions: targetMember.teamPermissions,
+            teamPolicy: targetMember.teamPolicy, createdAt: targetMember.createdAt, lastLogin: targetMember.lastLogin
+        } });
     } catch (err) {
         console.error('Update member error:', err);
         res.status(500).json({ error: 'Server Error' });

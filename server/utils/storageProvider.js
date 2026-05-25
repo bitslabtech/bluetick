@@ -1,5 +1,5 @@
 /**
- * Storage Provider — Unified upload middleware for Local + S3
+ * Storage Provider — Unified upload middleware for Local + S3 + Cloudflare R2
  * 
  * Handles file uploads with automatic image compression:
  * 1. Files are received into memory via multer
@@ -18,11 +18,8 @@ const SystemConfig = require('../models/SystemConfig');
 const User = require('../models/User');
 const { compressImage, isCompressibleImage } = require('./imageCompressor');
 
-// Use memory storage so we can compress before persisting
-const memoryUploader = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 200 * 1024 * 1024 } // 200MB max
-});
+// Default limits if none provided
+const DEFAULT_LIMITS = { fileSize: 200 * 1024 * 1024 }; // 200MB max
 
 /**
  * Reads the system config and returns the storage destination config.
@@ -52,6 +49,22 @@ const getStorageConfig = async (folderName) => {
         });
 
         return { type: 's3', s3Client, s3Conf, endpoint, forcePathStyleVal, folderName };
+    } else if (storageConfig.type === 'r2' && storageConfig.r2?.accountId && storageConfig.r2?.accessKeyId) {
+        // ── Cloudflare R2 (separate from S3) ──
+        const r2Conf = storageConfig.r2;
+        const endpoint = `https://${r2Conf.accountId}.r2.cloudflarestorage.com`;
+
+        const s3Client = new S3Client({
+            region: 'auto',
+            credentials: {
+                accessKeyId: r2Conf.accessKeyId,
+                secretAccessKey: r2Conf.secretAccessKey,
+            },
+            endpoint,
+            forcePathStyle: true
+        });
+
+        return { type: 'r2', s3Client, r2Conf, endpoint, folderName };
     } else {
         const uploadDir = path.join(__dirname, '../public/uploads', folderName || '');
         if (!fs.existsSync(uploadDir)) {
@@ -63,12 +76,12 @@ const getStorageConfig = async (folderName) => {
 
 /**
  * Builds the S3 public URL for an uploaded object.
- * Handles AWS S3, Cloudflare R2, Wasabi, MinIO, DigitalOcean Spaces.
+ * Handles AWS S3, Wasabi, MinIO, DigitalOcean Spaces.
  */
 const buildS3Location = (s3Conf, endpoint, forcePathStyleVal, key) => {
     if (endpoint) {
         if (forcePathStyleVal) {
-            // Path-style: https://endpoint/bucket/key (R2, Wasabi, MinIO)
+            // Path-style: https://endpoint/bucket/key (Wasabi, MinIO)
             return `${endpoint}/${s3Conf.bucket}/${key}`;
         } else {
             // Virtual-hosted: https://bucket.endpoint/key (DO Spaces)
@@ -82,14 +95,49 @@ const buildS3Location = (s3Conf, endpoint, forcePathStyleVal, key) => {
     }
 };
 
-const storageProvider = (folderName) => {
+/**
+ * Builds the public URL for a Cloudflare R2 uploaded object.
+ * Uses the user-configured publicUrl (custom domain or pub-xxx.r2.dev) if available,
+ * otherwise falls back to the S3 API endpoint (which requires auth for private buckets).
+ */
+const buildR2Location = (r2Conf, endpoint, key) => {
+    if (r2Conf.publicUrl) {
+        const prefix = r2Conf.publicUrl.replace(/\/$/, '');
+        return `${prefix}/${key}`;
+    }
+    // Fallback: S3 API path-style URL
+    return `${endpoint}/${r2Conf.bucket}/${key}`;
+};
+
+const storageProvider = (folderName, options = {}) => {
     return {
         single: (fieldName) => {
+            // Create uploader per route with custom limits/fileFilter
+            const uploader = multer({
+                storage: multer.memoryStorage(),
+                limits: options.limits || DEFAULT_LIMITS,
+                fileFilter: options.fileFilter || undefined
+            });
+
             return async (req, res, next) => {
                 try {
                     // Step 1: Parse the upload into memory buffer
-                    memoryUploader.single(fieldName)(req, res, async (err) => {
-                        if (err) return next(err);
+                    uploader.single(fieldName)(req, res, async (err) => {
+                        if (err) {
+                            // Graceful multer error handling
+                            if (err.code === 'LIMIT_FILE_SIZE') {
+                                const limitBytes = options.limits?.fileSize || DEFAULT_LIMITS.fileSize;
+                                const limitMB = (limitBytes / (1024 * 1024)).toFixed(0);
+                                return res.status(413).json({
+                                    error: `File too large. Maximum allowed size is ${limitMB}MB.`
+                                });
+                            }
+                            // File filter rejection or other multer errors
+                            if (err.message) {
+                                return res.status(400).json({ error: err.message });
+                            }
+                            return next(err);
+                        }
 
                         // No file uploaded (optional fields) — continue
                         if (!req.file) return next();
@@ -156,6 +204,35 @@ const storageProvider = (folderName) => {
                                 } else {
                                     req.file.publicUrl = location;
                                 }
+
+                            } else if (storageConf.type === 'r2') {
+                                // ── Cloudflare R2 Upload (no ACL — R2 does not support it) ──
+                                const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+                                const key = folderName
+                                    ? `${folderName}/${uniqueSuffix}-${safeName}`
+                                    : `${uniqueSuffix}-${safeName}`;
+
+                                await storageConf.s3Client.send(new PutObjectCommand({
+                                    Bucket: storageConf.r2Conf.bucket,
+                                    Key: key,
+                                    Body: fileBuffer,
+                                    ContentType: req.file.mimetype,
+                                    Metadata: { fieldName: req.file.fieldname }
+                                }));
+
+                                // Build R2 URL
+                                const location = buildR2Location(
+                                    storageConf.r2Conf,
+                                    storageConf.endpoint,
+                                    key
+                                );
+
+                                // Set req.file properties
+                                req.file.key = key;
+                                req.file.location = location;
+                                req.file.bucket = storageConf.r2Conf.bucket;
+                                req.file.size = fileBuffer.length;
+                                req.file.publicUrl = location;
 
                             } else {
                                 // ── Local Disk Upload ──

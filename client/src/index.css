@@ -29,6 +29,12 @@ body {
   100% { transform: translateX(100%); }
 }
 
+/* Shimmer slide for progress bar — CSS-only, compositor-thread (no JS) */
+@keyframes shimmer-slide {
+  0%   { transform: translateX(-200%) skewX(-12deg); }
+  100% { transform: translateX(400%) skewX(-12deg); }
+}
+
 .animate-\\[shimmer_2s_infinite\\] {
   animation: shimmer 2s infinite linear;
 }

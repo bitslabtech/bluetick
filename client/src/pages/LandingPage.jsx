@@ -1106,9 +1106,9 @@ function FeaturePreview({ feature }) {
                         <div className="text-[8px] text-slate-500">12.5k Contacts</div>
                     </motion.div>
 
-                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }} className="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center shrink-0 z-10 relative">
+                    <div className="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center shrink-0 z-10 relative animate-spin" style={{ animationDuration: '4s', animationTimingFunction: 'linear' }}>
                         <Repeat className={`w-4 h-4 ${barColor.replace('bg-', 'text-')}`} />
-                    </motion.div>
+                    </div>
 
                     <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="flex-1 bg-white/80 rounded-xl p-3 flex flex-col items-center shadow-sm">
                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mb-1"><Facebook className="w-4 h-4 text-blue-600" /></div>
@@ -1117,7 +1117,7 @@ function FeaturePreview({ feature }) {
                     </motion.div>
                 </div>
                 <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "80%" }} transition={{ delay: 1, duration: 1 }} className="h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] mt-2 relative overflow-hidden">
-                    <motion.div initial={{ x: "-100%" }} animate={{ x: "200%" }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} className="absolute inset-0 w-1/2 bg-white/50 -skew-x-12"></motion.div>
+                    <div className="absolute inset-0 w-1/2 bg-white/50 -skew-x-12" style={{ animation: 'shimmer-slide 1.5s linear infinite' }}></div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }} className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Live Sync Active</motion.div>
             </div>
@@ -1272,6 +1272,7 @@ function AdvancedFeaturesShowcase({ config }) {
     useEffect(() => {
         setProgress(0);
         const start = Date.now();
+        // Slowed to 200ms intervals to prevent 20 React re-renders/sec during scroll
         const tick = setInterval(() => {
             const elapsed = Date.now() - start;
             const pct = Math.min((elapsed / SHOWCASE_INTERVAL) * 100, 100);
@@ -1280,7 +1281,7 @@ function AdvancedFeaturesShowcase({ config }) {
             if (elapsed >= SHOWCASE_INTERVAL) {
                 setActive(prev => (prev + 1) % allFeatures.length);
             }
-        }, 50);
+        }, 200);
         return () => clearInterval(tick);
     }, [active, allFeatures.length]);
 
@@ -1660,7 +1661,7 @@ const AddonMarketplaceShowcase = () => {
             {/* Ambient Backgrounds (reduced blur for GPU perf) */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[80px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
             <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/10 dark:bg-violet-500/15 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateZ(0)' }} />
-            
+
             {/* Subtle Grid Pattern */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgxNTAsMTUwLDE1MCwwLjE1KSIvPjwvc3ZnPg==')] opacity-40 dark:opacity-[0.15] pointer-events-none" />
 
@@ -1675,7 +1676,7 @@ const AddonMarketplaceShowcase = () => {
                     >
                         <Layers className="w-3.5 h-3.5" /> Infinite Possibilities
                     </motion.div>
-                    <motion.h2 
+                    <motion.h2
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -1684,7 +1685,7 @@ const AddonMarketplaceShowcase = () => {
                     >
                         The Power of <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">Marketplace</span>
                     </motion.h2>
-                    <motion.p 
+                    <motion.p
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -1701,16 +1702,17 @@ const AddonMarketplaceShowcase = () => {
                         return (
                             <motion.div
                                 key={benefit.id}
-                                initial={{ opacity: 0, y: 40, rotateX: 10 }}
-                                whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true, margin: "-50px" }}
-                                transition={{ duration: 0.6, delay: i * 0.1, type: "spring", stiffness: 100 }}
+                                transition={{ duration: 0.5, delay: i * 0.08 }}
                                 whileHover={{ y: -6, scale: 1.01 }}
                                 className="group relative rounded-3xl p-6 bg-white dark:bg-[#0c0c14] border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-200/50 dark:shadow-none hover:shadow-xl transition-all duration-300 cursor-pointer overflow-visible"
+                                style={{ willChange: 'transform' }}
                             >
                                 {/* Glowing backdrop that appears on hover */}
                                 <div className={`absolute -inset-1 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-15 blur-lg transition-opacity duration-500 -z-10`} />
-                                
+
                                 <div className="relative z-10 flex flex-col h-full">
                                     <div className="flex justify-between items-start mb-6">
                                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${benefit.bg} ${benefit.border} border shadow-sm group-hover:${benefit.glow} transition-all duration-500 relative`}>
@@ -1721,11 +1723,11 @@ const AddonMarketplaceShowcase = () => {
                                             {benefit.category}
                                         </div>
                                     </div>
-                                    
+
                                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-indigo-500 group-hover:to-purple-500 transition-all duration-300">
                                         {benefit.name}
                                     </h3>
-                                    
+
                                     <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed flex-1">
                                         {benefit.desc}
                                     </p>
@@ -1893,7 +1895,7 @@ export default function LandingPage() {
 
     return (
         <div className={isDark ? 'dark' : ''}>
-            <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-hidden selection:bg-indigo-500/30 transition-colors duration-300">
+            <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-clip selection:bg-indigo-500/30 transition-colors duration-300">
 
                 {/* 1. NAVBAR */}
                 <PublicHeader />
@@ -1907,7 +1909,7 @@ export default function LandingPage() {
                             <div className="flex flex-col items-center justify-center text-center">
                                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
                                     <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2">
-                                        <Star className="w-3.5 h-3.5" /> Next-Gen Platform
+                                        <Star className="w-3.5 h-3.5" />  Next-Gen AI  Powered Platform
                                     </span>
                                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
                                         {config.hero.title}
@@ -1939,7 +1941,7 @@ export default function LandingPage() {
                                 {/* Left Content */}
                                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center lg:text-left z-10 lg:col-span-6">
                                     <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2 max-w-fit mx-auto lg:mx-0">
-                                        <Star className="w-3.5 h-3.5" /> Next-Gen Platform
+                                        <Star className="w-3.5 h-3.5" /> Next-Gen AI    Powered Platform
                                     </span>
                                     <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
                                         {config.hero.title}
@@ -1968,41 +1970,41 @@ export default function LandingPage() {
                                     ) : (
                                         <div className="relative mx-auto w-[340px] h-[680px] bg-slate-900 dark:bg-[#0A0A0A] rounded-[3rem] border-[8px] border-slate-800 shadow-2xl p-4 overflow-hidden flex flex-col transition-colors ml-auto mr-0 xl:mr-10">
                                             {/* Phone Header */}
-                                        <div className="flex items-center gap-3 pb-4 border-b border-white/10 px-2 mt-4">
-                                            {(publicSettings?.logoUrl || config.brand?.logo) ? (
-                                                <img src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-white p-1" />
-                                            ) : (
-                                                <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                                                    <MessageSquare className="w-5 h-5 text-white" />
+                                            <div className="flex items-center gap-3 pb-4 border-b border-white/10 px-2 mt-4">
+                                                {(publicSettings?.logoUrl || config.brand?.logo) ? (
+                                                    <img src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-white p-1" />
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                                        <MessageSquare className="w-5 h-5 text-white" />
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <div className="font-bold text-white text-sm">AI Agent</div>
+                                                    <div className="text-[10px] text-green-400 font-bold tracking-wider uppercase">• Online</div>
                                                 </div>
-                                            )}
-                                            <div>
-                                                <div className="font-bold text-white text-sm">AI Agent</div>
-                                                <div className="text-[10px] text-green-400 font-bold tracking-wider uppercase">• Online</div>
+                                            </div>
+                                            {/* Chat UI */}
+                                            <div className="flex-1 py-4 space-y-4 text-sm font-medium">
+                                                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
+                                                    Hi! 👋 Welcome to {config.brand.name}. How can we help you scale today?
+                                                </motion.div>
+                                                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.6 }} className="bg-green-600 text-white rounded-2xl rounded-tr-sm p-3 max-w-[85%] ml-auto">
+                                                    I need to automate my support and broadcast offers!
+                                                </motion.div>
+                                                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2.4 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
+                                                    Perfect. Our AI handles 80% of support automatically. Want to see a quick demo?
+                                                </motion.div>
+                                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="flex gap-2 flex-wrap pt-2">
+                                                    <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[11px] font-bold cursor-pointer">Yes, show me!</div>
+                                                    <div className="px-3 py-1.5 bg-white/5 text-white border border-white/10 rounded-full text-[11px] font-bold cursor-pointer">Pricing</div>
+                                                </motion.div>
+                                            </div>
+                                            {/* Bottom Input */}
+                                            <div className="w-full h-12 bg-white/5 rounded-full mt-auto flex items-center px-4 justify-between border border-white/10">
+                                                <span className="text-white/40 text-sm font-medium">Message...</span>
+                                                <Send className="w-4 h-4 text-white/40" />
                                             </div>
                                         </div>
-                                        {/* Chat UI */}
-                                        <div className="flex-1 py-4 space-y-4 text-sm font-medium">
-                                            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
-                                                Hi! 👋 Welcome to {config.brand.name}. How can we help you scale today?
-                                            </motion.div>
-                                            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.6 }} className="bg-green-600 text-white rounded-2xl rounded-tr-sm p-3 max-w-[85%] ml-auto">
-                                                I need to automate my support and broadcast offers!
-                                            </motion.div>
-                                            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2.4 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
-                                                Perfect. Our AI handles 80% of support automatically. Want to see a quick demo?
-                                            </motion.div>
-                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="flex gap-2 flex-wrap pt-2">
-                                                <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[11px] font-bold cursor-pointer">Yes, show me!</div>
-                                                <div className="px-3 py-1.5 bg-white/5 text-white border border-white/10 rounded-full text-[11px] font-bold cursor-pointer">Pricing</div>
-                                            </motion.div>
-                                        </div>
-                                        {/* Bottom Input */}
-                                        <div className="w-full h-12 bg-white/5 rounded-full mt-auto flex items-center px-4 justify-between border border-white/10">
-                                            <span className="text-white/40 text-sm font-medium">Message...</span>
-                                            <Send className="w-4 h-4 text-white/40" />
-                                        </div>
-                                    </div>
                                     )}
                                 </motion.div>
                             </div>
@@ -2494,27 +2496,27 @@ export default function LandingPage() {
                                     {hasMonthly && (
                                         <button
                                             onClick={() => setBillingInterval('monthly')}
-                                            className={`relative flex flex-col items-center justify-center px-7 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[100px] ${billingInterval === 'monthly'
+                                            className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'monthly'
                                                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
                                                 : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
                                                 }`}
                                         >
-                                            <span className="font-extrabold text-[15px] tracking-tight">Monthly</span>
+                                            <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Monthly</span>
                                         </button>
                                     )}
                                     {hasHalfYearly && (
                                         <button
                                             onClick={() => setBillingInterval('half-yearly')}
-                                            className={`relative flex flex-col items-center justify-center px-7 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[100px] ${billingInterval === 'half-yearly'
+                                            className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'half-yearly'
                                                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
                                                 : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
                                                 }`}
                                         >
-                                            <span className="font-extrabold text-[15px] tracking-tight">Half-Yearly</span>
+                                            <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Half-Yearly</span>
                                             {maxHalfYearlySavings > 0 && (
-                                                <span className={`mt-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${billingInterval === 'half-yearly'
-                                                    ? 'bg-white/20 text-white'
-                                                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+                                                <span className={`absolute -top-3 -right-2 sm:-right-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/20 shadow-sm ${billingInterval === 'half-yearly'
+                                                    ? 'bg-indigo-200 text-indigo-900'
+                                                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800/50'
                                                     }`}>
                                                     Save {maxHalfYearlySavings}%
                                                 </span>
@@ -2524,16 +2526,16 @@ export default function LandingPage() {
                                     {hasYearly && (
                                         <button
                                             onClick={() => setBillingInterval('yearly')}
-                                            className={`relative flex flex-col items-center justify-center px-7 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[100px] ${billingInterval === 'yearly'
+                                            className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'yearly'
                                                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
                                                 : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
                                                 }`}
                                         >
-                                            <span className="font-extrabold text-[15px] tracking-tight">Yearly</span>
+                                            <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Yearly</span>
                                             {maxYearlySavings > 0 && (
-                                                <span className={`mt-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${billingInterval === 'yearly'
-                                                    ? 'bg-white/20 text-white'
-                                                    : 'bg-emerald-500 text-white dark:bg-emerald-600 shadow-sm shadow-emerald-500/30'
+                                                <span className={`absolute -top-3 -right-2 sm:-right-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-white/20 shadow-md ${billingInterval === 'yearly'
+                                                    ? 'bg-indigo-200 text-indigo-900'
+                                                    : 'bg-emerald-500 text-white dark:bg-emerald-600 shadow-emerald-500/30 dark:border-emerald-500/30'
                                                     }`}>
                                                     Save {maxYearlySavings}%
                                                 </span>
@@ -2544,8 +2546,44 @@ export default function LandingPage() {
                             </div>
 
 
-                            <div className="flex flex-wrap justify-center gap-8 items-stretch max-w-6xl mx-auto">
-                                {plans.map((plan, i) => {
+                            {/* Mobile Swipe Hint */}
+                            {plans.length > 1 && (
+                                <div className="md:hidden flex items-center justify-center mb-4 px-2">
+                                    <div className="text-sm font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                        <ArrowRight className="w-4 h-4 animate-pulse text-indigo-500" /> Swipe to view other plans
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Slider Wrapper */}
+                            <div className="relative max-w-6xl mx-auto">
+                                {/* Sticky Vertical Center Arrows for Mobile */}
+                                {plans.length > 1 && (
+                                    <div className="absolute inset-x-0 top-[10%] bottom-[10%] pointer-events-none z-30">
+                                        <div className="md:hidden sticky top-[50vh] flex justify-between w-full -translate-y-1/2">
+                                            <button 
+                                                onClick={() => document.getElementById('pricing-slider').scrollBy({ left: -300, behavior: 'smooth' })} 
+                                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -ml-5 active:scale-95 transition-transform"
+                                            >
+                                                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                                            </button>
+                                            <button 
+                                                onClick={() => document.getElementById('pricing-slider').scrollBy({ left: 300, behavior: 'smooth' })} 
+                                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -mr-5 active:scale-95 transition-transform"
+                                            >
+                                                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div
+                                    id="pricing-slider"
+                                    className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pb-6 snap-x snap-mandatory"
+                                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                >
+                                    <style>{`#pricing-slider::-webkit-scrollbar { display: none; }`}</style>
+                                    {plans.map((plan, i) => {
                                     const isPopular = plan.name === 'Pro' || plan.name === 'Business';
 
                                     // Determine Display Price
@@ -2572,7 +2610,7 @@ export default function LandingPage() {
 
                                     return (
                                         <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                                            className={`relative w-full sm:w-[340px] flex-shrink-0 p-8 rounded-[2.5rem] border flex flex-col h-full transition-all ${isPopular
+                                            className={`relative w-[85vw] sm:w-[340px] shrink-0 snap-center p-8 rounded-[2.5rem] border flex flex-col h-auto min-h-full transition-all ${isPopular
                                                 ? 'bg-indigo-600 dark:bg-indigo-900/40 border-indigo-500 text-white transform md:-translate-y-4 shadow-2xl shadow-indigo-600/20'
                                                 : 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-indigo-500/30'
                                                 }`}
@@ -2759,6 +2797,7 @@ export default function LandingPage() {
                                 })}
                             </div>
                         </div>
+                        </div>
                     </section>
                 )}
 
@@ -2768,30 +2807,30 @@ export default function LandingPage() {
                 )}
 
                 {/* 14. CTA & PARTNER ECOSYSTEM */}
-                <section className="py-32 px-6 relative z-10 bg-white dark:bg-[#05050A] overflow-hidden">
+                <section className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 relative z-10 bg-white dark:bg-[#05050A] overflow-hidden">
                     {/* Background Gradients */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" style={{ transform: 'translate(-50%, -50%) translateZ(0)' }} />
-                    
+
                     <div className="max-w-7xl mx-auto">
-                        
+
                         {/* Main CTA Block */}
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                            className="rounded-[3rem] overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 relative border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 mb-12"
+                            className="rounded-[1.75rem] sm:rounded-[2.5rem] md:rounded-[3rem] overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 relative border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 mb-12"
                         >
                             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] pointer-events-none" />
                             <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
                             <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/40 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
 
-                            <div className="relative py-20 px-8 md:px-20 text-center flex flex-col items-center">
-                                <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight text-white max-w-4xl leading-[1.1]">
+                            <div className="relative py-12 px-4 sm:py-16 sm:px-8 md:py-20 md:px-20 text-center flex flex-col items-center">
+                                <h2 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 tracking-tight text-white max-w-4xl leading-[1.2] sm:leading-[1.1]">
                                     Become a Partner & Grow with Us
                                 </h2>
-                                <p className="text-indigo-100 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-medium">
+                                <p className="text-indigo-100 text-sm sm:text-base md:text-lg lg:text-xl max-w-2xl mx-auto mb-8 sm:mb-10 font-medium leading-relaxed">
                                     Join our ecosystem as an affiliate or tech partner. Leverage our platform's infrastructure to generate new revenue streams and scale your own business.
                                 </p>
-                                <div className="flex flex-col sm:flex-row gap-4 mb-16">
-                                    <Link to="/partner" className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-white text-indigo-700 rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-900/50">
+                                <div className="flex flex-col sm:flex-row gap-4 mb-12 sm:mb-16 w-full sm:w-auto px-4 sm:px-0">
+                                    <Link to="/partner" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 sm:px-10 sm:py-4 bg-white text-indigo-700 rounded-full font-bold text-base sm:text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-900/50 w-full sm:w-auto">
                                         View Partner Portal <ArrowRight className="w-5 h-5" />
                                     </Link>
                                 </div>
@@ -2799,36 +2838,36 @@ export default function LandingPage() {
                                 {/* Modern Minimal Partner Details (Moved Inside) */}
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                                    className="relative w-full max-w-5xl bg-white/10 backdrop-blur-md border border-white/20 rounded-[2rem] p-2 shadow-2xl text-left"
+                                    className="relative w-full max-w-5xl bg-white/10 backdrop-blur-md border border-white/20 rounded-[1.5rem] sm:rounded-[2rem] p-1.5 sm:p-2 shadow-2xl text-left"
                                 >
                                     <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10">
                                         {/* Referral */}
-                                        <Link to="/partner" className="p-6 md:p-8 flex items-start gap-5 group cursor-pointer hover:bg-white/10 rounded-3xl md:rounded-l-[1.5rem] md:rounded-r-none transition-colors">
-                                            <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                                                <TrendingUp className="w-6 h-6 text-emerald-400" />
+                                        <Link to="/partner" className="p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 group cursor-pointer hover:bg-white/10 rounded-t-[1.25rem] rounded-b-none md:rounded-l-[1.5rem] md:rounded-r-none transition-colors">
+                                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                                                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-xl font-bold text-white">Referral Program</h4>
-                                                    <ArrowUpRight className="w-5 h-5 text-indigo-200 group-hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0" />
+                                            <div className="flex-1 w-full">
+                                                <div className="flex items-center justify-center sm:justify-between mb-2 gap-2">
+                                                    <h4 className="text-lg sm:text-xl font-bold text-white">Referral Program</h4>
+                                                    <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200 group-hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 hidden sm:block" />
                                                 </div>
-                                                <p className="text-sm text-indigo-100 font-medium leading-relaxed">
+                                                <p className="text-xs sm:text-sm text-indigo-100 font-medium leading-relaxed">
                                                     Both you and your referral get <span className="text-emerald-400 font-bold">extra subscription months & AI tokens</span> when they sign up. Dual-sided rewards!
                                                 </p>
                                             </div>
                                         </Link>
 
                                         {/* Tech Partner */}
-                                        <Link to="/partner" className="p-6 md:p-8 flex items-start gap-5 group cursor-pointer hover:bg-white/10 rounded-3xl md:rounded-r-[1.5rem] md:rounded-l-none transition-colors">
-                                            <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                                                <Layers className="w-6 h-6 text-blue-400" />
+                                        <Link to="/partner" className="p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 group cursor-pointer hover:bg-white/10 rounded-b-[1.25rem] rounded-t-none md:rounded-r-[1.5rem] md:rounded-l-none transition-colors">
+                                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                                                <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="text-xl font-bold text-white">Tech Partner</h4>
-                                                    <ArrowUpRight className="w-5 h-5 text-indigo-200 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0" />
+                                            <div className="flex-1 w-full">
+                                                <div className="flex items-center justify-center sm:justify-between mb-2 gap-2">
+                                                    <h4 className="text-lg sm:text-xl font-bold text-white">Tech Partner</h4>
+                                                    <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 hidden sm:block" />
                                                 </div>
-                                                <p className="text-sm text-indigo-100 font-medium leading-relaxed">
+                                                <p className="text-xs sm:text-sm text-indigo-100 font-medium leading-relaxed">
                                                     Join our Tech Partner program and earn <span className="text-blue-400 font-bold">up to 30% commission</span> with unique tracking links, discount coupons, and dedicated marketing assets.
                                                 </p>
                                             </div>
@@ -2839,7 +2878,7 @@ export default function LandingPage() {
                             </div>
                         </motion.div>
 
-                        </div>
+                    </div>
                 </section>
 
                 {/* 14. EXPANDED FOOTER */}

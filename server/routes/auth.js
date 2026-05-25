@@ -349,7 +349,7 @@ router.post('/login', authLimiter, async (req, res) => {
 router.get('/me', require('../middleware/auth'), async (req, res) => {
     try {
         const user = await User.findByPk(req.user.realId || req.user.id, {
-            attributes: { exclude: ['password'] }
+            attributes: { exclude: ['password', 'fbAccessToken', 'metaAdsToken', 'inviteToken'] }
         });
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -389,7 +389,7 @@ router.put('/profile', require('../middleware/auth'), async (req, res) => {
 
         // Return updated user without password
         const updatedUser = await User.findByPk(req.user.realId || req.user.id, {
-            attributes: { exclude: ['password'] }
+            attributes: { exclude: ['password', 'fbAccessToken', 'metaAdsToken', 'inviteToken'] }
         });
 
         res.json(updatedUser);

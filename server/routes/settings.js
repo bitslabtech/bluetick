@@ -121,10 +121,24 @@ router.get('/', async (req, res) => {
         if (req.user.isAdmin) {
             const SystemConfig = require('../models/SystemConfig');
             const sysConfig = await SystemConfig.getConfig();
-            jsonRes.storage = sysConfig.settings?.storage || { type: 'local', s3: {} };
+            jsonRes.storage = sysConfig.settings?.storage || { type: 'local', s3: {}, r2: {} };
             
+            // Mask S3 credentials
+            if (jsonRes.storage.s3?.accessKeyId) {
+                jsonRes.storage.s3.accessKeyId = maskSecret(jsonRes.storage.s3.accessKeyId);
+            }
             if (jsonRes.storage.s3?.secretAccessKey) {
                 jsonRes.storage.s3.secretAccessKey = maskSecret(jsonRes.storage.s3.secretAccessKey);
+            }
+            // Mask R2 credentials (accountId, accessKeyId, secretAccessKey)
+            if (jsonRes.storage.r2?.accountId) {
+                jsonRes.storage.r2.accountId = maskSecret(jsonRes.storage.r2.accountId);
+            }
+            if (jsonRes.storage.r2?.accessKeyId) {
+                jsonRes.storage.r2.accessKeyId = maskSecret(jsonRes.storage.r2.accessKeyId);
+            }
+            if (jsonRes.storage.r2?.secretAccessKey) {
+                jsonRes.storage.r2.secretAccessKey = maskSecret(jsonRes.storage.r2.secretAccessKey);
             }
         }
         
@@ -301,17 +315,36 @@ router.post('/', async (req, res) => {
             const SystemConfig = require('../models/SystemConfig');
             const sysConfig = await SystemConfig.getConfig();
             
+            // ── S3 credential preservation ──
             let currentS3 = sysConfig.settings?.storage?.s3 || {};
             let safeS3 = storage.s3 ? { ...storage.s3 } : {};
             
-            // Preserve existing S3 secret key if masked
+            // Preserve existing S3 credentials if masked
+            if (safeS3.accessKeyId && isMasked(safeS3.accessKeyId)) {
+                safeS3.accessKeyId = currentS3.accessKeyId || '';
+            }
             if (safeS3.secretAccessKey && isMasked(safeS3.secretAccessKey)) {
                 safeS3.secretAccessKey = currentS3.secretAccessKey || '';
+            }
+
+            // ── R2 credential preservation ──
+            let currentR2 = sysConfig.settings?.storage?.r2 || {};
+            let safeR2 = storage.r2 ? { ...storage.r2 } : {};
+
+            if (safeR2.accountId && isMasked(safeR2.accountId)) {
+                safeR2.accountId = currentR2.accountId || '';
+            }
+            if (safeR2.accessKeyId && isMasked(safeR2.accessKeyId)) {
+                safeR2.accessKeyId = currentR2.accessKeyId || '';
+            }
+            if (safeR2.secretAccessKey && isMasked(safeR2.secretAccessKey)) {
+                safeR2.secretAccessKey = currentR2.secretAccessKey || '';
             }
             
             let safeStorage = {
                 type: storage.type || 'local',
-                s3: safeS3
+                s3: safeS3,
+                r2: safeR2
             };
 
             sysConfig.settings = {
@@ -327,9 +360,23 @@ router.post('/', async (req, res) => {
         if (req.user.isAdmin) {
             const SystemConfig = require('../models/SystemConfig');
             const sysConfig = await SystemConfig.getConfig();
-            jsonRes.storage = sysConfig.settings?.storage || { type: 'local', s3: {} };
+            jsonRes.storage = sysConfig.settings?.storage || { type: 'local', s3: {}, r2: {} };
+            // Mask S3 credentials
+            if (jsonRes.storage.s3?.accessKeyId) {
+                jsonRes.storage.s3.accessKeyId = maskSecret(jsonRes.storage.s3.accessKeyId);
+            }
             if (jsonRes.storage.s3?.secretAccessKey) {
                 jsonRes.storage.s3.secretAccessKey = maskSecret(jsonRes.storage.s3.secretAccessKey);
+            }
+            // Mask R2 credentials
+            if (jsonRes.storage.r2?.accountId) {
+                jsonRes.storage.r2.accountId = maskSecret(jsonRes.storage.r2.accountId);
+            }
+            if (jsonRes.storage.r2?.accessKeyId) {
+                jsonRes.storage.r2.accessKeyId = maskSecret(jsonRes.storage.r2.accessKeyId);
+            }
+            if (jsonRes.storage.r2?.secretAccessKey) {
+                jsonRes.storage.r2.secretAccessKey = maskSecret(jsonRes.storage.r2.secretAccessKey);
             }
         }
         
@@ -621,10 +668,19 @@ router.post('/test', auth, async (req, res) => {
 // Test SMTP Connection
 router.post('/test-smtp', async (req, res) => {
     try {
-        const { host, port, user, pass, secure, fromEmail } = req.body;
+        let { host, port, user, pass, secure, fromEmail } = req.body;
 
         if (!host || !port || !user || !pass) {
             return res.status(400).json({ error: 'Missing required SMTP credentials.' });
+        }
+
+        // If the frontend sent a masked password, read the real one from DB
+        if (isMasked(pass)) {
+            const dbSettings = await Settings.findOne({ where: { userId: req.user.id } });
+            if (!dbSettings || !dbSettings.smtpConfig?.pass) {
+                return res.status(400).json({ error: 'No saved SMTP password found. Please save your settings first.' });
+            }
+            pass = dbSettings.smtpConfig.pass;
         }
 
         const nodemailer = require('nodemailer');

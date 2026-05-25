@@ -13,25 +13,13 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const storageProvider = require('../utils/storageProvider');
 
-// Setup multer for Marketing Assets
+// Keep assetsDir reference for the DELETE route to clean up old local files
 const assetsDir = path.join(__dirname, '../public/uploads/tech-partners');
 if (!fs.existsSync(assetsDir)) {
     fs.mkdirSync(assetsDir, { recursive: true });
 }
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, assetsDir),
-    filename: (req, file, cb) => {
-        const uniqueSuffix = crypto.randomBytes(6).toString('hex');
-        cb(null, `tp-asset-${uniqueSuffix}${path.extname(file.originalname)}`);
-    }
-});
-
-const upload = multer({ 
-    storage,
-    limits: { fileSize: 50 * 1024 * 1024 } // 50MB max
-});
 
 const superAdmin = [auth, admin];
 
@@ -300,66 +288,51 @@ router.post('/applications/:userId/reject', superAdmin, async (req, res) => {
 });
 
 // ─── POST /api/admin/tech-partners/assets ──────────────────────────────────────
-const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
-router.post('/assets', superAdmin, upload.single('file'), async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
-        
-        const { name } = req.body;
-        if (!name) return res.status(400).json({ error: 'Asset name is required.' });
+router.post('/assets', superAdmin,
+    storageProvider('tech-partners', {
+        limits: { fileSize: 50 * 1024 * 1024 }
+    }).single('file'),
+    async (req, res) => {
+        try {
+            if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+            
+            const { name } = req.body;
+            if (!name) return res.status(400).json({ error: 'Asset name is required.' });
 
-        // Compress image in-place on disk (skip videos/PDFs/other files)
-        if (isCompressibleImage(req.file.mimetype)) {
-            try {
-                const fileBuffer = fs.readFileSync(req.file.path);
-                const result = await compressImage(fileBuffer, req.file.mimetype);
-                if (result.compressed) {
-                    fs.writeFileSync(req.file.path, result.buffer);
-                    req.file.size = result.buffer.length;
-                    console.log(`[TP ASSET] Compressed ${req.file.originalname}: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB`);
-                }
-            } catch (compressErr) {
-                console.warn('[TP ASSET] Compression failed, using original:', compressErr.message);
-            }
+            // Determine type based on mimetype
+            let type = 'FILE';
+            if (req.file.mimetype.startsWith('image/')) type = 'IMG';
+            else if (req.file.mimetype.startsWith('video/')) type = 'VIDEO';
+            else if (req.file.mimetype === 'application/pdf') type = 'PDF';
+            else type = path.extname(req.file.originalname).replace('.', '').toUpperCase();
+            
+            const newAsset = {
+                id: crypto.randomUUID(),
+                name,
+                url: req.file.publicUrl,
+                type,
+                filename: req.file.filename || req.file.key,
+                size: req.file.size
+            };
+
+            const config = await SystemConfig.getConfig();
+            const settings = config.settings || {};
+            if (!settings.techPartnerProgram) settings.techPartnerProgram = {};
+            if (!settings.techPartnerProgram.assets) settings.techPartnerProgram.assets = [];
+            
+            settings.techPartnerProgram.assets.push(newAsset);
+            
+            config.changed('settings', true);
+            await config.save();
+
+            await logActivity(req, 'Marketing Asset Uploaded', `Admin uploaded new Tech Partner asset: ${name}`);
+            res.status(201).json(newAsset);
+        } catch (err) {
+            console.error('[ASSET UPLOAD ERROR]', err);
+            res.status(500).json({ error: err.message });
         }
-
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-        const host = req.headers.host;
-        const publicUrl = `${protocol}://${host}/uploads/tech-partners/${req.file.filename}`;
-
-        // Determine type based on extension or mimetype
-        let type = 'FILE';
-        if (req.file.mimetype.startsWith('image/')) type = 'IMG';
-        else if (req.file.mimetype.startsWith('video/')) type = 'VIDEO';
-        else if (req.file.mimetype === 'application/pdf') type = 'PDF';
-        else type = path.extname(req.file.originalname).replace('.', '').toUpperCase();
-        
-        const newAsset = {
-            id: crypto.randomUUID(),
-            name,
-            url: publicUrl,
-            type,
-            filename: req.file.filename,
-            size: req.file.size
-        };
-
-        const config = await SystemConfig.getConfig();
-        const settings = config.settings || {};
-        if (!settings.techPartnerProgram) settings.techPartnerProgram = {};
-        if (!settings.techPartnerProgram.assets) settings.techPartnerProgram.assets = [];
-        
-        settings.techPartnerProgram.assets.push(newAsset);
-        
-        config.changed('settings', true);
-        await config.save();
-
-        await logActivity(req, 'Marketing Asset Uploaded', `Admin uploaded new Tech Partner asset: ${name}`);
-        res.status(201).json(newAsset);
-    } catch (err) {
-        console.error('[ASSET UPLOAD ERROR]', err);
-        res.status(500).json({ error: err.message });
     }
-});
+);
 
 // ─── DELETE /api/admin/tech-partners/assets/:id ──────────────────────────────
 router.delete('/assets/:id', superAdmin, async (req, res) => {

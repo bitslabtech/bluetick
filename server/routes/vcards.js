@@ -11,42 +11,22 @@ const fs = require('fs');
 const storageProvider = require('../utils/storageProvider');
 
 // ==========================================
-// HERO MEDIA UPLOAD LIMITS
+// HERO MEDIA UPLOAD LIMITS & FILE FILTERS
 // ==========================================
 const IMAGE_LIMIT_MB = 5;
 const VIDEO_LIMIT_MB = 50;
 
-// Local disk storage for hero media (storageProvider handles S3 fallback)
-const heroMediaDir = path.join(__dirname, '../public/uploads/vcard-hero');
-if (!fs.existsSync(heroMediaDir)) fs.mkdirSync(heroMediaDir, { recursive: true });
+const imageFileFilter = (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) return cb(null, true);
+    cb(new Error(`Only JPG, PNG, WEBP, GIF images are allowed (max ${IMAGE_LIMIT_MB}MB)`));
+};
 
-const heroStorage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, heroMediaDir),
-    filename: (req, file, cb) => {
-        const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-        cb(null, unique + path.extname(file.originalname).toLowerCase());
-    }
-});
-
-const imageUpload = multer({
-    storage: heroStorage,
-    limits: { fileSize: IMAGE_LIMIT_MB * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        if (allowed.includes(file.mimetype)) return cb(null, true);
-        cb(new Error(`Only JPG, PNG, WEBP, GIF images are allowed (max ${IMAGE_LIMIT_MB}MB)`));
-    }
-});
-
-const videoUpload = multer({
-    storage: heroStorage,
-    limits: { fileSize: VIDEO_LIMIT_MB * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowed = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
-        if (allowed.includes(file.mimetype)) return cb(null, true);
-        cb(new Error(`Only MP4, WEBM, OGG, MOV videos are allowed (max ${VIDEO_LIMIT_MB}MB)`));
-    }
-});
+const videoFileFilter = (req, file, cb) => {
+    const allowed = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+    if (allowed.includes(file.mimetype)) return cb(null, true);
+    cb(new Error(`Only MP4, WEBM, OGG, MOV videos are allowed (max ${VIDEO_LIMIT_MB}MB)`));
+};
 
 
 // Helper function to build vCard string
@@ -243,72 +223,28 @@ router.use(auth);
 
 // ---- Hero Media Upload ----
 // POST /api/vcards/upload/hero-image  (max 5 MB)
-const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
-router.post('/upload/hero-image', (req, res) => {
-    imageUpload.single('file')(req, res, async (err) => {
-        if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(413).json({ error: `Image too large. Maximum allowed size is ${IMAGE_LIMIT_MB}MB.` });
-        }
-        if (err) return res.status(400).json({ error: err.message });
+router.post('/upload/hero-image',
+    storageProvider('vcard-hero', {
+        limits: { fileSize: IMAGE_LIMIT_MB * 1024 * 1024 },
+        fileFilter: imageFileFilter
+    }).single('file'),
+    async (req, res) => {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
-
-        // Compress image in-place on disk
-        if (isCompressibleImage(req.file.mimetype)) {
-            try {
-                const fileBuffer = fs.readFileSync(req.file.path);
-                const result = await compressImage(fileBuffer, req.file.mimetype);
-                if (result.compressed) {
-                    fs.writeFileSync(req.file.path, result.buffer);
-                    req.file.size = result.buffer.length;
-                    console.log(`[VCARD HERO] Compressed ${req.file.originalname}: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB`);
-                }
-            } catch (compressErr) {
-                console.warn('[VCARD HERO] Compression failed, using original:', compressErr.message);
-            }
-        }
-
-        // Increment User Storage
-        if (req.user && req.user.id && req.file.size) {
-            try {
-                const User = require('../models/User');
-                await User.increment('storageUsed', { by: req.file.size, where: { id: req.user.id } });
-            } catch (e) {
-                console.error("Storage Tracking Error:", e);
-            }
-        }
-
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-        const host = req.headers['x-forwarded-host'] || req.get('host');
-        const publicUrl = `${protocol}://${host}/uploads/vcard-hero/${req.file.filename}`;
-        res.json({ url: publicUrl, filename: req.file.filename, size: req.file.size });
-    });
-});
+        res.json({ url: req.file.publicUrl, filename: req.file.filename || req.file.key, size: req.file.size });
+    }
+);
 
 // POST /api/vcards/upload/hero-video  (max 50 MB)
-router.post('/upload/hero-video', (req, res) => {
-    videoUpload.single('file')(req, res, async (err) => {
-        if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(413).json({ error: `Video too large. Maximum allowed size is ${VIDEO_LIMIT_MB}MB.` });
-        }
-        if (err) return res.status(400).json({ error: err.message });
+router.post('/upload/hero-video',
+    storageProvider('vcard-hero', {
+        limits: { fileSize: VIDEO_LIMIT_MB * 1024 * 1024 },
+        fileFilter: videoFileFilter
+    }).single('file'),
+    async (req, res) => {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
-
-        // Increment User Storage
-        if (req.user && req.user.id && req.file.size) {
-            try {
-                const User = require('../models/User');
-                await User.increment('storageUsed', { by: req.file.size, where: { id: req.user.id } });
-            } catch (e) {
-                console.error("Storage Tracking Error:", e);
-            }
-        }
-
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-        const host = req.headers['x-forwarded-host'] || req.get('host');
-        const publicUrl = `${protocol}://${host}/uploads/vcard-hero/${req.file.filename}`;
-        res.json({ url: publicUrl, filename: req.file.filename, size: req.file.size });
-    });
-});
+        res.json({ url: req.file.publicUrl, filename: req.file.filename || req.file.key, size: req.file.size });
+    }
+);
 
 
 // Get all vCards for logged in user

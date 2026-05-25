@@ -112,7 +112,14 @@ router.put('/my/:module_key/config', async (req, res) => {
         userAddon.config = { ...(userAddon.config || {}), ...configData };
         await userAddon.save();
 
-        res.json({ message: 'Configuration saved successfully', config: userAddon.config });
+        // Mask sensitive fields before returning to browser
+        const responseConfig = { ...(userAddon.config || {}) };
+        if (responseConfig.apiKey) {
+            const val = responseConfig.apiKey;
+            responseConfig.apiKey = val.length > 4 ? '••••••••' + val.slice(-4) : '••••••••';
+        }
+
+        res.json({ message: 'Configuration saved successfully', config: responseConfig });
     } catch (err) {
         console.error("Save Addon Config Error:", err);
         res.status(500).json({ error: 'Server Error' });
