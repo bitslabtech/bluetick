@@ -341,6 +341,7 @@ router.post('/', async (req, res) => {
 });
 
 // POST /upload-whatsapp-profile-img — Upload WhatsApp business profile photo to Meta
+const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
 router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No image provided' });
@@ -352,8 +353,26 @@ router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, 
 
         const token = settings.metaAccessToken;
         const phoneId = settings.metaPhoneNumberId;
-        const fileSize = req.file.size;
+
+        // Compress image before uploading to Meta
+        let fileBuffer = fs.readFileSync(req.file.path);
+        let fileSize = fileBuffer.length;
         const fileType = req.file.mimetype;
+
+        if (isCompressibleImage(fileType)) {
+            try {
+                const result = await compressImage(fileBuffer, fileType);
+                if (result.compressed) {
+                    fileBuffer = result.buffer;
+                    fileSize = result.buffer.length;
+                    // Overwrite on disk so cleanup still works
+                    fs.writeFileSync(req.file.path, fileBuffer);
+                    console.log(`[WABA PROFILE DP] Compressed: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB`);
+                }
+            } catch (compressErr) {
+                console.warn('[WABA PROFILE DP] Compression failed, using original:', compressErr.message);
+            }
+        }
 
         // Step 1: Initialize Resumable Upload Session
         console.log(`[WABA PROFILE DP] Init Upload Session for ${phoneId}`);
@@ -371,7 +390,6 @@ router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, 
         const uploadSessionId = initData.id;
 
         // Step 2: Upload File Bytes
-        const fileBuffer = fs.readFileSync(req.file.path);
         console.log(`[WABA PROFILE DP] Uploading bytes to session ${uploadSessionId}`);
         const uploadRes = await fetch(`https://graph.facebook.com/v19.0/${uploadSessionId}`, {
             method: 'POST',

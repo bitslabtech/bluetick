@@ -29,6 +29,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST upload media for template (Resumable Upload API)
+const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
 router.post('/upload', upload.single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file provided' });
@@ -45,8 +46,20 @@ router.post('/upload', upload.single('file'), async (req, res) => {
             return res.status(500).json({ error: 'FB_CLIENT_ID is not configured in server environment.' });
         }
 
+        // Compress image before uploading to Meta (reduces upload time & bandwidth)
+        let fileBuffer = req.file.buffer;
+        let fileSize = req.file.size;
+        if (isCompressibleImage(req.file.mimetype)) {
+            const result = await compressImage(fileBuffer, req.file.mimetype);
+            fileBuffer = result.buffer;
+            fileSize = fileBuffer.length;
+            if (result.compressed) {
+                console.log(`[TEMPLATE UPLOAD] Compressed ${req.file.originalname}: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB`);
+            }
+        }
+
         // Step 1: Create Resumable Upload Session
-        const sessionUrl = `https://graph.facebook.com/v17.0/${appId}/uploads?file_length=${req.file.size}&file_type=${encodeURIComponent(req.file.mimetype)}`;
+        const sessionUrl = `https://graph.facebook.com/v17.0/${appId}/uploads?file_length=${fileSize}&file_type=${encodeURIComponent(req.file.mimetype)}`;
         const sessionRes = await fetch(sessionUrl, {
             method: 'POST',
             headers: {
@@ -67,7 +80,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
                 'Authorization': `OAuth ${fbToken}`,
                 'file_offset': '0'
             },
-            body: req.file.buffer
+            body: fileBuffer
         });
 
         const uploadData = await uploadRes.json();

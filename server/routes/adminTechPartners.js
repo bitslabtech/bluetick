@@ -300,12 +300,28 @@ router.post('/applications/:userId/reject', superAdmin, async (req, res) => {
 });
 
 // ─── POST /api/admin/tech-partners/assets ──────────────────────────────────────
+const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
 router.post('/assets', superAdmin, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         
         const { name } = req.body;
         if (!name) return res.status(400).json({ error: 'Asset name is required.' });
+
+        // Compress image in-place on disk (skip videos/PDFs/other files)
+        if (isCompressibleImage(req.file.mimetype)) {
+            try {
+                const fileBuffer = fs.readFileSync(req.file.path);
+                const result = await compressImage(fileBuffer, req.file.mimetype);
+                if (result.compressed) {
+                    fs.writeFileSync(req.file.path, result.buffer);
+                    req.file.size = result.buffer.length;
+                    console.log(`[TP ASSET] Compressed ${req.file.originalname}: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB`);
+                }
+            } catch (compressErr) {
+                console.warn('[TP ASSET] Compression failed, using original:', compressErr.message);
+            }
+        }
 
         const protocol = req.headers['x-forwarded-proto'] || req.protocol;
         const host = req.headers.host;

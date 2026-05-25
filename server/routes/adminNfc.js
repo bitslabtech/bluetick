@@ -184,10 +184,26 @@ router.put('/orders/:id', async (req, res) => {
 
 // @route   POST /api/admin/nfc/catalog/image
 // @desc    Upload an image for an NFC product
+const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
 router.post('/catalog/image', upload.single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         
+        // Compress image in-place on disk
+        if (isCompressibleImage(req.file.mimetype)) {
+            try {
+                const fileBuffer = fs.readFileSync(req.file.path);
+                const result = await compressImage(fileBuffer, req.file.mimetype);
+                if (result.compressed) {
+                    fs.writeFileSync(req.file.path, result.buffer);
+                    req.file.size = result.buffer.length;
+                    console.log(`[NFC IMAGE] Compressed ${req.file.originalname}: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB`);
+                }
+            } catch (compressErr) {
+                console.warn('[NFC IMAGE] Compression failed, using original:', compressErr.message);
+            }
+        }
+
         const protocol = req.headers['x-forwarded-proto'] || req.protocol;
         const host = req.headers.host;
         const publicUrl = `${protocol}://${host}/uploads/nfc/${req.file.filename}`;

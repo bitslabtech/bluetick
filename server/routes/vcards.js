@@ -243,6 +243,7 @@ router.use(auth);
 
 // ---- Hero Media Upload ----
 // POST /api/vcards/upload/hero-image  (max 5 MB)
+const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
 router.post('/upload/hero-image', (req, res) => {
     imageUpload.single('file')(req, res, async (err) => {
         if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
@@ -250,6 +251,21 @@ router.post('/upload/hero-image', (req, res) => {
         }
         if (err) return res.status(400).json({ error: err.message });
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+
+        // Compress image in-place on disk
+        if (isCompressibleImage(req.file.mimetype)) {
+            try {
+                const fileBuffer = fs.readFileSync(req.file.path);
+                const result = await compressImage(fileBuffer, req.file.mimetype);
+                if (result.compressed) {
+                    fs.writeFileSync(req.file.path, result.buffer);
+                    req.file.size = result.buffer.length;
+                    console.log(`[VCARD HERO] Compressed ${req.file.originalname}: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB`);
+                }
+            } catch (compressErr) {
+                console.warn('[VCARD HERO] Compression failed, using original:', compressErr.message);
+            }
+        }
 
         // Increment User Storage
         if (req.user && req.user.id && req.file.size) {
