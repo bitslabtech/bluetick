@@ -1327,7 +1327,7 @@ function AdvancedFeaturesShowcase({ config }) {
                 })}
             </div>
 
-            <div className="flex flex-col lg:grid lg:grid-cols-1 md:grid-cols-5 gap-8 items-start">
+            <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 items-start">
                 {/* TOP/LEFT: Feature Tab list (All Features) */}
                 <div
                     ref={scrollContainerRef}
