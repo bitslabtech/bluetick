@@ -740,7 +740,7 @@ const WhatsAppInbox = () => {
         try {
             const res = await axios.post(`${API_BASE}/api/whatsapp/chat/send/media`, formData, {
                 headers: {
-                    'x-auth-token': localStorage.getItem('token'),
+                    
                     'Content-Type': 'multipart/form-data'
                 }
             });

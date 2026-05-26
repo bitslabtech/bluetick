@@ -50,7 +50,7 @@ function MultiImageUploader({ imageUrls, onImagesChange }) {
                 const res = await axios.post(
                     `${import.meta.env.VITE_API_URL}/api/wastore/upload/product`,
                     form,
-                    { headers: { 'x-auth-token': localStorage.getItem('token'), 'Content-Type': 'multipart/form-data' } }
+                    { headers: {  'Content-Type': 'multipart/form-data' } }
                 );
                 uploaded.push(res.data.url);
             }

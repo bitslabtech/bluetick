@@ -11,7 +11,7 @@ export default function VcardLayout() {
     const [isVerticalImage, setIsVerticalImage] = useState(false);
 
     useEffect(() => {
-        const headers = { 'x-auth-token': localStorage.getItem('token') };
+        const headers = {  };
 
         // Fetch catalog product for image display
         axios.get(`${import.meta.env.VITE_API_URL}/api/nfc/catalog`, { headers })

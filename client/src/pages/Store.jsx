@@ -71,7 +71,7 @@ const StorePage = () => {
                 itemId: item.id
             }, {
                 headers: { 
-                    'x-auth-token': localStorage.getItem('token') 
+                     
                 }
             });
 
@@ -103,7 +103,7 @@ const StorePage = () => {
                             itemId: item.id
                         }, {
                             headers: { 
-                                'x-auth-token': localStorage.getItem('token')
+                                
                             }
                         });
 

@@ -90,8 +90,7 @@ const StepConnectFacebook = ({ onConnected }) => {
     const exchangeToken = async (token) => {
         try {
             setLoading(true);
-            const authToken = localStorage.getItem('token');
-            await axios.post('/api/ctwa/auth', { accessToken: token }, {
+                        await axios.post('/api/ctwa/auth', { accessToken: token }, {
                 headers: { Authorization: `Bearer ${authToken}` }
             });
             onConnected();

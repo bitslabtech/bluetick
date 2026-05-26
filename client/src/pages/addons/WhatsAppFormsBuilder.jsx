@@ -377,7 +377,7 @@ const WhatsAppFormsBuilder = () => {
             const fd = new FormData();
             fd.append('file', file);
             const res = await axios.post('/api/templates/upload-message-media', fd, {
-                headers: { 'Content-Type': 'multipart/form-data', 'x-auth-token': localStorage.getItem('token') }
+                headers: { 'Content-Type': 'multipart/form-data',  }
             });
             updateNestedState('automation', 'whatsappTemplate', {
                 ...activeForm.automation?.whatsappTemplate,
@@ -400,7 +400,7 @@ const WhatsAppFormsBuilder = () => {
             const fd = new FormData();
             fd.append('file', file);
             const res = await axios.post('/api/templates/upload-message-media', fd, {
-                headers: { 'Content-Type': 'multipart/form-data', 'x-auth-token': localStorage.getItem('token') }
+                headers: { 'Content-Type': 'multipart/form-data',  }
             });
             const autoTmpl = activeForm.automation?.whatsappTemplate || {};
             const cardsList = [...(autoTmpl.cards || [])];

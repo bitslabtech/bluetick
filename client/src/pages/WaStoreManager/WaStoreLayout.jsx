@@ -48,7 +48,7 @@ export default function WaStoreLayout() {
             const form = new FormData();
             form.append('cover', file);
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/upload/cover`, form, {
-                headers: { 'x-auth-token': localStorage.getItem('token'), 'Content-Type': 'multipart/form-data' }
+                headers: {  'Content-Type': 'multipart/form-data' }
             });
             const newUrl = res.data.url;
 

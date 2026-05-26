@@ -71,7 +71,7 @@ const AdminLandingPage = () => {
             const fd = new FormData();
             fd.append('logo', file);
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/upload-logo`, fd, {
-                headers: { 'x-auth-token': localStorage.getItem('token'), 'Content-Type': 'multipart/form-data' }
+                headers: {  'Content-Type': 'multipart/form-data' }
             });
             setBrandingSettings(prev => ({ ...prev, logoUrl: res.data.logoUrl }));
             showToast({ type: 'success', title: 'Logo Uploaded', message: 'Logo uploaded successfully.' });

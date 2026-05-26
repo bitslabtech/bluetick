@@ -66,7 +66,7 @@ function ImageUploader({ label, hint, fieldName, endpoint, currentUrl, onUploade
                 form,
                 {
                     headers: {
-                        'x-auth-token': localStorage.getItem('token'),
+                        
                         'Content-Type': 'multipart/form-data'
                     }
                 }

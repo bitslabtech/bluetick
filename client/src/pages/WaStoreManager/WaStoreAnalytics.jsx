@@ -15,7 +15,6 @@ import toast from 'react-hot-toast';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const API = `${import.meta.env.VITE_API_URL}/api/wastore`;
-const token = () => localStorage.getItem('token');
 
 function fmtCurrency(val, currency = 'USD') {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(val || 0);
@@ -194,7 +193,7 @@ export default function WaStoreAnalytics() {
         setLoading(true);
         try {
             const res = await axios.get(`${API}/${id}/analytics`, {
-                headers: { 'x-auth-token': token() },
+                headers: {  },
                 params: { from, to }
             });
             setData(res.data);
