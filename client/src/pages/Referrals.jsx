@@ -29,18 +29,18 @@ const Referrals = () => {
         const fetchAllData = async () => {
             setLoading(true);
             try {
-                const headers = { Authorization: `Bearer ${token}`, 'x-auth-token': token };
+                
 
                 // If they are an approved tech partner, fetch the tech partner dashboard
                 if (user?.techPartnerStatus === 'approved') {
                     try {
-                        const pdRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/partner/dashboard`, { headers });
+                        const pdRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/partner/dashboard`);
                         setPartnerData(pdRes.data);
                     } catch (pdErr) {
                         if (pdErr.response?.status === 404 || pdErr.response?.status === 403) {
                             // User's TechPartner profile was deleted or status auto-healed previously.
                             // Fetch standard standard referrals stats instead.
-                            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/referrals/stats`, { headers });
+                            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/referrals/stats`);
                             setStats(res.data);
                             setPartnerData({ status: 'none' });
                         } else {
@@ -49,12 +49,12 @@ const Referrals = () => {
                     }
                 } else {
                     // Fetch standard referral stats
-                    const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/referrals/stats`, { headers });
+                    const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/referrals/stats`);
                     setStats(res.data);
 
                     // Fetch status just in case it updated
                     try {
-                        const meRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, { headers });
+                        const meRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`);
                         setPartnerData({ status: meRes.data.user.techPartnerStatus });
                     } catch (e) { }
                 }
@@ -80,12 +80,12 @@ const Referrals = () => {
         e.preventDefault();
         setApplying(true);
         try {
-            const headers = { Authorization: `Bearer ${token}`, 'x-auth-token': token };
+            
             const payload = {
                 phoneNumber: `${applyForm.countryCode} ${applyForm.phoneDigits}`,
                 notes: applyForm.notes
             };
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/partner/apply`, payload, { headers });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/partner/apply`, payload);
             showToast({ type: 'success', message: 'Tech Partner application submitted!' });
             setPartnerData({ ...partnerData, status: res.data.status });
             setShowApplyModal(false);

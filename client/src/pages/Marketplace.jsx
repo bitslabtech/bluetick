@@ -23,9 +23,9 @@ const Marketplace = () => {
         setLoading(true);
         try {
             // Fetch all active add-ons available in the store
-            const addonsRes = await axios.get('/api/addons', { headers: { Authorization: `Bearer ${token}` } });
+            const addonsRes = await axios.get('/api/addons');
             // Fetch add-ons already owned by the user
-            const myAddonsRes = await axios.get('/api/addons/my', { headers: { Authorization: `Bearer ${token}` } });
+            const myAddonsRes = await axios.get('/api/addons/my');
 
             setAddons(Array.isArray(addonsRes.data) ? addonsRes.data : []);
             setMyAddons(Array.isArray(myAddonsRes.data) ? myAddonsRes.data : []);
