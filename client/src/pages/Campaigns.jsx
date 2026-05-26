@@ -34,9 +34,7 @@ const Campaigns = () => {
 
     useEffect(() => {
         if (user?.id) {
-            axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/stats`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            }).then(res => {
+            axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/stats`).then(res => {
                 setIsConfigured(res.data.isWhatsappConfigured);
             }).catch(() => setIsConfigured(false));
         }

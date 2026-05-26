@@ -46,8 +46,7 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
         try {
             const res = await axios.patch(
                 `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/orders/${order.id}`,
-                { status, notes },
-                { headers: { 'x-auth-token': localStorage.getItem('token') } }
+                { status, notes }
             );
             onUpdate(res.data);
             toast.success('Order updated!');
@@ -259,12 +258,8 @@ export default function WaStoreOrders() {
         setLoading(true);
         try {
             const [ordersRes, storesRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/orders`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                }),
-                axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                })
+                axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/orders`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`)
             ]);
             setOrders(ordersRes.data);
             const myStore = storesRes.data.find(s => s.id === storeId);

@@ -206,18 +206,14 @@ export default function WaProductList() {
 
     const fetchProducts = async () => {
         try {
-            const storeRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const storeRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
             const myStore = storeRes.data.find(s => s.id === storeId);
             if (myStore) {
                 setCurrency(myStore.currency || 'USD');
                 setStoreCategories(myStore.categories || []);
             }
 
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products`);
             setProducts(res.data);
         } catch (error) {
             toast.error("Failed to load products");
@@ -233,14 +229,10 @@ export default function WaProductList() {
             payload.imageUrls = payload.imageUrls.filter(url => url.trim() !== '');
             
             if (editingProduct) {
-                await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/products/${editingProduct.id}`, payload, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/products/${editingProduct.id}`, payload);
                 toast.success("Product updated");
             } else {
-                await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products`, payload, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products`, payload);
                 toast.success("Product added");
             }
             setShowModal(false);
@@ -253,9 +245,7 @@ export default function WaProductList() {
     const handleDelete = async (productId) => {
         if (!window.confirm("Are you sure you want to delete this product?")) return;
         try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/api/wastore/products/${productId}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/wastore/products/${productId}`);
             toast.success("Product deleted");
             fetchProducts();
         } catch (error) {
@@ -294,8 +284,6 @@ export default function WaProductList() {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/ai-description`, {
                 productName: form.name,
                 keywords: aiKeywords
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             setForm(f => ({ ...f, description: res.data.description }));
             toast.success(`Generated! (${res.data.tokensDeducted} tokens used)`);

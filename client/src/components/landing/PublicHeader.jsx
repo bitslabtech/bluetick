@@ -25,20 +25,22 @@ const PublicHeader = () => {
         fetchData();
     }, []);
 
-    if (!config) return null; // Don't render until config loads to prevent layout shifting
+    // Fallback UI to prevent LCP blocking while data fetches
+    const brandName = publicSettings?.appName || config?.brand?.name || 'Bluetick';
+    const logoUrl = publicSettings?.logoUrl || config?.brand?.logo;
 
     return (
         <nav className="fixed top-0 w-full z-50 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 transition-colors duration-300">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 <Link to="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
-                    {(publicSettings?.logoUrl || config.brand?.logo) ? (
-                        <img src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="h-8 object-contain" />
+                    {logoUrl ? (
+                        <img src={logoUrl} alt={brandName} className="h-8 object-contain" />
                     ) : (
                         <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-indigo-400 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
                             <MessageSquare className="w-5 h-5 text-white" />
                         </div>
                     )}
-                    {publicSettings?.appName || config.brand?.name || 'Platform'}
+                    {brandName}
                 </Link>
 
                 <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">

@@ -157,7 +157,7 @@ router.post('/orders', async (req, res) => {
 router.use(auth);
 
 // POST /api/wastore/upload/logo  — Upload store logo image
-router.post('/upload/logo', storageProvider('wastore-logos').single('logo'), async (req, res) => {
+router.post('/upload/logo', storageProvider('wastore-logos', { fileFilter: storageProvider.generalImageFilter }).single('logo'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -168,7 +168,7 @@ router.post('/upload/logo', storageProvider('wastore-logos').single('logo'), asy
 });
 
 // POST /api/wastore/upload/seo  — Upload SEO og:image
-router.post('/upload/seo', storageProvider('wastore-seo').single('image'), async (req, res) => {
+router.post('/upload/seo', storageProvider('wastore-seo', { fileFilter: storageProvider.generalImageFilter }).single('image'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -179,7 +179,7 @@ router.post('/upload/seo', storageProvider('wastore-seo').single('image'), async
 });
 
 // POST /api/wastore/upload/cover  — Upload store cover image
-router.post('/upload/cover', storageProvider('wastore-covers').single('cover'), async (req, res) => {
+router.post('/upload/cover', storageProvider('wastore-covers', { fileFilter: storageProvider.generalImageFilter }).single('cover'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -190,7 +190,7 @@ router.post('/upload/cover', storageProvider('wastore-covers').single('cover'), 
 });
 
 // POST /api/wastore/upload/slide  — Upload a hero slider image
-router.post('/upload/slide', storageProvider('wastore-slides').single('slide'), async (req, res) => {
+router.post('/upload/slide', storageProvider('wastore-slides', { fileFilter: storageProvider.generalImageFilter }).single('slide'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -201,7 +201,7 @@ router.post('/upload/slide', storageProvider('wastore-slides').single('slide'), 
 });
 
 // POST /api/wastore/upload/product  — Upload a product image
-router.post('/upload/product', storageProvider('wastore-products').single('product'), async (req, res) => {
+router.post('/upload/product', storageProvider('wastore-products', { fileFilter: storageProvider.generalImageFilter }).single('product'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -212,7 +212,7 @@ router.post('/upload/product', storageProvider('wastore-products').single('produ
 });
 
 // POST /api/wastore/upload/category  — Upload a category image
-router.post('/upload/category', storageProvider('wastore-categories').single('category'), async (req, res) => {
+router.post('/upload/category', storageProvider('wastore-categories', { fileFilter: storageProvider.generalImageFilter }).single('category'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });

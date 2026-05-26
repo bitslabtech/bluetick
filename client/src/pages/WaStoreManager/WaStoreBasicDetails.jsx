@@ -243,9 +243,7 @@ export default function WaStoreBasicDetails() {
     useEffect(() => {
         const fetchStore = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
                 const myStore = res.data.find(s => s.id === storeId);
                 setStore(myStore);
             } catch {
@@ -261,9 +259,7 @@ export default function WaStoreBasicDetails() {
         e.preventDefault();
         setSaving(true);
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, store, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, store);
             toast.success('Basic details saved successfully!');
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to save details');

@@ -33,9 +33,7 @@ export default function ManageLabelsModal({ onClose }) {
 
     const fetchLabels = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/api/labels`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${API_BASE}/api/labels`);
             setLabels(res.data);
         } catch (err) {
             console.error('Failed to fetch labels', err);
@@ -49,14 +47,10 @@ export default function ManageLabelsModal({ onClose }) {
         setSaving(true);
         try {
             if (editingLabel === 'new') {
-                const res = await axios.post(`${API_BASE}/api/labels`, { name: formName, color: formColor }, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.post(`${API_BASE}/api/labels`, { name: formName, color: formColor });
                 setLabels([res.data, ...labels]);
             } else {
-                const res = await axios.put(`${API_BASE}/api/labels/${editingLabel.id}`, { name: formName, color: formColor }, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.put(`${API_BASE}/api/labels/${editingLabel.id}`, { name: formName, color: formColor });
                 setLabels(labels.map(l => l.id === editingLabel.id ? res.data : l));
             }
             setEditingLabel(null);
@@ -69,9 +63,7 @@ export default function ManageLabelsModal({ onClose }) {
 
     const handleDelete = async (id) => {
         try {
-            await axios.delete(`${API_BASE}/api/labels/${id}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.delete(`${API_BASE}/api/labels/${id}`);
             setLabels(labels.filter(l => l.id !== id));
             showToast({ type: 'success', title: 'Tag Deleted', message: 'Tag removed successfully.' });
         } catch (err) {

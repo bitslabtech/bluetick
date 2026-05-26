@@ -175,12 +175,12 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                 let dbCount = 0;
                 if (data.recipients?.includes('all')) {
                     const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/campaign-summary`, {
-                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                        headers: { }
                     });
                     dbCount = parseInt(res.data.totalContacts, 10) || 0;
                 } else if (data.recipients?.length > 0) {
                     const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/campaign-summary`, {
-                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                        headers: { }
                     });
                     let sum = 0;
                     for (const groupId of data.recipients) {
@@ -243,7 +243,6 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     const uploadMedia = async (file) => {
         const fd = new FormData();
         fd.append('file', file);
-        const token = localStorage.getItem('token');
         const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload-message-media`, fd, {
             headers: {
                 'Content-Type': 'multipart/form-data',

@@ -75,10 +75,7 @@ export default function WhatsAppSettings() {
         // Fetch the verify token dynamically from the server
         (async () => {
             try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/webhook-token`, {
-                    headers: { 'x-auth-token': token }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/webhook-token`);
                 setVerifyToken(res.data.verifyToken || '');
             } catch (e) {
                 setVerifyToken('Error loading token');
@@ -89,10 +86,7 @@ export default function WhatsAppSettings() {
     const fetchSettings = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
-                headers: { 'x-auth-token': token }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
             const data = res.data;
             if (data.whatsappProfile) {
                 const wp = data.whatsappProfile;
@@ -131,8 +125,6 @@ export default function WhatsAppSettings() {
     const handleSave = async () => {
         try {
             setSaving(true);
-            const token = localStorage.getItem('token');
-
             // Clean up websites payload (remove empties)
             const cleanProfile = { ...profile };
             cleanProfile.websites = cleanProfile.websites.filter(w => w.trim() !== '');
@@ -141,8 +133,6 @@ export default function WhatsAppSettings() {
             await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, {
                 whatsappProfile: cleanProfile,
                 whatsappAutomations: automations
-            }, {
-                headers: { 'x-auth-token': token }
             });
 
             showToast({ type: 'success', title: 'Saved!', message: 'WhatsApp settings & Meta profile updated successfully.' });
@@ -174,7 +164,6 @@ export default function WhatsAppSettings() {
             const formData = new FormData();
             formData.append('image', file);
 
-            const token = localStorage.getItem('token');
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/upload-whatsapp-profile-img`, formData, {
                 headers: {
                     'x-auth-token': token,
@@ -196,10 +185,7 @@ export default function WhatsAppSettings() {
     const handleSyncProfile = async (silent = false) => {
         try {
             setSyncing(true);
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/sync-whatsapp-profile`, {
-                headers: { 'x-auth-token': token }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/sync-whatsapp-profile`);
             if (res.data.success) {
                 const p = res.data.profile;
                 if (!p.websites || p.websites.length === 0) p.websites = [''];

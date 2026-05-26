@@ -17,9 +17,7 @@ export default function WaStoreLayout() {
     useEffect(() => {
         const fetchStore = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
                 const myStore = res.data.find(s => s.id === id);
                 setStore(myStore);
             } catch (error) {
@@ -55,9 +53,7 @@ export default function WaStoreLayout() {
             const newUrl = res.data.url;
 
             // Save to store immediately
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${id}`, { coverImage: newUrl }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${id}`, { coverImage: newUrl });
             setStore(prev => ({ ...prev, coverImage: newUrl }));
             toast.success('Cover image updated!');
         } catch (err) {
@@ -70,9 +66,7 @@ export default function WaStoreLayout() {
     const removeCoverImage = async (e) => {
         e.stopPropagation();
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${id}`, { coverImage: '' }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${id}`, { coverImage: '' });
             setStore(prev => ({ ...prev, coverImage: '' }));
             toast.success('Cover image removed');
         } catch {

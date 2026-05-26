@@ -17,9 +17,7 @@ export default function VcardDashboard() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards`);
                 setVcards(res.data);
             } catch (err) {
                 console.error("Failed to load vcard stats", err);
@@ -30,9 +28,7 @@ export default function VcardDashboard() {
         fetchStats();
 
         // Fetch linked NFC card count
-        axios.get(`${import.meta.env.VITE_API_URL}/api/nfc/my-cards`, {
-            headers: { 'x-auth-token': localStorage.getItem('token') }
-        }).then(res => setLinkedNfcCount(res.data?.length || 0)).catch(() => {});
+        axios.get(`${import.meta.env.VITE_API_URL}/api/nfc/my-cards`).then(res => setLinkedNfcCount(res.data?.length || 0)).catch(() => {});
     }, []);
 
     // Listen for sidebar banner "Shop Now" click from any vCard sub-page

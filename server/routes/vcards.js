@@ -17,15 +17,15 @@ const IMAGE_LIMIT_MB = 5;
 const VIDEO_LIMIT_MB = 50;
 
 const imageFileFilter = (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
     if (allowed.includes(file.mimetype)) return cb(null, true);
-    cb(new Error(`Only JPG, PNG, WEBP, GIF images are allowed (max ${IMAGE_LIMIT_MB}MB)`));
+    cb(new Error(`Only JPG, PNG, WEBP images are allowed (max ${IMAGE_LIMIT_MB}MB)`));
 };
 
 const videoFileFilter = (req, file, cb) => {
-    const allowed = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+    const allowed = ['video/mp4', 'video/3gpp'];
     if (allowed.includes(file.mimetype)) return cb(null, true);
-    cb(new Error(`Only MP4, WEBM, OGG, MOV videos are allowed (max ${VIDEO_LIMIT_MB}MB)`));
+    cb(new Error(`Only MP4 and 3GP videos are allowed (max ${VIDEO_LIMIT_MB}MB)`));
 };
 
 

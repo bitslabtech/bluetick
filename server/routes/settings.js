@@ -717,7 +717,7 @@ router.post('/test-smtp', async (req, res) => {
 
 const storageProvider = require('../utils/storageProvider');
 
-router.post('/upload-logo', storageProvider('logos').single('logo'), async (req, res) => {
+router.post('/upload-logo', storageProvider('logos', { fileFilter: storageProvider.generalImageFilter }).single('logo'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });

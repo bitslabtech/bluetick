@@ -369,7 +369,7 @@ router.delete('/kb/categories/:id', async (req, res) => {
 // POST Upload Image (Admin Only)
 const storageProvider = require('../utils/storageProvider');
 
-router.post('/kb/upload-image', storageProvider('kb').single('image'), async (req, res) => {
+router.post('/kb/upload-image', storageProvider('kb', { fileFilter: storageProvider.generalImageFilter }).single('image'), async (req, res) => {
     if (!req.user.isAdmin) return res.status(403).json({ error: 'Admin only' });
     if (!req.file) return res.status(400).json({ error: 'No file' });
 

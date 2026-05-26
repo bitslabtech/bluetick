@@ -36,7 +36,6 @@ const StorePage = () => {
 
     const fetchStoreItems = async () => {
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get('/api/store', { headers: { Authorization: `Bearer ${token}` } });
             console.log("Store Items fetch success:", res.data);
             if (Array.isArray(res.data)) {
@@ -72,8 +71,7 @@ const StorePage = () => {
                 itemId: item.id
             }, {
                 headers: { 
-                    'x-auth-token': localStorage.getItem('token'),
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                    'x-auth-token': localStorage.getItem('token') 
                 }
             });
 
@@ -105,8 +103,7 @@ const StorePage = () => {
                             itemId: item.id
                         }, {
                             headers: { 
-                                'x-auth-token': localStorage.getItem('token'),
-                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                'x-auth-token': localStorage.getItem('token')
                             }
                         });
 

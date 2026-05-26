@@ -13,12 +13,27 @@ const initSocket = (server) => {
     io = socketIo(server, {
         cors: {
             origin: process.env.FRONTEND_URL || 'http://localhost:5173', // allow frontend
-            methods: ["GET", "POST"]
+            methods: ["GET", "POST"],
+            credentials: true
         }
     });
 
     io.use((socket, next) => {
-        const token = socket.handshake.auth?.token;
+        // Extract token from HttpOnly cookie in handshake headers, fallback to auth.token
+        let token = null;
+        const cookieHeader = socket.handshake.headers?.cookie || '';
+        if (cookieHeader) {
+            const cookies = Object.fromEntries(
+                cookieHeader.split('; ').filter(Boolean).map(c => {
+                    const [k, ...v] = c.split('=');
+                    return [k, v.join('=')];
+                })
+            );
+            token = cookies['bt_token'];
+        }
+        // Fallback for backward compat (e.g., mobile clients)
+        if (!token) token = socket.handshake.auth?.token;
+
         if (!token) return next(new Error('Authentication required'));
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });

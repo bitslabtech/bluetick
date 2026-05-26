@@ -15,9 +15,7 @@ const AdminMessages = () => {
 
     const fetchMessages = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contact`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contact`);
             setMessages(res.data);
             setLoading(false);
         } catch (err) {
@@ -34,9 +32,7 @@ const AdminMessages = () => {
     const handleToggleRead = async (id, currentStatus) => {
         try {
             const newStatus = currentStatus === 'read' ? 'unread' : 'read';
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/contact/${id}`, { status: newStatus }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/contact/${id}`, { status: newStatus });
             setMessages(messages.map(m => m.id === id ? { ...m, status: newStatus } : m));
             showToast({ type: 'success', title: 'Updated', message: `Message marked as ${newStatus}` });
         } catch (err) {

@@ -74,9 +74,7 @@ export default function VcardBuilder() {
     const fetchVcard = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards/${id}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards/${id}`);
             setVcard(res.data);
         } catch (err) {
             showToast('Failed to load veCard', 'error');
@@ -103,9 +101,7 @@ export default function VcardBuilder() {
             const endpoint = id ? `${import.meta.env.VITE_API_URL}/api/vcards/${id}` : `${import.meta.env.VITE_API_URL}/api/vcards`;
             const method = id ? 'put' : 'post';
 
-            const res = await axios[method](endpoint, vcard, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios[method](endpoint, vcard);
 
             showToast(`veCard ${id ? 'updated' : 'created'} successfully!`, 'success');
             if (!id && res.data.id) {
@@ -130,8 +126,7 @@ export default function VcardBuilder() {
             const endpoint = type === 'image' ? '/api/vcards/upload/hero-image' : '/api/vcards/upload/hero-video';
             const res = await axios.post(`${import.meta.env.VITE_API_URL}${endpoint}`, formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Content-Type': 'multipart/form-data'
                 }
             });
             setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, url: res.data.url } }));
@@ -154,8 +149,7 @@ export default function VcardBuilder() {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/vcards/upload/hero-image`, formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Content-Type': 'multipart/form-data'
                 }
             });
             setVcard(p => {
@@ -197,7 +191,7 @@ export default function VcardBuilder() {
         formData.append('file', file);
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/vcards/upload/hero-image`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
             setVcard(p => ({ ...p, [field]: res.data.url }));
             showToast('Image uploaded successfully!', 'success');
@@ -231,7 +225,7 @@ export default function VcardBuilder() {
         formData.append('file', file);
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/vcards/upload/hero-image`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
             setVcard(p => {
                 const arr = [...p[arrayName]];

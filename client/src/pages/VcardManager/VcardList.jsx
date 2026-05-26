@@ -28,9 +28,7 @@ export default function VcardList() {
     const fetchVcards = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards`);
             setVcards(res.data);
         } catch (error) {
             console.error("Error fetching vcards:", error);
@@ -43,9 +41,7 @@ export default function VcardList() {
     const handleDelete = async (id, slug) => {
         if (!window.confirm(`Are you sure you want to delete the vCard for ${slug}?`)) return;
         try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/api/vcards/${id}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/vcards/${id}`);
             showToast('vCard deleted successfully', 'success');
             setVcards(vcards.filter(v => v.id !== id));
         } catch (err) {

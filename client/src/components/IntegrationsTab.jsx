@@ -42,7 +42,6 @@ const IntegrationsTab = () => {
         setLoading(true);
         setPlanError(null);
         try {
-            const token = localStorage.getItem('token');
             const headers = { 'x-auth-token': token };
 
             // Fetch Market Data (which should be public or accessible by all logged-in users)
@@ -71,13 +70,10 @@ const IntegrationsTab = () => {
     const fetchUsageData = async () => {
         setLoadingUsage(true);
         try {
-            const token = localStorage.getItem('token');
             // NOTE: This calls /v1/usage authenticated via session token passed as x-api-key
             // In the real flow, a client would use their sk_live_ key. Here in the dashboard
             // we use a special dashboard proxy endpoint that resolves usage for the logged-in user.
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/integrations/usage`, {
-                headers: { 'x-auth-token': token }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/integrations/usage`);
             setUsageData(res.data);
         } catch (err) {
             console.error('Failed to fetch usage data:', err);
@@ -95,8 +91,7 @@ const IntegrationsTab = () => {
         setIsGeneratingKey(true);
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/integrations/keys`, 
-                { label: newKeyLabel }, 
-                { headers: { 'x-auth-token': localStorage.getItem('token') } }
+                { label: newKeyLabel }
             );
             
             setApiKeys([{ ...res.data, createdAt: new Date().toISOString() }, ...apiKeys]);
@@ -147,9 +142,7 @@ const IntegrationsTab = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/integrations/keys/${id}`, {
-                        headers: { 'x-auth-token': localStorage.getItem('token') }
-                    });
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/integrations/keys/${id}`);
                     setApiKeys(apiKeys.filter(k => k.id !== id));
                     showToast({ type: 'success', message: 'Key revoked.' });
                 } catch (err) {
@@ -169,8 +162,7 @@ const IntegrationsTab = () => {
         setIsCreatingWebhook(true);
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/integrations/webhooks`, 
-                { url: newWebhookUrl, events: selectedEvents }, 
-                { headers: { 'x-auth-token': localStorage.getItem('token') } }
+                { url: newWebhookUrl, events: selectedEvents }
             );
             
             setWebhooks([{ ...res.data, createdAt: new Date().toISOString() }, ...webhooks]);
@@ -185,9 +177,7 @@ const IntegrationsTab = () => {
 
     const handleDeleteWebhook = async (id) => {
         try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/api/integrations/webhooks/${id}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/integrations/webhooks/${id}`);
             setWebhooks(webhooks.filter(w => w.id !== id));
             showToast({ type: 'success', message: 'Webhook deleted.' });
         } catch (err) {

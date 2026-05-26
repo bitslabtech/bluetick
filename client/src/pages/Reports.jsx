@@ -305,7 +305,7 @@ const Reports = () => {
     const [selectedCampaignId, setSelectedCampaignId] = useState('all');
 
     useEffect(() => {
-        axios.get(`${API}/api/messages`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+        axios.get(`${API}/api/messages`, { headers: { } })
             .then(res => {
                 setCampaignsList([
                     { value: 'all', label: 'All Campaigns' },
@@ -324,7 +324,6 @@ const Reports = () => {
                     params.startDate = customStart;
                     params.endDate = customEnd;
                 }
-                const token = localStorage.getItem('token');
                 const headers = { 'Authorization': `Bearer ${token}` };
                 const [s, c, r] = await Promise.all([
                     axios.get(`${API}/api/dashboard/stats`, { params, headers }),

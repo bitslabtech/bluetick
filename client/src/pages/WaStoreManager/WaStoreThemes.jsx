@@ -112,9 +112,7 @@ export default function WaStoreThemes() {
     useEffect(() => {
         const fetchStore = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
                 const myStore = res.data.find(s => s.id === storeId);
                 setStore(myStore);
             } catch (error) {
@@ -128,9 +126,7 @@ export default function WaStoreThemes() {
 
     const handleSelectTheme = async (themeId) => {
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, { themeId }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, { themeId });
             setStore({ ...store, themeId });
             toast.success("Theme updated successfully!");
         } catch (error) {

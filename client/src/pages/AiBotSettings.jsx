@@ -72,7 +72,6 @@ const AiBotSettings = () => {
     useEffect(() => {
         const fetchConfig = async () => {
             try {
-                const token = localStorage.getItem('token');
                 const res = await axios.get('/api/addons/my/ai_bot/config', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -99,7 +98,6 @@ const AiBotSettings = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            const token = localStorage.getItem('token');
             await axios.put('/api/addons/my/ai_bot/config', config, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -341,7 +339,6 @@ const AiBotSettings = () => {
 
                                     setFileUploading(true);
                                     try {
-                                        const token = localStorage.getItem('token');
                                         const fd = new FormData();
                                         fd.append('file', file);
                                         const res = await axios.post('/api/addons/my/ai_bot/parse-knowledge-file', fd, {

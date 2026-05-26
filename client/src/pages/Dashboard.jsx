@@ -129,7 +129,7 @@ const Dashboard = () => {
     const exchangeFbCode = async (code) => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, { code }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') } // Authenticate request
+                // Authenticate request
             });
 
             showToast({ type: 'success', title: 'WhatsApp Connected', message: res.data.message });

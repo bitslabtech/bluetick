@@ -75,7 +75,7 @@ export default function TeamMemberAnalytics() {
         const fetch = async () => {
             try {
                 const res = await axios.get(`${API}/api/team/${id}/stats`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                    headers: { }
                 });
                 setData(res.data);
             } catch (e) {

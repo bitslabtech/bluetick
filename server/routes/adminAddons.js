@@ -195,7 +195,7 @@ router.put('/:id', async (req, res) => {
 // POST Upload banner image for addon
 const storageProvider = require('../utils/storageProvider');
 
-router.post('/:id/upload-banner', storageProvider('addon_banners').single('banner'), async (req, res) => {
+router.post('/:id/upload-banner', storageProvider('addon_banners', { fileFilter: storageProvider.generalImageFilter }).single('banner'), async (req, res) => {
     try {
         const addon = await AddonModel.findByPk(req.params.id);
         if (!addon) return res.status(404).json({ error: 'Addon not found' });
@@ -220,7 +220,7 @@ router.post('/:id/upload-banner', storageProvider('addon_banners').single('banne
 });
 
 // POST Upload demo video for addon
-router.post('/:id/upload-video', storageProvider('addon_videos').single('video'), async (req, res) => {
+router.post('/:id/upload-video', storageProvider('addon_videos', { fileFilter: storageProvider.videoFilter }).single('video'), async (req, res) => {
     try {
         const addon = await AddonModel.findByPk(req.params.id);
         if (!addon) return res.status(404).json({ error: 'Addon not found' });

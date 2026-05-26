@@ -130,10 +130,7 @@ const Settings = () => {
         // Fetch the webhook verify token dynamically
         (async () => {
             try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/webhook-token`, {
-                    headers: { 'x-auth-token': token }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/webhook-token`);
                 setWebhookVerifyToken(res.data.verifyToken || '');
             } catch (e) {
                 setWebhookVerifyToken('Error loading token');
@@ -176,9 +173,7 @@ const Settings = () => {
 
             // If createdAt isn't available (old session), fetch full profile
             if (!user.createdAt) {
-                axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                }).then(res => {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`).then(res => {
                     if (res.data) {
                         try {
                             const updatedUser = { ...user, ...res.data };
@@ -201,9 +196,7 @@ const Settings = () => {
                 setLandingConfig(landingRes.data);
             }
 
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
             if (res.data) {
                 originalSettings.current = res.data;
                 // Merge data carefully to preserve deep defaults if API returns partial objects
@@ -298,7 +291,7 @@ const Settings = () => {
                         // To clear Embedded (which might reside in User model like fbAccessToken), we may optionally call disconnect first.
                         try {
                             setSaving(true);
-                            await axios.delete(`${import.meta.env.VITE_API_URL}/api/whatsapp/disconnect`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                            await axios.delete(`${import.meta.env.VITE_API_URL}/api/whatsapp/disconnect`);
                             await saveSettingsData();
                         } catch (err) {
                             console.error(err);
@@ -317,14 +310,10 @@ const Settings = () => {
         setSaving(true);
         try {
             if (landingConfig && activeTab === 'branding') {
-                await axios.put(`${import.meta.env.VITE_API_URL}/api/landing`, landingConfig, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/landing`, landingConfig);
             }
 
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, formData, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, formData);
             originalSettings.current = res.data;
             showToast({
                 type: 'success',
@@ -358,8 +347,7 @@ const Settings = () => {
         setChangingPassword(true);
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/auth/password`,
-                { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword },
-                { headers: { 'x-auth-token': localStorage.getItem('token') } }
+                { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword }
             );
             showToast({ type: 'success', title: 'Password Updated', message: 'Your password has been changed.' });
             setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -374,9 +362,7 @@ const Settings = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/auth/profile`, profileData, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/auth/profile`, profileData);
             showToast({
                 type: 'success',
                 title: 'Profile Updated',
@@ -421,9 +407,7 @@ const Settings = () => {
 
     useEffect(() => {
         if (activeTab === 'integrations' && !integrationLoaded) {
-            axios.get(`${import.meta.env.VITE_API_URL}/api/system`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            }).then(res => {
+            axios.get(`${import.meta.env.VITE_API_URL}/api/system`).then(res => {
                 const g = res.data?.integrations?.google || {};
                 setGoogleIntegration({
                     enabled: g.enabled || false,
@@ -442,7 +426,7 @@ const Settings = () => {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, {
                 integrations: { google: vals }
-            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            });
             showToast({ type: 'success', title: 'Integration Saved', message: 'Google OAuth settings updated.' });
         } catch (err) {
             showToast({ type: 'error', title: 'Save Failed', message: err.response?.data?.error || err.message });
@@ -468,8 +452,6 @@ const Settings = () => {
                 metaPhoneNumberId: formData.metaPhoneNumberId,
                 metaAccessToken: formData.metaAccessToken,
                 testPhoneNumber
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             showModal({
                 type: 'success',
@@ -505,9 +487,7 @@ const Settings = () => {
             // Must save first so backend gets the creds
             await saveSettingsData();
 
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/test-s3`, {}, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/test-s3`, {});
             showModal({
                 type: 'success',
                 title: 'Test Successful',
@@ -542,9 +522,7 @@ const Settings = () => {
             // Must save first so backend gets the creds
             await saveSettingsData();
 
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/test-r2`, {}, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/test-r2`, {});
             showModal({
                 type: 'success',
                 title: 'Test Successful',
@@ -579,9 +557,7 @@ const Settings = () => {
             // Save first so backend has latest creds
             await saveSettingsData();
 
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/test-smtp`, formData.smtpConfig, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/test-smtp`, formData.smtpConfig);
             showModal({
                 type: 'success',
                 title: 'Test Successful',
@@ -650,7 +626,7 @@ const Settings = () => {
     const exchangeFbCode = async (code, wipeManual) => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, { code }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') } // Authenticate request
+                // Authenticate request
             });
 
             // If wiping manual configuration, let's clear the settings on the backend
@@ -660,8 +636,6 @@ const Settings = () => {
                     metaAccessToken: '',
                     metaPhoneNumberId: '',
                     metaBusinessAccountId: res.data.wabaId || ''
-                }, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
                 });
             }
 
@@ -692,9 +666,7 @@ const Settings = () => {
             onConfirm: async () => {
                 try {
                     setFbLoading(true);
-                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/whatsapp/disconnect`, {
-                        headers: { 'x-auth-token': localStorage.getItem('token') }
-                    });
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/whatsapp/disconnect`);
 
                     showToast({ type: 'success', title: 'Disconnected', message: 'WhatsApp connection removed.' });
 
@@ -1086,9 +1058,7 @@ const Settings = () => {
                                                     cancelText: 'Cancel',
                                                     onConfirm: async () => {
                                                         try {
-                                                            await axios.delete(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-                                                                headers: { 'x-auth-token': localStorage.getItem('token') }
-                                                            });
+                                                            await axios.delete(`${import.meta.env.VITE_API_URL}/api/auth/me`);
                                                             showToast({ type: 'success', title: 'Account Deleted', message: 'Your account has been permanently deleted.' });
                                                             logout();
                                                         } catch (err) {

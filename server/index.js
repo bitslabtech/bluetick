@@ -20,6 +20,7 @@ const { initSocket } = require('./socket'); // NEW
 const { sequelize, createDbIfNotExists } = require('./config/database');
 const helmet = require('helmet');
 const compression = require('compression');
+const cookieParser = require('cookie-parser');
 const { globalLimiter } = require('./middleware/rateLimiter');
 const setupGuard = require('./middleware/setupGuard');
 
@@ -83,6 +84,9 @@ app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Restrict CORS in production
     credentials: true
 }));
+
+// Parse cookies — required for HttpOnly token auth
+app.use(cookieParser());
 
 // Apply Dynamic Rate Limiter
 app.use('/api', globalLimiter);

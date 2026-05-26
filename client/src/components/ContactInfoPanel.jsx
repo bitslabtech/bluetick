@@ -23,9 +23,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
 
     const fetchLabels = useCallback(async () => {
         try {
-            const res = await axios.get(`${API_BASE}/api/labels`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${API_BASE}/api/labels`);
             setAvailableLabels(res.data);
         } catch (err) {
             console.error('Failed to load labels', err);
@@ -34,9 +32,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
 
     const fetchGroups = useCallback(async () => {
         try {
-            const res = await axios.get(`${API_BASE}/api/groups`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${API_BASE}/api/groups`);
             // The API returns an array of Group objects { id, name, description, ... }
             setAvailableGroups(res.data);
         } catch (err) {
@@ -65,18 +61,14 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
         if (conversation.id) {
             setContact(null);
             setContactGroups([]);
-            axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/contact`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            }).then(res => {
+            axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/contact`).then(res => {
                 setContact(res.data);
                 setContactGroups(res.data.tags || []);
             }).catch(() => { });
         }
 
         // Fetch message count
-        axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/messages`, {
-            headers: { 'x-auth-token': localStorage.getItem('token') }
-        }).then(res => setMessageCount(res.data.length)).catch(() => { });
+        axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/messages`).then(res => setMessageCount(res.data.length)).catch(() => { });
     }, [conversation?.id, conversation?.phoneNumber]);
 
     // Listen for upstream changes from WhatsAppInbox header (optimistic sync)
@@ -116,9 +108,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
     const saveNotes = async () => {
         setSavingNotes(true);
         try {
-            await axios.patch(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/notes`, { notes }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.patch(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/notes`, { notes });
             onUpdate?.({ ...conversation, notes });
         } finally {
             setSavingNotes(false);
@@ -130,15 +120,11 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
         // Single-select: clicking the same label removes it, clicking a different one replaces
         const newLabels = exists ? [] : [{ id: labelOption.id, name: labelOption.name, color: labelOption.color }];
         setLabels(newLabels);
-        await axios.patch(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/labels`, { labels: newLabels }, {
-            headers: { 'x-auth-token': localStorage.getItem('token') }
-        });
+        await axios.patch(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/labels`, { labels: newLabels });
         // Also sync label to the contact record so Contacts page reflects it
         if (contact?.id) {
             try {
-                await axios.put(`${API_BASE}/api/contacts/${contact.id}`, { labels: newLabels }, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                await axios.put(`${API_BASE}/api/contacts/${contact.id}`, { labels: newLabels });
             } catch (err) {
                 console.error('Failed to sync label to contact:', err);
             }
@@ -158,7 +144,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
         try {
             const res = await axios.post(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/contact/groups`, {
                 tags: newGroups
-            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            });
             
             setContact(res.data);
             targetId = res.data.id;

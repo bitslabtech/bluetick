@@ -15,9 +15,7 @@ export default function VcardBookings() {
 
     const fetchBookings = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards/data/enquiries`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards/data/enquiries`);
             // Filter only bookings
             setBookings(res.data.filter(e => e.type === 'booking'));
         } catch (err) {
@@ -29,9 +27,7 @@ export default function VcardBookings() {
 
     const updateStatus = async (id, status) => {
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/vcards/data/enquiries/${id}/status`, { status }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/vcards/data/enquiries/${id}/status`, { status });
             setBookings(bookings.map(e => e.id === id ? { ...e, status } : e));
             showToast(`Marked as ${status}`, 'success');
         } catch (err) {
@@ -42,9 +38,7 @@ export default function VcardBookings() {
     const deleteBooking = async (id) => {
         if (!window.confirm('Are you sure you want to delete this booking request?')) return;
         try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/api/vcards/data/enquiries/${id}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/vcards/data/enquiries/${id}`);
             setBookings(bookings.filter(e => e.id !== id));
             showToast('Booking deleted', 'success');
         } catch (err) {

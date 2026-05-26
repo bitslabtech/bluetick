@@ -22,9 +22,7 @@ export default function WaStoreCoupons() {
 
     const fetchCoupons = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/coupons`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/coupons`);
             setCoupons(res.data);
         } catch (error) {
             toast.error('Failed to load coupons');
@@ -58,8 +56,6 @@ export default function WaStoreCoupons() {
                 minOrderValue: form.minOrderValue !== '' ? parseFloat(form.minOrderValue) : 0,
                 isActive: form.isActive,
                 expiresAt: form.expiresAt || null
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             toast.success('Coupon created successfully');
             setShowModal(false);
@@ -73,9 +69,7 @@ export default function WaStoreCoupons() {
     const handleDelete = async (couponId) => {
         if (!window.confirm('Are you sure you want to delete this coupon?')) return;
         try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/coupons/${couponId}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/coupons/${couponId}`);
             toast.success('Coupon deleted');
             fetchCoupons();
         } catch (error) {
@@ -87,8 +81,6 @@ export default function WaStoreCoupons() {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/coupons/${coupon.id}`, {
                 isActive: !coupon.isActive
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             toast.success(`Coupon ${!coupon.isActive ? 'activated' : 'deactivated'}`);
             setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, isActive: !c.isActive } : c));

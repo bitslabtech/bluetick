@@ -425,9 +425,7 @@ const WhatsAppFormsBuilder = () => {
     useEffect(() => {
         if (viewMode === 'responses' && activeForm?.id) {
             setResponsesLoading(true);
-            axios.get(`/api/forms/admin/${activeForm.id}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            }).then(res => {
+            axios.get(`/api/forms/admin/${activeForm.id}`).then(res => {
                 setResponses(res.data?.FormResponses || []);
             }).catch(err => {
                 console.error('Responses fetch error', err);
@@ -439,7 +437,7 @@ const WhatsAppFormsBuilder = () => {
     useEffect(() => {
         if (viewMode === 'automations' && !templatesFetched && !templatesLoading) {
             setTemplatesLoading(true);
-            axios.get('/api/templates', { headers: { 'x-auth-token': localStorage.getItem('token') } })
+            axios.get('/api/templates')
                 .then(res => {
                     setTemplates(res.data?.data || res.data || []);
                     setTemplatesFetched(true);
@@ -452,10 +450,8 @@ const WhatsAppFormsBuilder = () => {
     useEffect(() => {
         const verifyAndLoad = async () => {
             try {
-                const token = localStorage.getItem('token');
-                
                 try {
-                    const settingsRes = await axios.get('/api/settings', { headers: { 'x-auth-token': token } });
+                    const settingsRes = await axios.get('/api/settings');
                     const pg = settingsRes.data?.paymentGateways || {};
                     setPgConfigured(!!pg.razorpay?.keyId || !!pg.stripe?.publishableKey);
                 } catch(e) { console.error('Error fetching settings for PG check', e); }
@@ -484,7 +480,7 @@ const WhatsAppFormsBuilder = () => {
     const fetchForms = async () => {
         try {
             setLoading(true);
-            const res = await axios.get('/api/forms', { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            const res = await axios.get('/api/forms');
             setAllForms(res.data);
             setLoading(false);
         } catch (err) {
@@ -542,7 +538,7 @@ const WhatsAppFormsBuilder = () => {
                     });
                 }
 
-                axios.get(`/api/forms/admin/${formId}`, { headers: { 'x-auth-token': localStorage.getItem('token') } })
+                axios.get(`/api/forms/admin/${formId}`)
                     .then(res => {
                         const data = res.data;
                         setActiveForm({
@@ -572,8 +568,7 @@ const WhatsAppFormsBuilder = () => {
         if (!aiPrompt.trim()) return showToast({ type: 'error', title: 'Empty Prompt', message: 'Please describe the form you need.' });
         setAiGenerating(true);
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.post('/api/forms/generate-ai', { prompt: aiPrompt }, { headers: { 'x-auth-token': token } });
+            const res = await axios.post('/api/forms/generate-ai', { prompt: aiPrompt });
             
             const newForm = res.data.formSetup;
             // Map JSON to activeForm format
@@ -637,7 +632,7 @@ const WhatsAppFormsBuilder = () => {
 
         setSaving(true);
         try {
-            const hdrs = { headers: { 'x-auth-token': localStorage.getItem('token') } };
+            const hdrs = { };
             // Ensure numbers are null if empty string
             const payload = {
                 ...activeForm,

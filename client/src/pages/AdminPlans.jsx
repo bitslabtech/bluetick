@@ -38,7 +38,6 @@ const AdminPlans = () => {
             const res = await axios.get('/api/plans');
             setPlans(res.data);
             try {
-                const token = localStorage.getItem('token');
                 const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
                 const addonsRes = await axios.get('/api/admin/addons', config);
                 setAvailableAddons(Array.isArray(addonsRes.data) ? addonsRes.data.filter(a => a.isActive) : []);
@@ -83,7 +82,6 @@ const AdminPlans = () => {
     // ════════════════════════════════════
     const fetchStoreItems = async () => {
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get('/api/admin/store', { headers: { Authorization: `Bearer ${token}` } });
             setStoreItems(res.data);
         } catch (err) {
@@ -96,7 +94,6 @@ const AdminPlans = () => {
     const handleDeleteStoreItem = async (id) => {
         if (!window.confirm("Are you sure you want to delete this top-up?")) return;
         try {
-            const token = localStorage.getItem('token');
             await axios.delete(`/api/admin/store/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             setStoreItems(storeItems.filter(item => item.id !== id));
             showToast({ type: 'success', message: 'Top-up deleted.' });
@@ -107,7 +104,6 @@ const AdminPlans = () => {
 
     const handleSaveStoreItem = async (formData) => {
         try {
-            const token = localStorage.getItem('token');
             if (editingStoreItem) {
                 const res = await axios.put(`/api/admin/store/${editingStoreItem.id}`, formData, { headers: { Authorization: `Bearer ${token}` } });
                 setStoreItems(storeItems.map(item => item.id === editingStoreItem.id ? res.data : item));

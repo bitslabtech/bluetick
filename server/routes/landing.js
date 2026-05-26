@@ -172,7 +172,7 @@ ${aiConfig.knowledgeBase}
 // @route   POST /api/landing/upload-capability
 // @desc    Upload image for a capability card (Admin only)
 const storageProvider = require('../utils/storageProvider');
-router.post('/upload-capability', [auth, admin], storageProvider('capabilities').single('image'), async (req, res) => {
+router.post('/upload-capability', [auth, admin], storageProvider('capabilities', { fileFilter: storageProvider.generalImageFilter }).single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No image provided' });
@@ -186,7 +186,7 @@ router.post('/upload-capability', [auth, admin], storageProvider('capabilities')
 
 // @route   POST /api/landing/upload-feature
 // @desc    Upload image for an advanced feature card (Admin only)
-router.post('/upload-feature', [auth, admin], storageProvider('features').single('image'), async (req, res) => {
+router.post('/upload-feature', [auth, admin], storageProvider('features', { fileFilter: storageProvider.generalImageFilter }).single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No image provided' });
@@ -200,7 +200,7 @@ router.post('/upload-feature', [auth, admin], storageProvider('features').single
 
 // @route   POST /api/landing/upload-industry
 // @desc    Upload image for an industry card (Admin only)
-router.post('/upload-industry', [auth, admin], storageProvider('industries').single('image'), async (req, res) => {
+router.post('/upload-industry', [auth, admin], storageProvider('industries', { fileFilter: storageProvider.generalImageFilter }).single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No image provided' });
@@ -214,7 +214,7 @@ router.post('/upload-industry', [auth, admin], storageProvider('industries').sin
 
 // @route   POST /api/landing/upload-hero
 // @desc    Upload image for hero section (Admin only)
-router.post('/upload-hero', [auth, admin], storageProvider('hero').single('image'), async (req, res) => {
+router.post('/upload-hero', [auth, admin], storageProvider('hero', { fileFilter: storageProvider.generalImageFilter }).single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No image provided' });
@@ -364,7 +364,7 @@ router.delete('/blogs/:id', [auth, admin], async (req, res) => {
     }
 });
 
-router.post('/blogs/upload', [auth, admin, storageProvider('blogs').single('image')], async (req, res) => {
+router.post('/blogs/upload', [auth, admin, storageProvider('blogs', { fileFilter: storageProvider.generalImageFilter }).single('image')], async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file provided' });
         

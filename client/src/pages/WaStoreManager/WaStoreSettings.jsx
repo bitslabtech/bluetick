@@ -20,9 +20,7 @@ export default function WaStoreSettings() {
     useEffect(() => {
         const fetchStore = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
                 const myStore = res.data.find(s => s.id === storeId);
                 setStore(myStore);
                 if (myStore?.customDomain) setCustomDomain(myStore.customDomain);
@@ -43,9 +41,7 @@ export default function WaStoreSettings() {
         }
         setDeleting(true);
         try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`);
             toast.success('Store deleted successfully.');
             navigate('/wastore');
         } catch (error) {
@@ -60,8 +56,6 @@ export default function WaStoreSettings() {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
                 customDomain: customDomain
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             toast.success('Custom domain updated successfully.');
         } catch (error) {
@@ -76,8 +70,6 @@ export default function WaStoreSettings() {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
                 gridColumns
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             toast.success('Grid layout saved!');
         } catch (error) {

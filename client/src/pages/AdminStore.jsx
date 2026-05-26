@@ -21,7 +21,6 @@ const AdminStore = () => {
 
     const fetchStoreItems = async () => {
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get('/api/admin/store', { headers: { Authorization: `Bearer ${token}` } });
             setStoreItems(res.data);
         } catch (err) {
@@ -35,7 +34,6 @@ const AdminStore = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this store item? Users will no longer be able to purchase it.")) return;
         try {
-            const token = localStorage.getItem('token');
             await axios.delete(`/api/admin/store/${id}`, { headers: { Authorization: `Bearer ${token}` } });
             setStoreItems(storeItems.filter(item => item.id !== id));
             showToast({ type: 'success', title: 'Deleted', message: 'Store item removed successfully.' });
@@ -46,7 +44,6 @@ const AdminStore = () => {
 
     const handleSave = async (formData) => {
         try {
-            const token = localStorage.getItem('token');
             if (editingItem) {
                 const res = await axios.put(`/api/admin/store/${editingItem.id}`, formData, { headers: { Authorization: `Bearer ${token}` } });
                 setStoreItems(storeItems.map(item => item.id === editingItem.id ? res.data : item));

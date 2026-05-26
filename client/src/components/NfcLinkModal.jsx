@@ -19,7 +19,7 @@ export default function NfcLinkModal({ isOpen, onClose, vcards = [], onLinked })
             const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/nfc/link`, {
                 shortCode,
                 vcardId: selectedVcardId
-            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            });
             
             showToast({ type: 'success', message: 'NFC Device Linked Successfully!' });
             if (onLinked) onLinked(data.card);

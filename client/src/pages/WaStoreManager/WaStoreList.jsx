@@ -17,9 +17,7 @@ export default function WaStoreList() {
 
     const fetchStores = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
             setStores(res.data);
         } catch (error) {
             console.error("Failed to load stores:", error);
@@ -32,9 +30,7 @@ export default function WaStoreList() {
     const handleCreate = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore`, newStore, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore`, newStore);
             toast.success("Store created successfully!");
             setShowCreateModal(false);
             navigate(`/wastore/${res.data.id}/products`);

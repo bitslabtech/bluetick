@@ -152,9 +152,7 @@ const WhatsAppInbox = () => {
 
         // Check if WhatsApp is configured
         if (user?.id) {
-            axios.get(`${API_BASE}/api/dashboard/stats`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            }).then(res => {
+            axios.get(`${API_BASE}/api/dashboard/stats`).then(res => {
                 setIsConfigured(res.data.isWhatsappConfigured);
                 setHasActiveBots(res.data.hasActiveBots || false);
             }).catch(() => {
@@ -165,9 +163,7 @@ const WhatsAppInbox = () => {
 
         // Fetch groups
         if (user?.id) {
-            axios.get(`${API_BASE}/api/groups`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            }).then(res => setAvailableGroups(res.data)).catch(err => console.error('Failed to fetch groups:', err));
+            axios.get(`${API_BASE}/api/groups`).then(res => setAvailableGroups(res.data)).catch(err => console.error('Failed to fetch groups:', err));
         }
 
         // Request notification permission
@@ -289,9 +285,7 @@ const WhatsAppInbox = () => {
             fetchMessages(selectedChat.id);
             // Fetch groups for header
             if (selectedChat.id) {
-                axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${selectedChat.id}/contact`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                }).then(res => {
+                axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${selectedChat.id}/contact`).then(res => {
                     setHeaderGroups(res.data.tags || []);
                     setHeaderContactId(res.data.id);
                 }).catch(() => {
@@ -380,8 +374,7 @@ const WhatsAppInbox = () => {
                     unreadOnly: filterStr === 'unread',
                     assignedFilter: filterStr === 'mine' ? 'mine' : 'all',
                     limit: 300
-                },
-                headers: { 'x-auth-token': localStorage.getItem('token') }
+                }
             });
             setConversations(res.data);
             conversationsRef.current = res.data;
@@ -403,15 +396,11 @@ const WhatsAppInbox = () => {
 
     const fetchMessages = async (chatId) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${chatId}/messages`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${chatId}/messages`);
             setMessages(res.data);
             const conv = conversationsRef.current.find(c => c.id === chatId);
             if (conv?.unreadCount > 0) {
-                await axios.post(`${API_BASE}/api/whatsapp/chat/conversations/${chatId}/read`, {}, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                await axios.post(`${API_BASE}/api/whatsapp/chat/conversations/${chatId}/read`, {});
                 setConversations(prev => prev.map(c => c.id === chatId ? { ...c, unreadCount: 0 } : c));
             }
         } catch (err) { console.error('Failed to fetch messages:', err); }
@@ -419,9 +408,7 @@ const WhatsAppInbox = () => {
 
     const fetchQuickReplies = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/api/whatsapp/chat/quick-replies`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${API_BASE}/api/whatsapp/chat/quick-replies`);
             setQuickReplies(res.data);
         } catch (err) { console.error('Failed to fetch quick replies:', err); }
     };
@@ -430,8 +417,8 @@ const WhatsAppInbox = () => {
         setTemplatesLoading(true);
         try {
             const [tmplRes, billingRes] = await Promise.all([
-                axios.get(`${API_BASE}/api/templates`, { headers: { 'x-auth-token': localStorage.getItem('token') } }),
-                axios.get(`${API_BASE}/api/billing`, { headers: { 'x-auth-token': localStorage.getItem('token') } })
+                axios.get(`${API_BASE}/api/templates`),
+                axios.get(`${API_BASE}/api/billing`)
             ]);
             // Sort oldest first (same as Templates.jsx) so first N = plan-active
             const sorted = [...tmplRes.data]
@@ -470,8 +457,7 @@ const WhatsAppInbox = () => {
             fd.append('file', file);
             const res = await axios.post(`${API_BASE}/api/templates/upload-message-media`, fd, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                    'Content-Type': 'multipart/form-data'
                 }
             });
             setCardParams(prev => ({
@@ -569,7 +555,7 @@ const WhatsAppInbox = () => {
                 templateName: selectedTemplate.name,
                 languageCode: selectedTemplate.language || 'en_US',
                 components
-            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            });
 
             setShowTemplateModal(false);
             fetchMessages(selectedChat.id);
@@ -595,7 +581,7 @@ const WhatsAppInbox = () => {
         try {
             const res = await axios.post(`${API_BASE}/api/whatsapp/chat/conversations/${selectedChat.id}/contact/groups`, {
                 tags: newGroups
-            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            });
 
             if (res.data.id) {
                 setHeaderContactId(res.data.id);
@@ -608,8 +594,7 @@ const WhatsAppInbox = () => {
     const handleBotToggle = async (newStatus) => {
         if (!selectedChat) return;
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.patch(`${API_BASE}/api/whatsapp/chat/conversations/${selectedChat.id}/bot-status`, { botStatus: newStatus }, { headers: { 'x-auth-token': token } });
+            const res = await axios.patch(`${API_BASE}/api/whatsapp/chat/conversations/${selectedChat.id}/bot-status`, { botStatus: newStatus });
             
             // Only update local state if successful (socket might also update it)
             setSelectedChat(prev => ({ ...prev, botStatus: res.data.botStatus }));
@@ -628,8 +613,7 @@ const WhatsAppInbox = () => {
         setIsAiDrafting(true);
         setShowAiDraftModal(false);
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.post(`${API_BASE}/api/whatsapp/chat/ai-draft`, { conversationId: selectedChat.id }, { headers: { 'x-auth-token': token } });
+            const res = await axios.post(`${API_BASE}/api/whatsapp/chat/ai-draft`, { conversationId: selectedChat.id });
             if (res.data.draft) {
                 setInputText(res.data.draft);
                 showToast({ type: 'success', title: '✨ AI Reply Drafted', message: `Reply ready! ${res.data.tokensDeducted} AI tokens used.` });
@@ -655,8 +639,7 @@ const WhatsAppInbox = () => {
         if (!text) return;
         setIsAiEnhancing(true);
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.post(`${API_BASE}/api/whatsapp/chat/ai-enhance`, { text }, { headers: { 'x-auth-token': token } });
+            const res = await axios.post(`${API_BASE}/api/whatsapp/chat/ai-enhance`, { text });
             if (res.data.enhancedText) {
                 setInputText(res.data.enhancedText);
                 showToast({ type: 'success', title: '✨ Message Enhanced', message: `Text optimized! ${res.data.tokensDeducted} AI tokens used.` });
@@ -692,7 +675,7 @@ const WhatsAppInbox = () => {
         try {
             const res = await axios.post(`${API_BASE}/api/whatsapp/chat/send/text`, {
                 conversationId: selectedChat.id, body
-            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            });
 
             setInputText('');
             setReplyTo(null);
@@ -822,9 +805,7 @@ const WhatsAppInbox = () => {
         e.preventDefault();
         if (!newQuickReply.shortcut || !newQuickReply.message) return;
         try {
-            const res = await axios.post(`${API_BASE}/api/whatsapp/chat/quick-replies`, newQuickReply, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.post(`${API_BASE}/api/whatsapp/chat/quick-replies`, newQuickReply);
             setQuickReplies(prev => [...prev, res.data]);
             setShowCreateQuickReply(false);
             setNewQuickReply({ shortcut: '', message: '' });

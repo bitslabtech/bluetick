@@ -260,7 +260,6 @@ const Billing = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = localStorage.getItem('token');
                 const headers = { 'x-auth-token': token };
                 const [billingRes, plansRes] = await Promise.all([
                     axios.get(`${API_BASE}/api/billing`, { headers }),

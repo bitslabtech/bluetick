@@ -38,7 +38,6 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     const fetchTeamMembers = async () => {
         setIsLoadingTeam(true);
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get(`${API_BASE}/api/team/for-assign`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -53,7 +52,6 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     const fetchTags = async () => {
         setIsLoadingTags(true);
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get(`${API_BASE}/api/labels`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -68,7 +66,6 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     const fetchGroups = async () => {
         setIsLoadingGroups(true);
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get(`${API_BASE}/api/groups`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -83,7 +80,6 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     const fetchTemplates = async () => {
         setIsLoadingTemplates(true);
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get(`${API_BASE}/api/templates`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -99,7 +95,6 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     const fetchCustomFields = async () => {
         setIsLoadingCustomFields(true);
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get(`${API_BASE}/api/whatsapp/custom-fields`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -114,7 +109,6 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     const fetchFlows = async () => {
         setIsLoadingFlows(true);
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get(`${API_BASE}/api/flows`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -135,7 +129,6 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
         formData.append('file', file);
 
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.post(`${API_BASE}/api/flows/upload`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -174,7 +167,6 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
         // Now attempt to upload to Meta for actual sending
         setIsUploading(true);
         try {
-            const token = localStorage.getItem('token');
             const fd = new FormData();
             fd.append('file', file);
             const res = await axios.post(`${API_BASE}/api/templates/upload-message-media`, fd, {

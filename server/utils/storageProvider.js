@@ -22,6 +22,80 @@ const { compressImage, isCompressibleImage } = require('./imageCompressor');
 const DEFAULT_LIMITS = { fileSize: 200 * 1024 * 1024 }; // 200MB max
 
 /**
+ * File Filters for Multer
+ */
+const generalImageFilter = (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Only JPG, PNG, and WebP images are allowed.'));
+    }
+};
+
+const whatsappImageFilter = (req, file, cb) => {
+    // WhatsApp templates do not accept WebP
+    const allowed = ['image/jpeg', 'image/png'];
+    if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('WhatsApp templates only support JPG and PNG images.'));
+    }
+};
+
+const documentFilter = (req, file, cb) => {
+    // Strictly define allowed document mimetypes
+    const allowedMimeTypes = [
+        'application/pdf', 
+        'text/csv', 
+        'text/plain', 
+        'text/markdown', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    // Ensure the mimetype is explicitly allowed
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+        return cb(new Error('Invalid file type. Only PDF, CSV, TXT, MD, and DOCX files are allowed.'));
+    }
+
+    // Double-check the extension matches the mimetype to prevent spoofing
+    const ext = file.originalname.toLowerCase();
+    if (
+        (file.mimetype === 'application/pdf' && !ext.endsWith('.pdf')) ||
+        (file.mimetype === 'text/csv' && !ext.endsWith('.csv')) ||
+        (file.mimetype === 'text/plain' && !ext.endsWith('.txt')) ||
+        (file.mimetype === 'text/markdown' && !ext.endsWith('.md')) ||
+        (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && !ext.endsWith('.docx'))
+    ) {
+        return cb(new Error('File extension does not match its content type.'));
+    }
+
+    cb(null, true);
+};
+
+const videoFilter = (req, file, cb) => {
+    const allowed = ['video/mp4', 'video/3gpp'];
+    if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Only MP4 and 3GP videos are allowed.'));
+    }
+};
+
+const whatsappMediaFilter = (req, file, cb) => {
+    // Allows whatsapp images, documents, and videos
+    if (file.mimetype.startsWith('image/')) {
+        return whatsappImageFilter(req, file, cb);
+    } else if (file.mimetype.startsWith('video/')) {
+        return videoFilter(req, file, cb);
+    } else {
+        return documentFilter(req, file, cb);
+    }
+};
+
+
+
+/**
  * Reads the system config and returns the storage destination config.
  */
 const getStorageConfig = async (folderName) => {
@@ -284,3 +358,8 @@ const storageProvider = (folderName, options = {}) => {
 };
 
 module.exports = storageProvider;
+module.exports.generalImageFilter = generalImageFilter;
+module.exports.whatsappImageFilter = whatsappImageFilter;
+module.exports.documentFilter = documentFilter;
+module.exports.videoFilter = videoFilter;
+module.exports.whatsappMediaFilter = whatsappMediaFilter;

@@ -154,7 +154,6 @@ const StepSelectAccount = ({ onSelected }) => {
     useEffect(() => {
         const fetchAccounts = async () => {
             try {
-                const token = localStorage.getItem('token');
                 const res = await axios.get('/api/ctwa/ad-accounts', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -172,7 +171,6 @@ const StepSelectAccount = ({ onSelected }) => {
         if (!selected) return;
         try {
             setSaving(true);
-            const token = localStorage.getItem('token');
             await axios.post('/api/ctwa/select-account', { adAccountId: selected }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -266,7 +264,6 @@ const CTWADashboard = ({ onDisconnect }) => {
     const fetchDashboard = useCallback(async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('token');
             const res = await axios.get(`/api/ctwa/dashboard?dateRange=${dateRange}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -282,7 +279,6 @@ const CTWADashboard = ({ onDisconnect }) => {
 
     const handleDisconnect = async () => {
         if (!window.confirm('Disconnect your Facebook Ads account?')) return;
-        const token = localStorage.getItem('token');
         await axios.delete('/api/ctwa/disconnect', { headers: { Authorization: `Bearer ${token}` } });
         onDisconnect();
     };
@@ -432,7 +428,6 @@ export default function CTWAAnalytics() {
     useEffect(() => {
         const checkStatus = async () => {
             try {
-                const token = localStorage.getItem('token');
                 const res = await axios.get('/api/ctwa/status', {
                     headers: { Authorization: `Bearer ${token}` }
                 });

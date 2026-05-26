@@ -14,43 +14,37 @@ export const AuthProvider = ({ children }) => {
 
     // Initialize Auth State from LocalStorage
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            try {
-                const userStr = localStorage.getItem('user');
-                if (userStr && userStr !== "undefined") {
-                    const savedUser = JSON.parse(userStr);
-                    if (savedUser) setUser(savedUser);
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr && userStr !== "undefined") {
+                const savedUser = JSON.parse(userStr);
+                if (savedUser) {
+                    setUser(savedUser);
+                    
+                    // We can infer impersonation state if the cached user has the origRole flag set by admin.js
+                    if (savedUser.origRole === 'Admin') {
+                        setIsImpersonating(true);
+                    }
                 }
-            } catch (e) {
-                console.error("Auth Init Error", e);
-                localStorage.removeItem('user');
             }
-
-            // Check for impersonation state
-            const adminToken = localStorage.getItem('adminToken');
-            if (adminToken) {
-                setIsImpersonating(true);
-                axios.defaults.headers.common['x-admin-token'] = adminToken;
-            }
-
-            // Sync fresh data from server
-            fetchUser();
+        } catch (e) {
+            console.error("Auth Init Error", e);
+            localStorage.removeItem('user');
         }
-        setLoading(false);
+
+        // Always attempt to fetch fresh data. The browser will auto-send the HttpOnly cookie.
+        fetchUser().finally(() => {
+            setLoading(false);
+        });
     }, []);
 
     const login = async (email, password, turnstileToken = '') => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password, 'cf-turnstile-response': turnstileToken });
-            const { token, user } = res.data;
+            // Cookie is set automatically by the server response
+            const { user } = res.data;
 
-            localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
-            localStorage.removeItem('adminToken');
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            delete axios.defaults.headers.common['x-admin-token'];
 
             setUser(user);
             setIsImpersonating(false);
@@ -73,12 +67,10 @@ export const AuthProvider = ({ children }) => {
                 phone,
                 'cf-turnstile-response': turnstileToken
             });
-            const { token, user } = res.data;
+            // Cookie is set automatically by the server response
+            const { user } = res.data;
 
-            localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            delete axios.defaults.headers.common['x-admin-token'];
 
             setUser(user);
             return { success: true, user };
@@ -87,78 +79,54 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
+    const logout = async () => {
+        try {
+            // Tell server to clear cookies
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/logout`);
+        } catch (e) {
+            console.error("Logout request failed", e);
+        }
         localStorage.removeItem('user');
-        localStorage.removeItem('adminToken');
-        delete axios.defaults.headers.common['Authorization'];
-        delete axios.defaults.headers.common['x-admin-token'];
         setUser(null);
         setIsImpersonating(false);
     };
 
-    const impersonate = async (token, targetUser) => {
-        // 1. Save Admin Token ONLY if we are not already impersonating
-        let adminTokenToUse = localStorage.getItem('adminToken');
-        if (!adminTokenToUse) {
-            const currentToken = localStorage.getItem('token');
-            if (currentToken) {
-                localStorage.setItem('adminToken', currentToken);
-                adminTokenToUse = currentToken;
-            }
-        }
+    const impersonate = async (targetUserId) => {
+        try {
+            // 1. Call server API to set both cookies
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/users/${targetUserId}/impersonate`);
+            const { user: targetUser } = res.data;
 
-        // 2. Swap tokens and user in localStorage + axios headers
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(targetUser));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        if (adminTokenToUse) {
-            axios.defaults.headers.common['x-admin-token'] = adminTokenToUse;
+            // 2. Update local state
+            localStorage.setItem('user', JSON.stringify(targetUser));
+            
+            // 3. Hard-navigate to dashboard
+            window.location.href = '/dashboard';
+        } catch (err) {
+            console.error("Impersonation failed:", err);
+            throw err;
         }
-
-        // 3. Hard-navigate to dashboard — avoids all React render race conditions
-        //    between React Router state and AuthContext state that cause
-        //    admin guards to briefly fire with the swapped non-admin user.
-        //    On reload, AuthContext initializes from localStorage (already correct).
-        window.location.href = '/dashboard';
     };
 
     const exitImpersonation = async () => {
-        // 1. Lock UI during exit transition
         setIsTransitioning(true);
 
-        const adminToken = localStorage.getItem('adminToken');
-        if (!adminToken) {
-            console.warn("No admin token found to restore.");
-            setIsTransitioning(false);
-            logout();
-            return;
-        }
-
-        // 2. Restore Admin Token
-        localStorage.setItem('token', adminToken);
-        localStorage.removeItem('adminToken');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`;
-        delete axios.defaults.headers.common['x-admin-token'];
-
-        // 3. Fetch Admin User Profile
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`);
-            if (res && res.data) {
-                localStorage.setItem('user', JSON.stringify(res.data));
-                setUser(res.data);
-                setIsImpersonating(false); // Clear impersonation AFTER user state is set to prevent flash
-            } else {
-                console.error("Failed to fetch admin profile, logging out for safety.");
-                logout();
-            }
+            // 1. Call server API to restore cookies
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/exit-impersonation`);
+
+            // 2. Fetch fresh admin profile
+            await fetchUser();
+            setIsImpersonating(false); // Clear impersonation flag
+            
+            // 3. Hard-navigate to dashboard to clear any user-specific state
+            window.location.href = '/dashboard';
         } catch (err) {
             console.error("Failed to restore admin profile:", err);
-            logout();
+            await logout();
+        } finally {
+            setIsTransitioning(false);
         }
-
-        // 4. Unlock UI
-        setIsTransitioning(false);
     };
 
     const fetchUser = async () => {
@@ -167,11 +135,16 @@ export const AuthProvider = ({ children }) => {
             if (res && res.data) {
                 localStorage.setItem('user', JSON.stringify(res.data));
                 setUser(res.data);
+                if (res.data.origRole === 'Admin') {
+                    setIsImpersonating(true);
+                }
             }
         } catch (err) {
             console.error("Failed to fetch user profile:", err);
             if (err.response && (err.response.status === 401 || err.response.status === 404)) {
-                logout();
+                localStorage.removeItem('user');
+                setUser(null);
+                setIsImpersonating(false);
             }
         }
     };

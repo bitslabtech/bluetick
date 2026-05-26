@@ -126,10 +126,8 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         setIsEnhancing(true);
         setEnhancingSection(sectionId);
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/enhance-ai`, 
-                { text: textToEnhance },
-                { headers: { 'x-auth-token': token } }
+                { text: textToEnhance }
             );
             
             const enhancedText = res.data.enhancedText;
@@ -399,7 +397,6 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
     const uploadMedia = async (file) => {
         const fd = new FormData();
         fd.append('file', file);
-        const token = localStorage.getItem('token');
         const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload`, fd, {
             headers: {
                 'Content-Type': 'multipart/form-data',

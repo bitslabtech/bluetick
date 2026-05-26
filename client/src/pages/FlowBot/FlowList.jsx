@@ -18,7 +18,6 @@ const FlowList = ({ onEditFlow, onCreateNew }) => {
 
     const loadFlows = async () => {
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get(`${API}/api/flows`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -32,7 +31,6 @@ const FlowList = ({ onEditFlow, onCreateNew }) => {
 
     const toggleFlowStatus = async (flow) => {
         try {
-            const token = localStorage.getItem('token');
             await axios.put(`${API}/api/flows/${flow.id}`, {
                 isActive: !flow.isActive
             }, {
@@ -47,7 +45,6 @@ const FlowList = ({ onEditFlow, onCreateNew }) => {
 
     const deleteFlow = async (flowId) => {
         try {
-            const token = localStorage.getItem('token');
             await axios.delete(`${API}/api/flows/${flowId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });

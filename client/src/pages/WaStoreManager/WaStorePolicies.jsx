@@ -18,9 +18,7 @@ export default function WaStorePolicies() {
     useEffect(() => {
         const fetchStore = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
                 const myStore = res.data.find(s => s.id === id);
                 if (myStore) {
                     setForm({
@@ -42,9 +40,7 @@ export default function WaStorePolicies() {
         e.preventDefault();
         setSaving(true);
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${id}`, form, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${id}`, form);
             toast.success("Policies updated successfully!");
         } catch (error) {
             toast.error(error.response?.data?.error || "Failed to save policies");

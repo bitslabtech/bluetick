@@ -469,7 +469,7 @@ const PartnerCoupons = ({ commissionRate }) => {
     const fetchCoupons = async () => {
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/referrals/tech-partner/coupons`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                headers: { }
             });
             setCoupons(res.data);
         } catch (err) {
@@ -490,7 +490,7 @@ const PartnerCoupons = ({ commissionRate }) => {
                 discountType: 'percentage',
                 maxUses: maxUses ? parseInt(maxUses) : 0,
                 expiryDate: expiryDate || null
-            }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+            }, { headers: { } });
             showToast({ type: 'success', message: 'Coupon created!' });
             setCode(''); setDiscountValue(''); setMaxUses(''); setExpiryDate('');
             fetchCoupons();
@@ -502,7 +502,7 @@ const PartnerCoupons = ({ commissionRate }) => {
     const handleDelete = async (id) => {
         try {
             await axios.delete(`${import.meta.env.VITE_API_URL}/api/referrals/tech-partner/coupons/${id}`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                headers: { }
             });
             showToast({ type: 'success', message: 'Coupon deleted!' });
             fetchCoupons();

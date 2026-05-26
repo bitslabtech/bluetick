@@ -79,7 +79,7 @@ const BlogManager = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/landing/blogs/${id}`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/landing/blogs/${id}`);
                     showToast({ type: 'success', title: 'Deleted', message: 'Blog deleted successfully.' });
                     fetchBlogs();
                 } catch (err) {
@@ -103,7 +103,7 @@ const BlogManager = () => {
                 keywords: form.keywords.split(',').map(k => k.trim()).filter(Boolean)
             };
 
-            const hdrs = { headers: { 'x-auth-token': localStorage.getItem('token') } };
+            const hdrs = { };
 
             if (form.id) {
                 await axios.put(`${import.meta.env.VITE_API_URL}/api/landing/blogs/${form.id}`, payload, hdrs);
@@ -131,9 +131,7 @@ const BlogManager = () => {
         formData.append('image', file);
 
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/blogs/upload`, formData, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/blogs/upload`, formData);
             setForm({ ...form, coverImage: res.data.url });
             showToast({ type: 'success', title: 'Uploaded', message: 'Cover image updated.' });
         } catch (err) {

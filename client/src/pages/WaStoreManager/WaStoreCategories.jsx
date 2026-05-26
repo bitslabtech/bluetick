@@ -21,9 +21,7 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
         const formData = new FormData();
         formData.append('category', file);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/upload/category`, formData, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/upload/category`, formData);
             setImageUrl(res.data.url);
         } catch {
             toast.error('Failed to upload image');
@@ -184,12 +182,8 @@ export default function WaStoreCategories() {
         const fetchData = async () => {
             try {
                 const [storesRes, productsRes] = await Promise.all([
-                    axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                        headers: { 'x-auth-token': localStorage.getItem('token') }
-                    }),
-                    axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products`, {
-                        headers: { 'x-auth-token': localStorage.getItem('token') }
-                    })
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`),
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products`)
                 ]);
                 const myStore = storesRes.data.find(s => s.id === storeId);
                 let loadedCategories = myStore?.categories || [];
@@ -214,8 +208,7 @@ export default function WaStoreCategories() {
                 if (mergedCats.length > loadedCategories.length) {
                     axios.put(
                         `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`,
-                        { categories: mergedCats, categoryImages: loadedImages },
-                        { headers: { 'x-auth-token': localStorage.getItem('token') } }
+                        { categories: mergedCats, categoryImages: loadedImages }
                     ).catch(console.error);
                 }
 
@@ -236,8 +229,7 @@ export default function WaStoreCategories() {
         try {
             await axios.put(
                 `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`,
-                { categories: newList, categoryImages: newImages },
-                { headers: { 'x-auth-token': localStorage.getItem('token') } }
+                { categories: newList, categoryImages: newImages }
             );
         } catch {
             toast.error('Failed to save categories');

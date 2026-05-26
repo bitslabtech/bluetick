@@ -1,8 +1,10 @@
 const jwt = require('jsonwebtoken');
 
 module.exports = async function (req, res, next) {
-    // Get token from header — support both 'x-auth-token' (app convention) and 'Authorization: Bearer'
-    const token = req.header('x-auth-token') || req.header('Authorization')?.replace('Bearer ', '');
+    // Get token from HttpOnly cookie FIRST, then fall back to headers for backward compat
+    const token = req.cookies?.bt_token
+        || req.header('x-auth-token')
+        || req.header('Authorization')?.replace('Bearer ', '');
 
     // Check if not token
     if (!token) {
@@ -45,8 +47,8 @@ module.exports = async function (req, res, next) {
             return res.status(401).json({ error: 'Session expired by admin. Please login again.' });
         }
 
-        // Check for Impersonator
-        const adminToken = req.header('x-admin-token');
+        // Check for Impersonator — from HttpOnly cookie or header
+        const adminToken = req.cookies?.bt_admin_token || req.header('x-admin-token');
         if (adminToken) {
             try {
                 const adminDecoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });

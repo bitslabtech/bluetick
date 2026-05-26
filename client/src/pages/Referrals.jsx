@@ -29,7 +29,6 @@ const Referrals = () => {
         const fetchAllData = async () => {
             setLoading(true);
             try {
-                const token = localStorage.getItem('token');
                 const headers = { Authorization: `Bearer ${token}`, 'x-auth-token': token };
 
                 // If they are an approved tech partner, fetch the tech partner dashboard
@@ -81,7 +80,6 @@ const Referrals = () => {
         e.preventDefault();
         setApplying(true);
         try {
-            const token = localStorage.getItem('token');
             const headers = { Authorization: `Bearer ${token}`, 'x-auth-token': token };
             const payload = {
                 phoneNumber: `${applyForm.countryCode} ${applyForm.phoneDigits}`,

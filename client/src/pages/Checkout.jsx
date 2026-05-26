@@ -42,9 +42,7 @@ const Checkout = () => {
             setPlan(parsedPlan);
 
             // Calculate Upgrade Math whenever interval changes
-            axios.get(`${API}/api/billing/calculate-upgrade/${parsedPlan.name}?interval=${parsedPlan.interval || 'month'}`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            }).then(res => {
+            axios.get(`${API}/api/billing/calculate-upgrade/${parsedPlan.name}?interval=${parsedPlan.interval || 'month'}`).then(res => {
                 setUpgradeData(res.data);
             }).catch(err => {
                 console.error('Failed to calculate upgrade', err);
@@ -69,7 +67,7 @@ const Checkout = () => {
                 planPrice: currentTotal,
                 isUpgrade: upgradeData?.creditAmount > 0,
                 interval: plan.interval
-            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            });
 
             setAppliedCoupon(res.data);
             showToast({ type: 'success', title: 'Coupon Applied', message: res.data.message });
@@ -105,8 +103,6 @@ const Checkout = () => {
                 isUpgrade: upgradeData?.creditAmount > 0,
                 couponCode: appliedCoupon ? appliedCoupon.code : null,
                 interval: plan.interval || 'month'
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
 
             // 3. Open Razorpay popup
@@ -138,8 +134,6 @@ const Checkout = () => {
                             planName: plan.name,
                             couponCode: appliedCoupon ? appliedCoupon.code : null,
                             discountApplied: appliedCoupon ? appliedCoupon.calculatedDiscount : 0
-                        }, {
-                            headers: { 'x-auth-token': localStorage.getItem('token') }
                         });
 
                         showToast({
@@ -397,7 +391,7 @@ const Checkout = () => {
                                 onClick={async () => {
                                     setProcessing(true);
                                     try {
-                                        await axios.post(`${API}/api/billing/downgrade-to-free`, {}, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                        await axios.post(`${API}/api/billing/downgrade-to-free`, {});
                                         localStorage.removeItem('pendingPlan');
                                         // A hard reload is safest to reset AuthContext user data immediately
                                         window.location.href = '/dashboard';

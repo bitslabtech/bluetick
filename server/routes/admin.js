@@ -18,6 +18,7 @@ const admin = require('../middleware/admin');
 const bcrypt = require('bcryptjs'); // Needed for password hashing
 const jwt = require('jsonwebtoken'); // Needed for impersonation
 const logActivity = require('../utils/logger'); // Import Logger
+const { setAuthCookies, clearAuthCookies } = require('../utils/cookieHelper');
 
 // 1. Auth Middleware
 router.use(auth, admin);
@@ -247,7 +248,7 @@ router.get('/stats', async (req, res) => {
 router.get('/users', async (req, res) => {
     try {
         const users = await User.findAll({
-            attributes: { exclude: ['password'] },
+            attributes: { exclude: ['password', 'fbAccessToken', 'metaAdsToken', 'inviteToken'] },
             order: [['createdAt', 'DESC']]
         });
         res.json(users);
@@ -497,11 +498,42 @@ router.post('/users/:id/impersonate', async (req, res) => {
             details: `Admin impersonated user: ${targetUser.email}`
         });
 
-        res.json({ token, user: payload.user });
+        // Set HttpOnly cookies: save current admin token, set impersonated user token
+        const currentAdminToken = req.cookies?.bt_token;
+        setAuthCookies(res, token, currentAdminToken);
+        res.json({ user: payload.user }); // No token in response body
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Impersonation failed' });
+    }
+});
+
+// POST Exit Impersonation — restore admin token from cookie
+router.post('/exit-impersonation', async (req, res) => {
+    try {
+        const adminToken = req.cookies?.bt_admin_token;
+        if (!adminToken) {
+            clearAuthCookies(res);
+            return res.status(400).json({ error: 'No admin session to restore. Please log in again.' });
+        }
+
+        // Verify the admin token is still valid
+        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+        if (!decoded.user?.isAdmin) {
+            clearAuthCookies(res);
+            return res.status(403).json({ error: 'Invalid admin session.' });
+        }
+
+        // Restore: set admin token as primary, clear the backup
+        setAuthCookies(res, adminToken);
+        res.clearCookie('bt_admin_token', { path: '/' });
+
+        res.json({ success: true, message: 'Admin session restored.' });
+    } catch (err) {
+        console.error('[EXIT IMPERSONATION] Error:', err.message);
+        clearAuthCookies(res);
+        res.status(401).json({ error: 'Admin session expired. Please log in again.' });
     }
 });
 

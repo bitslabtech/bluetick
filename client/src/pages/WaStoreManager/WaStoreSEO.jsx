@@ -35,8 +35,7 @@ function ImageUploader({ label, endpoint, currentUrl, onUploaded }) {
             form.append('image', file);
             const res = await axios.post(
                 `${import.meta.env.VITE_API_URL}/api/wastore/${endpoint}`,
-                form,
-                { headers: { 'x-auth-token': localStorage.getItem('token') } }
+                form
             );
             onUploaded(res.data.url);
             toast.success(`${label} uploaded successfully!`);
@@ -94,9 +93,7 @@ export default function WaStoreSEO() {
     useEffect(() => {
         const fetchStore = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
                 const myStore = res.data.find(s => s.id === storeId);
                 setStore(myStore);
                 if (myStore?.seoConfig) {
@@ -117,8 +114,6 @@ export default function WaStoreSEO() {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
                 seoConfig: seo
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             toast.success('SEO Settings saved successfully!');
         } catch (error) {

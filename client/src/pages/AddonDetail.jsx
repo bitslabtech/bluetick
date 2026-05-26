@@ -11,8 +11,6 @@ const AddonDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
-    const token = localStorage.getItem('token');
-
     const [addon, setAddon] = useState(null);
     const [owned, setOwned] = useState(false);
     const [loading, setLoading] = useState(true);

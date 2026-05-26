@@ -15,7 +15,7 @@ if (!fs.existsSync(uploadDir)) {
 const storageProvider = require('../utils/storageProvider');
 
 // POST upload media for flows
-router.post('/upload', auth, storageProvider('flows_media').single('file'), async (req, res) => {
+router.post('/upload', auth, storageProvider('flows_media', { fileFilter: storageProvider.whatsappMediaFilter }).single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 

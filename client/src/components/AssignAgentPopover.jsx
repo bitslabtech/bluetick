@@ -30,9 +30,7 @@ const AssignAgentPopover = ({ conversation, onAssign, onClose }) => {
 
     const fetchMembers = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/api/team/for-assign`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${API_BASE}/api/team/for-assign`);
             setMembers(res.data);
         } catch (err) {
             console.error('Failed to fetch members:', err);
@@ -48,8 +46,7 @@ const AssignAgentPopover = ({ conversation, onAssign, onClose }) => {
             const isUnassign = conversation.assignedTo === memberId;
             await axios.put(
                 `${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/assign`,
-                { assignedToId: isUnassign ? null : memberId },
-                { headers: { 'x-auth-token': localStorage.getItem('token') } }
+                { assignedToId: isUnassign ? null : memberId }
             );
             onAssign(
                 isUnassign ? null : memberId,
@@ -68,8 +65,7 @@ const AssignAgentPopover = ({ conversation, onAssign, onClose }) => {
         try {
             await axios.put(
                 `${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/assign`,
-                { assignedToId: null },
-                { headers: { 'x-auth-token': localStorage.getItem('token') } }
+                { assignedToId: null }
             );
             onAssign(null, null);
             onClose();

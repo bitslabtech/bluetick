@@ -18,9 +18,7 @@ const CRMLinkingPanel = ({ config: initialConfig, onConfigUpdate }) => {
 
     const fetchConfig = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/system`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/system`);
             setConfig(res.data);
         } catch (err) {
             console.error('Failed to fetch system config', err);
@@ -51,9 +49,7 @@ const CRMLinkingPanel = ({ config: initialConfig, onConfigUpdate }) => {
             setSearching(true);
             try {
                 // Fetch all users and filter locally for simplicity, or use search endpoint if available
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users`);
                 const usersList = Array.isArray(res.data) ? res.data : [];
                 const filtered = usersList.filter(u => 
                     u.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -79,9 +75,7 @@ const CRMLinkingPanel = ({ config: initialConfig, onConfigUpdate }) => {
             onConfirm: async () => {
                 setLoading(true);
                 try {
-                    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/link-crm`, { userId }, {
-                        headers: { 'x-auth-token': localStorage.getItem('token') }
-                    });
+                    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/link-crm`, { userId });
                     showToast({ type: 'success', message: res.data.message });
                     if (onConfigUpdate) onConfigUpdate();
                     fetchConfig();
@@ -99,9 +93,7 @@ const CRMLinkingPanel = ({ config: initialConfig, onConfigUpdate }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/create-crm`, newUserForm, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/create-crm`, newUserForm);
             showToast({ type: 'success', message: res.data.message });
             if (onConfigUpdate) onConfigUpdate();
             fetchConfig();
@@ -116,9 +108,7 @@ const CRMLinkingPanel = ({ config: initialConfig, onConfigUpdate }) => {
     const handleSyncContacts = async () => {
         setLoading(true);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/sync-crm-contacts`, {}, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/sync-crm-contacts`, {});
             showModal({
                 type: 'success',
                 title: 'Sync Complete',

@@ -74,7 +74,7 @@ export default function Team() {
         const checkUserStatus = async () => {
             try {
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    headers: { }
                 });
                 const liveUser = res.data;
                 if (liveUser.parentUserId) {
@@ -127,7 +127,7 @@ export default function Team() {
 
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/team`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { }
             });
             setTeam(res.data.members || []);
             setMemberLimit(res.data.limit || 0);
@@ -179,7 +179,7 @@ export default function Team() {
                     phonePrivacy: formPhonePrivacy
                 }
             }, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { }
             });
             setInviteLink(res.data.inviteLink);
             showToast({ type: 'success', title: 'Invite Generated', message: 'You can now copy the link.' });
@@ -202,7 +202,7 @@ export default function Team() {
                     phonePrivacy: formPhonePrivacy
                 }
             }, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { }
             });
             showToast({ type: 'success', message: 'Team member updated successfully.' });
             handleCloseForm();
@@ -234,7 +234,7 @@ export default function Team() {
             onConfirm: async () => {
                 try {
                     await axios.delete(`${import.meta.env.VITE_API_URL}/api/team/${memberId}`, {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                        headers: { }
                     });
                     showToast({ type: 'success', message: 'Member removed successfully.' });
                     fetchTeam();

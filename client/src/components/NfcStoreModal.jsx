@@ -52,7 +52,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                 shippingAddress,
                 contactNumber,
                 amount: totalAmount
-            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            });
             
             setStep(3); // Success step
         } catch (err) {

@@ -225,9 +225,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     useEffect(() => {
         if (user?.isAdmin) {
             const fetchContactCount = () => {
-                axios.get(`${import.meta.env.VITE_API_URL}/api/contact/unread-count`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                })
+                axios.get(`${import.meta.env.VITE_API_URL}/api/contact/unread-count`)
                     .then(res => setUnreadContactMsgs(res.data.count))
                     .catch(err => console.error(err));
             };

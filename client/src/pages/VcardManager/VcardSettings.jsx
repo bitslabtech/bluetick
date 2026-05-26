@@ -15,9 +15,7 @@ export default function VcardSettings() {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards/data/settings`, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/vcards/data/settings`);
                 if (res.data) {
                     setSettings(res.data);
                 }
@@ -34,9 +32,7 @@ export default function VcardSettings() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/vcards/data/settings`, settings, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/vcards/data/settings`, settings);
             toast.success("Settings saved successfully");
         } catch (error) {
             console.error("Failed to save settings:", error);

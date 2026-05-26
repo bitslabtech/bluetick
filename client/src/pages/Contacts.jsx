@@ -197,8 +197,7 @@ const Contacts = () => {
                     status: statusFilter,
                     group: groupFilter,
                     label: labelFilter
-                },
-                headers: { 'x-auth-token': localStorage.getItem('token') }
+                }
             });
             setContacts(res.data.contacts);
             setTotalPages(res.data.totalPages);
@@ -213,9 +212,7 @@ const Contacts = () => {
 
     const fetchLabels = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/labels`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/labels`);
             setAvailableLabels(res.data);
         } catch (err) {
             console.error(err);
@@ -291,8 +288,6 @@ const Contacts = () => {
                     ...newContact,
                     tags: tagsArray,
                     labels: labelsArray
-                }, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
                 });
                 showToast({ type: 'success', title: 'Contact Updated', message: 'Contact details updated successfully.' });
             } else {
@@ -323,9 +318,7 @@ const Contacts = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/contacts/${contact.id}`, {
-                        headers: { 'x-auth-token': localStorage.getItem('token') }
-                    });
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/contacts/${contact.id}`);
                     setViewingContact(null);
                     fetchContacts();
                     showToast({ type: 'success', title: 'Contact Deleted', message: 'Contact has been removed.' });
@@ -376,8 +369,6 @@ const Contacts = () => {
 
             await axios.put(`${import.meta.env.VITE_API_URL}/api/contacts/${contact.id}`, {
                 labels: updatedLabels
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
 
             setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, labels: updatedLabels } : c));
@@ -400,8 +391,6 @@ const Contacts = () => {
 
             await axios.put(`${import.meta.env.VITE_API_URL}/api/contacts/${contact.id}`, {
                 tags: updatedTags
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
             });
 
             setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, tags: updatedTags } : c));

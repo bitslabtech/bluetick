@@ -90,9 +90,7 @@ const Templates = () => {
 
     const checkSettingsAndOpenModal = async (draft = null) => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
             const s = res.data;
             const embeddedConfigured = !!(s?.metaBusinessAccountId);
             const manualConfigured = !!(s?.metaPhoneNumberId && s?.metaAccessToken);
@@ -117,9 +115,7 @@ const Templates = () => {
         if (!aiDraftPrompt.trim()) return;
         setIsDrafting(true);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/draft-ai`, { prompt: aiDraftPrompt }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/draft-ai`, { prompt: aiDraftPrompt });
             showToast({ type: 'success', title: 'AI Draft Complete', message: `Template drafted successfully! Used ${res.data.tokensDeducted} Tokens.` });
             setShowAiDraftModal(false);
             setAiDraftPrompt('');

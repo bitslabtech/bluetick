@@ -119,7 +119,7 @@ export default function AdminNfcManager() {
                 count: parseInt(genCount),
                 type: genType,
                 batchId: genBatch
-            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            });
             
             showToast({ type: 'success', message: `Generated ${genCount} NFC cards!` });
             setActiveTab('cards');

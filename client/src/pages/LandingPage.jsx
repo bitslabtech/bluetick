@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m as motion, LazyMotion, domAnimation, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -150,7 +150,7 @@ const CapabilitiesBento = ({ config }) => {
                         </div>
                         {marketingCard.image ? (
                             <div className="relative md:absolute md:right-0 md:bottom-0 w-[90%] md:w-[50%] lg:w-[45%] h-56 md:h-[85%] self-end rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-2xl overflow-hidden md:translate-x-4 md:translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500">
-                                <img src={marketingCard.image} className="w-full h-full object-cover" alt={marketingCard.title} />
+                                <img loading="lazy" src={marketingCard.image} className="w-full h-full object-cover" alt={marketingCard.title} />
                             </div>
                         ) : (
                             <div className="relative md:absolute md:right-0 md:bottom-0 w-[90%] md:w-[50%] lg:w-[45%] h-64 md:h-[85%] self-end bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-[0_-10px_40px_-15px_rgba(244,63,94,0.15)] flex flex-col p-4 md:p-6 md:translate-x-4 md:translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500 overflow-hidden">
@@ -207,7 +207,7 @@ const CapabilitiesBento = ({ config }) => {
                         </div>
                         {supportCard.image ? (
                             <div className="absolute bottom-0 inset-x-8 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-emerald-900/20 border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-6 group-hover:translate-y-0 transition-transform duration-500 h-48">
-                                <img src={supportCard.image} className="w-full h-full object-cover" alt={supportCard.title} />
+                                <img loading="lazy" src={supportCard.image} className="w-full h-full object-cover" alt={supportCard.title} />
                             </div>
                         ) : (
                             <div className="absolute bottom-0 inset-x-4 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-20px_50px_-15px_rgba(16,185,129,0.15)] border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-8 group-hover:translate-y-0 transition-transform duration-500 flex h-52">
@@ -285,7 +285,7 @@ const CapabilitiesBento = ({ config }) => {
                         </div>
                         {automationCard.image ? (
                             <div className="relative h-56 w-full mt-auto flex items-center justify-center overflow-hidden">
-                                <img src={automationCard.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={automationCard.title} />
+                                <img loading="lazy" src={automationCard.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={automationCard.title} />
                             </div>
                         ) : (
                             <div className="relative h-48 w-full mt-auto flex items-center justify-center overflow-hidden">
@@ -321,7 +321,7 @@ const CapabilitiesBento = ({ config }) => {
                         </div>
                         {commerceCard.image ? (
                             <div className="relative h-56 w-full mt-auto flex flex-col items-center justify-end px-8 pb-8">
-                                <img src={commerceCard.image} className="w-full h-full object-cover rounded-2xl shadow-xl border border-amber-100 dark:border-white/10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500" alt={commerceCard.title} />
+                                <img loading="lazy" src={commerceCard.image} className="w-full h-full object-cover rounded-2xl shadow-xl border border-amber-100 dark:border-white/10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500" alt={commerceCard.title} />
                             </div>
                         ) : (
                             <div className="relative flex-1 w-full mt-auto overflow-hidden px-5 pb-5 flex items-end">
@@ -381,7 +381,7 @@ const CapabilitiesBento = ({ config }) => {
                         </div>
                         {vcardCard.image ? (
                             <div className="relative h-56 w-full mt-auto px-6 overflow-hidden flex items-end">
-                                <img src={vcardCard.image} className="w-full h-full object-cover rounded-t-xl translate-y-8 group-hover:translate-y-4 transition-transform duration-500" alt={vcardCard.title} />
+                                <img loading="lazy" src={vcardCard.image} className="w-full h-full object-cover rounded-t-xl translate-y-8 group-hover:translate-y-4 transition-transform duration-500" alt={vcardCard.title} />
                             </div>
                         ) : (
                             <div className="relative h-56 w-full mt-auto flex items-end justify-center px-6 overflow-hidden pb-0">
@@ -781,7 +781,7 @@ export const advancedFeatures = [
 const ImageMockup = ({ imageUrl, badgeText, BadgeIcon, colorClass }) => (
     <div className="w-full h-full rounded-2xl overflow-hidden relative shadow-xl group">
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent z-10" />
-        <img src={imageUrl} alt="Feature Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+        <img loading="lazy" src={imageUrl} alt="Feature Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
 
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
             className="absolute bottom-4 left-4 right-4 z-20 flex justify-between items-end">
@@ -808,7 +808,7 @@ function FeaturePreview({ feature }) {
             <AnimatePresence mode="wait">
                 <motion.div key={feature.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.35 }}
                     className={`w-full h-full rounded-2xl ${feature.previewBg} overflow-hidden`}>
-                    <img src={feature.image} alt={feature.title} className="w-full h-full object-cover" />
+                    <img loading="lazy" src={feature.image} alt={feature.title} className="w-full h-full object-cover" />
                 </motion.div>
             </AnimatePresence>
         );
@@ -1081,7 +1081,7 @@ function FeaturePreview({ feature }) {
                 <motion.div initial={{ scale: 0.8, y: 10 }} animate={{ scale: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="w-32 h-44 bg-white rounded-xl shadow-xl shadow-slate-900/10 border border-slate-100 z-10 overflow-hidden flex flex-col">
                     <div className="h-12 bg-gradient-to-r from-slate-800 to-slate-900 relative">
                         <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white p-1">
-                            <div className="w-full h-full rounded-full bg-slate-200 overflow-hidden"><img src="https://ui-avatars.com/api/?name=JS&background=random" alt="avatar" className="w-full h-full object-cover" /></div>
+                            <div className="w-full h-full rounded-full bg-slate-200 overflow-hidden"><img loading="lazy" src="https://ui-avatars.com/api/?name=JS&background=random" alt="avatar" className="w-full h-full object-cover" /></div>
                         </div>
                     </div>
                     <div className="mt-6 flex-1 flex flex-col items-center px-3 text-center">
@@ -1897,6 +1897,7 @@ export default function LandingPage() {
         <div className={isDark ? 'dark' : ''}>
             <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-clip selection:bg-indigo-500/30 transition-colors duration-300">
 
+                <LazyMotion features={domAnimation}>
                 {/* 1. NAVBAR */}
                 <PublicHeader />
 
@@ -1931,7 +1932,7 @@ export default function LandingPage() {
                                 {(config.hero.imageType2 || config.hero.image) && (
                                     <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1 }} className="mt-16 w-full relative z-10">
                                         <div className={`relative ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
-                                            <img src={config.hero.imageType2 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
+                                            <img loading="lazy" src={config.hero.imageType2 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
                                         </div>
                                     </motion.div>
                                 )}
@@ -1965,14 +1966,14 @@ export default function LandingPage() {
                                     <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 blur-2xl rounded-full" />
                                     {(config.hero.imageType1 || config.hero.image) ? (
                                         <div className={`relative ml-auto mr-0 xl:mr-10 ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
-                                            <img src={config.hero.imageType1 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
+                                            <img loading="lazy" src={config.hero.imageType1 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
                                         </div>
                                     ) : (
                                         <div className="relative mx-auto w-[340px] h-[680px] bg-slate-900 dark:bg-[#0A0A0A] rounded-[3rem] border-[8px] border-slate-800 shadow-2xl p-4 overflow-hidden flex flex-col transition-colors ml-auto mr-0 xl:mr-10">
                                             {/* Phone Header */}
                                             <div className="flex items-center gap-3 pb-4 border-b border-white/10 px-2 mt-4">
                                                 {(publicSettings?.logoUrl || config.brand?.logo) ? (
-                                                    <img src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-white p-1" />
+                                                    <img loading="lazy" src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-white p-1" />
                                                 ) : (
                                                     <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
                                                         <MessageSquare className="w-5 h-5 text-white" />
@@ -2196,7 +2197,7 @@ export default function LandingPage() {
 
                                                 {ind.image ? (
                                                     <div className="w-full h-36 md:h-48 rounded-2xl overflow-hidden">
-                                                        <img src={ind.image} alt={ind.title} className="w-full h-full object-cover" />
+                                                        <img loading="lazy" src={ind.image} alt={ind.title} className="w-full h-full object-cover" />
                                                     </div>
                                                 ) : (
                                                     <div className={`w-full h-36 md:h-48 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} opacity-15 dark:opacity-10`} />
@@ -2462,7 +2463,7 @@ export default function LandingPage() {
                                         <p className="text-lg text-slate-700 dark:text-slate-300 font-medium mb-8">"{str(t.quote)}"</p>
                                         <div className="flex items-center gap-4">
                                             {t.avatar ? (
-                                                <img src={str(t.avatar)} className="w-12 h-12 rounded-full object-cover bg-slate-100" alt={str(t.name)} />
+                                                <img loading="lazy" src={str(t.avatar)} className="w-12 h-12 rounded-full object-cover bg-slate-100" alt={str(t.name)} />
                                             ) : (
                                                 <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">
                                                     {str(t.name).substring(0, 1)}
@@ -2888,7 +2889,7 @@ export default function LandingPage() {
                             <div className="col-span-2 lg:col-span-2 space-y-6">
                                 <div className="flex items-center gap-3 font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">
                                     {(publicSettings?.logoUrl || config.brand?.logo) ? (
-                                        <img src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="h-10 object-contain" />
+                                        <img loading="lazy" src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="h-10 object-contain" />
                                     ) : (
                                         <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
                                             <MessageSquare className="w-5 h-5 text-white" />
@@ -2998,6 +2999,7 @@ export default function LandingPage() {
 
                 {/* Floating Chatbot */}
                 <FloatingChatbot config={config} />
+                </LazyMotion>
             </div>
         </div>
     );

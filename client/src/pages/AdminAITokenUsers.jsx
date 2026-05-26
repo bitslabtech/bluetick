@@ -63,8 +63,7 @@ const AdminAITokenUsers = () => {
 
     const fetchTokenSettings = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get('/api/system', { headers: { 'x-auth-token': token } });
+            const res = await axios.get('/api/system');
             if (res.data?.settings?.aiTokenMultipliers) {
                 setGlobalTokens(res.data.settings.aiTokenMultipliers);
             }
@@ -76,10 +75,9 @@ const AdminAITokenUsers = () => {
     const handleSaveTokenSettings = async () => {
         setSavingTokens(true);
         try {
-            const token = localStorage.getItem('token');
             await axios.put('/api/system/settings', {
                 settings: { aiTokenMultipliers: globalTokens }
-            }, { headers: { 'x-auth-token': token } });
+            });
             showToast({ type: 'success', title: 'Saved', message: 'Global token settings updated globally.' });
         } catch (err) {
             showToast({ type: 'error', title: 'Error', message: 'Failed to update settings.' });

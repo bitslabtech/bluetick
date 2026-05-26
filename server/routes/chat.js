@@ -593,7 +593,7 @@ router.delete('/quick-replies/:id', async (req, res) => {
 
 const storageProvider = require('../utils/storageProvider');
 
-router.post('/send/media', storageProvider('chat_media').single('file'), async (req, res) => {
+router.post('/send/media', storageProvider('chat_media', { fileFilter: storageProvider.whatsappMediaFilter }).single('file'), async (req, res) => {
     try {
         const { conversationId, mediaType, caption } = req.body;
         const file = req.file;

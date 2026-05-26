@@ -10,7 +10,6 @@ const getCurrencySymbol = (c) => ({ USD: '$', INR: '₹', EUR: '€', GBP: '£',
 
 const Marketplace = () => {
     const { user } = useAuth();
-    const token = localStorage.getItem('token');
     const [addons, setAddons] = useState([]);
     const [myAddons, setMyAddons] = useState([]);
     const [loading, setLoading] = useState(true);

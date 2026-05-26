@@ -62,7 +62,6 @@ const FlowBotBuilder = () => {
 
     const loadFlow = async (flowId) => {
         try {
-            const token = localStorage.getItem('token');
             const res = await axios.get(`${API}/api/flows/${flowId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -82,7 +81,6 @@ const FlowBotBuilder = () => {
     const saveFlow = async (publish = false) => {
         setSaving(true);
         try {
-            const token = localStorage.getItem('token');
             const triggerNode = nodes.find(n => n.type === 'triggerNode');
             
             const payload = {

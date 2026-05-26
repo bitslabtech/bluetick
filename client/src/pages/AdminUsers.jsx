@@ -100,12 +100,8 @@ const AdminUsers = () => {
             cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/users/${targetUser.id}/impersonate`);
-                    const { token, user } = res.data;
-
-                    // impersonate() swaps tokens in localStorage and does window.location.href
-                    // to /dashboard — no React render races possible.
-                    await impersonate(token, user);
+                    // impersonate() calls the API which sets the HttpOnly cookie, then navigates
+                    await impersonate(targetUser.id);
                 } catch (err) {
                     console.error("Impersonation failed:", err);
                     showModal({

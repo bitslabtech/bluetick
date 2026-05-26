@@ -99,7 +99,7 @@ const axios = require('axios');
 const fs = require('fs');
 const storageProvider = require('../utils/storageProvider');
 
-router.post('/upload-message-media', storageProvider('campaign-media').single('file'), async (req, res) => {
+router.post('/upload-message-media', storageProvider('campaign-media', { fileFilter: storageProvider.whatsappMediaFilter }).single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file provided' });
 

@@ -290,7 +290,8 @@ router.post('/applications/:userId/reject', superAdmin, async (req, res) => {
 // ─── POST /api/admin/tech-partners/assets ──────────────────────────────────────
 router.post('/assets', superAdmin,
     storageProvider('tech-partners', {
-        limits: { fileSize: 50 * 1024 * 1024 }
+        limits: { fileSize: 50 * 1024 * 1024 },
+        fileFilter: storageProvider.whatsappMediaFilter
     }).single('file'),
     async (req, res) => {
         try {

@@ -10,6 +10,7 @@ const AdminNotification = require('../models/AdminNotification');
 
 const logActivity = require('../utils/logger');
 const { sendSystemMessage } = require('../services/systemMessenger');
+const { setAuthCookies, clearAuthCookies } = require('../utils/cookieHelper');
 
 // Generate Token Helper
 const generateToken = (user) => {
@@ -260,12 +261,12 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
             data: { userId: user.id, email: user.email, plan: assignedPlan }
         });
 
-        // Return Token
+        // Set HttpOnly cookie and return user data (no token in response body)
         const token = generateToken(user);
+        setAuthCookies(res, token);
         // Fetch the actual assigned plan details to return to frontend
         const assignedPlanDetails = await Plan.findOne({ where: { name: assignedPlan } });
         res.json({
-            token,
             user: {
                 id: user.id,
                 name: user.name,
@@ -286,7 +287,8 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         });
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('[REGISTER] Error:', err);
+        res.status(500).json({ error: 'Registration failed. Please try again.' });
     }
 });
 
@@ -320,10 +322,10 @@ router.post('/login', authLimiter, verifyTurnstile, async (req, res) => {
         const Plan = require('../models/Plan');
         const planDetails = await Plan.findOne({ where: { name: user.plan } });
 
-        // Return Token
+        // Set HttpOnly cookie and return user data (no token in response body)
         const token = generateToken(user);
+        setAuthCookies(res, token);
         res.json({
-            token,
             user: {
                 id: user.id,
                 name: user.name,
@@ -342,8 +344,15 @@ router.post('/login', authLimiter, verifyTurnstile, async (req, res) => {
         });
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('[LOGIN] Error:', err);
+        res.status(500).json({ error: 'Login failed. Please try again.' });
     }
+});
+
+// LOGOUT — Clear HttpOnly auth cookies
+router.post('/logout', (req, res) => {
+    clearAuthCookies(res);
+    res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // GET ME (Current User)

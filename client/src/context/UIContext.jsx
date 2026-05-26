@@ -59,9 +59,7 @@ export const UIProvider = ({ children }) => {
 
     const fetchSettings = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
             const data = res.data;
             if (data?.logoUrl?.startsWith('/uploads')) {
                 data.logoUrl = `${import.meta.env.VITE_API_URL}${data.logoUrl}`;

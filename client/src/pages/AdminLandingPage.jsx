@@ -112,7 +112,7 @@ const AdminLandingPage = () => {
 
     const fetchCoupons = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/coupons`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/coupons`);
             setCoupons(res.data);
         } catch (err) {
             console.error('Failed to fetch coupons:', err);
@@ -123,7 +123,7 @@ const AdminLandingPage = () => {
     const handleSaveCoupon = async () => {
         try {
             setSaving(true);
-            const hdrs = { headers: { 'x-auth-token': localStorage.getItem('token') } };
+            const hdrs = { };
             // Original payload creation
             // const payload = { ...couponForm };
             // if (!payload.startDate) payload.startDate = null;
@@ -162,7 +162,7 @@ const AdminLandingPage = () => {
             confirmText: 'Delete', cancelText: 'Cancel',
             onConfirm: async () => {
                 try {
-                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/coupons/${id}`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                    await axios.delete(`${import.meta.env.VITE_API_URL}/api/coupons/${id}`);
                     showToast({ type: 'success', title: 'Deleted', message: 'Coupon deleted.' });
                     fetchCoupons();
                 } catch (err) {
@@ -174,7 +174,7 @@ const AdminLandingPage = () => {
 
     const handleToggleCoupon = async (id, currentStatus) => {
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/coupons/${id}`, { isActive: !currentStatus }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/coupons/${id}`, { isActive: !currentStatus });
             fetchCoupons();
             showToast({ type: 'success', title: 'Updated', message: `Coupon turned ${!currentStatus ? 'ON' : 'OFF'}` });
         } catch (err) {
@@ -245,9 +245,7 @@ const AdminLandingPage = () => {
 
     const fetchBrandingSettings = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
             const d = res.data;
             setBrandingSettings({
                 appName: d.appName || 'Bluetick',
@@ -270,9 +268,7 @@ const AdminLandingPage = () => {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/landing`, config);
             // If on branding tab, also save branding settings
             if (mainTab === 'content' && contentTab === 'brand') {
-                await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, brandingSettings, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, brandingSettings);
             }
             showToast({ type: 'success', title: 'Saved', message: 'Configuration saved successfully.' });
             setTimeout(() => setSaving(false), 800);
@@ -500,7 +496,7 @@ const AdminLandingPage = () => {
                                                         const fd = new FormData();
                                                         fd.append('image', file);
                                                         try {
-                                                            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-hero`, fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-hero`, fd);
                                                             const key = config.hero.layout === 'type2' ? 'imageType2' : 'imageType1';
                                                             setConfig({ ...config, hero: { ...config.hero, [key]: res.data.imageUrl } });
                                                             showToast({ type: 'success', title: 'Uploaded', message: 'Hero image uploaded.' });
@@ -588,7 +584,7 @@ const AdminLandingPage = () => {
                                                                             const fd = new FormData();
                                                                             fd.append('image', file);
                                                                             try {
-                                                                                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-capability`, fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-capability`, fd);
                                                                                 const nc = [...config.capabilities.cards];
                                                                                 nc[idx].image = res.data.imageUrl;
                                                                                 setConfig({ ...config, capabilities: { ...config.capabilities, cards: nc } });
@@ -733,7 +729,7 @@ const AdminLandingPage = () => {
                                                                                 const fd = new FormData();
                                                                                 fd.append('image', file);
                                                                                 try {
-                                                                                    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-feature`, fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                                    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-feature`, fd);
                                                                                     updateFeat('image', res.data.imageUrl);
                                                                                     showToast({ type: 'success', title: 'Uploaded', message: 'Image uploaded successfully.' });
                                                                                 } catch (err) {
@@ -816,7 +812,7 @@ const AdminLandingPage = () => {
                                                                             const fd = new FormData();
                                                                             fd.append('image', file);
                                                                             try {
-                                                                                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-industry`, fd, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/landing/upload-industry`, fd);
                                                                                 updateInd('image', res.data.imageUrl);
                                                                                 showToast({ type: 'success', title: 'Uploaded', message: 'Image uploaded successfully.' });
                                                                             } catch (err) {

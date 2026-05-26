@@ -14,7 +14,6 @@ const getCurrencySymbol = (c) => ({ USD: '$', INR: '₹', EUR: '€', GBP: '£',
 const AdminAddons = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const token = localStorage.getItem('token');
     const [addons, setAddons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isUploadModalOpen, setUploadModalOpen] = useState(false);
