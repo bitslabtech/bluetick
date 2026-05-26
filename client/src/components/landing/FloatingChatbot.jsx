@@ -62,7 +62,7 @@ const FloatingChatbot = ({ config }) => {
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        className="absolute bottom-20 right-0 w-[350px] sm:w-[400px] max-w-full h-[550px] max-h-[80vh] bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl shadow-indigo-500/20 border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden"
+                        className="absolute bottom-20 right-0 w-[350px] sm:w-[400px] max-w-[calc(100vw-48px)] h-[550px] max-h-[80vh] bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl shadow-indigo-500/20 border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden"
                     >
                         {/* Header */}
                         <div className="p-4 bg-gradient-to-r from-indigo-600 to-indigo-500 flex items-center justify-between shadow-md">

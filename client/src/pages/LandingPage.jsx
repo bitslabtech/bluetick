@@ -1433,134 +1433,6 @@ function AdvancedFeaturesShowcase({ config }) {
     );
 }
 
-// ──────────────────────────────────────────────────────────
-// PREMIUM HERO BACKGROUND ANIMATION (Aurora + Particles)
-// ──────────────────────────────────────────────────────────
-
-const PARTICLES = Array.from({ length: 12 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: 1.5 + Math.random() * 2.5,
-    duration: 6 + Math.random() * 10,
-    delay: Math.random() * 8,
-    opacity: 0.15 + Math.random() * 0.4,
-}));
-
-const BEAMS = [
-    { rotate: -20, left: '15%', color: 'from-indigo-500/30 to-transparent', duration: 8 },
-    { rotate: 15, left: '55%', color: 'from-violet-500/20 to-transparent', duration: 12 },
-    { rotate: -8, left: '75%', color: 'from-cyan-500/15 to-transparent', duration: 10 },
-];
-
-const HeroBackground = () => {
-    return (
-        <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none select-none" style={{ willChange: 'auto', contain: 'layout style paint' }}>
-
-            {/* ── Layer 1: Dot Grid ── */}
-            <div
-                className="absolute inset-0 opacity-30 dark:opacity-20"
-                style={{
-                    backgroundImage: 'radial-gradient(circle, #6366f150 1px, transparent 1px)',
-                    backgroundSize: '32px 32px',
-                    maskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%)',
-                    WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%)',
-                }}
-            />
-
-            {/* ── Layer 2: Aurora Beams (CSS animation for GPU compositing) ── */}
-            {BEAMS.map((b, i) => (
-                <div
-                    key={i}
-                    className={`absolute top-[-10%] h-[130vh] w-[120px] bg-gradient-to-b ${b.color} blur-[40px] origin-top hero-beam`}
-                    style={{
-                        left: b.left,
-                        rotate: `${b.rotate}deg`,
-                        animationDuration: `${b.duration}s`,
-                        animationDelay: `${i * 3}s`,
-                        willChange: 'transform, opacity',
-                        transform: 'translateZ(0)',
-                    }}
-                />
-            ))}
-
-            {/* ── Layer 3: Central Radial Glow (CSS animation, reduced blur) ── */}
-            <div
-                className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[700px] max-w-full h-[700px] rounded-full bg-indigo-500/15 dark:bg-indigo-600/25 blur-[60px] hero-glow-1"
-                style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
-            />
-            <div
-                className="absolute top-[20%] left-[60%] w-[500px] max-w-full h-[500px] rounded-full bg-violet-500/10 dark:bg-violet-600/20 blur-[50px] hero-glow-2"
-                style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
-            />
-            <div
-                className="absolute top-[30%] right-[5%] w-[400px] max-w-full h-[400px] rounded-full bg-emerald-500/10 dark:bg-emerald-600/15 blur-[50px] hero-glow-3"
-                style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
-            />
-
-            {/* ── Layer 4: Floating Star Particles (CSS animation) ── */}
-            {PARTICLES.map(p => (
-                <div
-                    key={p.id}
-                    className="absolute rounded-full bg-indigo-400 dark:bg-white hero-particle"
-                    style={{
-                        left: `${p.x}%`,
-                        top: `${p.y}%`,
-                        width: p.size,
-                        height: p.size,
-                        opacity: p.opacity,
-                        animationDuration: `${p.duration}s`,
-                        animationDelay: `${p.delay}s`,
-                        willChange: 'transform, opacity',
-                        transform: 'translateZ(0)',
-                    }}
-                />
-            ))}
-
-            {/* ── Layer 5: Floating WhatsApp Message Chips (CSS animation, no backdrop-blur) ── */}
-            {[
-                { label: 'Interactive vCards', icon: '💳', x: '8%', y: '30%', delay: 0 },
-                { label: 'Native WA Store', icon: '🛒', x: '82%', y: '20%', delay: 2 },
-                { label: 'AI Chatbot Ready', icon: '🤖', x: '70%', y: '72%', delay: 1.5 },
-                { label: 'CTWA Meta Ads', icon: '🎯', x: '5%', y: '68%', delay: 3 },
-            ].map((chip, i) => (
-                <div
-                    key={i}
-                    className="absolute hidden md:flex items-center gap-2 bg-white/90 dark:bg-white/10 border border-white/60 dark:border-white/10 shadow-xl px-3 py-1.5 rounded-full text-xs font-bold text-slate-700 dark:text-white hero-chip"
-                    style={{
-                        left: chip.x,
-                        top: chip.y,
-                        animationDelay: `${chip.delay + 1}s`,
-                        willChange: 'transform, opacity',
-                        transform: 'translateZ(0)',
-                    }}
-                >
-                    <span>{chip.icon}</span>
-                    <span>{chip.label}</span>
-                </div>
-            ))}
-
-            {/* ── Layer 6: Orbiting Ring (CSS animation for pure GPU rotation) ── */}
-            <div
-                className="absolute top-[5%] left-[55%] w-[520px] max-w-full h-[520px] border border-indigo-300/10 dark:border-indigo-500/10 rounded-full hidden lg:block hero-orbit"
-                style={{ animationDuration: '40s', willChange: 'transform', transform: 'translateZ(0)' }}
-            >
-                <div className="absolute -top-1.5 left-1/2 w-3 h-3 rounded-full bg-indigo-400/60 blur-[2px]" />
-            </div>
-            <div
-                className="absolute top-[15%] left-[60%] w-[380px] max-w-full h-[380px] border border-violet-400/10 dark:border-violet-500/10 rounded-full hidden lg:block hero-orbit-reverse"
-                style={{ animationDuration: '55s', willChange: 'transform', transform: 'translateZ(0)' }}
-            >
-                <div className="absolute -bottom-1.5 right-1/4 w-2 h-2 rounded-full bg-violet-400/60 blur-[2px]" />
-            </div>
-
-            {/* ── Radial Edge Fade Mask ── */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-50 dark:to-zinc-950" />
-        </div>
-    );
-}
-
-
 
 // ──────────────────────────────────────────────────────────
 // FAQ SECTION
@@ -1569,7 +1441,7 @@ function FAQSection({ faqs }) {
     const [openIdx, setOpenIdx] = useState(null);
 
     return (
-        <section className="py-24 bg-white dark:bg-[#05050A] transition-colors relative overflow-hidden">
+        <section id="faq" className="py-24 bg-white dark:bg-[#05050A] transition-colors relative overflow-hidden">
             {/* Ambient background */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] max-w-full h-[400px] bg-indigo-400/5 dark:bg-indigo-500/8 rounded-full blur-[100px] pointer-events-none" />
 
@@ -1898,1107 +1770,1106 @@ export default function LandingPage() {
             <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-clip selection:bg-indigo-500/30 transition-colors duration-300">
 
                 <LazyMotion features={domAnimation}>
-                {/* 1. NAVBAR */}
-                <PublicHeader />
+                    {/* 1. NAVBAR */}
+                    <PublicHeader />
 
-                {/* 2. HERO SECTION */}
-                <section className="relative pt-24 pb-20 md:pt-32 md:pb-24 px-4 md:px-6 overflow-hidden">
-                    <HeroBackground />
+                    {/* 2. HERO SECTION */}
+                    <section className="relative pt-24 pb-20 md:pt-32 md:pb-24 px-4 md:px-6 overflow-hidden">
 
-                    <div className="max-w-7xl mx-auto">
-                        {config.hero.layout === 'type2' ? (
-                            <div className="flex flex-col items-center justify-center text-center">
-                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
-                                    <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2">
-                                        <Star className="w-3.5 h-3.5" />  Next-Gen AI  Powered Platform
-                                    </span>
-                                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
-                                        {config.hero.title}
-                                    </h1>
-                                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mb-10 leading-relaxed font-medium">
-                                        {config.hero.subtitle}
-                                    </p>
+                        <div className="max-w-7xl mx-auto">
+                            {config.hero.layout === 'type2' ? (
+                                <div className="flex flex-col items-center justify-center text-center">
+                                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
+                                        <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2">
+                                            <Star className="w-3.5 h-3.5" />  Next-Gen AI  Powered Platform
+                                        </span>
+                                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
+                                            {config.hero.title}
+                                        </h1>
+                                        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mb-10 leading-relaxed font-medium">
+                                            {config.hero.subtitle}
+                                        </p>
 
-                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-                                        <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-4 md:px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
-                                            {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
-                                        </Link>
-                                        <a href="#platform" className="w-full sm:w-auto px-4 md:px-10 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
-                                            <Play className="w-5 h-5 fill-current" /> See how it works
-                                        </a>
-                                    </div>
-                                </motion.div>
-
-                                {(config.hero.imageType2 || config.hero.image) && (
-                                    <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1 }} className="mt-16 w-full relative z-10">
-                                        <div className={`relative ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
-                                            <img loading="lazy" src={config.hero.imageType2 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
+                                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+                                            <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-4 md:px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
+                                                {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
+                                            </Link>
+                                            <a href="#platform" className="w-full sm:w-auto px-4 md:px-10 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                                <Play className="w-5 h-5 fill-current" /> See how it works
+                                            </a>
                                         </div>
                                     </motion.div>
-                                )}
+
+                                    {(config.hero.imageType2 || config.hero.image) && (
+                                        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1 }} className="mt-16 w-full relative z-10">
+                                            <div className={`relative ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
+                                                <img loading="lazy" src={config.hero.imageType2 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+                                    {/* Left Content */}
+                                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center lg:text-left z-10 lg:col-span-6">
+                                        <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2 max-w-fit mx-auto lg:mx-0">
+                                            <Star className="w-3.5 h-3.5" /> Next-Gen AI    Powered Platform
+                                        </span>
+                                        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
+                                            {config.hero.title}
+                                        </h1>
+                                        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed font-medium">
+                                            {config.hero.subtitle}
+                                        </p>
+
+                                        <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                                            <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-4 md:px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
+                                                {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
+                                            </Link>
+                                            <a href="#platform" className="w-full sm:w-auto px-4 md:px-8 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                                <Play className="w-5 h-5 fill-current" /> See how it works
+                                            </a>
+                                        </div>
+                                    </motion.div>
+
+                                    {/* Right Mock UI */}
+                                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 1 }} className="relative hidden lg:block lg:col-span-6">
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 blur-2xl rounded-full" />
+                                        {(config.hero.imageType1 || config.hero.image) ? (
+                                            <div className={`relative ml-auto mr-0 xl:mr-10 ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
+                                                <img loading="lazy" src={config.hero.imageType1 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
+                                            </div>
+                                        ) : (
+                                            <div className="relative mx-auto w-[340px] max-w-full h-[680px] bg-slate-900 dark:bg-[#0A0A0A] rounded-[3rem] border-[8px] border-slate-800 shadow-2xl p-4 overflow-hidden flex flex-col transition-colors ml-auto mr-0 xl:mr-10">
+                                                {/* Phone Header */}
+                                                <div className="flex items-center gap-3 pb-4 border-b border-white/10 px-2 mt-4">
+                                                    {(publicSettings?.logoUrl || config.brand?.logo) ? (
+                                                        <img loading="lazy" src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-white p-1" />
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                                            <MessageSquare className="w-5 h-5 text-white" />
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <div className="font-bold text-white text-sm">AI Agent</div>
+                                                        <div className="text-[10px] text-green-400 font-bold tracking-wider uppercase">• Online</div>
+                                                    </div>
+                                                </div>
+                                                {/* Chat UI */}
+                                                <div className="flex-1 py-4 space-y-4 text-sm font-medium">
+                                                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
+                                                        Hi! 👋 Welcome to {config.brand.name}. How can we help you scale today?
+                                                    </motion.div>
+                                                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.6 }} className="bg-green-600 text-white rounded-2xl rounded-tr-sm p-3 max-w-[85%] ml-auto">
+                                                        I need to automate my support and broadcast offers!
+                                                    </motion.div>
+                                                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2.4 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
+                                                        Perfect. Our AI handles 80% of support automatically. Want to see a quick demo?
+                                                    </motion.div>
+                                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="flex gap-2 flex-wrap pt-2">
+                                                        <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[11px] font-bold cursor-pointer">Yes, show me!</div>
+                                                        <div className="px-3 py-1.5 bg-white/5 text-white border border-white/10 rounded-full text-[11px] font-bold cursor-pointer">Pricing</div>
+                                                    </motion.div>
+                                                </div>
+                                                {/* Bottom Input */}
+                                                <div className="w-full h-12 bg-white/5 rounded-full mt-auto flex items-center px-4 justify-between border border-white/10">
+                                                    <span className="text-white/40 text-sm font-medium">Message...</span>
+                                                    <Send className="w-4 h-4 text-white/40" />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* 3. WHY CHOOSE US — Slim Trust Strip */}
+                    <section className="border-y border-slate-200 dark:border-white/5 bg-white dark:bg-black/20 transition-colors relative overflow-hidden">
+                        <div className="max-w-6xl mx-auto px-4 py-10">
+                            <p className="text-center text-[11px] font-bold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 mb-8">Why Choose Us</p>
+
+                            <div className="flex flex-col sm:flex-row items-stretch gap-8 sm:divide-x sm:divide-slate-200 sm:dark:divide-white/10">
+
+                                {/* Badge 1: Official WhatsApp API */}
+                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0 }}
+                                    className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
+                                    <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20 shrink-0 group-hover:scale-110 transition-transform">
+                                        <svg viewBox="0 0 24 24" className="w-8 h-8 fill-white">
+                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                                        </svg>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Official WhatsApp Business API</div>
+                                        <div className="text-sm text-green-600 dark:text-green-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ Meta Verified & Compliant</div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Badge 2: Meta Business Tech Partner */}
+                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+                                    className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
+                                    <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 dark:border-white/10 flex items-center justify-center shadow-lg shadow-blue-100/60 dark:shadow-blue-900/20 shrink-0 group-hover:scale-110 transition-transform p-2">
+                                        <img
+                                            src="/meta-icon.svg"
+                                            alt="Meta"
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Meta Business Tech Partner</div>
+                                        <div className="text-sm text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ Officially Recognized by Meta</div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Badge 3: Enterprise Security */}
+                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+                                    className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
+                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 group-hover:scale-110 transition-transform">
+                                        <Shield className="w-8 h-8 text-white" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Enterprise Security & 99.9% Uptime</div>
+                                        <div className="text-sm text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ GDPR Compliant · End-to-End Encrypted</div>
+                                    </div>
+                                </motion.div>
+
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-                                {/* Left Content */}
-                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center lg:text-left z-10 lg:col-span-6">
-                                    <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2 max-w-fit mx-auto lg:mx-0">
-                                        <Star className="w-3.5 h-3.5" /> Next-Gen AI    Powered Platform
-                                    </span>
-                                    <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
-                                        {config.hero.title}
-                                    </h1>
-                                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed font-medium">
-                                        {config.hero.subtitle}
+                        </div>
+                    </section>
+
+                    <CapabilitiesBento config={config?.capabilities} />
+
+
+                    {/* 5. ADVANCED FEATURES */}
+                    <section id="platform" className="py-20 bg-slate-50 dark:bg-zinc-950 transition-colors overflow-hidden relative">
+                        {/* Ambient glow */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] max-w-full h-[400px] bg-indigo-400/5 dark:bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
+
+                        <div className="max-w-7xl mx-auto px-4 md:px-6">
+                            {/* Premium Header */}
+                            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-4">
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
+                                    <Zap className="w-3 h-3" /> Platform Features
+                                </div>
+                                <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4 leading-tight">
+                                    <span className="text-slate-900 dark:text-white">{config.advancedFeatures?.title?.replace(/ drive Conversions$/, ' drive ') || 'Advanced Features that drive '}</span>
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600">Conversions</span>
+                                </h2>
+                                <p className="text-slate-500 dark:text-slate-400 font-medium text-lg max-w-2xl mx-auto">
+                                    {config.advancedFeatures?.subtitle || 'Everything you need to market, sell, and support customers — all inside WhatsApp.'}
+                                </p>
+                            </motion.div>
+
+                            {/* Two-column layout: Feature tabs left, Live preview right */}
+                            <AdvancedFeaturesShowcase config={config?.advancedFeatures} />
+                        </div>
+                    </section>
+
+
+                    <section id="solutions" className="py-24 bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden">
+                        <div className="max-w-7xl mx-auto px-4 md:px-6">
+                            <div className="text-center mb-12 md:mb-16">
+                                <h2 className="text-2xl md:text-4xl lg:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight leading-tight">{config.industries?.title || 'Built for every industry'}</h2>
+                                <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">{config.industries?.subtitle || 'See how leading verticals leverage WhatsApp to cut costs and drive unprecedented revenue.'}</p>
+                            </div>
+
+                            {/* Desktop: 3-col grid (left tabs 1-8 | detail panel | right tabs 9-16). Mobile: single horizontal scroll + detail panel */}
+                            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 items-start">
+
+                                {/* LEFT: Industries 1-8 — vertical tab list on desktop, part of horizontal scroll on mobile */}
+                                <div
+                                    ref={industryScrollRef}
+                                    className="lg:col-span-3 w-full flex lg:flex-col flex-row gap-2 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 hide-scrollbar scroll-smooth"
+                                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                >
+                                    {allIndustries.slice(0, 8).map((ind) => {
+                                        const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
+                                        const Icon = defaults.icon || ind.icon || ShoppingCart;
+                                        const isActive = activeIndustry === ind.id;
+                                        return (
+                                            <button
+                                                key={ind.id}
+                                                onClick={() => setActiveIndustry(ind.id)}
+                                                className={`relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm shrink-0 lg:shrink-1 whitespace-nowrap lg:whitespace-normal border overflow-hidden transition-colors duration-200 ${isActive
+                                                    ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
+                                                    : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
+                                                    }`}
+                                            >
+                                                {isActive && (
+                                                    <motion.span
+                                                        layoutId="industryActivePill"
+                                                        className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
+                                                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                                                    />
+                                                )}
+                                                <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                                                <span className="relative z-10">{ind.title}</span>
+                                            </button>
+                                        );
+                                    })}
+                                    {/* Mobile only: industries 9-16 in the same horizontal scroll row */}
+                                    {allIndustries.slice(8).map((ind) => {
+                                        const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
+                                        const Icon = defaults.icon || ind.icon || ShoppingCart;
+                                        const isActive = activeIndustry === ind.id;
+                                        return (
+                                            <button
+                                                key={`mob-${ind.id}`}
+                                                onClick={() => setActiveIndustry(ind.id)}
+                                                className={`lg:hidden relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm shrink-0 whitespace-nowrap border overflow-hidden transition-colors duration-200 ${isActive
+                                                    ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
+                                                    : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
+                                                    }`}
+                                            >
+                                                {isActive && (
+                                                    <motion.span
+                                                        layoutId="industryActivePill"
+                                                        className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
+                                                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                                                    />
+                                                )}
+                                                <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                                                <span className="relative z-10">{ind.title}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* CENTER: Detail panel */}
+                                <div className="lg:col-span-6">
+                                    <AnimatePresence mode="wait">
+                                        {allIndustries.map(ind => {
+                                            const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
+                                            return ind.id === activeIndustry && (
+                                                <motion.div
+                                                    key={ind.id}
+                                                    initial={{ opacity: 0, y: 16 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -16 }}
+                                                    transition={{ duration: 0.3 }}
+                                                    className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 md:p-4 md:p-8 shadow-xl flex flex-col"
+                                                >
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        {(() => { const DIcon = (INDUSTRY_DEFAULTS[ind.id] || {}).icon || ind.icon || ShoppingCart; return <div className={`w-10 h-10 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} flex items-center justify-center`}><DIcon className="w-5 h-5 text-white" /></div>; })()}
+                                                        <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white">{ind.title}</h3>
+                                                    </div>
+                                                    <p className="text-base text-slate-600 dark:text-slate-400 font-medium mb-6 leading-relaxed">
+                                                        {ind.desc}
+                                                    </p>
+
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                                        {(Array.isArray(ind.metrics) ? ind.metrics : []).map((m, i) => (
+                                                            <div key={i} className="bg-slate-50 dark:bg-black/20 p-3 rounded-2xl border border-slate-100 dark:border-white/5 flex items-start gap-2">
+                                                                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                                                                <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{m}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    {ind.image ? (
+                                                        <div className="w-full h-36 md:h-48 rounded-2xl overflow-hidden">
+                                                            <img loading="lazy" src={ind.image} alt={ind.title} className="w-full h-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className={`w-full h-36 md:h-48 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} opacity-15 dark:opacity-10`} />
+                                                    )}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                </div>
+
+                                {/* RIGHT: Industries 9-16 — same vertical tab list, desktop only */}
+                                <div className="hidden lg:flex lg:col-span-3 flex-col gap-2">
+                                    {allIndustries.slice(8).map((ind) => {
+                                        const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
+                                        const Icon = defaults.icon || ind.icon || ShoppingCart;
+                                        const isActive = activeIndustry === ind.id;
+                                        return (
+                                            <button
+                                                key={`right-${ind.id}`}
+                                                onClick={() => setActiveIndustry(ind.id)}
+                                                className={`relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm border overflow-hidden transition-colors duration-200 ${isActive
+                                                    ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
+                                                    : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
+                                                    }`}
+                                            >
+                                                {isActive && (
+                                                    <motion.span
+                                                        layoutId="industryActivePillR"
+                                                        className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
+                                                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                                                    />
+                                                )}
+                                                <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
+                                                <span className="relative z-10">{ind.title}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+
+
+                    <AddonMarketplaceShowcase />
+
+                    {/* 8. INTEGRATIONS */}
+                    <section id="integrations" className="py-20 bg-white dark:bg-zinc-950 relative overflow-hidden">
+                        {/* Subtle bg texture */}
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_50%,rgba(99,102,241,0.06),transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_70%_50%,rgba(99,102,241,0.12),transparent)] pointer-events-none" />
+
+                        <div className="max-w-7xl mx-auto px-4 md:px-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+
+                                {/* LEFT: Text Content */}
+                                <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
+                                        <Zap className="w-3 h-3" /> Integrations
+                                    </div>
+                                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-4 tracking-tight leading-tight">
+                                        Connects with apps<br /> you already use
+                                    </h2>
+                                    <p className="text-slate-500 dark:text-slate-400 font-medium text-base mb-8 leading-relaxed">
+                                        Plug into your existing tech stack instantly — CRM, e-commerce, helpdesk, and automation tools. No developer, no friction.
                                     </p>
 
-                                    <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                                        <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-4 md:px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
-                                            {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
-                                        </Link>
-                                        <a href="#platform" className="w-full sm:w-auto px-4 md:px-8 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
-                                            <Play className="w-5 h-5 fill-current" /> See how it works
-                                        </a>
-                                    </div>
-                                </motion.div>
-
-                                {/* Right Mock UI */}
-                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 1 }} className="relative hidden lg:block lg:col-span-6">
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 blur-2xl rounded-full" />
-                                    {(config.hero.imageType1 || config.hero.image) ? (
-                                        <div className={`relative ml-auto mr-0 xl:mr-10 ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
-                                            <img loading="lazy" src={config.hero.imageType1 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
-                                        </div>
-                                    ) : (
-                                        <div className="relative mx-auto w-[340px] max-w-full h-[680px] bg-slate-900 dark:bg-[#0A0A0A] rounded-[3rem] border-[8px] border-slate-800 shadow-2xl p-4 overflow-hidden flex flex-col transition-colors ml-auto mr-0 xl:mr-10">
-                                            {/* Phone Header */}
-                                            <div className="flex items-center gap-3 pb-4 border-b border-white/10 px-2 mt-4">
-                                                {(publicSettings?.logoUrl || config.brand?.logo) ? (
-                                                    <img loading="lazy" src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-white p-1" />
-                                                ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                                                        <MessageSquare className="w-5 h-5 text-white" />
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <div className="font-bold text-white text-sm">AI Agent</div>
-                                                    <div className="text-[10px] text-green-400 font-bold tracking-wider uppercase">• Online</div>
-                                                </div>
-                                            </div>
-                                            {/* Chat UI */}
-                                            <div className="flex-1 py-4 space-y-4 text-sm font-medium">
-                                                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
-                                                    Hi! 👋 Welcome to {config.brand.name}. How can we help you scale today?
-                                                </motion.div>
-                                                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.6 }} className="bg-green-600 text-white rounded-2xl rounded-tr-sm p-3 max-w-[85%] ml-auto">
-                                                    I need to automate my support and broadcast offers!
-                                                </motion.div>
-                                                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2.4 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
-                                                    Perfect. Our AI handles 80% of support automatically. Want to see a quick demo?
-                                                </motion.div>
-                                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="flex gap-2 flex-wrap pt-2">
-                                                    <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[11px] font-bold cursor-pointer">Yes, show me!</div>
-                                                    <div className="px-3 py-1.5 bg-white/5 text-white border border-white/10 rounded-full text-[11px] font-bold cursor-pointer">Pricing</div>
-                                                </motion.div>
-                                            </div>
-                                            {/* Bottom Input */}
-                                            <div className="w-full h-12 bg-white/5 rounded-full mt-auto flex items-center px-4 justify-between border border-white/10">
-                                                <span className="text-white/40 text-sm font-medium">Message...</span>
-                                                <Send className="w-4 h-4 text-white/40" />
-                                            </div>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                {/* 3. WHY CHOOSE US — Slim Trust Strip */}
-                <section className="border-y border-slate-200 dark:border-white/5 bg-white dark:bg-black/20 transition-colors relative overflow-hidden">
-                    <div className="max-w-6xl mx-auto px-4 py-10">
-                        <p className="text-center text-[11px] font-bold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 mb-8">Why Choose Us</p>
-
-                        <div className="flex flex-col sm:flex-row items-stretch gap-8 sm:divide-x sm:divide-slate-200 sm:dark:divide-white/10">
-
-                            {/* Badge 1: Official WhatsApp API */}
-                            <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0 }}
-                                className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
-                                <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20 shrink-0 group-hover:scale-110 transition-transform">
-                                    <svg viewBox="0 0 24 24" className="w-8 h-8 fill-white">
-                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                                    </svg>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Official WhatsApp Business API</div>
-                                    <div className="text-sm text-green-600 dark:text-green-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ Meta Verified & Compliant</div>
-                                </div>
-                            </motion.div>
-
-                            {/* Badge 2: Meta Business Tech Partner */}
-                            <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-                                className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
-                                <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 dark:border-white/10 flex items-center justify-center shadow-lg shadow-blue-100/60 dark:shadow-blue-900/20 shrink-0 group-hover:scale-110 transition-transform p-2">
-                                    <img
-                                        src="/meta-icon.svg"
-                                        alt="Meta"
-                                        className="w-full h-full object-contain"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Meta Business Tech Partner</div>
-                                    <div className="text-sm text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ Officially Recognized by Meta</div>
-                                </div>
-                            </motion.div>
-
-                            {/* Badge 3: Enterprise Security */}
-                            <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                                className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
-                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 group-hover:scale-110 transition-transform">
-                                    <Shield className="w-8 h-8 text-white" />
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Enterprise Security & 99.9% Uptime</div>
-                                    <div className="text-sm text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ GDPR Compliant · End-to-End Encrypted</div>
-                                </div>
-                            </motion.div>
-
-                        </div>
-                    </div>
-                </section>
-
-                <CapabilitiesBento config={config?.capabilities} />
-
-
-                {/* 5. ADVANCED FEATURES */}
-                <section id="platform" className="py-20 bg-slate-50 dark:bg-zinc-950 transition-colors overflow-hidden relative">
-                    {/* Ambient glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] max-w-full h-[400px] bg-indigo-400/5 dark:bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
-
-                    <div className="max-w-7xl mx-auto px-4 md:px-6">
-                        {/* Premium Header */}
-                        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-4">
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
-                                <Zap className="w-3 h-3" /> Platform Features
-                            </div>
-                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4 leading-tight">
-                                <span className="text-slate-900 dark:text-white">{config.advancedFeatures?.title?.replace(/ drive Conversions$/, ' drive ') || 'Advanced Features that drive '}</span>
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600">Conversions</span>
-                            </h2>
-                            <p className="text-slate-500 dark:text-slate-400 font-medium text-lg max-w-2xl mx-auto">
-                                {config.advancedFeatures?.subtitle || 'Everything you need to market, sell, and support customers — all inside WhatsApp.'}
-                            </p>
-                        </motion.div>
-
-                        {/* Two-column layout: Feature tabs left, Live preview right */}
-                        <AdvancedFeaturesShowcase config={config?.advancedFeatures} />
-                    </div>
-                </section>
-
-
-                <section id="solutions" className="py-24 bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden">
-                    <div className="max-w-7xl mx-auto px-4 md:px-6">
-                        <div className="text-center mb-12 md:mb-16">
-                            <h2 className="text-2xl md:text-4xl lg:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight leading-tight">{config.industries?.title || 'Built for every industry'}</h2>
-                            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">{config.industries?.subtitle || 'See how leading verticals leverage WhatsApp to cut costs and drive unprecedented revenue.'}</p>
-                        </div>
-
-                        {/* Desktop: 3-col grid (left tabs 1-8 | detail panel | right tabs 9-16). Mobile: single horizontal scroll + detail panel */}
-                        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 items-start">
-
-                            {/* LEFT: Industries 1-8 — vertical tab list on desktop, part of horizontal scroll on mobile */}
-                            <div
-                                ref={industryScrollRef}
-                                className="lg:col-span-3 w-full flex lg:flex-col flex-row gap-2 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 hide-scrollbar scroll-smooth"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                            >
-                                {allIndustries.slice(0, 8).map((ind) => {
-                                    const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
-                                    const Icon = defaults.icon || ind.icon || ShoppingCart;
-                                    const isActive = activeIndustry === ind.id;
-                                    return (
-                                        <button
-                                            key={ind.id}
-                                            onClick={() => setActiveIndustry(ind.id)}
-                                            className={`relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm shrink-0 lg:shrink-1 whitespace-nowrap lg:whitespace-normal border overflow-hidden transition-colors duration-200 ${isActive
-                                                ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
-                                                : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
-                                                }`}
-                                        >
-                                            {isActive && (
-                                                <motion.span
-                                                    layoutId="industryActivePill"
-                                                    className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
-                                                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                                                />
-                                            )}
-                                            <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                                            <span className="relative z-10">{ind.title}</span>
-                                        </button>
-                                    );
-                                })}
-                                {/* Mobile only: industries 9-16 in the same horizontal scroll row */}
-                                {allIndustries.slice(8).map((ind) => {
-                                    const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
-                                    const Icon = defaults.icon || ind.icon || ShoppingCart;
-                                    const isActive = activeIndustry === ind.id;
-                                    return (
-                                        <button
-                                            key={`mob-${ind.id}`}
-                                            onClick={() => setActiveIndustry(ind.id)}
-                                            className={`lg:hidden relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm shrink-0 whitespace-nowrap border overflow-hidden transition-colors duration-200 ${isActive
-                                                ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
-                                                : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
-                                                }`}
-                                        >
-                                            {isActive && (
-                                                <motion.span
-                                                    layoutId="industryActivePill"
-                                                    className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
-                                                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                                                />
-                                            )}
-                                            <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                                            <span className="relative z-10">{ind.title}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* CENTER: Detail panel */}
-                            <div className="lg:col-span-6">
-                                <AnimatePresence mode="wait">
-                                    {allIndustries.map(ind => {
-                                        const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
-                                        return ind.id === activeIndustry && (
-                                            <motion.div
-                                                key={ind.id}
-                                                initial={{ opacity: 0, y: 16 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -16 }}
-                                                transition={{ duration: 0.3 }}
-                                                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 md:p-4 md:p-8 shadow-xl flex flex-col"
-                                            >
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    {(() => { const DIcon = (INDUSTRY_DEFAULTS[ind.id] || {}).icon || ind.icon || ShoppingCart; return <div className={`w-10 h-10 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} flex items-center justify-center`}><DIcon className="w-5 h-5 text-white" /></div>; })()}
-                                                    <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white">{ind.title}</h3>
-                                                </div>
-                                                <p className="text-base text-slate-600 dark:text-slate-400 font-medium mb-6 leading-relaxed">
-                                                    {ind.desc}
-                                                </p>
-
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                                    {(Array.isArray(ind.metrics) ? ind.metrics : []).map((m, i) => (
-                                                        <div key={i} className="bg-slate-50 dark:bg-black/20 p-3 rounded-2xl border border-slate-100 dark:border-white/5 flex items-start gap-2">
-                                                            <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                                                            <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{m}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-
-                                                {ind.image ? (
-                                                    <div className="w-full h-36 md:h-48 rounded-2xl overflow-hidden">
-                                                        <img loading="lazy" src={ind.image} alt={ind.title} className="w-full h-full object-cover" />
-                                                    </div>
-                                                ) : (
-                                                    <div className={`w-full h-36 md:h-48 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} opacity-15 dark:opacity-10`} />
-                                                )}
-                                            </motion.div>
-                                        );
-                                    })}
-                                </AnimatePresence>
-                            </div>
-
-                            {/* RIGHT: Industries 9-16 — same vertical tab list, desktop only */}
-                            <div className="hidden lg:flex lg:col-span-3 flex-col gap-2">
-                                {allIndustries.slice(8).map((ind) => {
-                                    const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
-                                    const Icon = defaults.icon || ind.icon || ShoppingCart;
-                                    const isActive = activeIndustry === ind.id;
-                                    return (
-                                        <button
-                                            key={`right-${ind.id}`}
-                                            onClick={() => setActiveIndustry(ind.id)}
-                                            className={`relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm border overflow-hidden transition-colors duration-200 ${isActive
-                                                ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
-                                                : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
-                                                }`}
-                                        >
-                                            {isActive && (
-                                                <motion.span
-                                                    layoutId="industryActivePillR"
-                                                    className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
-                                                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                                                />
-                                            )}
-                                            <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                                            <span className="relative z-10">{ind.title}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-
-
-                <AddonMarketplaceShowcase />
-
-                {/* 8. INTEGRATIONS */}
-                <section id="integrations" className="py-20 bg-white dark:bg-zinc-950 relative overflow-hidden">
-                    {/* Subtle bg texture */}
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_50%,rgba(99,102,241,0.06),transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_70%_50%,rgba(99,102,241,0.12),transparent)] pointer-events-none" />
-
-                    <div className="max-w-7xl mx-auto px-4 md:px-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
-                            {/* LEFT: Text Content */}
-                            <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
-                                    <Zap className="w-3 h-3" /> Integrations
-                                </div>
-                                <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-4 tracking-tight leading-tight">
-                                    Connects with apps<br /> you already use
-                                </h2>
-                                <p className="text-slate-500 dark:text-slate-400 font-medium text-base mb-8 leading-relaxed">
-                                    Plug into your existing tech stack instantly — CRM, e-commerce, helpdesk, and automation tools. No developer, no friction.
-                                </p>
-
-                                {/* Feature bullets */}
-                                <div className="space-y-3 mb-8">
-                                    {[
-                                        { icon: '⚡', text: 'One-click native integrations' },
-                                        { icon: '🔄', text: 'Real-time bidirectional sync' },
-                                        { icon: '🛠️', text: 'Zapier & Make.com support' },
-                                        { icon: '📡', text: 'REST API + Webhooks included' },
-                                    ].map((item, i) => (
-                                        <motion.div
-                                            key={i}
-                                            initial={{ opacity: 0, x: -12 }}
-                                            whileInView={{ opacity: 1, x: 0 }}
-                                            viewport={{ once: true }}
-                                            transition={{ delay: i * 0.08 + 0.2 }}
-                                            className="flex items-center gap-3"
-                                        >
-                                            <span className="text-base">{item.icon}</span>
-                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{item.text}</span>
-                                        </motion.div>
-                                    ))}
-                                </div>
-
-                                {/* Mini stats */}
-                                <div className="flex gap-6">
-                                    {[
-                                        { val: '50+', label: 'Integrations' },
-                                        { val: '< 5 min', label: 'Setup time' },
-                                        { val: '99.9%', label: 'Uptime' },
-                                    ].map((s, i) => (
-                                        <div key={i}>
-                                            <div className="text-xl font-black text-slate-900 dark:text-white">{s.val}</div>
-                                            <div className="text-xs text-slate-400 font-semibold">{s.label}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </motion.div>
-
-                            {/* RIGHT: Floating Integration Card Grid */}
-                            <div className="relative">
-                                {/* Glow behind grid */}
-                                <div className="absolute inset-0 bg-indigo-400/10 dark:bg-indigo-500/15 rounded-3xl blur-3xl scale-90 pointer-events-none" />
-
-                                <div className="relative grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    {[
-                                        { name: 'Shopify', emoji: '🛒', color: 'bg-green-50 dark:bg-green-950/40 border-green-100 dark:border-green-900/50', dot: 'bg-green-400', delay: 0 },
-                                        { name: 'HubSpot', emoji: '🧲', color: 'bg-orange-50 dark:bg-orange-950/40 border-orange-100 dark:border-orange-900/50', dot: 'bg-orange-400', delay: 0.05 },
-                                        { name: 'Zapier', emoji: '⚡', color: 'bg-red-50 dark:bg-red-950/40 border-red-100 dark:border-red-900/50', dot: 'bg-red-400', delay: 0.1 },
-                                        { name: 'Zoho CRM', emoji: '📊', color: 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/50', dot: 'bg-blue-400', delay: 0.15 },
-                                        { name: 'WhatsApp', emoji: '💬', color: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50', dot: 'bg-emerald-400', delay: 0.2, featured: true },
-                                        { name: 'Make.com', emoji: '🔗', color: 'bg-violet-50 dark:bg-violet-950/40 border-violet-100 dark:border-violet-900/50', dot: 'bg-violet-400', delay: 0.25 },
-                                        { name: 'Salesforce', emoji: '☁️', color: 'bg-sky-50 dark:bg-sky-950/40 border-sky-100 dark:border-sky-900/50', dot: 'bg-sky-400', delay: 0.3 },
-                                        { name: 'WooCommerce', emoji: '🏪', color: 'bg-purple-50 dark:bg-purple-950/40 border-purple-100 dark:border-purple-900/50', dot: 'bg-purple-400', delay: 0.35 },
-                                        { name: 'Google Sheets', emoji: '📋', color: 'bg-teal-50 dark:bg-teal-950/40 border-teal-100 dark:border-teal-900/50', dot: 'bg-teal-400', delay: 0.4 },
-                                    ].map((item, i) => (
-                                        <motion.div
-                                            key={item.name}
-                                            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-                                            whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                                            viewport={{ once: true }}
-                                            transition={{ delay: item.delay, type: 'spring', stiffness: 180 }}
-                                            whileHover={{ y: -4, scale: 1.04, zIndex: 10 }}
-                                            className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border ${item.color} ${item.featured ? 'ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/20' : 'shadow-sm hover:shadow-md'} transition-shadow cursor-default`}
-                                        >
-                                            <span className="text-2xl">{item.emoji}</span>
-                                            <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 text-center leading-tight">{item.name}</span>
-                                            {/* Live status dot */}
-                                            <span className={`absolute top-2 right-2 w-2 h-2 rounded-full ${item.dot} animate-pulse`} />
-                                        </motion.div>
-                                    ))}
-                                </div>
-
-                                {/* "All connected" badge */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 8 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: 0.5 }}
-                                    className="mt-4 flex items-center justify-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400"
-                                >
-                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                    All integrations live & syncing
-                                </motion.div>
-                            </div>
-                        </div>
-
-                        {/* Marquee — compact strip */}
-                        <div className="relative overflow-hidden mt-16 pt-10 border-t border-slate-100 dark:border-white/5">
-                            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
-                            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
-                            <div className="flex gap-3 animate-[marquee_22s_linear_infinite] w-max">
-                                {[...integrationLogos, { name: 'Google Sheets', color: 'text-teal-600' }, { name: 'Freshdesk', color: 'text-cyan-600' }, { name: 'Stripe', color: 'text-indigo-600' }, { name: 'Notion', color: 'text-slate-700' }, ...integrationLogos, { name: 'Google Sheets', color: 'text-teal-600' }, { name: 'Freshdesk', color: 'text-cyan-600' }, { name: 'Stripe', color: 'text-indigo-600' }, { name: 'Notion', color: 'text-slate-700' }].map((logo, i) => (
-                                    <div key={i} className={`flex-shrink-0 inline-flex items-center gap-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/8 px-4 py-2 rounded-full text-xs font-bold ${logo.color}`}>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-                                        {logo.name}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <style>{`
-                        @keyframes marquee {
-                            from { transform: translateX(0); }
-                            to { transform: translateX(-50%); }
-                        }
-                    `}</style>
-                </section>
-
-                {/* 9. HOW IT WORKS (STEPS) */}
-                {config.steps && config.steps.length > 0 && (
-                    <section className="py-16 bg-slate-50 dark:bg-[#05050A] relative overflow-hidden">
-                        {/* Subtle gradient bg */}
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_120%,rgba(99,102,241,0.08),transparent)] pointer-events-none" />
-
-                        <div className="max-w-6xl mx-auto px-4 md:px-6">
-                            {/* Compact header */}
-                            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
-                                <div>
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-3">
-                                        <Zap className="w-3 h-3" /> Quick Start
-                                    </div>
-                                    <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Setup in 5 minutes</h2>
-                                </div>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs sm:text-right">No coding required. Get your first message out in minutes.</p>
-                            </div>
-
-                            {/* Steps — horizontal cards with connecting line */}
-                            <div className="relative">
-                                {/* Animated connector line */}
-                                <div className="hidden md:block absolute top-8 left-[calc(100%/6)] right-[calc(100%/6)] h-px bg-indigo-100 dark:bg-white/8 z-0">
-                                    <div className="h-full bg-gradient-to-r from-indigo-300 via-violet-400 to-indigo-300 dark:from-indigo-600 dark:via-violet-500 dark:to-indigo-600 animate-[shimmer_3s_ease-in-out_infinite]" style={{ backgroundSize: '200% 100%' }} />
-                                </div>
-
-                                <div className={`grid grid-cols-1 md:grid-cols-${Math.min(config.steps.length, 4)} gap-4 relative z-10`}>
-                                    {config.steps.map((step, i) => {
-                                        const StepIcon = resolveIcon(step.icon, Plus);
-                                        const gradients = [
-                                            'from-indigo-500 to-violet-500 shadow-indigo-500/30',
-                                            'from-violet-500 to-purple-500 shadow-violet-500/30',
-                                            'from-purple-500 to-pink-500 shadow-purple-500/30',
-                                            'from-pink-500 to-rose-500 shadow-rose-500/30',
-                                        ];
-                                        const grad = gradients[i % gradients.length];
-                                        return (
+                                    {/* Feature bullets */}
+                                    <div className="space-y-3 mb-8">
+                                        {[
+                                            { icon: '⚡', text: 'One-click native integrations' },
+                                            { icon: '🔄', text: 'Real-time bidirectional sync' },
+                                            { icon: '🛠️', text: 'Zapier & Make.com support' },
+                                            { icon: '📡', text: 'REST API + Webhooks included' },
+                                        ].map((item, i) => (
                                             <motion.div
                                                 key={i}
-                                                initial={{ opacity: 0, y: 16 }}
-                                                whileInView={{ opacity: 1, y: 0 }}
+                                                initial={{ opacity: 0, x: -12 }}
+                                                whileInView={{ opacity: 1, x: 0 }}
                                                 viewport={{ once: true }}
-                                                transition={{ delay: i * 0.1, duration: 0.4 }}
-                                                className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/8 rounded-2xl p-4 md:p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
+                                                transition={{ delay: i * 0.08 + 0.2 }}
+                                                className="flex items-center gap-3"
                                             >
-                                                {/* Step number + icon row */}
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center shadow-lg shrink-0 group-hover:scale-110 transition-transform`}>
-                                                        <StepIcon className="w-5 h-5 text-white" />
-                                                    </div>
-                                                    <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Step {String(i + 1).padStart(2, '0')}</span>
-                                                </div>
-                                                <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1.5 leading-tight">{str(step.title)}</h3>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{str(step.description)}</p>
-
-                                                {/* Arrow connector for desktop */}
-                                                {i < config.steps.length - 1 && (
-                                                    <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-full items-center justify-center z-20 shadow-sm">
-                                                        <ArrowRight className="w-3 h-3 text-indigo-400" />
-                                                    </div>
-                                                )}
+                                                <span className="text-base">{item.icon}</span>
+                                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{item.text}</span>
                                             </motion.div>
-                                        );
-                                    })}
+                                        ))}
+                                    </div>
+
+                                    {/* Mini stats */}
+                                    <div className="flex gap-6">
+                                        {[
+                                            { val: '50+', label: 'Integrations' },
+                                            { val: '< 5 min', label: 'Setup time' },
+                                            { val: '99.9%', label: 'Uptime' },
+                                        ].map((s, i) => (
+                                            <div key={i}>
+                                                <div className="text-xl font-black text-slate-900 dark:text-white">{s.val}</div>
+                                                <div className="text-xs text-slate-400 font-semibold">{s.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+
+                                {/* RIGHT: Floating Integration Card Grid */}
+                                <div className="relative">
+                                    {/* Glow behind grid */}
+                                    <div className="absolute inset-0 bg-indigo-400/10 dark:bg-indigo-500/15 rounded-3xl blur-3xl scale-90 pointer-events-none" />
+
+                                    <div className="relative grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        {[
+                                            { name: 'Shopify', emoji: '🛒', color: 'bg-green-50 dark:bg-green-950/40 border-green-100 dark:border-green-900/50', dot: 'bg-green-400', delay: 0 },
+                                            { name: 'HubSpot', emoji: '🧲', color: 'bg-orange-50 dark:bg-orange-950/40 border-orange-100 dark:border-orange-900/50', dot: 'bg-orange-400', delay: 0.05 },
+                                            { name: 'Zapier', emoji: '⚡', color: 'bg-red-50 dark:bg-red-950/40 border-red-100 dark:border-red-900/50', dot: 'bg-red-400', delay: 0.1 },
+                                            { name: 'Zoho CRM', emoji: '📊', color: 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/50', dot: 'bg-blue-400', delay: 0.15 },
+                                            { name: 'WhatsApp', emoji: '💬', color: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50', dot: 'bg-emerald-400', delay: 0.2, featured: true },
+                                            { name: 'Make.com', emoji: '🔗', color: 'bg-violet-50 dark:bg-violet-950/40 border-violet-100 dark:border-violet-900/50', dot: 'bg-violet-400', delay: 0.25 },
+                                            { name: 'Salesforce', emoji: '☁️', color: 'bg-sky-50 dark:bg-sky-950/40 border-sky-100 dark:border-sky-900/50', dot: 'bg-sky-400', delay: 0.3 },
+                                            { name: 'WooCommerce', emoji: '🏪', color: 'bg-purple-50 dark:bg-purple-950/40 border-purple-100 dark:border-purple-900/50', dot: 'bg-purple-400', delay: 0.35 },
+                                            { name: 'Google Sheets', emoji: '📋', color: 'bg-teal-50 dark:bg-teal-950/40 border-teal-100 dark:border-teal-900/50', dot: 'bg-teal-400', delay: 0.4 },
+                                        ].map((item, i) => (
+                                            <motion.div
+                                                key={item.name}
+                                                initial={{ opacity: 0, y: 16, scale: 0.95 }}
+                                                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                                                viewport={{ once: true }}
+                                                transition={{ delay: item.delay, type: 'spring', stiffness: 180 }}
+                                                whileHover={{ y: -4, scale: 1.04, zIndex: 10 }}
+                                                className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border ${item.color} ${item.featured ? 'ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/20' : 'shadow-sm hover:shadow-md'} transition-shadow cursor-default`}
+                                            >
+                                                <span className="text-2xl">{item.emoji}</span>
+                                                <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 text-center leading-tight">{item.name}</span>
+                                                {/* Live status dot */}
+                                                <span className={`absolute top-2 right-2 w-2 h-2 rounded-full ${item.dot} animate-pulse`} />
+                                            </motion.div>
+                                        ))}
+                                    </div>
+
+                                    {/* "All connected" badge */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 8 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.5 }}
+                                        className="mt-4 flex items-center justify-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400"
+                                    >
+                                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                        All integrations live & syncing
+                                    </motion.div>
+                                </div>
+                            </div>
+
+                            {/* Marquee — compact strip */}
+                            <div className="relative overflow-hidden mt-16 pt-10 border-t border-slate-100 dark:border-white/5">
+                                <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
+                                <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
+                                <div className="flex gap-3 animate-[marquee_22s_linear_infinite] w-max">
+                                    {[...integrationLogos, { name: 'Google Sheets', color: 'text-teal-600' }, { name: 'Freshdesk', color: 'text-cyan-600' }, { name: 'Stripe', color: 'text-indigo-600' }, { name: 'Notion', color: 'text-slate-700' }, ...integrationLogos, { name: 'Google Sheets', color: 'text-teal-600' }, { name: 'Freshdesk', color: 'text-cyan-600' }, { name: 'Stripe', color: 'text-indigo-600' }, { name: 'Notion', color: 'text-slate-700' }].map((logo, i) => (
+                                        <div key={i} className={`flex-shrink-0 inline-flex items-center gap-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/8 px-4 py-2 rounded-full text-xs font-bold ${logo.color}`}>
+                                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+                                            {logo.name}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
 
                         <style>{`
+                        @keyframes marquee {
+                            from { transform: translateX(0); }
+                            to { transform: translateX(-50%); }
+                        }
+                    `}</style>
+                    </section>
+
+                    {/* 9. HOW IT WORKS (STEPS) */}
+                    {config.steps && config.steps.length > 0 && (
+                        <section className="py-16 bg-slate-50 dark:bg-[#05050A] relative overflow-hidden">
+                            {/* Subtle gradient bg */}
+                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_120%,rgba(99,102,241,0.08),transparent)] pointer-events-none" />
+
+                            <div className="max-w-6xl mx-auto px-4 md:px-6">
+                                {/* Compact header */}
+                                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+                                    <div>
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-3">
+                                            <Zap className="w-3 h-3" /> Quick Start
+                                        </div>
+                                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Setup in 5 minutes</h2>
+                                    </div>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs sm:text-right">No coding required. Get your first message out in minutes.</p>
+                                </div>
+
+                                {/* Steps — horizontal cards with connecting line */}
+                                <div className="relative">
+                                    {/* Animated connector line */}
+                                    <div className="hidden md:block absolute top-8 left-[calc(100%/6)] right-[calc(100%/6)] h-px bg-indigo-100 dark:bg-white/8 z-0">
+                                        <div className="h-full bg-gradient-to-r from-indigo-300 via-violet-400 to-indigo-300 dark:from-indigo-600 dark:via-violet-500 dark:to-indigo-600 animate-[shimmer_3s_ease-in-out_infinite]" style={{ backgroundSize: '200% 100%' }} />
+                                    </div>
+
+                                    <div className={`grid grid-cols-1 md:grid-cols-${Math.min(config.steps.length, 4)} gap-4 relative z-10`}>
+                                        {config.steps.map((step, i) => {
+                                            const StepIcon = resolveIcon(step.icon, Plus);
+                                            const gradients = [
+                                                'from-indigo-500 to-violet-500 shadow-indigo-500/30',
+                                                'from-violet-500 to-purple-500 shadow-violet-500/30',
+                                                'from-purple-500 to-pink-500 shadow-purple-500/30',
+                                                'from-pink-500 to-rose-500 shadow-rose-500/30',
+                                            ];
+                                            const grad = gradients[i % gradients.length];
+                                            return (
+                                                <motion.div
+                                                    key={i}
+                                                    initial={{ opacity: 0, y: 16 }}
+                                                    whileInView={{ opacity: 1, y: 0 }}
+                                                    viewport={{ once: true }}
+                                                    transition={{ delay: i * 0.1, duration: 0.4 }}
+                                                    className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/8 rounded-2xl p-4 md:p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
+                                                >
+                                                    {/* Step number + icon row */}
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center shadow-lg shrink-0 group-hover:scale-110 transition-transform`}>
+                                                            <StepIcon className="w-5 h-5 text-white" />
+                                                        </div>
+                                                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Step {String(i + 1).padStart(2, '0')}</span>
+                                                    </div>
+                                                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1.5 leading-tight">{str(step.title)}</h3>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{str(step.description)}</p>
+
+                                                    {/* Arrow connector for desktop */}
+                                                    {i < config.steps.length - 1 && (
+                                                        <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-full items-center justify-center z-20 shadow-sm">
+                                                            <ArrowRight className="w-3 h-3 text-indigo-400" />
+                                                        </div>
+                                                    )}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <style>{`
                             @keyframes shimmer {
                                 0%, 100% { background-position: 200% 0; }
                                 50% { background-position: -200% 0; }
                             }
                         `}</style>
-                    </section>
-                )}
+                        </section>
+                    )}
 
 
-                {/* 10. SOCIAL PROOF / TESTIMONIALS */}
-                {config.testimonials && config.testimonials.length > 0 && (
-                    <section className="py-24 bg-slate-50 dark:bg-[#05050A]">
-                        <div className="max-w-7xl mx-auto px-4 md:px-6">
-                            <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight text-center mb-16">Loved by go-to-market teams</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {config.testimonials.map((t, i) => (
-                                    <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 p-4 md:p-8 rounded-3xl shadow-sm hover:shadow-xl transition-shadow">
-                                        <div className="flex gap-1 mb-6">
-                                            {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
-                                        </div>
-                                        <p className="text-lg text-slate-700 dark:text-slate-300 font-medium mb-8">"{str(t.quote)}"</p>
-                                        <div className="flex items-center gap-4">
-                                            {t.avatar ? (
-                                                <img loading="lazy" src={str(t.avatar)} className="w-12 h-12 rounded-full object-cover bg-slate-100" alt={str(t.name)} />
-                                            ) : (
-                                                <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">
-                                                    {str(t.name).substring(0, 1)}
+                    {/* 10. SOCIAL PROOF / TESTIMONIALS */}
+                    {config.testimonials && config.testimonials.length > 0 && (
+                        <section className="py-24 bg-slate-50 dark:bg-[#05050A]">
+                            <div className="max-w-7xl mx-auto px-4 md:px-6">
+                                <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight text-center mb-16">Loved by go-to-market teams</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {config.testimonials.map((t, i) => (
+                                        <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 p-4 md:p-8 rounded-3xl shadow-sm hover:shadow-xl transition-shadow">
+                                            <div className="flex gap-1 mb-6">
+                                                {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
+                                            </div>
+                                            <p className="text-lg text-slate-700 dark:text-slate-300 font-medium mb-8">"{str(t.quote)}"</p>
+                                            <div className="flex items-center gap-4">
+                                                {t.avatar ? (
+                                                    <img loading="lazy" src={str(t.avatar)} className="w-12 h-12 rounded-full object-cover bg-slate-100" alt={str(t.name)} />
+                                                ) : (
+                                                    <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">
+                                                        {str(t.name).substring(0, 1)}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <div className="font-bold text-slate-900 dark:text-white">{str(t.name)}</div>
+                                                    <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{str(t.role)}</div>
                                                 </div>
-                                            )}
-                                            <div>
-                                                <div className="font-bold text-slate-900 dark:text-white">{str(t.name)}</div>
-                                                <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{str(t.role)}</div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-                )}
-
-
-                {/* 11. PRICING */}
-                {plans.length > 0 && (
-                    <section id="pricing" className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
-                        <div className="max-w-7xl mx-auto px-4 md:px-6">
-                            <div className="text-center mb-12">
-                                <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight">Simple, transparent pricing</h2>
-                                <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg font-medium">Choose the perfect plan to scale your customer engagement seamlessly. No hidden fees.</p>
-                            </div>
-
-                            {/* Interval Toggle */}
-                            <div className="flex justify-center mb-16">
-                                <div className="inline-flex bg-slate-100 dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 gap-1 shadow-inner">
-                                    {hasMonthly && (
-                                        <button
-                                            onClick={() => setBillingInterval('monthly')}
-                                            className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'monthly'
-                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                                                }`}
-                                        >
-                                            <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Monthly</span>
-                                        </button>
-                                    )}
-                                    {hasHalfYearly && (
-                                        <button
-                                            onClick={() => setBillingInterval('half-yearly')}
-                                            className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'half-yearly'
-                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                                                }`}
-                                        >
-                                            <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Half-Yearly</span>
-                                            {maxHalfYearlySavings > 0 && (
-                                                <span className={`absolute -top-3 -right-2 sm:-right-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/20 shadow-sm ${billingInterval === 'half-yearly'
-                                                    ? 'bg-indigo-200 text-indigo-900'
-                                                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800/50'
-                                                    }`}>
-                                                    Save {maxHalfYearlySavings}%
-                                                </span>
-                                            )}
-                                        </button>
-                                    )}
-                                    {hasYearly && (
-                                        <button
-                                            onClick={() => setBillingInterval('yearly')}
-                                            className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'yearly'
-                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                                                }`}
-                                        >
-                                            <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Yearly</span>
-                                            {maxYearlySavings > 0 && (
-                                                <span className={`absolute -top-3 -right-2 sm:-right-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-white/20 shadow-md ${billingInterval === 'yearly'
-                                                    ? 'bg-indigo-200 text-indigo-900'
-                                                    : 'bg-emerald-500 text-white dark:bg-emerald-600 shadow-emerald-500/30 dark:border-emerald-500/30'
-                                                    }`}>
-                                                    Save {maxYearlySavings}%
-                                                </span>
-                                            )}
-                                        </button>
-                                    )}
+                                    ))}
                                 </div>
                             </div>
+                        </section>
+                    )}
 
 
-                            {/* Mobile Swipe Hint */}
-                            {plans.length > 1 && (
-                                <div className="md:hidden flex items-center justify-center mb-4 px-2">
-                                    <div className="text-sm font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                        <ArrowRight className="w-4 h-4 animate-pulse text-indigo-500" /> Swipe to view other plans
+                    {/* 11. PRICING */}
+                    {plans.length > 0 && (
+                        <section id="pricing" className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
+                            <div className="max-w-7xl mx-auto px-4 md:px-6">
+                                <div className="text-center mb-12">
+                                    <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight">Simple, transparent pricing</h2>
+                                    <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg font-medium">Choose the perfect plan to scale your customer engagement seamlessly. No hidden fees.</p>
+                                </div>
+
+                                {/* Interval Toggle */}
+                                <div className="flex justify-center mb-16">
+                                    <div className="inline-flex bg-slate-100 dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 gap-1 shadow-inner">
+                                        {hasMonthly && (
+                                            <button
+                                                onClick={() => setBillingInterval('monthly')}
+                                                className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'monthly'
+                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
+                                                    }`}
+                                            >
+                                                <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Monthly</span>
+                                            </button>
+                                        )}
+                                        {hasHalfYearly && (
+                                            <button
+                                                onClick={() => setBillingInterval('half-yearly')}
+                                                className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'half-yearly'
+                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
+                                                    }`}
+                                            >
+                                                <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Half-Yearly</span>
+                                                {maxHalfYearlySavings > 0 && (
+                                                    <span className={`absolute -top-3 -right-2 sm:-right-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/20 shadow-sm ${billingInterval === 'half-yearly'
+                                                        ? 'bg-indigo-200 text-indigo-900'
+                                                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800/50'
+                                                        }`}>
+                                                        Save {maxHalfYearlySavings}%
+                                                    </span>
+                                                )}
+                                            </button>
+                                        )}
+                                        {hasYearly && (
+                                            <button
+                                                onClick={() => setBillingInterval('yearly')}
+                                                className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'yearly'
+                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
+                                                    }`}
+                                            >
+                                                <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Yearly</span>
+                                                {maxYearlySavings > 0 && (
+                                                    <span className={`absolute -top-3 -right-2 sm:-right-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-white/20 shadow-md ${billingInterval === 'yearly'
+                                                        ? 'bg-indigo-200 text-indigo-900'
+                                                        : 'bg-emerald-500 text-white dark:bg-emerald-600 shadow-emerald-500/30 dark:border-emerald-500/30'
+                                                        }`}>
+                                                        Save {maxYearlySavings}%
+                                                    </span>
+                                                )}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Slider Wrapper */}
-                            <div className="relative max-w-6xl mx-auto">
-                                {/* Sticky Vertical Center Arrows for Mobile */}
+
+                                {/* Mobile Swipe Hint */}
                                 {plans.length > 1 && (
-                                    <div className="absolute inset-x-0 top-[10%] bottom-[10%] pointer-events-none z-30">
-                                        <div className="md:hidden sticky top-[50vh] flex justify-between w-full -translate-y-1/2">
-                                            <button 
-                                                onClick={() => document.getElementById('pricing-slider').scrollBy({ left: -300, behavior: 'smooth' })} 
-                                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -ml-5 active:scale-95 transition-transform"
-                                            >
-                                                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                                            </button>
-                                            <button 
-                                                onClick={() => document.getElementById('pricing-slider').scrollBy({ left: 300, behavior: 'smooth' })} 
-                                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -mr-5 active:scale-95 transition-transform"
-                                            >
-                                                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-                                            </button>
+                                    <div className="md:hidden flex items-center justify-center mb-4 px-2">
+                                        <div className="text-sm font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                            <ArrowRight className="w-4 h-4 animate-pulse text-indigo-500" /> Swipe to view other plans
                                         </div>
                                     </div>
                                 )}
 
-                                <div
-                                    id="pricing-slider"
-                                    className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pb-6 snap-x snap-mandatory"
-                                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                >
-                                    <style>{`#pricing-slider::-webkit-scrollbar { display: none; }`}</style>
-                                    {plans.map((plan, i) => {
-                                    const isPopular = plan.name === 'Pro' || plan.name === 'Business';
-
-                                    // Determine Display Price
-                                    let displayPrice = parseFloat(plan.price);
-                                    let displayInterval = 'mo';
-                                    let internalIntervalCode = 'month';
-                                    let originalPrice = null;
-
-                                    if (billingInterval === 'monthly' && parseFloat(plan.monthlyPrice) > 0) {
-                                        displayPrice = parseFloat(plan.monthlyPrice);
-                                        displayInterval = 'mo';
-                                        internalIntervalCode = 'month';
-                                    } else if (billingInterval === 'half-yearly' && parseFloat(plan.halfYearlyPrice) > 0) {
-                                        displayPrice = parseFloat(plan.halfYearlyPrice);
-                                        displayInterval = '6mo';
-                                        internalIntervalCode = 'half-year';
-                                        originalPrice = (parseFloat(plan.monthlyPrice) || 0) * 6;
-                                    } else if (billingInterval === 'yearly' && parseFloat(plan.yearlyPrice) > 0) {
-                                        displayPrice = parseFloat(plan.yearlyPrice);
-                                        displayInterval = 'yr';
-                                        internalIntervalCode = 'year';
-                                        originalPrice = (parseFloat(plan.monthlyPrice) || 0) * 12;
-                                    }
-
-                                    return (
-                                        <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                                            className={`relative w-[85vw] sm:w-[340px] shrink-0 snap-center p-8 rounded-[2.5rem] border flex flex-col h-auto min-h-full transition-all ${isPopular
-                                                ? 'bg-indigo-600 dark:bg-indigo-900/40 border-indigo-500 text-white transform md:-translate-y-4 shadow-2xl shadow-indigo-600/20'
-                                                : 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-indigo-500/30'
-                                                }`}
-                                        >
-                                            {isPopular && <div className="absolute top-0 right-1/2 translate-x-1/2 px-4 py-1.5 bg-indigo-500 text-white text-[10px] uppercase tracking-widest font-bold rounded-b-xl shadow-md">MOST POPULAR</div>}
-                                            {plan.trialDays > 0 && (
-                                                <div className={`absolute top-4 left-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isPopular ? 'bg-white/20 text-white' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'}`}>
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                                                    {plan.trialDays}-Day Free Trial
-                                                </div>
-                                            )}
-
-                                            <h3 className={`text-2xl font-bold mb-2 ${plan.trialDays > 0 ? 'pt-8' : 'pt-2'}`}>{plan.name}</h3>
-                                            <p className={`text-sm mb-8 font-medium ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>{plan.description || 'Perfect for growing businesses.'}</p>
-
-                                            <div className="flex flex-col gap-1 mb-2 pb-10 border-b border-indigo-500/20 dark:border-white/10">
-                                                {originalPrice > displayPrice && (
-                                                    <span className={`text-lg font-bold line-through ${isPopular ? 'text-indigo-300/70' : 'text-slate-400 dark:text-slate-500'}`}>
-                                                        {currencySymbol}{originalPrice.toLocaleString()}
-                                                    </span>
-                                                )}
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-5xl font-extrabold">{currencySymbol}{displayPrice.toLocaleString()}</span>
-                                                    <span className={`font-bold ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>/{displayInterval}</span>
-                                                </div>
+                                {/* Slider Wrapper */}
+                                <div className="relative max-w-6xl mx-auto">
+                                    {/* Sticky Vertical Center Arrows for Mobile */}
+                                    {plans.length > 1 && (
+                                        <div className="absolute inset-x-0 top-[10%] bottom-[10%] pointer-events-none z-30">
+                                            <div className="md:hidden sticky top-[50vh] flex justify-between w-full -translate-y-1/2">
+                                                <button
+                                                    onClick={() => document.getElementById('pricing-slider').scrollBy({ left: -300, behavior: 'smooth' })}
+                                                    className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -ml-5 active:scale-95 transition-transform"
+                                                >
+                                                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => document.getElementById('pricing-slider').scrollBy({ left: 300, behavior: 'smooth' })}
+                                                    className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -mr-5 active:scale-95 transition-transform"
+                                                >
+                                                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                                                </button>
                                             </div>
-                                            {plan.trialDays > 0 && (
-                                                <p className={`text-xs font-semibold mb-6 -mt-7 ${isPopular ? 'text-indigo-200' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                                    🎉 Try free for {plan.trialDays} days — no credit card required
-                                                </p>
-                                            )}
-
-                                            <div className="space-y-6 mb-10 flex-1">
-                                                {/* Core Limits */}
-                                                <div>
-                                                    <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? 'text-indigo-200' : 'text-slate-400'}`}>Core</div>
-                                                    <ul className="space-y-3">
-                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                            <span>{plan.messageLimit.toLocaleString()} Messages/mo</span>
-                                                        </li>
-                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                            <span>{plan.contactLimit.toLocaleString()} Contacts</span>
-                                                        </li>
-                                                        {plan.templateLimit > 0 && (
-                                                            <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                <span>{plan.templateLimit} Message Templates</span>
-                                                            </li>
-                                                        )}
-                                                        {plan.teamMemberLimit > 0 && (
-                                                            <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                <span>{plan.teamMemberLimit} Team Members</span>
-                                                            </li>
-                                                        )}
-                                                        {plan.vcardLimit > 0 ? (
-                                                            <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                <span>{plan.vcardLimit} veCards</span>
-                                                            </li>
-                                                        ) : (
-                                                            <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"><X className="w-3 h-3" /></div>
-                                                                <span className="text-slate-500 dark:text-slate-400">veCards</span>
-                                                            </li>
-                                                        )}
-                                                        {plan.waStoreLimit > 0 ? (
-                                                            <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                <span>{plan.waStoreLimit} Online Stores</span>
-                                                            </li>
-                                                        ) : (
-                                                            <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"><X className="w-3 h-3" /></div>
-                                                                <span className="text-slate-500 dark:text-slate-400">Online Stores</span>
-                                                            </li>
-                                                        )}
-                                                        <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-70' : ''}`}>
-                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? (isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400') : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                                                {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                            </div>
-                                                            <span>AI FlowBot Builder</span>
-                                                        </li>
-                                                    </ul>
-                                                </div>
-
-                                                {/* Capabilities */}
-                                                {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
-                                                    <div>
-                                                        <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? 'text-indigo-200' : 'text-slate-400'}`}>Add-ons</div>
-                                                        <ul className="space-y-3">
-                                                            <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowApiAccess ? 'opacity-70' : ''}`}>
-                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? (isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400') : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                                                    {plan.allowApiAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                                </div>
-                                                                <span>Developer API Access</span>
-                                                            </li>
-
-                                                            {plan.aiTokensAllowance > 0 && (
-                                                                <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                    <span>{plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
-                                                                </li>
-                                                            )}
-                                                            {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
-                                                                <li className="flex items-start gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                    <div className="flex flex-col">
-                                                                        <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
-                                                                        <ul className="mt-2 space-y-1.5">
-                                                                            {plan.includedAddons.map(addonKey => (
-                                                                                <li key={addonKey} className={`text-xs font-semibold flex items-center gap-1.5 ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
-                                                                                    {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                                                                                </li>
-                                                                            ))}
-                                                                        </ul>
-                                                                    </div>
-                                                                </li>
-                                                            )}
-                                                        </ul>
-                                                    </div>
-                                                )}
-
-                                                {/* Custom Features list */}
-                                                {(plan.quickReplyLimit > 0 || plan.tagLimit > 0 || plan.groupLimit > 0 || (Array.isArray(plan.features) && plan.features.length > 0)) && (
-                                                    <div>
-                                                        <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? 'text-indigo-200' : 'text-slate-400'}`}>Features</div>
-                                                        <ul className="space-y-3">
-                                                            {plan.quickReplyLimit > 0 && (
-                                                                <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                    <span>{plan.quickReplyLimit} Quick Replies</span>
-                                                                </li>
-                                                            )}
-                                                            {plan.tagLimit > 0 && (
-                                                                <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                    <span>{plan.tagLimit} Contact Tags</span>
-                                                                </li>
-                                                            )}
-                                                            {plan.groupLimit > 0 && (
-                                                                <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                    <span>{plan.groupLimit} Contact Groups</span>
-                                                                </li>
-                                                            )}
-                                                            {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
-                                                                <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
-                                                                    <span className="leading-tight">{feat}</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                )}
-                                            </div>
-
-
-                                            {plan.trialDays > 0 ? (
-                                                <div className="flex flex-col gap-2 mt-auto">
-                                                    <Link
-                                                        to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`}
-                                                        className={`w-full py-4 rounded-xl font-bold text-center transition-all text-sm ${isPopular ? 'bg-emerald-400 hover:bg-emerald-300 text-white shadow-lg shadow-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'}`}
-                                                    >
-                                                        Choose {plan.name} — {currencySymbol}{displayPrice.toLocaleString()}/{displayInterval}
-                                                    </Link>
-                                                    <Link
-                                                        to={`/register?plan=${plan.id}&trial=true`}
-                                                        className={`w-full py-3 rounded-xl font-semibold text-center text-xs transition-all ${isPopular ? 'bg-white/15 hover:bg-white/25 text-indigo-100 border border-white/20' : 'bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50'}`}
-                                                    >
-                                                        🎉 Try free for {plan.trialDays} days instead
-                                                    </Link>
-                                                </div>
-                                            ) : (
-                                                <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all ${isPopular ? 'bg-emerald-400 hover:bg-emerald-300 text-white shadow-lg shadow-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'}`}>
-                                                    Choose {plan.name}
-                                                </Link>
-                                            )}
-                                        </motion.div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        </div>
-                    </section>
-                )}
-
-                {/* 13. FAQ Section */}
-                {config.faqs && config.faqs.length > 0 && (
-                    <FAQSection faqs={config.faqs} />
-                )}
-
-                {/* 14. CTA & PARTNER ECOSYSTEM */}
-                <section className="py-16 sm:py-24 md:py-32 px-4 sm:px-4 md:px-6 relative z-10 bg-white dark:bg-[#05050A] overflow-hidden">
-                    {/* Background Gradients */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] max-w-full h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" style={{ transform: 'translate(-50%, -50%) translateZ(0)' }} />
-
-                    <div className="max-w-7xl mx-auto">
-
-                        {/* Main CTA Block */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                            className="rounded-[1.75rem] sm:rounded-[2.5rem] md:rounded-[3rem] overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 relative border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 mb-12"
-                        >
-                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] pointer-events-none" />
-                            <div className="absolute -top-24 -right-24 w-96 max-w-full h-96 bg-white/20 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
-                            <div className="absolute -bottom-24 -left-24 w-96 max-w-full h-96 bg-purple-500/40 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
-
-                            <div className="relative py-12 px-4 sm:py-16 sm:px-8 md:py-20 md:px-20 text-center flex flex-col items-center">
-                                <h2 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 tracking-tight text-white max-w-4xl leading-[1.2] sm:leading-[1.1]">
-                                    Become a Partner & Grow with Us
-                                </h2>
-                                <p className="text-indigo-100 text-sm sm:text-base md:text-lg lg:text-xl max-w-2xl mx-auto mb-8 sm:mb-10 font-medium leading-relaxed">
-                                    Join our ecosystem as an affiliate or tech partner. Leverage our platform's infrastructure to generate new revenue streams and scale your own business.
-                                </p>
-                                <div className="flex flex-col sm:flex-row gap-4 mb-12 sm:mb-16 w-full sm:w-auto px-4 sm:px-0">
-                                    <Link to="/partner" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 sm:px-4 md:px-10 sm:py-4 bg-white text-indigo-700 rounded-full font-bold text-base sm:text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-900/50 w-full sm:w-auto">
-                                        View Partner Portal <ArrowRight className="w-5 h-5" />
-                                    </Link>
-                                </div>
-
-                                {/* Modern Minimal Partner Details (Moved Inside) */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                                    className="relative w-full max-w-5xl bg-white/10 backdrop-blur-md border border-white/20 rounded-[1.5rem] sm:rounded-[2rem] p-1.5 sm:p-2 shadow-2xl text-left"
-                                >
-                                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10">
-                                        {/* Referral */}
-                                        <Link to="/partner" className="p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 group cursor-pointer hover:bg-white/10 rounded-t-[1.25rem] rounded-b-none md:rounded-l-[1.5rem] md:rounded-r-none transition-colors">
-                                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                                                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
-                                            </div>
-                                            <div className="flex-1 w-full">
-                                                <div className="flex items-center justify-center sm:justify-between mb-2 gap-2">
-                                                    <h4 className="text-lg sm:text-xl font-bold text-white">Referral Program</h4>
-                                                    <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200 group-hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 hidden sm:block" />
-                                                </div>
-                                                <p className="text-xs sm:text-sm text-indigo-100 font-medium leading-relaxed">
-                                                    Both you and your referral get <span className="text-emerald-400 font-bold">extra subscription months & AI tokens</span> when they sign up. Dual-sided rewards!
-                                                </p>
-                                            </div>
-                                        </Link>
-
-                                        {/* Tech Partner */}
-                                        <Link to="/partner" className="p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 group cursor-pointer hover:bg-white/10 rounded-b-[1.25rem] rounded-t-none md:rounded-r-[1.5rem] md:rounded-l-none transition-colors">
-                                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                                                <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
-                                            </div>
-                                            <div className="flex-1 w-full">
-                                                <div className="flex items-center justify-center sm:justify-between mb-2 gap-2">
-                                                    <h4 className="text-lg sm:text-xl font-bold text-white">Tech Partner</h4>
-                                                    <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 hidden sm:block" />
-                                                </div>
-                                                <p className="text-xs sm:text-sm text-indigo-100 font-medium leading-relaxed">
-                                                    Join our Tech Partner program and earn <span className="text-blue-400 font-bold">up to 30% commission</span> with unique tracking links, discount coupons, and dedicated marketing assets.
-                                                </p>
-                                            </div>
-                                        </Link>
-                                    </div>
-                                </motion.div>
-
-                            </div>
-                        </motion.div>
-
-                    </div>
-                </section>
-
-                {/* 14. EXPANDED FOOTER */}
-                <footer className="pt-20 pb-10 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-zinc-950 transition-colors">
-                    <div className="max-w-7xl mx-auto px-4 md:px-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
-                            <div className="col-span-2 lg:col-span-2 space-y-6">
-                                <div className="flex items-center gap-3 font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">
-                                    {(publicSettings?.logoUrl || config.brand?.logo) ? (
-                                        <img loading="lazy" src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="h-10 object-contain" />
-                                    ) : (
-                                        <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                                            <MessageSquare className="w-5 h-5 text-white" />
                                         </div>
                                     )}
-                                    {publicSettings?.appName || config.brand.name}
-                                </div>
-                                <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xs">
-                                    {config.brand.footerText
-                                        ? config.brand.footerText.replace(config.brand.name, publicSettings?.appName || config.brand.name)
-                                        : 'The operating system for official WhatsApp Business API conversations.'}
-                                </p>
-                                <div className="flex gap-4">
-                                    {[
-                                        { id: 'twitter', icon: Twitter, defaultUrl: 'https://twitter.com' },
-                                        { id: 'facebook', icon: Facebook, defaultUrl: 'https://facebook.com' },
-                                        { id: 'linkedin', icon: Linkedin, defaultUrl: 'https://linkedin.com' },
-                                        { id: 'instagram', icon: Instagram, defaultUrl: 'https://instagram.com' }
-                                    ].map((soc, index) => {
-                                        const url = config.seo?.socialLinks?.[soc.id] || soc.defaultUrl;
-                                        const SocIcon = soc.icon;
-                                        return (
-                                            <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-white hover:bg-indigo-600 hover:text-white transition-colors">
-                                                <SocIcon className="w-4 h-4" />
-                                            </a>
-                                        );
-                                    })}
+
+                                    <div
+                                        id="pricing-slider"
+                                        className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pb-6 snap-x snap-mandatory"
+                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                    >
+                                        <style>{`#pricing-slider::-webkit-scrollbar { display: none; }`}</style>
+                                        {plans.map((plan, i) => {
+                                            const isPopular = plan.name === 'Pro' || plan.name === 'Business';
+
+                                            // Determine Display Price
+                                            let displayPrice = parseFloat(plan.price);
+                                            let displayInterval = 'mo';
+                                            let internalIntervalCode = 'month';
+                                            let originalPrice = null;
+
+                                            if (billingInterval === 'monthly' && parseFloat(plan.monthlyPrice) > 0) {
+                                                displayPrice = parseFloat(plan.monthlyPrice);
+                                                displayInterval = 'mo';
+                                                internalIntervalCode = 'month';
+                                            } else if (billingInterval === 'half-yearly' && parseFloat(plan.halfYearlyPrice) > 0) {
+                                                displayPrice = parseFloat(plan.halfYearlyPrice);
+                                                displayInterval = '6mo';
+                                                internalIntervalCode = 'half-year';
+                                                originalPrice = (parseFloat(plan.monthlyPrice) || 0) * 6;
+                                            } else if (billingInterval === 'yearly' && parseFloat(plan.yearlyPrice) > 0) {
+                                                displayPrice = parseFloat(plan.yearlyPrice);
+                                                displayInterval = 'yr';
+                                                internalIntervalCode = 'year';
+                                                originalPrice = (parseFloat(plan.monthlyPrice) || 0) * 12;
+                                            }
+
+                                            return (
+                                                <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                                                    className={`relative w-[85vw] sm:w-[340px] shrink-0 snap-center p-8 rounded-[2.5rem] border flex flex-col h-auto min-h-full transition-all ${isPopular
+                                                        ? 'bg-indigo-600 dark:bg-indigo-900/40 border-indigo-500 text-white transform md:-translate-y-4 shadow-2xl shadow-indigo-600/20'
+                                                        : 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-indigo-500/30'
+                                                        }`}
+                                                >
+                                                    {isPopular && <div className="absolute top-0 right-1/2 translate-x-1/2 px-4 py-1.5 bg-indigo-500 text-white text-[10px] uppercase tracking-widest font-bold rounded-b-xl shadow-md">MOST POPULAR</div>}
+                                                    {plan.trialDays > 0 && (
+                                                        <div className={`absolute top-4 left-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isPopular ? 'bg-white/20 text-white' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'}`}>
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                                                            {plan.trialDays}-Day Free Trial
+                                                        </div>
+                                                    )}
+
+                                                    <h3 className={`text-2xl font-bold mb-2 ${plan.trialDays > 0 ? 'pt-8' : 'pt-2'}`}>{plan.name}</h3>
+                                                    <p className={`text-sm mb-8 font-medium ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>{plan.description || 'Perfect for growing businesses.'}</p>
+
+                                                    <div className="flex flex-col gap-1 mb-2 pb-10 border-b border-indigo-500/20 dark:border-white/10">
+                                                        {originalPrice > displayPrice && (
+                                                            <span className={`text-lg font-bold line-through ${isPopular ? 'text-indigo-300/70' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                                {currencySymbol}{originalPrice.toLocaleString()}
+                                                            </span>
+                                                        )}
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-5xl font-extrabold">{currencySymbol}{displayPrice.toLocaleString()}</span>
+                                                            <span className={`font-bold ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>/{displayInterval}</span>
+                                                        </div>
+                                                    </div>
+                                                    {plan.trialDays > 0 && (
+                                                        <p className={`text-xs font-semibold mb-6 -mt-7 ${isPopular ? 'text-indigo-200' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                                            🎉 Try free for {plan.trialDays} days — no credit card required
+                                                        </p>
+                                                    )}
+
+                                                    <div className="space-y-6 mb-10 flex-1">
+                                                        {/* Core Limits */}
+                                                        <div>
+                                                            <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? 'text-indigo-200' : 'text-slate-400'}`}>Core</div>
+                                                            <ul className="space-y-3">
+                                                                <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                    <span>{plan.messageLimit.toLocaleString()} Messages/mo</span>
+                                                                </li>
+                                                                <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                    <span>{plan.contactLimit.toLocaleString()} Contacts</span>
+                                                                </li>
+                                                                {plan.templateLimit > 0 && (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.templateLimit} Message Templates</span>
+                                                                    </li>
+                                                                )}
+                                                                {plan.teamMemberLimit > 0 && (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.teamMemberLimit} Team Members</span>
+                                                                    </li>
+                                                                )}
+                                                                {plan.vcardLimit > 0 ? (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.vcardLimit} veCards</span>
+                                                                    </li>
+                                                                ) : (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"><X className="w-3 h-3" /></div>
+                                                                        <span className="text-slate-500 dark:text-slate-400">veCards</span>
+                                                                    </li>
+                                                                )}
+                                                                {plan.waStoreLimit > 0 ? (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.waStoreLimit} Online Stores</span>
+                                                                    </li>
+                                                                ) : (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"><X className="w-3 h-3" /></div>
+                                                                        <span className="text-slate-500 dark:text-slate-400">Online Stores</span>
+                                                                    </li>
+                                                                )}
+                                                                <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-70' : ''}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? (isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400') : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                                                        {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                    </div>
+                                                                    <span>AI FlowBot Builder</span>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+
+                                                        {/* Capabilities */}
+                                                        {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
+                                                            <div>
+                                                                <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? 'text-indigo-200' : 'text-slate-400'}`}>Add-ons</div>
+                                                                <ul className="space-y-3">
+                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowApiAccess ? 'opacity-70' : ''}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? (isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400') : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                                                            {plan.allowApiAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                        </div>
+                                                                        <span>Developer API Access</span>
+                                                                    </li>
+
+                                                                    {plan.aiTokensAllowance > 0 && (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
+                                                                        <li className="flex items-start gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className="flex flex-col">
+                                                                                <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
+                                                                                <ul className="mt-2 space-y-1.5">
+                                                                                    {plan.includedAddons.map(addonKey => (
+                                                                                        <li key={addonKey} className={`text-xs font-semibold flex items-center gap-1.5 ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                                            <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
+                                                                                            {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                                                                        </li>
+                                                                                    ))}
+                                                                                </ul>
+                                                                            </div>
+                                                                        </li>
+                                                                    )}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Custom Features list */}
+                                                        {(plan.quickReplyLimit > 0 || plan.tagLimit > 0 || plan.groupLimit > 0 || (Array.isArray(plan.features) && plan.features.length > 0)) && (
+                                                            <div>
+                                                                <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? 'text-indigo-200' : 'text-slate-400'}`}>Features</div>
+                                                                <ul className="space-y-3">
+                                                                    {plan.quickReplyLimit > 0 && (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.quickReplyLimit} Quick Replies</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {plan.tagLimit > 0 && (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.tagLimit} Contact Tags</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {plan.groupLimit > 0 && (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.groupLimit} Contact Groups</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
+                                                                        <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <span className="leading-tight">{feat}</span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+
+                                                    {plan.trialDays > 0 ? (
+                                                        <div className="flex flex-col gap-2 mt-auto">
+                                                            <Link
+                                                                to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`}
+                                                                className={`w-full py-4 rounded-xl font-bold text-center transition-all text-sm ${isPopular ? 'bg-emerald-400 hover:bg-emerald-300 text-white shadow-lg shadow-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'}`}
+                                                            >
+                                                                Choose {plan.name} — {currencySymbol}{displayPrice.toLocaleString()}/{displayInterval}
+                                                            </Link>
+                                                            <Link
+                                                                to={`/register?plan=${plan.id}&trial=true`}
+                                                                className={`w-full py-3 rounded-xl font-semibold text-center text-xs transition-all ${isPopular ? 'bg-white/15 hover:bg-white/25 text-indigo-100 border border-white/20' : 'bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50'}`}
+                                                            >
+                                                                🎉 Try free for {plan.trialDays} days instead
+                                                            </Link>
+                                                        </div>
+                                                    ) : (
+                                                        <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all ${isPopular ? 'bg-emerald-400 hover:bg-emerald-300 text-white shadow-lg shadow-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'}`}>
+                                                            Choose {plan.name}
+                                                        </Link>
+                                                    )}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
+                        </section>
+                    )}
 
-                            {/* Render Dynamic Footer Columns */}
-                            {config.footer?.columns && Array.isArray(config.footer.columns) ? (
-                                config.footer.columns.map((col, idx) => (
-                                    <div key={idx}>
-                                        <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-sm">{col.heading}</h4>
-                                        <ul className="space-y-4 text-slate-600 dark:text-slate-400 font-medium">
-                                            {col.links && col.links.map((link, lIdx) => {
-                                                const isExternal = link.href.startsWith('http');
-                                                const isAnchor = link.href.startsWith('#');
+                    {/* 13. FAQ Section */}
+                    {config.faqs && config.faqs.length > 0 && (
+                        <FAQSection faqs={config.faqs} />
+                    )}
 
-                                                if (isExternal) {
-                                                    return <li key={lIdx}><a href={link.href} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 dark:hover:text-white transition-colors">{link.label}</a></li>;
-                                                } else if (isAnchor) {
-                                                    return <li key={lIdx}><a href={link.href} className="hover:text-indigo-600 dark:hover:text-white transition-colors">{link.label}</a></li>;
-                                                } else {
-                                                    return <li key={lIdx}><Link to={link.href} className="hover:text-indigo-600 dark:hover:text-white transition-colors">{link.label}</Link></li>;
-                                                }
-                                            })}
-                                        </ul>
+                    {/* 14. CTA & PARTNER ECOSYSTEM */}
+                    <section className="py-16 sm:py-24 md:py-32 px-4 sm:px-4 md:px-6 relative z-10 bg-white dark:bg-[#05050A] overflow-hidden">
+                        {/* Background Gradients */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] max-w-full h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" style={{ transform: 'translate(-50%, -50%) translateZ(0)' }} />
+
+                        <div className="max-w-7xl mx-auto">
+
+                            {/* Main CTA Block */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                                className="rounded-[1.75rem] sm:rounded-[2.5rem] md:rounded-[3rem] overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 relative border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 mb-12"
+                            >
+                                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] pointer-events-none" />
+                                <div className="absolute -top-24 -right-24 w-96 max-w-full h-96 bg-white/20 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
+                                <div className="absolute -bottom-24 -left-24 w-96 max-w-full h-96 bg-purple-500/40 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
+
+                                <div className="relative py-12 px-4 sm:py-16 sm:px-8 md:py-20 md:px-20 text-center flex flex-col items-center">
+                                    <h2 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 tracking-tight text-white max-w-4xl leading-[1.2] sm:leading-[1.1]">
+                                        Become a Partner & Grow with Us
+                                    </h2>
+                                    <p className="text-indigo-100 text-sm sm:text-base md:text-lg lg:text-xl max-w-2xl mx-auto mb-8 sm:mb-10 font-medium leading-relaxed">
+                                        Join our ecosystem as an affiliate or tech partner. Leverage our platform's infrastructure to generate new revenue streams and scale your own business.
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row gap-4 mb-12 sm:mb-16 w-full sm:w-auto px-4 sm:px-0">
+                                        <Link to="/partner" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 sm:px-4 md:px-10 sm:py-4 bg-white text-indigo-700 rounded-full font-bold text-base sm:text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-900/50 w-full sm:w-auto">
+                                            View Partner Portal <ArrowRight className="w-5 h-5" />
+                                        </Link>
                                     </div>
-                                ))
-                            ) : (
-                                // Fallback to static columns if footer config is missing
-                                <>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-sm">Product</h4>
-                                        <ul className="space-y-4 text-slate-600 dark:text-slate-400 font-medium">
-                                            <li><a href="#platform" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Features</a></li>
-                                            <li><a href="#pricing" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Pricing</a></li>
-                                            <li><Link to="/blog" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Blog</Link></li>
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-sm">Company</h4>
-                                        <ul className="space-y-4 text-slate-600 dark:text-slate-400 font-medium">
-                                            <li><Link to="/about" className="hover:text-indigo-600 dark:hover:text-white transition-colors">About Us</Link></li>
-                                            <li><Link to="/partner" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Partner with Us</Link></li>
-                                            <li><Link to="/contact" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Contact Support</Link></li>
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-sm">Legal</h4>
-                                        <ul className="space-y-4 text-slate-600 dark:text-slate-400 font-medium">
-                                            <li><Link to="/privacy" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Privacy Policy</Link></li>
-                                            <li><Link to="/terms" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Terms of Service</Link></li>
-                                        </ul>
-                                    </div>
-                                </>
-                            )}
+
+                                    {/* Modern Minimal Partner Details (Moved Inside) */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+                                        className="relative w-full max-w-5xl bg-white/10 backdrop-blur-md border border-white/20 rounded-[1.5rem] sm:rounded-[2rem] p-1.5 sm:p-2 shadow-2xl text-left"
+                                    >
+                                        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10">
+                                            {/* Referral */}
+                                            <Link to="/partner" className="p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 group cursor-pointer hover:bg-white/10 rounded-t-[1.25rem] rounded-b-none md:rounded-l-[1.5rem] md:rounded-r-none transition-colors">
+                                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                                                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
+                                                </div>
+                                                <div className="flex-1 w-full">
+                                                    <div className="flex items-center justify-center sm:justify-between mb-2 gap-2">
+                                                        <h4 className="text-lg sm:text-xl font-bold text-white">Referral Program</h4>
+                                                        <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200 group-hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 hidden sm:block" />
+                                                    </div>
+                                                    <p className="text-xs sm:text-sm text-indigo-100 font-medium leading-relaxed">
+                                                        Both you and your referral get <span className="text-emerald-400 font-bold">extra subscription months & AI tokens</span> when they sign up. Dual-sided rewards!
+                                                    </p>
+                                                </div>
+                                            </Link>
+
+                                            {/* Tech Partner */}
+                                            <Link to="/partner" className="p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 group cursor-pointer hover:bg-white/10 rounded-b-[1.25rem] rounded-t-none md:rounded-r-[1.5rem] md:rounded-l-none transition-colors">
+                                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                                                    <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
+                                                </div>
+                                                <div className="flex-1 w-full">
+                                                    <div className="flex items-center justify-center sm:justify-between mb-2 gap-2">
+                                                        <h4 className="text-lg sm:text-xl font-bold text-white">Tech Partner</h4>
+                                                        <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 hidden sm:block" />
+                                                    </div>
+                                                    <p className="text-xs sm:text-sm text-indigo-100 font-medium leading-relaxed">
+                                                        Join our Tech Partner program and earn <span className="text-blue-400 font-bold">up to 30% commission</span> with unique tracking links, discount coupons, and dedicated marketing assets.
+                                                    </p>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </motion.div>
+
+                                </div>
+                            </motion.div>
+
                         </div>
+                    </section>
 
-                        <div className="pt-8 border-t border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm font-medium text-slate-500 dark:text-slate-500">
-                            <div>
-                                {config.footer?.bottomBarLeft
-                                    ? config.footer.bottomBarLeft.replace('{year}', new Date().getFullYear()).replace('{brand}', publicSettings?.appName || config.brand.name).replace(config.brand.name, publicSettings?.appName || config.brand.name)
-                                    : `© ${new Date().getFullYear()} ${publicSettings?.appName || config.brand.name}. All rights reserved.`}
-                            </div>
-                            <div className="flex gap-4">
-                                {config.footer?.bottomBarRight ? (
-                                    config.footer.bottomBarRight.split(/•|\|/).map((part, i) => (
-                                        <React.Fragment key={i}>
-                                            {i > 0 && <span>•</span>}
-                                            <span>{part.trim()}</span>
-                                        </React.Fragment>
+                    {/* 14. EXPANDED FOOTER */}
+                    <footer className="pt-20 pb-10 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-zinc-950 transition-colors">
+                        <div className="max-w-7xl mx-auto px-4 md:px-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
+                                <div className="col-span-2 lg:col-span-2 space-y-6">
+                                    <div className="flex items-center gap-3 font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">
+                                        {(publicSettings?.logoUrl || config.brand?.logo) ? (
+                                            <img loading="lazy" src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="h-10 object-contain" />
+                                        ) : (
+                                            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                                                <MessageSquare className="w-5 h-5 text-white" />
+                                            </div>
+                                        )}
+                                        {publicSettings?.appName || config.brand.name}
+                                    </div>
+                                    <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xs">
+                                        {config.brand.footerText
+                                            ? config.brand.footerText.replace(config.brand.name, publicSettings?.appName || config.brand.name)
+                                            : 'The operating system for official WhatsApp Business API conversations.'}
+                                    </p>
+                                    <div className="flex gap-4">
+                                        {[
+                                            { id: 'twitter', icon: Twitter, defaultUrl: 'https://twitter.com' },
+                                            { id: 'facebook', icon: Facebook, defaultUrl: 'https://facebook.com' },
+                                            { id: 'linkedin', icon: Linkedin, defaultUrl: 'https://linkedin.com' },
+                                            { id: 'instagram', icon: Instagram, defaultUrl: 'https://instagram.com' }
+                                        ].map((soc, index) => {
+                                            const url = config.seo?.socialLinks?.[soc.id] || soc.defaultUrl;
+                                            const SocIcon = soc.icon;
+                                            return (
+                                                <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-white hover:bg-indigo-600 hover:text-white transition-colors">
+                                                    <SocIcon className="w-4 h-4" />
+                                                </a>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Render Dynamic Footer Columns */}
+                                {config.footer?.columns && Array.isArray(config.footer.columns) ? (
+                                    config.footer.columns.map((col, idx) => (
+                                        <div key={idx}>
+                                            <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-sm">{col.heading}</h4>
+                                            <ul className="space-y-4 text-slate-600 dark:text-slate-400 font-medium">
+                                                {col.links && col.links.map((link, lIdx) => {
+                                                    const isExternal = link.href.startsWith('http');
+                                                    const isAnchor = link.href.startsWith('#');
+
+                                                    if (isExternal) {
+                                                        return <li key={lIdx}><a href={link.href} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 dark:hover:text-white transition-colors">{link.label}</a></li>;
+                                                    } else if (isAnchor) {
+                                                        return <li key={lIdx}><a href={link.href} className="hover:text-indigo-600 dark:hover:text-white transition-colors">{link.label}</a></li>;
+                                                    } else {
+                                                        return <li key={lIdx}><Link to={link.href} className="hover:text-indigo-600 dark:hover:text-white transition-colors">{link.label}</Link></li>;
+                                                    }
+                                                })}
+                                            </ul>
+                                        </div>
                                     ))
                                 ) : (
+                                    // Fallback to static columns if footer config is missing
                                     <>
-                                        <span>Built for Scale</span>
-                                        <span>•</span>
-                                        <span>99.9% Uptime</span>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-sm">Product</h4>
+                                            <ul className="space-y-4 text-slate-600 dark:text-slate-400 font-medium">
+                                                <li><a href="#platform" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Features</a></li>
+                                                <li><a href="#pricing" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Pricing</a></li>
+                                                <li><Link to="/blog" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Blog</Link></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-sm">Company</h4>
+                                            <ul className="space-y-4 text-slate-600 dark:text-slate-400 font-medium">
+                                                <li><Link to="/about" className="hover:text-indigo-600 dark:hover:text-white transition-colors">About Us</Link></li>
+                                                <li><Link to="/partner" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Partner with Us</Link></li>
+                                                <li><Link to="/contact" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Contact Support</Link></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-sm">Legal</h4>
+                                            <ul className="space-y-4 text-slate-600 dark:text-slate-400 font-medium">
+                                                <li><Link to="/privacy" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Privacy Policy</Link></li>
+                                                <li><Link to="/terms" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Terms of Service</Link></li>
+                                            </ul>
+                                        </div>
                                     </>
                                 )}
                             </div>
-                        </div>
-                    </div>
-                </footer>
 
-                {/* Floating Chatbot */}
-                <FloatingChatbot config={config} />
+                            <div className="pt-8 border-t border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm font-medium text-slate-500 dark:text-slate-500">
+                                <div>
+                                    {config.footer?.bottomBarLeft
+                                        ? config.footer.bottomBarLeft.replace('{year}', new Date().getFullYear()).replace('{brand}', publicSettings?.appName || config.brand.name).replace(config.brand.name, publicSettings?.appName || config.brand.name)
+                                        : `© ${new Date().getFullYear()} ${publicSettings?.appName || config.brand.name}. All rights reserved.`}
+                                </div>
+                                <div className="flex gap-4">
+                                    {config.footer?.bottomBarRight ? (
+                                        config.footer.bottomBarRight.split(/•|\|/).map((part, i) => (
+                                            <React.Fragment key={i}>
+                                                {i > 0 && <span>•</span>}
+                                                <span>{part.trim()}</span>
+                                            </React.Fragment>
+                                        ))
+                                    ) : (
+                                        <>
+                                            <span>Built for Scale</span>
+                                            <span>•</span>
+                                            <span>99.9% Uptime</span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+
+                    {/* Floating Chatbot */}
+                    <FloatingChatbot config={config} />
                 </LazyMotion>
             </div>
         </div>

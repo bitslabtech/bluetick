@@ -171,6 +171,7 @@ body {
 }
 
 .hero-chip {
+  opacity: 0;
   animation: heroChip 6s ease-in-out infinite;
 }
 
