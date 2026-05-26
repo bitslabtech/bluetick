@@ -152,6 +152,13 @@ const SuperAdminDashboard = () => {
     console.log("Plan Distribution Raw:", data?.planDistribution);
     console.log("Pie Chart Data:", pieData);
 
+    if (loading || !data) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-background-dark">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-y-auto fade-in transition-colors duration-300">
