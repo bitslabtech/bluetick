@@ -96,7 +96,7 @@ const Support = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-hidden fade-in transition-colors duration-300">
             {/* Standard Header */}
-            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
                     {/* Search Bar */}
                     <div className="flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors">
@@ -208,7 +208,7 @@ const Support = () => {
                                                         <div
                                                             key={article.id}
                                                             onClick={() => setSelectedArticle(article)}
-                                                            className="bg-white dark:bg-surface-dark p-6 rounded-xl border border-slate-200 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer group hover:shadow-md active:scale-[0.98]"
+                                                            className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-xl border border-slate-200 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer group hover:shadow-md active:scale-[0.98]"
                                                         >
                                                             <h4 className="font-bold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-500 transition-colors">{article.title}</h4>
                                                             <div className="flex items-center gap-2 mb-3">
@@ -234,12 +234,12 @@ const Support = () => {
                             </div>
 
                             {/* CTA for Tickets */}
-                            <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl p-8 text-center border border-indigo-100 dark:border-indigo-500/20">
+                            <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl p-4 md:p-8 text-center border border-indigo-100 dark:border-indigo-500/20">
                                 <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 mb-2">Can't find what you're looking for?</h3>
                                 <p className="text-indigo-700 dark:text-indigo-400 mb-6">Our support team is here to help you get back on track.</p>
                                 <button
                                     onClick={() => setActiveTab('tickets')}
-                                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2 mx-auto"
+                                    className="px-4 md:px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2 mx-auto"
                                 >
                                     <Ticket className="w-5 h-5" /> Create Support Ticket
                                 </button>
@@ -253,7 +253,7 @@ const Support = () => {
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                             {/* Suggest Feature Section */}
-                            <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-white/10 dark:to-white/5 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 text-white shadow-lg">
+                            <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-white/10 dark:to-white/5 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 text-white shadow-lg">
                                 <div className="flex-1">
                                     <h3 className="text-xl font-bold mb-1">Have an idea?</h3>
                                     <p className="text-slate-300 text-sm">Suggest a new feature and help us improve the product.</p>
@@ -351,7 +351,7 @@ const Support = () => {
                                             <div className="flex justify-center mt-8">
                                                 <button
                                                     onClick={() => setVisibleRoadmapCount(prev => prev + 8)}
-                                                    className="px-6 py-2.5 rounded-xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm hover:shadow-md flex items-center gap-2 text-sm"
+                                                    className="px-4 md:px-6 py-2.5 rounded-xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm hover:shadow-md flex items-center gap-2 text-sm"
                                                 >
                                                     Load More Features
                                                 </button>
@@ -368,7 +368,7 @@ const Support = () => {
             {/* Article Modal */}
             <AnimatePresence>
                 {selectedArticle && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-4 md:p-8">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -383,7 +383,7 @@ const Support = () => {
                             className="bg-white dark:bg-surface-dark w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col relative z-10 border border-slate-200 dark:border-white/10"
                         >
                             {/* Modal Header */}
-                            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-xl text-indigo-600 dark:text-indigo-400">
                                         <Book className="w-5 h-5" />
@@ -402,7 +402,7 @@ const Support = () => {
                             </div>
 
                             {/* Modal Content */}
-                            <div className="flex-1 overflow-y-auto p-8 md:p-12">
+                            <div className="flex-1 overflow-y-auto p-8 md:p-4 md:p-12">
                                 <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300">
                                     {selectedArticle.content.split('\n').map((line, i) => {
                                         if (line.startsWith('# ')) return <h1 key={i} className="text-3xl font-bold mb-6 text-slate-900 dark:text-white">{line.replace('# ', '')}</h1>;
@@ -420,7 +420,7 @@ const Support = () => {
                             </div>
 
                             {/* Modal Footer */}
-                            <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center justify-between">
+                            <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center justify-between">
                                 <div className="flex items-center gap-4 text-sm text-slate-500">
                                     <div className="flex items-center gap-1">
                                         <ThumbsUp className="w-4 h-4" /> Was this helpful?
@@ -428,7 +428,7 @@ const Support = () => {
                                 </div>
                                 <button
                                     onClick={() => setSelectedArticle(null)}
-                                    className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
+                                    className="px-4 md:px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
                                 >
                                     Close
                                 </button>
@@ -454,7 +454,7 @@ const RoadmapStats = ({ roadmap, userId }) => {
     };
 
     return (
-        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm overflow-hidden relative">
+        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm overflow-hidden relative">
             <div className="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 pointer-events-none">
                 <Map className="w-32 h-32" />
             </div>
@@ -506,14 +506,14 @@ const RoadmapSuggestionForm = ({ refresh, initiallyOpen }) => {
 
     return (
         <>
-            <button onClick={() => setIsModalOpen(true)} className="bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-6 rounded-xl text-sm transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2">
+            <button onClick={() => setIsModalOpen(true)} className="bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-4 md:px-6 rounded-xl text-sm transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2">
                 <Plus className="w-5 h-5" /> Suggest a Feature
             </button>
             <AnimatePresence>
                 {isModalOpen && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
-                            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
                                         <Map className="w-5 h-5" />
@@ -522,14 +522,14 @@ const RoadmapSuggestionForm = ({ refresh, initiallyOpen }) => {
                                 </div>
                                 <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors p-1 rounded-full"><X className="w-5 h-5" /></button>
                             </div>
-                            <div className="p-6 space-y-4">
+                            <div className="p-4 md:p-6 space-y-4">
                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Feature Name</label>
                                 <input autoFocus className="w-full px-4 py-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900 dark:text-white" placeholder="e.g. Native iOS Mobile App" value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
                                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Your suggestion will be added to the roadmap as "Requested".</p>
                             </div>
-                            <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] flex justify-end gap-3">
+                            <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] flex justify-end gap-3">
                                 <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">Cancel</button>
-                                <button onClick={handleSubmit} disabled={!title.trim()} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 shadow-none min-w-[120px]">Submit</button>
+                                <button onClick={handleSubmit} disabled={!title.trim()} className="px-4 md:px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 shadow-none min-w-[120px] max-w-full">Submit</button>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -607,12 +607,12 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className="md:col-span-2 space-y-6">
-                            <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm"><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Subject</label><input className="w-full px-4 py-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white font-medium" placeholder="e.g. API Integration Issue" value={subject} onChange={e => setSubject(e.target.value)} /></div>
-                            <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm"><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Detailed Description</label><textarea className="w-full px-4 py-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white h-48 resize-none text-sm leading-relaxed" placeholder="Please provide as much detail as possible..." value={message} onChange={e => setMessage(e.target.value)} /><div className="mt-4 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl p-8 text-center hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer group"><div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"><Paperclip className="w-6 h-6 text-indigo-500" /></div><p className="text-sm font-bold text-slate-700 dark:text-slate-300">Click to upload or drag and drop</p></div></div>
+                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm"><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Subject</label><input className="w-full px-4 py-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white font-medium" placeholder="e.g. API Integration Issue" value={subject} onChange={e => setSubject(e.target.value)} /></div>
+                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm"><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Detailed Description</label><textarea className="w-full px-4 py-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white h-48 resize-none text-sm leading-relaxed" placeholder="Please provide as much detail as possible..." value={message} onChange={e => setMessage(e.target.value)} /><div className="mt-4 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl p-4 md:p-8 text-center hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer group"><div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"><Paperclip className="w-6 h-6 text-indigo-500" /></div><p className="text-sm font-bold text-slate-700 dark:text-slate-300">Click to upload or drag and drop</p></div></div>
                         </div>
                         <div className="space-y-6">
-                            <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm"><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Category</label><div className="space-y-2">{ticketCategories.map(c => (<button key={c.id} onClick={() => setCategory(c.id)} className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${category === c.id ? `border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500` : 'border-transparent hover:bg-slate-50 dark:hover:bg-white/5'}`}><div className={`p-2 rounded-lg ${c.bg} ${c.color}`}><c.icon className="w-5 h-5" /></div><span className={`font-semibold text-sm ${category === c.id ? 'text-indigo-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>{c.id}</span></button>))}</div></div>
-                            <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm"><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Priority</label><div className="grid grid-cols-2 gap-2">{ticketPriorities.map(p => (<button key={p.id} onClick={() => setPriority(p.id)} className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border ${priority === p.id ? 'border-indigo-500 ring-1 ring-indigo-500 opacity-100' : 'border-transparent opacity-50 grayscale hover:grayscale-0 hover:opacity-100'} ${p.color}`}>{p.id}</button>))}</div></div>
+                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm"><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Category</label><div className="space-y-2">{ticketCategories.map(c => (<button key={c.id} onClick={() => setCategory(c.id)} className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${category === c.id ? `border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500` : 'border-transparent hover:bg-slate-50 dark:hover:bg-white/5'}`}><div className={`p-2 rounded-lg ${c.bg} ${c.color}`}><c.icon className="w-5 h-5" /></div><span className={`font-semibold text-sm ${category === c.id ? 'text-indigo-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>{c.id}</span></button>))}</div></div>
+                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm"><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Priority</label><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{ticketPriorities.map(p => (<button key={p.id} onClick={() => setPriority(p.id)} className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border ${priority === p.id ? 'border-indigo-500 ring-1 ring-indigo-500 opacity-100' : 'border-transparent opacity-50 grayscale hover:grayscale-0 hover:opacity-100'} ${p.color}`}>{p.id}</button>))}</div></div>
                             <button onClick={handleCreate} disabled={isSubmitting} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center justify-center gap-2">{isSubmitting ? 'Creating...' : <><Send className="w-5 h-5" /> Submit Ticket</>}</button>
                         </div>
                     </div>
@@ -621,7 +621,7 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                 <>
                     <div className="flex justify-between items-center mb-6">
                         <div><h2 className="text-2xl font-bold text-slate-900 dark:text-white">Your Tickets</h2><p className="text-slate-500 dark:text-slate-400 text-sm">Manage and track your active support requests.</p></div>
-                        <button onClick={() => setView('create')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-transform active:scale-95">
+                        <button onClick={() => setView('create')} className="px-4 md:px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-transform active:scale-95">
                             <Plus className="w-5 h-5" /> New Ticket
                         </button>
                     </div>
@@ -635,7 +635,7 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                     ) : (
                         <div className="grid gap-4">
                             {tickets.map(t => (
-                                <div key={t.id} onClick={() => setSelectedTicket(t)} className="group bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-indigo-500/50 hover:shadow-md transition-all cursor-pointer">
+                                <div key={t.id} onClick={() => setSelectedTicket(t)} className="group bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-indigo-500/50 hover:shadow-md transition-all cursor-pointer">
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="flex items-center gap-3">
                                             <h3 className="font-bold text-slate-900 dark:text-white text-lg group-hover:text-indigo-600 transition-colors">{t.subject}</h3>
@@ -662,7 +662,7 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                 {selectedTicket && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedTicket(null)}>
                         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-surface-dark w-full max-w-4xl h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10">
-                            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
                                 <div>
                                     <div className="flex items-center gap-3 mb-1"><h2 className="text-xl font-bold text-slate-900 dark:text-white">{selectedTicket.subject}</h2><span className={`px-2 py-0.5 rounded text-xs font-bold ${selectedTicket.status === 'Open' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>{selectedTicket.status}</span></div>
                                     <div className="flex items-center gap-4 text-xs text-slate-500"><span>#{selectedTicket.id}</span><span>{selectedTicket.category}</span><span>{selectedTicket.priority} Priority</span></div>
@@ -671,7 +671,7 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                             </div>
                             <div className="flex-1 flex overflow-hidden">
                                 <div className="flex-1 flex flex-col border-r border-slate-100 dark:border-white/5">
-                                    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 dark:bg-black/20">
+                                    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/30 dark:bg-black/20">
                                         {selectedTicket.messages.map((msg, i) => (
                                             <div key={i} className={`flex ${msg.sender === 'User' ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${msg.sender === 'User' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 text-slate-900 dark:text-white rounded-tl-none'}`}>
@@ -686,7 +686,7 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                                         <button onClick={handleReply} className="p-3 bg-indigo-600 text-white rounded-xl"><Send className="w-5 h-5" /></button>
                                     </div>
                                 </div>
-                                <div className="w-80 bg-slate-50 dark:bg-black/20 p-6 overflow-y-auto space-y-6">
+                                <div className="w-80 max-w-full bg-slate-50 dark:bg-black/20 p-4 md:p-6 overflow-y-auto space-y-6">
                                     <div className="bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 shadow-sm">
                                         <h4 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Actions</h4>
                                         {selectedTicket.status !== 'Resolved' ? (

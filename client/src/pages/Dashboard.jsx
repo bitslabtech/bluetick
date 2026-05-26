@@ -276,13 +276,13 @@ const Dashboard = () => {
                         <div className="shrink-0 w-full xl:w-auto flex items-center justify-end gap-3 ml-auto">
                             <button
                                 onClick={() => navigate('/store')}
-                                className="flex items-center justify-center gap-2 h-11 px-6 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/20 w-full sm:w-auto"
+                                className="flex items-center justify-center gap-2 h-11 px-4 md:px-6 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/20 w-full sm:w-auto"
                             >
                                 <Wallet className="w-5 h-5" /> Top-up Store
                             </button>
                             <button
                                 onClick={() => navigate('/campaigns')}
-                                className="flex items-center justify-center gap-2 h-11 px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/20 w-full sm:w-auto"
+                                className="flex items-center justify-center gap-2 h-11 px-4 md:px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/20 w-full sm:w-auto"
                             >
                                 <Plus className="w-5 h-5" /> New Campaign
                             </button>
@@ -436,11 +436,11 @@ const Dashboard = () => {
                     {/* Middle Section: Chart & Quick Actions (Chart Visual Mocked for design) */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Chart Area */}
-                        <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-[#2f455a] flex flex-col min-h-[400px] shadow-sm transition-colors duration-300">
+                        <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-xl p-4 md:p-6 border border-slate-200 dark:border-[#2f455a] flex flex-col min-h-[400px] shadow-sm transition-colors duration-300">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                                 <h3 className="text-slate-900 dark:text-white text-lg font-bold">Message Volume</h3>
 
-                                <div className="flex items-center bg-slate-100 dark:bg-background-dark rounded-lg p-1 border border-slate-200 dark:border-white/5">
+                                <div className="flex items-center bg-slate-100 dark:bg-background-dark rounded-lg p-1 border border-slate-200 dark:border-white/5 overflow-x-auto w-full md:w-auto hide-scrollbar whitespace-nowrap">
                                     {[
                                         { id: '1d', label: '1D' },
                                         { id: '7d', label: '7D' },
@@ -619,12 +619,12 @@ const Dashboard = () => {
                             <table className="w-full text-left border-collapse bg-white dark:bg-surface-dark transition-colors duration-300">
                                 <thead className="bg-slate-50 dark:bg-background-dark text-slate-500 dark:text-text-secondary text-xs uppercase font-medium">
                                     <tr>
-                                        <th className="px-6 py-4">Campaign Name</th>
-                                        <th className="px-6 py-4">Status</th>
-                                        <th className="px-6 py-4">Template</th>
-                                        <th className="px-6 py-4">Recipients</th>
-                                        <th className="px-6 py-4">Date</th>
-                                        <th className="px-6 py-4 text-right">Action</th>
+                                        <th className="px-4 md:px-6 py-4">Campaign Name</th>
+                                        <th className="px-4 md:px-6 py-4">Status</th>
+                                        <th className="px-4 md:px-6 py-4">Template</th>
+                                        <th className="px-4 md:px-6 py-4">Recipients</th>
+                                        <th className="px-4 md:px-6 py-4">Date</th>
+                                        <th className="px-4 md:px-6 py-4 text-right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-sm divide-y divide-slate-100 dark:divide-background-dark">
@@ -635,14 +635,14 @@ const Dashboard = () => {
                                     ) : (
                                         stats.recentCampaigns.map((campaign) => (
                                             <tr key={campaign.id} className="hover:bg-slate-50 dark:hover:bg-[#2f455a] transition-colors text-slate-900 dark:text-white">
-                                                <td className="px-6 py-4 font-medium">{campaign.campaignName || 'Untitled Campaign'}</td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 md:px-6 py-4 font-medium">{campaign.campaignName || 'Untitled Campaign'}</td>
+                                                <td className="px-4 md:px-6 py-4">
                                                     {getStatusBadge(campaign.status)}
                                                 </td>
-                                                <td className="px-6 py-4 text-slate-500 dark:text-text-secondary">{campaign.Template?.name}</td>
-                                                <td className="px-6 py-4 text-slate-500 dark:text-text-secondary">{campaign.recipientCount}</td>
-                                                <td className="px-6 py-4 text-slate-500 dark:text-text-secondary">{new Date(campaign.createdAt).toLocaleDateString()}</td>
-                                                <td className="px-6 py-4 text-right">
+                                                <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-text-secondary">{campaign.Template?.name}</td>
+                                                <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-text-secondary">{campaign.recipientCount}</td>
+                                                <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-text-secondary">{new Date(campaign.createdAt).toLocaleDateString()}</td>
+                                                <td className="px-4 md:px-6 py-4 text-right">
                                                     <button
                                                         onClick={() => navigate(`/campaign-details/${campaign.id}`)}
                                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-text-secondary hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white transition-all text-xs font-bold group/btn"

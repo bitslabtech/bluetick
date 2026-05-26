@@ -196,7 +196,7 @@ const IntegrationsTab = () => {
     // ===================================
     // RENDER HELPERS
     // ===================================
-    if (loading) return <div className="flex justify-center p-12"><RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" /></div>;
+    if (loading) return <div className="flex justify-center p-4 md:p-12"><RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" /></div>;
 
     const hasAccess = !planError;
 
@@ -237,7 +237,7 @@ const IntegrationsTab = () => {
 
             {/* UPGRADE WALL */}
             {!hasAccess && activeSection !== 'connectors' && (
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl p-8 text-center flex flex-col items-center">
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl p-4 md:p-8 text-center flex flex-col items-center">
                     <div className="w-16 h-16 bg-white dark:bg-surface-dark rounded-full shadow-lg flex items-center justify-center mb-4">
                         <Lock className="w-8 h-8 text-indigo-500" />
                     </div>
@@ -245,7 +245,7 @@ const IntegrationsTab = () => {
                     <p className="text-slate-600 dark:text-slate-400 max-w-md mb-6">
                         {planError} Upgrade your plan to unlock full API capabilities and automated Webhook real-time routing.
                     </p>
-                    <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 font-semibold transition-all">
+                    <button className="px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 font-semibold transition-all">
                         View Upgrade Plans
                     </button>
                 </div>
@@ -258,7 +258,7 @@ const IntegrationsTab = () => {
                     {activeSection === 'connectors' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {/* Native / Included Integrations */}
-                            <div className="group relative bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1">
+                            <div className="group relative bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1">
                                 <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center mb-4 text-indigo-600 dark:text-indigo-400">
                                     <Terminal className="w-6 h-6" />
@@ -277,7 +277,7 @@ const IntegrationsTab = () => {
                                 </div>
                             </div>
                             
-                            <div className="group relative bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1">
+                            <div className="group relative bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1">
                                 <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center mb-4 text-purple-600 dark:text-purple-400">
                                     <Webhook className="w-6 h-6" />
                                 </div>
@@ -299,7 +299,7 @@ const IntegrationsTab = () => {
                             {addons.map(addon => {
                                 const isOwned = userAddons.some(ua => ua.addonId === addon.id);
                                 return (
-                                    <div key={addon.id} className="group relative bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1">
+                                    <div key={addon.id} className="group relative bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1">
                                         <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center mb-4 text-orange-600 dark:text-orange-400">
                                             {/* Ideally use a dynamic icon or image here based on addon.icon */}
                                             <Box className="w-6 h-6" />
@@ -339,7 +339,7 @@ const IntegrationsTab = () => {
                     {activeSection === 'keys' && (
                         <div className="space-y-6">
                             {/* Create Key Card */}
-                            <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm">
+                            <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Generate New API Key</h3>
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     <input 
@@ -352,7 +352,7 @@ const IntegrationsTab = () => {
                                     <button 
                                         onClick={handleGenerateKey}
                                         disabled={isGeneratingKey}
-                                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                                        className="px-4 md:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                                     >
                                         {isGeneratingKey ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                         Create Secret Key
@@ -370,31 +370,31 @@ const IntegrationsTab = () => {
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 font-medium">
                                             <tr>
-                                                <th className="px-6 py-4">Label</th>
-                                                <th className="px-6 py-4 text-center">Key Preview</th>
-                                                <th className="px-6 py-4">Scopes</th>
-                                                <th className="px-6 py-4 text-right">Created</th>
-                                                <th className="px-6 py-4 text-center">Status</th>
-                                                <th className="px-6 py-4"></th>
+                                                <th className="px-4 md:px-6 py-4">Label</th>
+                                                <th className="px-4 md:px-6 py-4 text-center">Key Preview</th>
+                                                <th className="px-4 md:px-6 py-4">Scopes</th>
+                                                <th className="px-4 md:px-6 py-4 text-right">Created</th>
+                                                <th className="px-4 md:px-6 py-4 text-center">Status</th>
+                                                <th className="px-4 md:px-6 py-4"></th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-700 dark:text-slate-300">
                                             {apiKeys.length === 0 && (
                                                 <tr>
-                                                    <td colSpan="6" className="px-6 py-12 text-center text-slate-400">
+                                                    <td colSpan="6" className="px-4 md:px-6 py-12 text-center text-slate-400">
                                                         No API keys generated yet.
                                                     </td>
                                                 </tr>
                                             )}
                                             {apiKeys.map((key) => (
                                                 <tr key={key.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                                    <td className="px-6 py-4 font-semibold">{key.label}</td>
-                                                    <td className="px-6 py-4 text-center">
+                                                    <td className="px-4 md:px-6 py-4 font-semibold">{key.label}</td>
+                                                    <td className="px-4 md:px-6 py-4 text-center">
                                                         <code className="px-2 py-1 bg-slate-100 dark:bg-black/30 rounded text-slate-500 text-xs">
                                                             {key.keyPrefix ? `${key.keyPrefix}...${key.last4}` : `sk_live_....${key.last4}`}
                                                         </code>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-4 md:px-6 py-4">
                                                         <div className="flex flex-wrap gap-1">
                                                             {(key.scopes || ['messages:send']).map(scope => (
                                                                 <span key={scope} className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded text-[10px] font-mono">
@@ -403,17 +403,17 @@ const IntegrationsTab = () => {
                                                             ))}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right text-slate-500">
+                                                    <td className="px-4 md:px-6 py-4 text-right text-slate-500">
                                                         {new Date(key.createdAt).toLocaleDateString()}
                                                     </td>
-                                                    <td className="px-6 py-4 text-center">
+                                                    <td className="px-4 md:px-6 py-4 text-center">
                                                         {key.isActive ? (
-                                                            <span className="inline-flex w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span>
+                                                            <span className="inline-flex w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] max-w-full"></span>
                                                         ) : (
                                                             <span className="inline-flex w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
+                                                    <td className="px-4 md:px-6 py-4 text-right">
                                                         <button 
                                                             onClick={() => handleRevokeKey(key.id)}
                                                             className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
@@ -435,7 +435,7 @@ const IntegrationsTab = () => {
                     {activeSection === 'webhooks' && (
                         <div className="space-y-6">
                             {/* Create Webhook Card */}
-                            <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm">
+                            <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Register Endpoint</h3>
                                 
                                 <div className="space-y-4">
@@ -473,7 +473,7 @@ const IntegrationsTab = () => {
                                         <button 
                                             onClick={handleCreateWebhook}
                                             disabled={isCreatingWebhook}
-                                            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 font-semibold transition-all flex items-center justify-center gap-2"
+                                            className="px-4 md:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 font-semibold transition-all flex items-center justify-center gap-2"
                                         >
                                             {isCreatingWebhook ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                             Add Webhook
@@ -546,7 +546,7 @@ const IntegrationsTab = () => {
                                     </p>
                                     <button
                                         onClick={fetchUsageData}
-                                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 font-semibold transition-all flex items-center gap-2"
+                                        className="px-4 md:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 font-semibold transition-all flex items-center gap-2"
                                     >
                                         <Activity className="w-4 h-4" /> Load Usage Stats
                                     </button>
@@ -607,7 +607,7 @@ const IntegrationsTab = () => {
 
                                     {/* Message Limit Progress */}
                                     {usageData.plan?.messageLimit !== 'unlimited' && (
-                                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm">
+                                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm">
                                             <div className="flex justify-between items-center mb-3">
                                                 <h4 className="font-semibold text-slate-900 dark:text-white">Monthly Message Quota</h4>
                                                 <span className="text-sm font-mono text-slate-500">
@@ -628,7 +628,7 @@ const IntegrationsTab = () => {
 
                                     {/* Recent API Calls Table */}
                                     <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
-                                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5">
+                                        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5">
                                             <h4 className="font-semibold text-slate-900 dark:text-white">Recent API Calls</h4>
                                             <button onClick={fetchUsageData} className="p-1.5 text-slate-400 hover:text-indigo-500 transition-colors" title="Refresh">
                                                 <RefreshCw className="w-4 h-4" />
@@ -685,7 +685,7 @@ const IntegrationsTab = () => {
 
                     {/* API DOCS SECTION */}
                     {activeSection === 'docs' && (
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm">
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm">
                             <ApiDocs />
                         </div>
                     )}

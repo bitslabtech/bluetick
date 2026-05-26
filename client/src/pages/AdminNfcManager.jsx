@@ -237,21 +237,21 @@ export default function AdminNfcManager() {
 
                 {/* Dashboard Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex items-center gap-4">
+                    <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex items-center gap-4">
                         <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl flex items-center justify-center"><Database className="w-6 h-6" /></div>
                         <div>
                             <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Total Codes</p>
                             <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{totalCards}</h3>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex items-center gap-4">
+                    <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex items-center gap-4">
                         <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-xl flex items-center justify-center"><CheckCircle className="w-6 h-6" /></div>
                         <div>
                             <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Linked Cards</p>
                             <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{assignedCards}</h3>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex items-center gap-4">
+                    <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex items-center gap-4">
                         <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-xl flex items-center justify-center"><Tag className="w-6 h-6" /></div>
                         <div>
                             <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Unassigned Stock</p>
@@ -279,14 +279,14 @@ export default function AdminNfcManager() {
                 {/* Tab Content */}
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden min-h-[400px]">
                     {loading ? (
-                        <div className="p-8 space-y-4">
+                        <div className="p-4 md:p-8 space-y-4">
                             <Skeleton height={50} className="dark:opacity-10" />
                             <Skeleton height={50} className="dark:opacity-10" />
                             <Skeleton height={50} className="dark:opacity-10" />
                         </div>
                     ) : activeTab === 'generate' ? (
-                        <div className="p-8 max-w-2xl mx-auto">
-                            <div className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl p-6 mb-8 flex gap-4">
+                        <div className="p-4 md:p-8 max-w-2xl mx-auto">
+                            <div className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl p-4 md:p-6 mb-8 flex gap-4">
                                 <Info className="w-6 h-6 text-indigo-500 shrink-0" />
                                 <div>
                                     <h4 className="font-bold text-indigo-900 dark:text-indigo-300 mb-1">Batch Generation Process</h4>
@@ -332,33 +332,33 @@ export default function AdminNfcManager() {
                                 <table className="w-full text-left text-sm whitespace-nowrap">
                                     <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5 text-slate-500 font-medium">
                                         <tr>
-                                            <th className="px-6 py-4">Short Code</th>
-                                            <th className="px-6 py-4">Batch ID</th>
-                                            <th className="px-6 py-4">Type</th>
-                                            <th className="px-6 py-4">Status</th>
-                                            <th className="px-6 py-4">Linked Owner</th>
+                                            <th className="px-4 md:px-6 py-4">Short Code</th>
+                                            <th className="px-4 md:px-6 py-4">Batch ID</th>
+                                            <th className="px-4 md:px-6 py-4">Type</th>
+                                            <th className="px-4 md:px-6 py-4">Status</th>
+                                            <th className="px-4 md:px-6 py-4">Linked Owner</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                         {cards.length === 0 ? (
                                             <tr>
-                                                <td colSpan="5" className="px-6 py-12 text-center text-slate-500">
+                                                <td colSpan="5" className="px-4 md:px-6 py-12 text-center text-slate-500">
                                                     No NFC cards generated yet.
                                                 </td>
                                             </tr>
                                         ) : cards.map(card => (
                                             <tr key={card.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                                <td className="px-6 py-4 font-mono font-bold text-slate-900 dark:text-white">{card.shortCode}</td>
-                                                <td className="px-6 py-4 text-slate-500">{card.batchId}</td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 md:px-6 py-4 font-mono font-bold text-slate-900 dark:text-white">{card.shortCode}</td>
+                                                <td className="px-4 md:px-6 py-4 text-slate-500">{card.batchId}</td>
+                                                <td className="px-4 md:px-6 py-4">
                                                     <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider">{card.type.replace('_', ' ')}</span>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 md:px-6 py-4">
                                                     <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-full border ${card.status === 'assigned' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400'}`}>
                                                         {card.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                                                <td className="px-4 md:px-6 py-4 text-slate-600 dark:text-slate-300">
                                                     {card.owner ? (
                                                         <div className="flex flex-col">
                                                             <span className="font-medium text-slate-900 dark:text-white">{card.owner.name}</span>
@@ -373,7 +373,7 @@ export default function AdminNfcManager() {
                             </div>
                         </div>
                     ) : activeTab === 'catalog' ? (
-                        <div className="p-6">
+                        <div className="p-4 md:p-6">
                             <div className="flex justify-between items-center mb-6">
                                 <div>
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Store Catalog</h3>
@@ -451,7 +451,7 @@ export default function AdminNfcManager() {
                             </div>
 
                             {catalog.length === 0 ? (
-                                <div className="p-12 text-center border border-dashed border-slate-300 dark:border-white/20 rounded-2xl">
+                                <div className="p-4 md:p-12 text-center border border-dashed border-slate-300 dark:border-white/20 rounded-2xl">
                                     <ShoppingBag className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                                     <h3 className="text-slate-900 dark:text-white font-bold mb-1">No Products in Catalog</h3>
                                     <p className="text-slate-500 text-sm">Add physical cards and keychains for your users to purchase.</p>
@@ -497,38 +497,38 @@ export default function AdminNfcManager() {
                             <table className="w-full text-left text-sm whitespace-nowrap">
                                 <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5 text-slate-500 font-medium">
                                     <tr>
-                                        <th className="px-6 py-4">Date</th>
-                                        <th className="px-6 py-4">Customer</th>
-                                        <th className="px-6 py-4">Product</th>
-                                        <th className="px-6 py-4">Shipping / Contact</th>
-                                        <th className="px-6 py-4">Status</th>
-                                        <th className="px-6 py-4">Action</th>
+                                        <th className="px-4 md:px-6 py-4">Date</th>
+                                        <th className="px-4 md:px-6 py-4">Customer</th>
+                                        <th className="px-4 md:px-6 py-4">Product</th>
+                                        <th className="px-4 md:px-6 py-4">Shipping / Contact</th>
+                                        <th className="px-4 md:px-6 py-4">Status</th>
+                                        <th className="px-4 md:px-6 py-4">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                     {orders.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                                            <td colSpan="6" className="px-4 md:px-6 py-12 text-center text-slate-500">
                                                 No NFC orders received yet.
                                             </td>
                                         </tr>
                                     ) : orders.map(order => (
                                         <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                            <td className="px-6 py-4 text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                                            <td className="px-4 md:px-6 py-4 text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</td>
+                                            <td className="px-4 md:px-6 py-4 font-medium text-slate-900 dark:text-white">
                                                 {order.user?.name}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <Package className="w-4 h-4 text-indigo-500" />
                                                     <span className="font-medium dark:text-white">{order.quantity}x {order.productType}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-slate-500 text-xs max-w-[200px] truncate" title={order.shippingAddress}>
+                                            <td className="px-4 md:px-6 py-4 text-slate-500 text-xs max-w-[200px] max-w-full truncate" title={order.shippingAddress}>
                                                 {order.shippingAddress}<br/>
                                                 <span className="text-slate-400 font-mono">{order.contactNumber}</span>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <select 
                                                     value={order.status}
                                                     onChange={(e) => handleUpdateOrder(order.id, e.target.value)}
@@ -541,7 +541,7 @@ export default function AdminNfcManager() {
                                                     <option value="cancelled">Cancelled</option>
                                                 </select>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 {/* Visual indicator of payment if integrated */}
                                                 <span className={`text-[10px] font-bold uppercase ${order.paymentStatus === 'paid' ? 'text-green-500' : 'text-amber-500'}`}>
                                                     {order.paymentStatus}
@@ -560,11 +560,11 @@ export default function AdminNfcManager() {
             {showCatalogForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-white dark:bg-surface-dark w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
-                        <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-white/5">
+                        <div className="flex justify-between items-center p-4 md:p-6 border-b border-slate-100 dark:border-white/5">
                             <h3 className="font-bold text-lg text-slate-900 dark:text-white">{catalogForm.id ? 'Edit Product' : 'Add New Product'}</h3>
                             <button onClick={() => setShowCatalogForm(false)} className="text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 p-1.5 rounded-lg"><X className="w-5 h-5"/></button>
                         </div>
-                        <form onSubmit={handleSaveCatalog} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+                        <form onSubmit={handleSaveCatalog} className="p-4 md:p-6 space-y-4 overflow-y-auto max-h-[70vh]">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Product Image</label>
                                 <div className="flex items-center gap-4">
@@ -590,7 +590,7 @@ export default function AdminNfcManager() {
                                 <input type="text" value={catalogForm.name} onChange={e => setCatalogForm({...catalogForm, name: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-black/20 focus:ring-2 focus:ring-indigo-500 outline-none text-sm dark:text-white" required placeholder="Premium Metal Card" />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Price (₹)</label>
                                     <input type="number" min="0" value={catalogForm.price} onChange={e => setCatalogForm({...catalogForm, price: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-black/20 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold dark:text-white" required placeholder="1499" />
@@ -609,7 +609,7 @@ export default function AdminNfcManager() {
 
                             <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex justify-end gap-3">
                                 <button type="button" onClick={() => setShowCatalogForm(false)} className="px-5 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl">Cancel</button>
-                                <button type="submit" disabled={savingCatalog} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+                                <button type="submit" disabled={savingCatalog} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 md:px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
                                     {savingCatalog ? <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"/> : null}
                                     Save Product
                                 </button>

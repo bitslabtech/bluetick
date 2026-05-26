@@ -118,7 +118,7 @@ const AdminAlerts = () => {
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center p-20 text-center">
+                        <div className="flex flex-col items-center justify-center p-4 md:p-20 text-center">
                             <Shield className="w-16 h-16 text-slate-200 dark:text-slate-700 mb-4" />
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">All Caught Up!</h3>
                             <p className="text-slate-500 dark:text-slate-400">No new system alerts at the moment.</p>

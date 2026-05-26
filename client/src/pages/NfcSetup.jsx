@@ -13,7 +13,7 @@ export default function NfcSetup() {
     
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-background-dark flex flex-col justify-center items-center p-4">
-            <div className="max-w-md w-full bg-white dark:bg-surface-dark rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-8 text-center animate-in fade-in zoom-in duration-500">
+            <div className="max-w-md w-full bg-white dark:bg-surface-dark rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 p-4 md:p-8 text-center animate-in fade-in zoom-in duration-500">
                 <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner relative">
                     <div className="absolute inset-0 bg-indigo-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
                     <Nfc className="w-12 h-12 text-indigo-600 dark:text-indigo-400 relative z-10" />

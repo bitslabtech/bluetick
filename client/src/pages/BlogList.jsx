@@ -40,7 +40,7 @@ const BlogList = () => {
         <PublicLayout pageKey="blog" fullWidth={true}>
             <div className="bg-[#F5F5F7] dark:bg-black text-slate-900 dark:text-white font-display selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-200">
             {/* Hero Section */}
-            <header className="pt-40 pb-20 px-6 text-center max-w-4xl mx-auto">
+            <header className="pt-40 pb-20 px-4 md:px-6 text-center max-w-4xl mx-auto">
                 <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-tight mb-6">
                     Insights from the <br/>
                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">cutting edge.</span>
@@ -57,13 +57,13 @@ const BlogList = () => {
                         placeholder="Search for articles..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-14 pr-6 py-5 bg-white dark:bg-[#1C1C1E] border-0 rounded-3xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] focus:ring-2 focus:ring-indigo-500 outline-none text-lg dark:text-white transition-all hover:shadow-[0_15px_50px_-15px_rgba(0,0,0,0.15)] group-hover:scale-[1.01]"
+                        className="w-full pl-14 pr-6 py-5 bg-white dark:bg-[#1C1C1E] border-0 rounded-3xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] focus:ring-2 focus:ring-indigo-500 outline-none text-lg dark:text-white transition-all hover:shadow-[0_15px_50px_-15px_rgba(0,0,0,0.15)] max-w-full group-hover:scale-[1.01]"
                     />
                 </motion.div>
             </header>
 
             {/* Featured or Grid Section */}
-            <main className="max-w-7xl mx-auto px-6 pb-40">
+            <main className="max-w-7xl mx-auto px-4 md:px-6 pb-40">
                 {filteredBlogs.length === 0 ? (
                     <div className="text-center py-20">
                         <Megaphone className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-700 mb-4" />
@@ -80,7 +80,7 @@ const BlogList = () => {
                                 key={blog.id} 
                                 className="group flex flex-col cursor-pointer"
                             >
-                                <Link to={`/blog/${blog.slug}`} className="flex flex-col h-full rounded-3xl bg-white dark:bg-[#1C1C1E] overflow-hidden shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-none dark:hover:bg-[#2C2C2E] transition-all duration-500 border border-transparent dark:border-white/5 group-hover:-translate-y-1">
+                                <Link to={`/blog/${blog.slug}`} className="flex flex-col h-full rounded-3xl bg-white dark:bg-[#1C1C1E] overflow-hidden shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] max-w-full dark:shadow-none dark:hover:bg-[#2C2C2E] transition-all duration-500 border border-transparent dark:border-white/5 group-hover:-translate-y-1">
                                     <div className="h-60 overflow-hidden relative bg-slate-100 dark:bg-white/5">
                                         {blog.coverImage ? (
                                             <img src={blog.coverImage} alt={blog.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" />
@@ -88,7 +88,7 @@ const BlogList = () => {
                                             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 group-hover:scale-105 transition-transform duration-700"></div>
                                         )}
                                     </div>
-                                    <div className="p-8 flex-1 flex flex-col">
+                                    <div className="p-4 md:p-8 flex-1 flex flex-col">
                                         <div className="flex items-center gap-2 text-sm text-indigo-500 dark:text-indigo-400 font-bold tracking-wide uppercase mb-4">
                                             <Calendar className="w-4 h-4" /> 
                                             {new Date(blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}

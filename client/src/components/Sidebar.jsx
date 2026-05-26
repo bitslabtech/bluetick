@@ -348,10 +348,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                         <MessageSquare className="w-6 h-6" />
                     </div>
                     <div className="flex flex-col">
-                        <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px]">
+                        <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px] max-w-full">
                             {publicSettings?.appName || 'Bluetick'}
                         </h1>
-                        <p className="text-slate-500 dark:text-text-secondary text-xs font-normal leading-normal truncate max-w-[140px]">{publicSettings?.appTagline || 'Business API'}</p>
+                        <p className="text-slate-500 dark:text-text-secondary text-xs font-normal leading-normal truncate max-w-[140px] max-w-full">{publicSettings?.appTagline || 'Business API'}</p>
                     </div>
                     {/* Mobile Close Button */}
                     <button
@@ -415,7 +415,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setChangelogOpen(false)}>
                 <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-white/5 shrink-0">
+                    <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 dark:border-white/5 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
                                 <Tag className="w-5 h-5" />
@@ -431,7 +431,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                     </div>
 
                     {/* Body */}
-                    <div className="overflow-y-auto flex-1 p-6">
+                    <div className="overflow-y-auto flex-1 p-4 md:p-6">
                         {changelogLoading ? (
                             <div className="flex flex-col gap-6">
                                 {[...Array(3)].map((_, i) => (

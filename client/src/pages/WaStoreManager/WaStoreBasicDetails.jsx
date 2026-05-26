@@ -223,11 +223,11 @@ const InputField = ({ label, icon: Icon, hint, ...props }) => (
 
 const SectionCard = ({ title, description, children }) => (
     <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+        <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
             <h3 className="font-bold text-slate-900 dark:text-white">{title}</h3>
             {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
         </div>
-        <div className="p-6 space-y-5">
+        <div className="p-4 md:p-6 space-y-5">
             {children}
         </div>
     </div>
@@ -561,7 +561,7 @@ export default function WaStoreBasicDetails() {
                 {/* ── Save ─────────────────────────────────────────────── */}
                 <div className="flex justify-end pt-2">
                     <button type="submit" disabled={saving}
-                        className="flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl font-semibold transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-95">
+                        className="flex items-center gap-2 px-4 md:px-8 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl font-semibold transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-95">
                         <Save className="w-4 h-4" />
                         {saving ? 'Saving…' : 'Save Details'}
                     </button>

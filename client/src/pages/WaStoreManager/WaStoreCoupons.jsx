@@ -119,29 +119,29 @@ export default function WaStoreCoupons() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="px-6 py-4 font-medium text-slate-500">Code</th>
-                                <th className="px-6 py-4 font-medium text-slate-500">Discount</th>
-                                <th className="px-6 py-4 font-medium text-slate-500">Min Order</th>
-                                <th className="px-6 py-4 font-medium text-slate-500">Status</th>
-                                <th className="px-6 py-4 font-medium text-slate-500">Expiry</th>
-                                <th className="px-6 py-4 font-medium text-slate-500 text-right">Actions</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Code</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Discount</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Min Order</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Status</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Expiry</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {coupons.map(coupon => (
                                 <tr key={coupon.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                         <span className="font-bold font-mono px-2 py-1 bg-slate-100 rounded text-slate-800">
                                             {coupon.code}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 font-medium">
+                                    <td className="px-4 md:px-6 py-4 font-medium">
                                         {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `Fixed: ${coupon.discountValue}`}
                                     </td>
-                                    <td className="px-6 py-4 text-slate-500">
+                                    <td className="px-4 md:px-6 py-4 text-slate-500">
                                         {coupon.minOrderValue ? `> ${coupon.minOrderValue}` : 'None'}
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                         <button 
                                             onClick={() => handleToggleActive(coupon)}
                                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${coupon.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
@@ -153,10 +153,10 @@ export default function WaStoreCoupons() {
                                             {coupon.isActive ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-slate-500">
+                                    <td className="px-4 md:px-6 py-4 text-slate-500">
                                         {coupon.expiresAt ? new Date(coupon.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never'}
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-4 md:px-6 py-4 text-right">
                                         <button onClick={() => handleDelete(coupon.id)} className="text-slate-400 hover:text-rose-500 p-2">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -172,18 +172,18 @@ export default function WaStoreCoupons() {
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div className="px-4 md:px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                             <h3 className="font-bold text-lg">Create Promo Code</h3>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
                                 <XCircle className="w-5 h-5" />
                             </button>
                         </div>
-                        <form onSubmit={handleCreate} className="p-6 space-y-4">
+                        <form onSubmit={handleCreate} className="p-4 md:p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1">Coupon Code</label>
                                 <input required type="text" value={form.code} onChange={e => setForm({...form, code: e.target.value.toUpperCase()})} className="w-full px-3 py-2 border rounded-lg uppercase" placeholder="e.g. SUMMER50" />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Type</label>
                                     <select value={form.discountType} onChange={e => setForm({...form, discountType: e.target.value})} className="w-full px-3 py-2 border rounded-lg">
@@ -206,7 +206,7 @@ export default function WaStoreCoupons() {
                             </div>
                             <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-slate-500 font-medium">Cancel</button>
-                                <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium">Create</button>
+                                <button type="submit" className="px-4 md:px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium">Create</button>
                             </div>
                         </form>
                     </div>

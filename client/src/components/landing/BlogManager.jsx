@@ -171,7 +171,7 @@ const BlogManager = () => {
                             </div>
                             <button
                                 onClick={handleCreateNew}
-                                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white rounded-xl font-bold shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all flex items-center gap-2"
+                                className="px-4 md:px-6 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white rounded-xl font-bold shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all flex items-center gap-2"
                             >
                                 <Plus className="w-4 h-4" /> New Post
                             </button>
@@ -228,7 +228,7 @@ const BlogManager = () => {
                 ) : (
                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="absolute inset-0 z-10 bg-white dark:bg-background-dark flex flex-col h-full rounded-2xl">
                         {/* Editor Header */}
-                        <div className="flex items-center justify-between p-4 px-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-black/20 backdrop-blur-xl shrink-0">
+                        <div className="flex items-center justify-between p-4 px-4 md:px-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-black/20 backdrop-blur-xl shrink-0">
                             <div className="flex items-center gap-4">
                                 <button onClick={() => setIsEditing(false)} className="p-2 -ml-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl hover:bg-white dark:hover:bg-white/10 transition-colors">
                                     <ChevronLeft className="w-5 h-5" />
@@ -245,7 +245,7 @@ const BlogManager = () => {
                                     <input type="checkbox" className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" checked={form.isPublished} onChange={e => setForm({...form, isPublished: e.target.checked})} />
                                     Publish visibly
                                 </label>
-                                <button onClick={handleSave} disabled={saving} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2 disabled:opacity-70">
+                                <button onClick={handleSave} disabled={saving} className="px-4 md:px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2 disabled:opacity-70">
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                     {saving ? 'Saving...' : 'Save Post'}
                                 </button>
@@ -255,7 +255,7 @@ const BlogManager = () => {
                         {/* Editor Canvas Container */}
                         <div className="flex-1 flex overflow-hidden">
                             {/* Main Writing Area */}
-                            <div className="flex-1 overflow-y-auto p-6 lg:p-10 scrollbar-hide">
+                            <div className="flex-1 overflow-y-auto p-6 lg:p-4 md:p-10 scrollbar-hide">
                                 <div className="max-w-3xl mx-auto space-y-8">
                                     
                                     {/* Cover Image Upload (Apple-style sleek) */}
@@ -264,7 +264,7 @@ const BlogManager = () => {
                                             <>
                                                 <img src={form.coverImage} alt="Cover" className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                                                    <label className="cursor-pointer px-6 py-3 bg-white/90 text-slate-900 rounded-xl font-bold text-sm shadow-xl flex items-center gap-2 hover:bg-white hover:scale-105 transition-all">
+                                                    <label className="cursor-pointer px-4 md:px-6 py-3 bg-white/90 text-slate-900 rounded-xl font-bold text-sm shadow-xl flex items-center gap-2 hover:bg-white hover:scale-105 transition-all">
                                                         <ImageIcon className="w-4 h-4" /> Change Cover
                                                         <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                                                     </label>
@@ -332,7 +332,7 @@ const BlogManager = () => {
                             </div>
 
                             {/* SEO & Configuration Sidebar */}
-                            <div className="w-80 bg-slate-50/50 dark:bg-black/10 flex flex-col border-l border-slate-100 dark:border-white/5 shrink-0 overflow-y-auto hidden lg:flex">
+                            <div className="w-80 max-w-full bg-slate-50/50 dark:bg-black/10 flex flex-col border-l border-slate-100 dark:border-white/5 shrink-0 overflow-y-auto hidden lg:flex">
                                 <div className="p-5 border-b border-slate-100 dark:border-white/5 sticky top-0 bg-slate-50/90 dark:bg-[#0B1120]/90 backdrop-blur-md z-10 flex items-center justify-between">
                                     <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-sm uppercase tracking-wider">
                                         <Sparkles className="w-4 h-4 text-amber-500" /> SEO & Settings

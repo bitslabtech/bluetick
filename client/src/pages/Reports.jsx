@@ -30,12 +30,12 @@ const SearchableDropdown = ({ options, value, onChange, placeholder = 'Select...
     return (
         <div className="relative" ref={ref}>
             <button onClick={() => { setIsOpen(!isOpen); setSearchTerm(''); }}
-                className="flex items-center justify-between w-full md:min-w-[220px] bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none hover:border-indigo-400 transition-colors shadow-sm">
-                <span className="truncate max-w-[160px]">{selected ? selected.label : placeholder}</span>
+                className="flex items-center justify-between w-full md:min-w-[220px] max-w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none hover:border-indigo-400 transition-colors shadow-sm">
+                <span className="truncate max-w-[160px] max-w-full">{selected ? selected.label : placeholder}</span>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
-                <div className="absolute top-full left-0 mt-2 w-full md:min-w-[220px] bg-white dark:bg-surface-dark rounded-xl shadow-2xl border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
+                <div className="absolute top-full left-0 mt-2 w-full md:min-w-[220px] max-w-full bg-white dark:bg-surface-dark rounded-xl shadow-2xl border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
                     <div className="p-2 border-b border-slate-100 dark:border-white/5">
                         <div className="relative">
                             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
@@ -95,7 +95,7 @@ const HourHeatmap = ({ data: rawData }) => {
     const data = (rawData && rawData.length > 0) ? rawData : [];
     const max = Math.max(...data.map(d => d.count), 1);
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-sm">
+        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm">
             <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="font-bold text-slate-900 dark:text-white">Best Send Hours</h3>
@@ -155,7 +155,7 @@ const TemplateBreakdown = ({ reports }) => {
     if (data.length === 0) return null;
 
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-sm">
+        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm">
             <div className="flex items-center justify-between mb-5">
                 <div>
                     <h3 className="font-bold text-slate-900 dark:text-white">Top Templates by Read Rate</h3>
@@ -199,7 +199,7 @@ const EngagementScore = ({ stats }) => {
     const label = score >= 70 ? 'Excellent' : score >= 40 ? 'Good' : 'Needs Work';
     const radialData = [{ name: 'Score', value: score, fill: clr }];
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-sm flex flex-col items-center">
+        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm flex flex-col items-center">
             <div className="flex items-center justify-between w-full mb-4">
                 <div>
                     <h3 className="font-bold text-slate-900 dark:text-white">Engagement Score</h3>
@@ -220,7 +220,7 @@ const EngagementScore = ({ stats }) => {
                     <span className="text-xs font-bold" style={{ color: clr }}>{label}</span>
                 </div>
             </div>
-            <div className="w-full mt-4 grid grid-cols-2 gap-3">
+            <div className="w-full mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="text-center p-3 bg-slate-50 dark:bg-white/5 rounded-xl">
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Delivery</p>
                     <p className="text-lg font-black text-slate-900 dark:text-white">{stats?.deliveryRate || 0}%</p>
@@ -249,7 +249,7 @@ const StatusDonut = ({ stats }) => {
         { name: 'Pending', value: pending, color: '#e2e8f0' },
     ].filter(d => d.value > 0);
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-sm">
+        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <h3 className="font-bold text-slate-900 dark:text-white">Status Breakdown</h3>
@@ -380,7 +380,7 @@ const Reports = () => {
             )}
 
             {/* Header */}
-            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0">
                 <div className="flex items-center gap-6 w-full">
                     <div className="flex items-center rounded-xl bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-indigo-500 transition-colors">
                         <Search className="w-4 h-4 text-slate-400" />
@@ -393,7 +393,7 @@ const Reports = () => {
             </header>
 
             {/* Sub-header with Filters */}
-            <div className="px-6 py-5 border-b border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark/80 shrink-0">
+            <div className="px-4 md:px-6 py-5 border-b border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark/80 shrink-0">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <div>
                         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Analytics & Reports</h2>
@@ -440,7 +440,7 @@ const Reports = () => {
                         {/* ── Row 2: Area Chart + Engagement Score ────────── */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Traffic Chart */}
-                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-sm">
+                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm">
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white">Message Traffic</h3>
@@ -498,7 +498,7 @@ const Reports = () => {
                         {/* ── Row 4: Day-of-Week Bar + Template Breakdown ── */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Day of Week */}
-                            <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-sm">
+                            <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm">
                                 <div className="flex items-center justify-between mb-5">
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white">Messages by Day</h3>
@@ -528,7 +528,7 @@ const Reports = () => {
                             {reports.length > 0 ? (
                                 <TemplateBreakdown reports={reports} />
                             ) : (
-                                <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-sm flex items-center justify-center">
+                                <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm flex items-center justify-center">
                                     <div className="text-center">
                                         <FileText className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                                         <p className="text-sm text-slate-500 dark:text-slate-400">No template data for this period</p>
@@ -568,7 +568,7 @@ const Reports = () => {
                                             const readPct = campaign.audience > 0 ? Math.round((campaign.read / campaign.audience) * 100) : 0;
                                             return (
                                                 <tr key={campaign.id} className="hover:bg-slate-50/70 dark:hover:bg-white/5 transition-colors group">
-                                                    <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white max-w-[180px] truncate">{campaign.name}</td>
+                                                    <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white max-w-[180px] max-w-full truncate">{campaign.name}</td>
                                                     <td className="px-5 py-4 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">{formatDate(campaign.sentDate)}</td>
                                                     <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{campaign.audience.toLocaleString()}</td>
                                                     <td className="px-5 py-4">
@@ -603,7 +603,7 @@ const Reports = () => {
                                                 </tr>
                                             );
                                         }) : (
-                                            <tr><td colSpan="8" className="px-6 py-12 text-center">
+                                            <tr><td colSpan="8" className="px-4 md:px-6 py-12 text-center">
                                                 <div className="flex flex-col items-center gap-2">
                                                     <BarChart3 className="w-10 h-10 text-slate-300 dark:text-slate-600" />
                                                     <p className="text-sm text-slate-500 dark:text-slate-400">No campaigns in this period</p>

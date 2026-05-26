@@ -245,14 +245,14 @@ export default function Team() {
         });
     };
 
-    if (loading || liveSubUser === null) return <div className="p-8 text-slate-500">Loading team...</div>;
+    if (loading || liveSubUser === null) return <div className="p-4 md:p-8 text-slate-500">Loading team...</div>;
 
     if (liveSubUser) {
         const roleColor = liveTeamRole === 'admin' ? 'purple' : liveTeamRole === 'editor' ? 'green' : 'blue';
         return (
             <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display transition-colors duration-300">
                 <TopHeader />
-                <div className="flex-1 overflow-y-auto p-8 pb-32 max-w-5xl mx-auto space-y-6 w-full custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-32 max-w-5xl mx-auto space-y-6 w-full custom-scrollbar">
                     <div className={`bg-${roleColor}-50 dark:bg-${roleColor}-900/20 border border-${roleColor}-200 dark:border-${roleColor}-800 p-8 rounded-2xl flex items-center gap-6 shadow-sm`}>
                     <Shield className={`w-12 h-12 text-${roleColor}-500 shrink-0`} />
                     <div>
@@ -297,7 +297,7 @@ export default function Team() {
                 {/* Left Column: Role & Modular Permissions */}
                 <div className="lg:col-span-7 space-y-6">
                     {/* Role Selector */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/20 dark:shadow-black/40">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-4 md:p-8 shadow-xl shadow-slate-200/20 dark:shadow-black/40">
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
                             <ShieldCheck className="w-6 h-6 text-indigo-500" /> Administrative Role
                         </h3>
@@ -321,7 +321,7 @@ export default function Team() {
                                     <p className={`text-xs ${formRole === role.id ? 'text-indigo-600 dark:text-indigo-300' : 'text-slate-500'}`}>
                                         {role.desc}
                                     </p>
-                                    {formRole === role.id && <div className="absolute top-4 right-4 w-3 h-3 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]"></div>}
+                                    {formRole === role.id && <div className="absolute top-4 right-4 w-3 h-3 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)] max-w-full"></div>}
                                 </div>
                             ))}
                         </div>
@@ -329,7 +329,7 @@ export default function Team() {
 
                     {/* Permissions Grid */}
                     <div className={`transition-all duration-500 ${formRole === 'admin' ? 'opacity-50 pointer-events-none filter grayscale' : 'opacity-100'}`}>
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/20 dark:shadow-black/40">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-4 md:p-8 shadow-xl shadow-slate-200/20 dark:shadow-black/40">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-3">
                                 <Activity className="w-6 h-6 text-emerald-500" /> Module Access
                             </h3>
@@ -371,7 +371,7 @@ export default function Team() {
 
                 {/* Right Column: WhatsApp Policies */}
                 <div className="lg:col-span-5 space-y-6">
-                    <div className="bg-slate-900 dark:bg-black border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+                    <div className="bg-slate-900 dark:bg-black border border-slate-800 rounded-3xl p-6 md:p-4 md:p-8 shadow-2xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
 
                         <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
@@ -443,13 +443,13 @@ export default function Team() {
                     <>
                         <button
                             onClick={handleUpdateMember}
-                            className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-lg shadow-indigo-500/25 transition-all text-lg"
+                            className="w-full sm:w-auto px-4 md:px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-lg shadow-indigo-500/25 transition-all text-lg"
                         >
                             Commit Changes
                         </button>
                         <button
                             onClick={handleCloseForm}
-                            className="w-full sm:w-auto px-8 py-4 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 rounded-2xl font-bold transition-all"
+                            className="w-full sm:w-auto px-4 md:px-8 py-4 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 rounded-2xl font-bold transition-all"
                         >
                             Discard
                         </button>
@@ -465,7 +465,7 @@ export default function Team() {
                                 {generating ? <Activity className="w-6 h-6 animate-spin" /> : <><Zap className="w-6 h-6 fill-white/20" /> Generate Magic Invite Link</>}
                             </button>
                         ) : (
-                            <div className="p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl animate-in zoom-in-95 duration-300 shadow-inner">
+                            <div className="p-4 md:p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl animate-in zoom-in-95 duration-300 shadow-inner">
                                 <p className="text-sm flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold mb-4">
                                     <CheckCircle2 className="w-5 h-5 fill-emerald-500 text-white dark:text-slate-900" /> Link Ready to Dispatch (Valid 24h)
                                 </p>
@@ -478,7 +478,7 @@ export default function Team() {
                                     />
                                     <button
                                         onClick={copyToClipboard}
-                                        className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 whitespace-nowrap"
+                                        className="px-4 md:px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 whitespace-nowrap"
                                     >
                                         {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />} {copied ? 'Copied!' : 'Copy to Clipboard'}
                                     </button>
@@ -499,7 +499,7 @@ export default function Team() {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display transition-colors duration-300">
             <TopHeader />
-            <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-32 max-w-[1400px] w-full mx-auto custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-4 md:p-8 pb-32 max-w-[1400px] max-w-full w-full mx-auto custom-scrollbar">
 
             {currentView === 'invite' && <PolicyFormContent title="Deploy New Member" isEdit={false} />}
             {currentView === 'edit' && <PolicyFormContent title={`Configuring ${editingMember?.name}`} isEdit={true} />}
@@ -508,10 +508,10 @@ export default function Team() {
                 <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
                     {/* Advanced Metrics Dashboard Header */}
-                    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 dark:from-black dark:via-surface-dark dark:to-indigo-950/20 rounded-[2rem] p-8 md:p-12 shadow-2xl relative overflow-hidden text-white border border-slate-700 dark:border-white/5">
+                    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 dark:from-black dark:via-surface-dark dark:to-indigo-950/20 rounded-[2rem] p-8 md:p-4 md:p-12 shadow-2xl relative overflow-hidden text-white border border-slate-700 dark:border-white/5">
                         {/* Abstract Background Elements */}
-                        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-                        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
+                        <div className="absolute top-0 right-0 w-[800px] max-w-full h-[800px] bg-indigo-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-[400px] max-w-full h-[400px] bg-emerald-500/10 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
 
                         <div className="relative z-10 flex flex-col xl:flex-row gap-10 justify-between items-start xl:items-center">
 
@@ -548,7 +548,7 @@ export default function Team() {
                             {/* Metrics Glass Cards */}
                             <div className="w-full xl:w-auto grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
                                 {/* Total Capacity */}
-                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl flex flex-col items-center justify-center text-center">
+                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center">
                                     <div className="w-12 h-12 bg-indigo-500/20 text-indigo-300 rounded-full flex items-center justify-center mb-3">
                                         <Box className="w-6 h-6" />
                                     </div>
@@ -557,7 +557,7 @@ export default function Team() {
                                 </div>
 
                                 {/* Active */}
-                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center relative overflow-hidden">
                                     <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent"></div>
                                     <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-3 relative z-10">
                                         <Activity className="w-6 h-6" />
@@ -567,7 +567,7 @@ export default function Team() {
                                 </div>
 
                                 {/* Available */}
-                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl flex flex-col items-center justify-center text-center">
+                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center">
                                     <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mb-3">
                                         <PieChart className="w-6 h-6" />
                                     </div>
@@ -590,7 +590,7 @@ export default function Team() {
 
                     {/* Premium List Design */}
                     <div className="space-y-4">
-                        <div className="px-6 flex items-center justify-between">
+                        <div className="px-4 md:px-6 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 Active Personnel Roster
                             </h2>
@@ -601,7 +601,7 @@ export default function Team() {
 
                         <div className="grid grid-cols-1 gap-4">
                             {team.map(member => (
-                                <div key={member.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-3xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-black/50 hover:border-indigo-500/30 transition-all duration-300 group">
+                                <div key={member.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-3xl p-5 md:p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-black/50 hover:border-indigo-500/30 transition-all duration-300 group">
 
                                     {/* Identity Block */}
                                     <div className="flex gap-5 items-center w-full md:w-auto">

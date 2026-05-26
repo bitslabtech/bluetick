@@ -134,7 +134,7 @@ export default function WaStoreThemes() {
         }
     };
 
-    if (loading) return <div className="p-8 animate-pulse text-slate-500 flex justify-center items-center h-64">Loading premium themes...</div>;
+    if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500 flex justify-center items-center h-64">Loading premium themes...</div>;
 
     return (
         <div className="space-y-8 max-w-7xl mx-auto pb-12">
@@ -168,7 +168,7 @@ export default function WaStoreThemes() {
                                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent mix-blend-overlay" />
                                 
                                 {/* Phone Mockup - Now fully visible in center */}
-                                <div className="w-[140px] h-[280px] bg-slate-900 rounded-[2rem] p-1.5 shadow-2xl border-4 border-slate-800 relative transform transition-transform duration-500 group-hover:scale-105">
+                                <div className="w-[140px] max-w-full h-[280px] bg-slate-900 rounded-[2rem] p-1.5 shadow-2xl border-4 border-slate-800 relative transform transition-transform duration-500 group-hover:scale-105">
                                     {/* Notch */}
                                     <div className="absolute top-0 inset-x-0 h-4 bg-slate-900 rounded-b-xl w-[45%] mx-auto z-30" />
                                     
@@ -199,7 +199,7 @@ export default function WaStoreThemes() {
                                         </div>
                                         
                                         {/* Mini Product Grid */}
-                                        <div className="px-2 pb-2 grid grid-cols-2 gap-1.5 flex-1 overflow-hidden mt-1">
+                                        <div className="px-2 pb-2 grid grid-cols-1 md:grid-cols-2 gap-1.5 flex-1 overflow-hidden mt-1">
                                             {[1,2,3,4].map(i => (
                                                 <div key={i} className={`flex flex-col overflow-hidden ${(THEMES[theme.id] || THEMES.vogue).cardStyle}`}>
                                                     <div className={`w-full ${(THEMES[theme.id] || THEMES.vogue).cardImageStyle} ${theme.heroColor} !border-0`} />
@@ -215,7 +215,7 @@ export default function WaStoreThemes() {
                             </div>
 
                             {/* Info & Action Area */}
-                            <div className="p-6 flex-1 flex flex-col relative">
+                            <div className="p-4 md:p-6 flex-1 flex flex-col relative">
                                 {/* Active Badge */}
                                 {isActive && (
                                     <div className="absolute -top-4 right-6 z-30 bg-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">

@@ -75,7 +75,7 @@ const UserNotifications = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark min-h-screen">
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-8 py-5 bg-white dark:bg-background-dark sticky top-0 z-10">
+            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-8 py-5 bg-white dark:bg-background-dark sticky top-0 z-10">
                 <div className="flex items-center gap-4">
                     <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
                         <Bell className="w-6 h-6" />
@@ -94,7 +94,7 @@ const UserNotifications = () => {
             </header>
 
             {/* Main Content */}
-            <main className="p-8 max-w-5xl mx-auto w-full flex-1">
+            <main className="p-4 md:p-8 max-w-5xl mx-auto w-full flex-1">
 
                 {/* Controls */}
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">

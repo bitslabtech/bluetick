@@ -29,7 +29,7 @@ const STATUS_STYLE = {
 
 function KpiCard({ icon: Icon, label, value, color, sub }) {
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-100 dark:border-white/5 shadow-sm flex items-center gap-5 group hover:shadow-md transition-all duration-300">
+        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm flex items-center gap-5 group hover:shadow-md transition-all duration-300">
             <div className={`p-3.5 rounded-2xl ${color} flex-shrink-0`}>
                 <Icon className="w-6 h-6" />
             </div>
@@ -115,7 +115,7 @@ export default function TeamMemberAnalytics() {
         <div className="bg-slate-50 dark:bg-background-dark min-h-screen">
 
             {/* ── Header ───────────────────────────────────── */}
-            <div className="bg-white dark:bg-background-dark border-b border-slate-200 dark:border-surface-dark px-6 py-5 sticky top-0 z-20 backdrop-blur-sm bg-white/90 dark:bg-background-dark/90">
+            <div className="bg-white dark:bg-background-dark border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-5 sticky top-0 z-20 backdrop-blur-sm bg-white/90 dark:bg-background-dark/90">
                 <div className="max-w-6xl mx-auto flex items-center gap-4">
                     <button
                         onClick={() => navigate(-1)}
@@ -138,10 +138,10 @@ export default function TeamMemberAnalytics() {
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+            <div className="max-w-6xl mx-auto px-4 sm:px-4 md:px-6 py-8 space-y-8">
 
                 {/* ── Member Profile Card ─────────────────────── */}
-                <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 p-6 shadow-sm">
+                <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 p-4 md:p-6 shadow-sm">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                         <div className="relative">
                             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white font-black text-3xl shadow-lg shadow-indigo-500/20">
@@ -187,7 +187,7 @@ export default function TeamMemberAnalytics() {
                 </div>
 
                 {/* ── Activity Timeline Chart ───────────────────── */}
-                <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 p-6 shadow-sm">
+                <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 p-4 md:p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h3 className="font-bold text-slate-900 dark:text-white text-lg">Campaign Activity</h3>
@@ -234,7 +234,7 @@ export default function TeamMemberAnalytics() {
 
                     {/* Recent Campaigns */}
                     <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
-                        <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                        <div className="px-4 md:px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                             <h3 className="font-bold text-slate-900 dark:text-white">Recent Campaigns</h3>
                             <div className="p-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                                 <Send className="w-4 h-4 text-indigo-500" />
@@ -242,7 +242,7 @@ export default function TeamMemberAnalytics() {
                         </div>
                         <div className="divide-y divide-slate-100 dark:divide-white/5">
                             {recentMessages.length > 0 ? recentMessages.map(m => (
-                                <div key={m.id} className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                                <div key={m.id} className="px-4 md:px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                     <div className="min-w-0">
                                         <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{m.name}</p>
                                         <div className="flex items-center gap-3 mt-1">
@@ -269,7 +269,7 @@ export default function TeamMemberAnalytics() {
                     <div className="space-y-6">
                         {/* Recent Contacts */}
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
-                            <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                            <div className="px-4 md:px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                                 <h3 className="font-bold text-slate-900 dark:text-white">Recently Added Contacts</h3>
                                 <div className="p-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                                     <UserCheck className="w-4 h-4 text-purple-500" />
@@ -277,7 +277,7 @@ export default function TeamMemberAnalytics() {
                             </div>
                             <div className="divide-y divide-slate-100 dark:divide-white/5">
                                 {recentContacts.length > 0 ? recentContacts.map(c => (
-                                    <div key={c.id} className="px-6 py-3.5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                                    <div key={c.id} className="px-4 md:px-6 py-3.5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                         <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-sm flex-shrink-0">
                                             {c.name?.charAt(0).toUpperCase() || '?'}
                                         </div>
@@ -304,7 +304,7 @@ export default function TeamMemberAnalytics() {
                         </div>
 
                         {/* Permissions Summary */}
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm p-6">
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm p-4 md:p-6">
                             <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                 <Shield className="w-4 h-4 text-slate-400" /> Permissions
                             </h3>

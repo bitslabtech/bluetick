@@ -532,12 +532,12 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-4 md:p-6 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             {/* Modal Container */}
-            <div className="bg-white dark:bg-surface-dark w-full sm:w-[95vw] max-w-[1200px] h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10 relative">
+            <div className="bg-white dark:bg-surface-dark w-full sm:w-[95vw] max-w-[1200px] max-w-full h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10 relative">
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-transparent shrink-0">
+                <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-transparent shrink-0">
                     <div className="flex items-center gap-4">
                         {step > 1 && (
                             <button
@@ -669,7 +669,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Category *</label>
                                             <select
@@ -703,7 +703,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
 
                                 {/* Carousel Master Text */}
                                 {selectedArchetype?.id === 'carousel' && (
-                                    <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm space-y-5">
+                                    <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 md:p-4 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm space-y-5">
                                         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                             2. Master Message Bubble
                                         </h3>
@@ -830,7 +830,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                         )}
 
                                         {(formData.headerType === 'IMAGE' || formData.headerType === 'VIDEO' || formData.headerType === 'DOCUMENT') && (
-                                            <div className="animate-in slide-in-from-top-2 duration-200 p-8 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl flex flex-col items-center justify-center bg-slate-50 dark:bg-white/5 text-center">
+                                            <div className="animate-in slide-in-from-top-2 duration-200 p-4 md:p-8 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl flex flex-col items-center justify-center bg-slate-50 dark:bg-white/5 text-center">
                                                 <div className="bg-primary/10 text-primary p-3 rounded-full mb-3">
                                                     <ImageIcon className="w-6 h-6" />
                                                 </div>
@@ -1225,7 +1225,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                 {/* Card Header (Image/Video) */}
                                                 <div className="mb-4">
                                                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Card Media</label>
-                                                    <label htmlFor={`card-media-upload-${activeCardIndex}`} className="p-6 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl flex flex-col items-center justify-center bg-white dark:bg-white/5 text-center transition-colors hover:border-primary cursor-pointer cursor-pointer">
+                                                    <label htmlFor={`card-media-upload-${activeCardIndex}`} className="p-4 md:p-6 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl flex flex-col items-center justify-center bg-white dark:bg-white/5 text-center transition-colors hover:border-primary cursor-pointer cursor-pointer">
                                                         <div className="bg-primary/10 text-primary p-2 rounded-full mb-3">
                                                             <ImageIcon className="w-5 h-5" />
                                                         </div>
@@ -1426,13 +1426,13 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
 
                     {/* Right Pane (Live Preview) - Sticky */}
                     {step === 2 && (
-                        <div className="w-full md:w-[340px] lg:w-[380px] shrink-0 border-l border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-[#111B21] flex flex-col items-center py-6 px-4 h-full overflow-y-auto">
+                        <div className="w-full md:w-[340px] lg:w-[380px] max-w-full shrink-0 border-l border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-[#111B21] flex flex-col items-center py-6 px-4 h-full overflow-y-auto">
                             <h3 className="text-sm font-bold text-slate-500 dark:text-text-secondary uppercase tracking-wider mb-6 flex items-center gap-2">
                                 Live Preview
                             </h3>
 
                             {/* WhatsApp Phone Mockup */}
-                            <div className="relative w-full max-w-[320px] aspect-[9/19] bg-[#EFEAE2] dark:bg-[#0b141a] rounded-[2.5rem] border-[8px] border-slate-800 dark:border-slate-900 shadow-2xl overflow-hidden flex flex-col">
+                            <div className="relative w-full max-w-[320px] max-w-full aspect-[9/19] bg-[#EFEAE2] dark:bg-[#0b141a] rounded-[2.5rem] border-[8px] border-slate-800 dark:border-slate-900 shadow-2xl overflow-hidden flex flex-col">
                                 {/* Status Bar Mock */}
                                 <div className="h-6 w-full bg-emerald-600 dark:bg-[#202c33] shrink-0 flex justify-center">
                                     <div className="w-32 h-4 bg-slate-800 dark:bg-slate-900 rounded-b-xl"></div>
@@ -1618,7 +1618,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                 </div>
 
                 {/* Footer Controls */}
-                <div className="px-6 py-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-transparent shrink-0 flex justify-between items-center backdrop-blur-sm">
+                <div className="px-4 md:px-6 py-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-transparent shrink-0 flex justify-between items-center backdrop-blur-sm">
                     <button
                         onClick={onClose}
                         className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-text-secondary font-medium hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
@@ -1630,7 +1630,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                         <button
                             onClick={handleNext}
                             disabled={!selectedArchetype}
-                            className="px-6 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-blue-600 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-4 md:px-6 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-blue-600 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             Next Step <ArrowRight className="w-4 h-4" />
                         </button>
@@ -1639,7 +1639,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                             form="template-form"
                             type="submit"
                             disabled={isSubmitting || !formData.content}
-                            className="px-6 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-blue-600 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-4 md:px-6 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-blue-600 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {isSubmitting ? (
                                 <>

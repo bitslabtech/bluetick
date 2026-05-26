@@ -172,7 +172,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
         : conversation.phoneNumber?.slice(-2);
 
     return (
-        <div ref={panelRef} className="w-80 bg-white dark:bg-[#111b21] border-l border-slate-200 dark:border-white/5 flex flex-col h-full overflow-y-auto animate-in slide-in-from-right duration-300 relative z-30">
+        <div ref={panelRef} className="w-80 max-w-full bg-white dark:bg-[#111b21] border-l border-slate-200 dark:border-white/5 flex flex-col h-full overflow-y-auto animate-in slide-in-from-right duration-300 relative z-30">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-[#202c33] border-b border-slate-200 dark:border-white/10 shrink-0">
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">Contact Info</span>
@@ -206,7 +206,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
                     <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                         <MessageSquare className="w-3.5 h-3.5" /> Overview
                     </h3>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3 text-center">
                             <div className="text-xl font-bold text-slate-900 dark:text-white">{messageCount}</div>
                             <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Messages</div>

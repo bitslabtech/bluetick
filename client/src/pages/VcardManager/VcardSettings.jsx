@@ -43,7 +43,7 @@ export default function VcardSettings() {
     };
 
     if (loading) {
-        return <div className="p-8 animate-pulse text-slate-500">Loading settings...</div>;
+        return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading settings...</div>;
     }
 
     return (
@@ -67,11 +67,11 @@ export default function VcardSettings() {
             </div>
 
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden">
-                <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
+                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
                     <Bell className="w-5 h-5 text-slate-500" />
                     <h3 className="font-bold text-slate-900 dark:text-white">Notification Preferences</h3>
                 </div>
-                <div className="p-6 space-y-6">
+                <div className="p-4 md:p-6 space-y-6">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="font-medium text-slate-900 dark:text-white">Email Notifications</p>
@@ -108,11 +108,11 @@ export default function VcardSettings() {
             </div>
 
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden mt-6">
-                <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
+                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
                     <Globe className="w-5 h-5 text-slate-500" />
                     <h3 className="font-bold text-slate-900 dark:text-white">Localization</h3>
                 </div>
-                <div className="p-6">
+                <div className="p-4 md:p-6">
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Default Appointment Timezone
                     </label>

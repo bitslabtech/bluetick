@@ -9,7 +9,7 @@ const Integrations = () => {
                 title="Integrations & API" 
                 subtitle="Connect your WhatsApp communications with CRM, eCommerce, and 3rd-party tools."
             />
-            <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative p-6 sm:p-10">
+            <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative p-6 sm:p-4 md:p-10">
                 <div className="max-w-6xl mx-auto">
                     <IntegrationsTab />
                 </div>

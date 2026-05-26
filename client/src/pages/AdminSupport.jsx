@@ -87,7 +87,7 @@ const AdminSupport = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8 max-w-[1920px] mx-auto w-full flex flex-col relative">
+            <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8 max-w-[1920px] max-w-full mx-auto w-full flex flex-col relative">
 
                 {/* Modern Header: Title & Tabs Inline */}
                 <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4 shrink-0">
@@ -150,7 +150,7 @@ const TicketManager = ({ tickets, refresh, showToast }) => {
         <>
             <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col h-full">
                 {/* Visual Header for Table */}
-                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
+                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
                     <div>
                         <h3 className="font-bold text-slate-800 dark:text-white text-lg">Support Tickets</h3>
                         <p className="text-xs text-slate-500 mt-1">Manage and resolve user inquiries.</p>
@@ -164,18 +164,18 @@ const TicketManager = ({ tickets, refresh, showToast }) => {
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-50 dark:bg-white/5 text-xs uppercase text-slate-500 font-bold sticky top-0 z-10">
                             <tr>
-                                <th className="px-6 py-4 rounded-l-xl">Subject</th>
-                                <th className="px-6 py-4">User</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Priority</th>
-                                <th className="px-6 py-4">Last Update</th>
-                                <th className="px-6 py-4 rounded-r-xl text-right">Action</th>
+                                <th className="px-4 md:px-6 py-4 rounded-l-xl">Subject</th>
+                                <th className="px-4 md:px-6 py-4">User</th>
+                                <th className="px-4 md:px-6 py-4">Status</th>
+                                <th className="px-4 md:px-6 py-4">Priority</th>
+                                <th className="px-4 md:px-6 py-4">Last Update</th>
+                                <th className="px-4 md:px-6 py-4 rounded-r-xl text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {tickets.map(t => (
                                 <tr key={t.id} onClick={() => setSelectedTicket(t)} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer text-sm">
-                                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
+                                    <td className="px-4 md:px-6 py-4 font-medium text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                                                 <Ticket className="w-4 h-4" />
@@ -183,7 +183,7 @@ const TicketManager = ({ tickets, refresh, showToast }) => {
                                             {t.subject}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
+                                    <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-slate-400">
                                         <div className="flex items-center gap-2">
                                             <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/20 flex items-center justify-center text-[10px] font-bold">
                                                 {t.user?.name?.[0]}
@@ -191,7 +191,7 @@ const TicketManager = ({ tickets, refresh, showToast }) => {
                                             {t.user?.name}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${t.status === 'Open' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-500/30' :
                                             t.status === 'In Progress' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-500/30' :
                                                 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/10 dark:text-slate-400 dark:border-white/5'
@@ -199,16 +199,16 @@ const TicketManager = ({ tickets, refresh, showToast }) => {
                                             {t.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                         <span className={`flex items-center gap-1.5 ${t.priority === 'High' ? 'text-red-500 font-bold' : 'text-slate-500'}`}>
                                             <div className={`w-1.5 h-1.5 rounded-full ${t.priority === 'High' ? 'bg-red-500' : 'bg-slate-300'}`}></div>
                                             {t.priority}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-slate-400 text-xs">
+                                    <td className="px-4 md:px-6 py-4 text-slate-400 text-xs">
                                         {formatDistanceToNow(new Date(t.lastReplyAt), { addSuffix: true })}
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-4 md:px-6 py-4 text-right">
                                         <button className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium text-xs border border-indigo-200 dark:border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-white/5 transition-all">
                                             View Details
                                         </button>
@@ -262,7 +262,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
             <div className="bg-white dark:bg-[#0B1120] w-full max-w-4xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10 animate-in zoom-in-95 duration-200">
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02]">
+                <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02]">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400">
                             <Ticket className="w-6 h-6" />
@@ -293,7 +293,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
                 <div className="flex-1 flex overflow-hidden">
                     {/* Left: Chat History */}
                     <div className="flex-1 flex flex-col border-r border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-black/20">
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
                             {ticket.messages?.map((msg, i) => (
                                 <div key={i} className={`flex gap-4 ${msg.sender === 'Admin' ? 'flex-row-reverse' : ''}`}>
                                     <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${msg.sender === 'Admin' ? 'bg-indigo-600' : 'bg-slate-400'}`}>
@@ -342,7 +342,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
                     </div>
 
                     {/* Right: Info Sidebar */}
-                    <div className="w-80 bg-white dark:bg-surface-dark p-6 overflow-y-auto">
+                    <div className="w-80 max-w-full bg-white dark:bg-surface-dark p-4 md:p-6 overflow-y-auto">
                         <h4 className="font-bold text-slate-900 dark:text-white mb-6 text-sm uppercase tracking-wider">Ticket Info</h4>
 
                         <div className="space-y-6">
@@ -526,7 +526,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
         <div className="flex flex-col h-full gap-6">
             {/* Top Stats / Info */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
-                <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-500/20 relative overflow-hidden group">
+                <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 md:p-6 text-white shadow-lg shadow-indigo-500/20 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Book className="w-24 h-24" />
                     </div>
@@ -544,7 +544,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                     </button>
                 </div>
 
-                <div className="md:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 flex items-center shadow-sm">
+                <div className="md:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 flex items-center shadow-sm">
                     <div className="flex-1">
                         <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-2">Knowledge Base Center</h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl">
@@ -593,7 +593,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-8">
                             {filteredArticles.length === 0 && (
-                                <div className="text-center p-8 text-slate-400 text-sm">No articles found.</div>
+                                <div className="text-center p-4 md:p-8 text-slate-400 text-sm">No articles found.</div>
                             )}
                             {categories
                                 .filter(cat => categoryFilter === 'All' || cat.name === categoryFilter)
@@ -640,7 +640,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
 
                 {/* Editor */}
                 <div className="flex-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/30 dark:bg-white/[0.01]">
+                    <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/30 dark:bg-white/[0.01]">
                         <div className="flex items-center gap-2 text-slate-800 dark:text-white font-bold">
                             {selectedArticleId ? <Book className="w-5 h-5 text-indigo-500" /> : <Plus className="w-5 h-5 text-indigo-500" />}
                             {selectedArticleId ? 'Edit Article' : 'New Article'}
@@ -660,13 +660,13 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                                     <Plus className="w-4 h-4" /> Add Image
                                 </button>
                             </div>
-                            <button onClick={handleSave} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors shadow-lg shadow-indigo-500/20">
+                            <button onClick={handleSave} className="px-4 md:px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors shadow-lg shadow-indigo-500/20">
                                 {selectedArticleId ? 'Save Changes' : 'Publish'}
                             </button>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                        <div className="grid grid-cols-2 gap-6">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-xs font-bold uppercase text-slate-500 tracking-wider ml-1">Title</label>
                                 <input
@@ -705,7 +705,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                             <label className="text-xs font-bold uppercase text-slate-500 tracking-wider ml-1">Content (Markdown Support)</label>
                             <div className="flex-1 relative min-h-[400px]">
                                 <textarea
-                                    className="w-full h-full min-h-[400px] px-6 py-6 font-mono text-sm leading-relaxed bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/50 dark:text-slate-300 transition-all resize-none shadow-inner"
+                                    className="w-full h-full min-h-[400px] px-4 md:px-6 py-6 font-mono text-sm leading-relaxed bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/50 dark:text-slate-300 transition-all resize-none shadow-inner"
                                     placeholder="# Introduction\n\nWrite your help article here..."
                                     value={newContent}
                                     onChange={e => setNewContent(e.target.value)}
@@ -729,7 +729,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                             onClick={e => e.stopPropagation()}
                             className="bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
                         >
-                            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
                                 <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
                                     <Filter className="w-5 h-5 text-indigo-500" /> Manage Categories
                                 </h3>
@@ -737,7 +737,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>
-                            <div className="p-6 space-y-4">
+                            <div className="p-4 md:p-6 space-y-4">
                                 <div className="flex gap-2">
                                     <input
                                         className="flex-1 px-4 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/50 dark:text-white text-sm"
@@ -809,7 +809,7 @@ const RoadmapManager = ({ items, refresh }) => {
     ];
 
     return (
-        <div className="max-w-[1200px] w-full mx-auto h-full flex flex-col px-6">
+        <div className="max-w-[1200px] max-w-full w-full mx-auto h-full flex flex-col px-4 md:px-6">
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-white/10 dark:to-white/5 p-1 rounded-2xl mb-8 flex gap-2 w-full max-w-md mx-auto shadow-lg">
                 <input
                     className="flex-1 bg-white dark:bg-[#0B1120] rounded-xl px-4 py-3 outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
@@ -817,7 +817,7 @@ const RoadmapManager = ({ items, refresh }) => {
                     value={newTitle}
                     onChange={e => setNewTitle(e.target.value)}
                 />
-                <button onClick={handleCreate} className="px-6 rounded-xl bg-indigo-500 text-white font-bold hover:bg-indigo-400 transition-colors">Add</button>
+                <button onClick={handleCreate} className="px-4 md:px-6 rounded-xl bg-indigo-500 text-white font-bold hover:bg-indigo-400 transition-colors">Add</button>
             </div>
 
             <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 overflow-hidden min-h-0">

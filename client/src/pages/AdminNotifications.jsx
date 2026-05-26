@@ -139,7 +139,7 @@ const AdminNotifications = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full pb-20">
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-[1600px] max-w-full mx-auto w-full pb-20">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Broadcast Manager</h1>
@@ -150,7 +150,7 @@ const AdminNotifications = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
                     {/* LEFT PANEL: CREATOR */}
                     <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-200 dark:border-white/5 shadow-sm">
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                                 <Send className="w-5 h-5 text-indigo-500" /> Create Broadcast
                             </h2>
@@ -159,7 +159,7 @@ const AdminNotifications = () => {
                                 {/* Type Selection */}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Notification Type</label>
-                                    <div className="grid grid-cols-4 gap-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                                         {['Info', 'Success', 'Warning', 'Error'].map(type => {
                                             const activeStyles = getTypeStyles(type);
                                             const isActive = formData.type === type;
@@ -290,7 +290,7 @@ const AdminNotifications = () => {
                     {/* RIGHT PANEL: HISTORY */}
                     <div className="lg:col-span-8 flex flex-col h-full min-h-[500px]">
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-surface-dark shadow-sm flex flex-col h-full overflow-hidden">
-                            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <History className="w-5 h-5 text-indigo-500" /> Broadcast History
                                 </h2>
@@ -299,13 +299,13 @@ const AdminNotifications = () => {
                                 </span>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
                                 {loading ? (
                                     <div className="flex justify-center py-20">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
                                     </div>
                                 ) : broadcasts.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-center p-10 opacity-60">
+                                    <div className="flex flex-col items-center justify-center h-full text-center p-4 md:p-10 opacity-60">
                                         <Bell className="w-16 h-16 text-slate-300 mb-4" />
                                         <p className="text-slate-500 font-medium">No broadcasts sent yet.</p>
                                     </div>
@@ -377,7 +377,7 @@ const AdminNotifications = () => {
                             className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-white/10"
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className="p-6">
+                            <div className="p-4 md:p-6">
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Confirm Broadcast</h3>
                                 <p className="text-slate-500 text-sm mb-6">Review your message before sending. This will be visible to users immediately.</p>
 

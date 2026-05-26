@@ -290,7 +290,7 @@ export default function VcardBuilder() {
             {/* Left Side: Configuration Panel */}
             <div className="w-full lg:w-[72%] xl:w-[76%] flex flex-col border-r border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10 flex-shrink-0">
+                <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/10 flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <button onClick={() => navigate('/vcards')} className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-50 transition-colors">
                             <ArrowLeft className="w-5 h-5" />
@@ -348,7 +348,7 @@ export default function VcardBuilder() {
                     </nav>
 
                     {/* Tab Content */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
                         {/* --- BASIC TAB --- */}
                         {activeTab === 'basic' && (
                             <div className="space-y-6 animate-in slide-in-from-right-4">
@@ -398,7 +398,7 @@ export default function VcardBuilder() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Full Name *</label>
                                         <input type="text" name="name" value={vcard.name} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-white" required placeholder="John Doe" />
@@ -406,13 +406,13 @@ export default function VcardBuilder() {
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">URL Slug *</label>
                                         <div className="flex">
-                                            <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 text-slate-500 text-sm font-mono truncate max-w-[120px]">/vcard/</span>
+                                            <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 text-slate-500 text-sm font-mono truncate max-w-[120px] max-w-full">/vcard/</span>
                                             <input type="text" name="slug" value={vcard.slug} onChange={handleChange} className="flex-1 w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-r-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-white font-mono" required placeholder="john-doe" />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Designation</label>
                                         <input type="text" name="designation" value={vcard.designation} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" placeholder="Software Engineer" />
@@ -431,7 +431,7 @@ export default function VcardBuilder() {
                                 <hr className="border-slate-100 dark:border-white/5" />
                                 <h3 className="font-bold text-slate-900 dark:text-white">Contact Information</h3>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone</label>
                                         <input type="text" name="phone" value={vcard.phone} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" placeholder="+1234567890" />
@@ -498,7 +498,7 @@ export default function VcardBuilder() {
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Choose a Profession Theme</label>
                                     <p className="text-xs text-slate-500 mb-3">Pick the theme that matches your profession — each has its own unique background graphics and style.</p>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {[
                                             { id: 'corporate-executive', label: 'Corporate / Executive', sub: 'Lawyers, Consultants, Finance', bg: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)', accent: '#c9a84c', emoji: '🏛️' },
                                             { id: 'creative-portfolio', label: 'Creative Portfolio', sub: 'Designers, Artists, Photographers', bg: 'linear-gradient(135deg, #0f0a1e 0%, #2d1b69 100%)', accent: '#a855f7', emoji: '🎨' },
@@ -530,7 +530,7 @@ export default function VcardBuilder() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Primary Color</label>
                                         <div className="flex gap-2">
@@ -739,7 +739,7 @@ export default function VcardBuilder() {
                                 {/* Media Type Selection Cards */}
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Choose Background Type</label>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {[
                                             { type: 'image', icon: <ImageIcon className="w-6 h-6 mb-2" />, label: 'Static Image', desc: 'A beautiful background photo' },
                                             { type: 'video', icon: <Film className="w-6 h-6 mb-2" />, label: 'Dynamic Video', desc: 'Auto-playing looping video' }
@@ -873,7 +873,7 @@ export default function VcardBuilder() {
                                             <div className="space-y-4">
                                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Upload Video File</label>
                                                 <div className="rounded-xl border-2 border-dashed border-slate-300 dark:border-white/20 overflow-hidden bg-white dark:bg-slate-900 transition-all hover:border-indigo-400">
-                                                    <label className="flex flex-col items-center justify-center h-32 cursor-pointer text-center p-6">
+                                                    <label className="flex flex-col items-center justify-center h-32 cursor-pointer text-center p-4 md:p-6">
                                                         <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 rounded-full flex items-center justify-center mb-3">
                                                             <Upload className="w-6 h-6" />
                                                         </div>
@@ -1452,7 +1452,7 @@ export default function VcardBuilder() {
                 {/* Phone frame wrapper */}
                 <div className="relative flex-shrink-0" style={{ marginTop: 28 }}>
                     {/* Phone shell */}
-                    <div className="relative w-[220px] bg-slate-900 rounded-[2.5rem] shadow-2xl border-[3px] border-slate-700 overflow-hidden" style={{ height: 460 }}>
+                    <div className="relative w-[220px] max-w-full bg-slate-900 rounded-[2.5rem] shadow-2xl border-[3px] border-slate-700 overflow-hidden" style={{ height: 460 }}>
                         {/* Top notch */}
                         <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '40%', height: 16, background: '#0f172a', borderBottomLeftRadius: 12, borderBottomRightRadius: 12, zIndex: 30 }} />
                         {/* Side buttons (decorative) */}

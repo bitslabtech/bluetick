@@ -34,7 +34,7 @@ export default function NfcLinkModal({ isOpen, onClose, vcards = [], onLinked })
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white dark:bg-surface-dark w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
-                <div className="relative p-6 sm:p-8 border-b border-slate-100 dark:border-white/5">
+                <div className="relative p-6 sm:p-4 md:p-8 border-b border-slate-100 dark:border-white/5">
                     <button onClick={onClose} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full transition-colors bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700">
                         <X className="w-5 h-5" />
                     </button>
@@ -45,7 +45,7 @@ export default function NfcLinkModal({ isOpen, onClose, vcards = [], onLinked })
                     <p className="text-slate-500 text-sm">Enter the 8-character code from your physical NFC card/keychain to link it to your digital vCard.</p>
                 </div>
 
-                <div className="p-6 sm:p-8">
+                <div className="p-6 sm:p-4 md:p-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">NFC Device Code</label>

@@ -204,7 +204,7 @@ export default function PublicWaStore() {
                                     {slide.title && <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white drop-shadow-lg">{slide.title}</h1>}
                                     {slide.subtitle && <p className="text-lg md:text-2xl text-gray-100 font-medium drop-shadow-md">{slide.subtitle}</p>}
                                     {slide.ctaText && (
-                                        <button onClick={() => document.getElementById('products').scrollIntoView({behavior: 'smooth'})} className="mt-4 px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-100 transition-colors">
+                                        <button onClick={() => document.getElementById('products').scrollIntoView({behavior: 'smooth'})} className="mt-4 px-4 md:px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-100 transition-colors">
                                             {slide.ctaText}
                                         </button>
                                     )}
@@ -344,7 +344,7 @@ export default function PublicWaStore() {
                         <ShoppingBag className="w-12 h-12 text-gray-200 mx-auto mb-4" />
                         <h2 className="text-lg font-semibold text-gray-900 mb-2">No products found</h2>
                         <p className="text-gray-500 text-sm">Try adjusting your filters or search query.</p>
-                        <button onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }} className="mt-6 px-6 py-2 bg-black text-white text-sm font-medium rounded-full">Clear Filters</button>
+                        <button onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }} className="mt-6 px-4 md:px-6 py-2 bg-black text-white text-sm font-medium rounded-full">Clear Filters</button>
                     </div>
                 )}
             </main>
@@ -366,7 +366,7 @@ export default function PublicWaStore() {
                             )}
                         </div>
                         
-                        <div className="md:w-1/2 p-8 md:p-10 flex flex-col overflow-y-auto">
+                        <div className="md:w-1/2 p-8 md:p-4 md:p-10 flex flex-col overflow-y-auto">
                             {selectedProduct.category && <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">{selectedProduct.category}</span>}
                             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 leading-tight">{selectedProduct.name}</h2>
                             <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
@@ -392,19 +392,19 @@ export default function PublicWaStore() {
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
                     <div className="w-full max-w-md bg-white h-full relative z-10 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
                         
-                        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
+                        <div className="px-4 md:px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
                             <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
                                 <ShoppingBag className="w-5 h-5" /> Your Cart
                             </h2>
                             <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"><X className="w-5 h-5" /></button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6">
                             {cart.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
                                     <ShoppingBag className="w-16 h-16 opacity-20" />
                                     <p className="font-medium">Your cart is empty</p>
-                                    <button onClick={() => setIsCartOpen(false)} className="px-6 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 transition-colors">Start Shopping</button>
+                                    <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 transition-colors">Start Shopping</button>
                                 </div>
                             ) : (
                                 <div className="space-y-6">
@@ -434,7 +434,7 @@ export default function PublicWaStore() {
                         </div>
 
                         {cart.length > 0 && (
-                            <div className="p-6 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
+                            <div className="p-4 md:p-6 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] max-w-full">
                                 <div className="flex justify-between items-center mb-6">
                                     <span className="text-gray-500">Subtotal</span>
                                     <span className="text-xl font-bold text-gray-900">{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>

@@ -89,7 +89,7 @@ const AdminPurchases = () => {
                 <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
 
                     {/* Header: Search & Filter */}
-                    <div className="p-6 border-b border-slate-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <ShoppingBag className="w-5 h-5 text-indigo-500" />
                             Transaction History
@@ -120,39 +120,39 @@ const AdminPurchases = () => {
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-slate-50 dark:bg-white/5 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-text-secondary sticky top-0">
                                 <tr>
-                                    <th className="px-6 py-4">Transaction ID</th>
-                                    <th className="px-6 py-4">User</th>
-                                    <th className="px-6 py-4">Plan</th>
-                                    <th className="px-6 py-4">Amount</th>
-                                    <th className="px-6 py-4">Razorpay Payment ID</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4">Date</th>
+                                    <th className="px-4 md:px-6 py-4">Transaction ID</th>
+                                    <th className="px-4 md:px-6 py-4">User</th>
+                                    <th className="px-4 md:px-6 py-4">Plan</th>
+                                    <th className="px-4 md:px-6 py-4">Amount</th>
+                                    <th className="px-4 md:px-6 py-4">Razorpay Payment ID</th>
+                                    <th className="px-4 md:px-6 py-4">Status</th>
+                                    <th className="px-4 md:px-6 py-4">Date</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
                                 {loading ? (
-                                    <tr><td colSpan="7" className="p-10 text-center text-slate-400">Loading transactions...</td></tr>
+                                    <tr><td colSpan="7" className="p-4 md:p-10 text-center text-slate-400">Loading transactions...</td></tr>
                                 ) : filteredTransactions.length === 0 ? (
-                                    <tr><td colSpan="7" className="p-10 text-center text-slate-400">No transactions found.</td></tr>
+                                    <tr><td colSpan="7" className="p-4 md:p-10 text-center text-slate-400">No transactions found.</td></tr>
                                 ) : (
                                     filteredTransactions.map((t) => (
                                         <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                            <td className="px-6 py-4 font-mono text-xs text-slate-500 dark:text-slate-400">
+                                            <td className="px-4 md:px-6 py-4 font-mono text-xs text-slate-500 dark:text-slate-400">
                                                 {t.id.substring(0, 8)}...
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <div className="font-medium text-slate-900 dark:text-white">{t.user.name}</div>
                                                 <div className="text-xs text-slate-500">{t.user.email}</div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <span className="inline-block px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold">
                                                     {t.planName}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                                            <td className="px-4 md:px-6 py-4 font-medium text-slate-900 dark:text-white">
                                                 {currencySymbol(t.currency)}{parseFloat(t.amount).toLocaleString()}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 {t.razorpayPaymentId ? (
                                                     <span
                                                         title={t.razorpayPaymentId}
@@ -165,7 +165,7 @@ const AdminPurchases = () => {
                                                     <span className="text-xs text-slate-400 italic">— (manual)</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 {t.status === 'COMPLETED' ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                                                         <CheckCircle className="w-3 h-3" /> Paid
@@ -176,7 +176,7 @@ const AdminPurchases = () => {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
+                                            <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-slate-400">
                                                 {new Date(t.createdAt).toLocaleString()}
                                             </td>
                                         </tr>
@@ -195,7 +195,7 @@ const AdminPurchases = () => {
 const StatCard = ({ title, value, icon, color, bg }) => {
     const Icon = icon;
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-white/5 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm flex items-center justify-between">
             <div>
                 <p className="text-sm font-medium text-slate-500 dark:text-text-secondary">{title}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{value}</p>

@@ -101,7 +101,7 @@ const ContactUs = () => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                <div className="bg-white dark:bg-[#1C1C1E] p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Name</label>

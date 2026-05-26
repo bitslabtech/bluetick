@@ -69,7 +69,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
             <div className="bg-white dark:bg-surface-dark w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
                 
                 {/* Header */}
-                <div className="relative p-6 sm:p-8 bg-gradient-to-br from-indigo-900 to-slate-900 text-white shrink-0">
+                <div className="relative p-6 sm:p-4 md:p-8 bg-gradient-to-br from-indigo-900 to-slate-900 text-white shrink-0">
                     <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
                         <X className="w-5 h-5" />
                     </button>
@@ -85,7 +85,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                 </div>
 
                 {/* Body */}
-                <div className="p-6 sm:p-8 overflow-y-auto flex-1 custom-scrollbar">
+                <div className="p-6 sm:p-4 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
                     {step === 1 && (
                         <div className="space-y-6">
                             <h3 className="font-bold text-lg text-slate-900 dark:text-white">Select a Product</h3>
@@ -125,7 +125,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                             )}
                             
                             <div className="flex justify-end pt-4">
-                                <button disabled={products.length === 0} onClick={() => setStep(2)} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/30 transition-all">
+                                <button disabled={products.length === 0} onClick={() => setStep(2)} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 md:px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/30 transition-all">
                                     Continue to Shipping
                                 </button>
                             </div>
@@ -161,10 +161,10 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                             </div>
 
                             <div className="flex justify-between pt-4">
-                                <button type="button" onClick={() => setStep(1)} className="px-6 py-3 text-slate-500 font-bold hover:text-slate-800 dark:hover:text-white transition-colors">
+                                <button type="button" onClick={() => setStep(1)} className="px-4 md:px-6 py-3 text-slate-500 font-bold hover:text-slate-800 dark:hover:text-white transition-colors">
                                     Back
                                 </button>
-                                <button type="submit" disabled={submitting} className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 px-8 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2">
+                                <button type="submit" disabled={submitting} className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 px-4 md:px-8 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2">
                                     {submitting ? <div className="w-5 h-5 rounded-full border-2 border-slate-300 border-t-slate-800 animate-spin" /> : null}
                                     Place Order (Cash on Delivery / Request Link)
                                 </button>
@@ -179,7 +179,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                             </div>
                             <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Order Placed Successfully!</h3>
                             <p className="text-slate-500 mb-8 max-w-md mx-auto">Our team will contact you shortly on {contactNumber} to confirm your address and arrange payment & delivery.</p>
-                            <button onClick={onClose} className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white px-8 py-3 rounded-xl font-bold transition-colors">
+                            <button onClick={onClose} className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white px-4 md:px-8 py-3 rounded-xl font-bold transition-colors">
                                 Close & Return to Dashboard
                             </button>
                         </div>

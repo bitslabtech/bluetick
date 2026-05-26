@@ -354,7 +354,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                 <div className="xl:col-span-2 flex flex-col gap-8">
                     {/* Selected Template Info */}
                     <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
-                        <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+                        <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/5">
                             <div className="flex items-center gap-3">
                                 <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
                                     <FileText className="w-5 h-5" />
@@ -372,7 +372,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                 Change Template
                             </button>
                         </div>
-                        <div className="p-6 bg-slate-50 dark:bg-background-dark/50">
+                        <div className="p-4 md:p-6 bg-slate-50 dark:bg-background-dark/50">
                             <p className="text-sm text-slate-600 dark:text-gray-300 leading-relaxed font-mono bg-white dark:bg-background-dark p-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 whitespace-pre-wrap">
                                 {selectedTemplate.content || 'Please select a template in the previous step.'}
                             </p>
@@ -382,13 +382,13 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                     {/* ── Standard Body Parameters (non-carousel or master body) ── */}
                     {variables.length > 0 && (
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
-                            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                            <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
                                 <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400">
                                     <User className="w-5 h-5" />
                                 </div>
                                 <h3 className="text-slate-900 dark:text-white font-bold text-lg">Body Parameters</h3>
                             </div>
-                            <div className="p-6 space-y-6">
+                            <div className="p-4 md:p-6 space-y-6">
                                 {variables.map((variable, idx) => (
                                     <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start border-b border-slate-100 dark:border-white/5 pb-5 last:border-0 last:pb-0">
                                         <div className="md:col-span-4">
@@ -417,7 +417,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                     {/* ── Carousel Card Configuration ── */}
                     {isCarousel && (
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
-                            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                            <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
                                 <div className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 p-2 rounded-lg">
                                     <CreditCard className="w-5 h-5 text-pink-400" />
                                 </div>
@@ -429,7 +429,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                     {selectedTemplate.cards.length} Cards
                                 </span>
                             </div>
-                            <div className="p-6 space-y-5">
+                            <div className="p-4 md:p-6 space-y-5">
                                 {selectedTemplate.cards.map((card, idx) => (
                                     <CarouselCardConfig
                                         key={idx}
@@ -447,11 +447,11 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                     {/* Standard template — show "no variables" placeholder */}
                     {!isCarousel && variables.length === 0 && (
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
-                            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                            <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
                                 <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400"><User className="w-5 h-5" /></div>
                                 <h3 className="text-slate-900 dark:text-white font-bold text-lg">Template Parameters</h3>
                             </div>
-                            <div className="p-8 text-center text-slate-500 dark:text-text-secondary">
+                            <div className="p-4 md:p-8 text-center text-slate-500 dark:text-text-secondary">
                                 No dynamic variables found in this template.
                             </div>
                         </div>
@@ -459,7 +459,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
 
                     {/* Scheduling */}
                     <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-visible shadow-sm transition-colors duration-300 ring-1 ring-slate-100 dark:ring-white/5">
-                        <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+                        <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/5">
                             <div className="flex items-center gap-3">
                                 <div className="bg-gradient-to-br from-orange-400 to-red-500 p-2 rounded-lg text-white shadow-lg shadow-orange-500/20">
                                     <Clock className="w-5 h-5" />
@@ -474,7 +474,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                             </div>
                         </div>
 
-                        <div className="p-8">
+                        <div className="p-4 md:p-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                 <label
                                     className={`relative flex items-center gap-4 cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 ${scheduleType === 'now' ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-xl shadow-indigo-500/10' : 'border-slate-100 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/30 bg-slate-50 dark:bg-white/5'}`}
@@ -506,7 +506,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                             </div>
 
                             <div className={`overflow-hidden transition-all duration-500 ease-in-out ${scheduleType === 'later' ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
-                                <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center gap-6">
+                                <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-4 md:p-6 border border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center gap-6">
                                     <div className="flex-1 w-full">
                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 ml-1">Select Date &amp; Time</label>
                                         <div className="relative group">
@@ -534,12 +534,12 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
 
                 {/* Right Sidebar: Preview & Actions */}
                 <div className="xl:col-span-1 space-y-6">
-                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 sticky top-6 shadow-lg transition-colors duration-300">
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 sticky top-6 shadow-lg transition-colors duration-300">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-slate-900 dark:text-white font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-text-secondary">Message Preview</h3>
                         </div>
 
-                        <div className="bg-slate-100 dark:bg-background-dark rounded-[2.5rem] border-[8px] border-white dark:border-surface-dark p-3 relative h-[520px] overflow-hidden shadow-2xl flex flex-col mx-auto w-full max-w-[300px] ring-1 ring-slate-200 dark:ring-white/5 transition-colors duration-300">
+                        <div className="bg-slate-100 dark:bg-background-dark rounded-[2.5rem] border-[8px] border-white dark:border-surface-dark p-3 relative h-[520px] overflow-hidden shadow-2xl flex flex-col mx-auto w-full max-w-[300px] max-w-full ring-1 ring-slate-200 dark:ring-white/5 transition-colors duration-300">
                             {/* StatusBar */}
                             <div className="flex justify-between items-center text-[10px] text-gray-400 mb-4 px-2 shrink-0 mt-1.5">
                                 <span>9:41</span>

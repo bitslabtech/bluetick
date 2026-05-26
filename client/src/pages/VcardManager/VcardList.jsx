@@ -58,7 +58,7 @@ export default function VcardList() {
     return (
         <div className="space-y-6 animate-in fade-in">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
                         <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
@@ -89,7 +89,7 @@ export default function VcardList() {
             </div>
 
             {/* NFC Purchase Banner */}
-            <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg border border-indigo-500/20">
+            <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-4 md:p-8 text-white relative overflow-hidden shadow-lg border border-indigo-500/20">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
                 <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
                 
@@ -104,10 +104,10 @@ export default function VcardList() {
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
-                        <button onClick={() => setIsLinkOpen(true)} className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 backdrop-blur-sm">
+                        <button onClick={() => setIsLinkOpen(true)} className="px-4 md:px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 backdrop-blur-sm">
                             <Nfc className="w-4 h-4" /> Link NFC Device
                         </button>
-                        <button onClick={() => setIsStoreOpen(true)} className="px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        <button onClick={() => setIsStoreOpen(true)} className="px-4 md:px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
                             Open NFC Store
                         </button>
                     </div>
@@ -178,7 +178,7 @@ export default function VcardList() {
                             </div>
 
                             {/* Action Footer */}
-                            <div className="p-3 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800/20 grid grid-cols-4 gap-2">
+                            <div className="p-3 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800/20 grid grid-cols-1 md:grid-cols-4 gap-2">
                                 <a href={`/vcard/${vcard.slug}`} target="_blank" rel="noreferrer" title="View Public Card" className="flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
                                     <ExternalLink className="w-4 h-4" />
                                 </a>

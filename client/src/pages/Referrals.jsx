@@ -151,10 +151,10 @@ const Referrals = () => {
                 title="Refer & Earn"
                 subtitle="Invite friends and unlock premium rewards seamlessly."
             />
-            <div className="flex-1 overflow-y-auto px-4 py-8 lg:px-12 max-w-7xl mx-auto w-full custom-scrollbar relative pb-32">
+            <div className="flex-1 overflow-y-auto px-4 py-8 lg:px-4 md:px-12 max-w-7xl mx-auto w-full custom-scrollbar relative pb-32">
 
             {!isSystemEnabled ? (
-                <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl p-8 text-center">
+                <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-8 text-center">
                     <Gift className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Referral Program is Currently Paused</h3>
                     <p className="text-slate-500">The referral program is currently disabled by the administrators. Please check back later.</p>
@@ -163,8 +163,8 @@ const Referrals = () => {
                 <div className="space-y-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Share Banner (Left) */}
-                        <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between h-full">
-                            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                        <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-4 md:p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between h-full">
+                            <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10 pointer-events-none">
                                 <Gift className="w-48 h-48 transform -rotate-12" />
                             </div>
                             <div className="relative z-10 mb-6">
@@ -191,7 +191,7 @@ const Referrals = () => {
                                 </div>
                                 <button
                                     onClick={() => handleCopy(refLink)}
-                                    className="flex items-center justify-center gap-2 bg-white text-indigo-600 hover:bg-slate-50 font-bold px-6 py-3 rounded-xl transition-all shadow-lg min-w-[120px] whitespace-nowrap"
+                                    className="flex items-center justify-center gap-2 bg-white text-indigo-600 hover:bg-slate-50 font-bold px-4 md:px-6 py-3 rounded-xl transition-all shadow-lg min-w-[120px] max-w-full whitespace-nowrap"
                                 >
                                     {copying ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
                                     {copying ? 'Copied' : 'Copy Link'}
@@ -201,7 +201,7 @@ const Referrals = () => {
 
                         {/* Tech Partner CTA (Right) */}
                         {tpStatus === 'pending' ? (
-                            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-8 flex flex-col items-center justify-center text-center h-full">
+                            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-4 md:p-8 flex flex-col items-center justify-center text-center h-full">
                                 <div className="w-16 h-16 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center mb-4">
                                     <AlertCircle className="w-8 h-8 text-amber-500" />
                                 </div>
@@ -209,8 +209,8 @@ const Referrals = () => {
                                 <p className="text-amber-800 dark:text-amber-300/80 max-w-md">Your application to become a B2B Tech Partner is under review. We will notify you once a decision is made.</p>
                             </div>
                         ) : (tpStatus === 'none' || tpStatus === 'rejected') && (
-                            <div className="bg-gradient-to-br from-slate-900 to-black rounded-2xl p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between border border-white/10 h-full">
-                                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none text-blue-500">
+                            <div className="bg-gradient-to-br from-slate-900 to-black rounded-2xl p-4 md:p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between border border-white/10 h-full">
+                                <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10 pointer-events-none text-blue-500">
                                     <Briefcase className="w-48 h-48 transform -rotate-12" />
                                 </div>
                                 <div className="relative z-10 mb-6">
@@ -239,7 +239,7 @@ const Referrals = () => {
                                 <div className="relative z-10">
                                     <button
                                         onClick={() => setShowApplyModal(true)}
-                                        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/20"
+                                        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 md:px-6 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/20"
                                     >
                                         Apply for Program <ArrowRight className="w-5 h-5" />
                                     </button>
@@ -250,7 +250,7 @@ const Referrals = () => {
 
                     {/* Stats Summary */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex items-center gap-4">
                             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center text-xl">
                                 <Users className="w-6 h-6" />
                             </div>
@@ -259,7 +259,7 @@ const Referrals = () => {
                                 <div className="text-xs font-bold uppercase text-slate-400 tracking-wider">Total Clicks/Signups</div>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex items-center gap-4">
                             <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center text-xl">
                                 <Activity className="w-6 h-6" />
                             </div>
@@ -268,7 +268,7 @@ const Referrals = () => {
                                 <div className="text-xs font-bold uppercase text-slate-400 tracking-wider">Converted Invitations</div>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex items-center gap-4">
                             <div className="w-12 h-12 bg-purple-50 dark:bg-purple-500/10 text-purple-500 rounded-xl flex items-center justify-center text-xl">
                                 <Award className="w-6 h-6" />
                             </div>
@@ -281,7 +281,7 @@ const Referrals = () => {
 
                     {/* Data Table */}
                     <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                        <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                             <h3 className="font-bold text-slate-900 dark:text-white text-lg">Your Invitations</h3>
                             <span className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full text-xs font-bold">
                                 {history?.length || 0} People
@@ -293,15 +293,15 @@ const Referrals = () => {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="bg-slate-50 dark:bg-white/5">
-                                            <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">User Details</th>
-                                            <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Joined Date</th>
-                                            <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Status</th>
+                                            <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">User Details</th>
+                                            <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Joined Date</th>
+                                            <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                         {history.map((hLine) => (
                                             <tr key={hLine.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 md:px-6 py-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs uppercase">
                                                             {hLine.name.substring(0, 2)}
@@ -314,13 +314,13 @@ const Referrals = () => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 md:px-6 py-4">
                                                     <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                                                         <Calendar className="w-4 h-4" />
                                                         {new Date(hLine.joinedAt).toLocaleDateString()}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 md:px-6 py-4">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${hLine.status === 'Converted'
                                                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400'
                                                             : 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400'
@@ -334,7 +334,7 @@ const Referrals = () => {
                                 </table>
                             </div>
                         ) : (
-                            <div className="p-12 text-center">
+                            <div className="p-4 md:p-12 text-center">
                                 <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                                 <h3 className="text-slate-900 dark:text-white font-bold mb-1">No invitations yet</h3>
                                 <p className="text-slate-500 text-sm">Share your link to start earning rewards.</p>
@@ -348,7 +348,7 @@ const Referrals = () => {
             {showApplyModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                        <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Briefcase className="w-5 h-5 text-indigo-500" /> Tech Partner Application
                             </h3>
@@ -356,7 +356,7 @@ const Referrals = () => {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <form onSubmit={submitApplication} className="p-6 space-y-4">
+                        <form onSubmit={submitApplication} className="p-4 md:p-6 space-y-4">
                             <div>
                                 <label className="block text-xs font-bold uppercase text-slate-500 mb-1">WhatsApp / Phone Number</label>
                                 <div className="flex gap-2">
@@ -404,7 +404,7 @@ const Referrals = () => {
                                 <button
                                     type="submit"
                                     disabled={applying || !applyForm.notes}
-                                    className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
+                                    className="px-4 md:px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
                                 >
                                     {applying ? <div className="w-4 h-4 rounded-full border-2 border-indigo-300 border-t-white animate-spin"></div> : <CheckCircle className="w-4 h-4" />}
                                     Submit Application

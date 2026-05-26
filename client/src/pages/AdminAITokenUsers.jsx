@@ -141,19 +141,19 @@ const AdminAITokenUsers = () => {
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 dark:bg-white/5 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-text-secondary">
                                 <tr>
-                                    <th className="px-6 py-4">User</th>
-                                    <th className="px-6 py-4">Plan / Company</th>
-                                    <th className="px-6 py-4 text-right">Burned Tokens</th>
-                                    <th className="px-6 py-4 text-right">Current Balance</th>
-                                    <th className="px-6 py-4">Last Activity</th>
+                                    <th className="px-4 md:px-6 py-4">User</th>
+                                    <th className="px-4 md:px-6 py-4">Plan / Company</th>
+                                    <th className="px-4 md:px-6 py-4 text-right">Burned Tokens</th>
+                                    <th className="px-4 md:px-6 py-4 text-right">Current Balance</th>
+                                    <th className="px-4 md:px-6 py-4">Last Activity</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
                                 {loading ? (
-                                    <tr><td colSpan="5" className="p-8 text-center text-slate-500">Loading token data...</td></tr>
+                                    <tr><td colSpan="5" className="p-4 md:p-8 text-center text-slate-500">Loading token data...</td></tr>
                                 ) : users.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="p-12 text-center text-slate-500">
+                                        <td colSpan="5" className="p-4 md:p-12 text-center text-slate-500">
                                             <div className="flex flex-col items-center justify-center gap-3">
                                                 <AlertCircle className="w-10 h-10 text-slate-300 dark:text-slate-600" />
                                                 <p>No token consumers found matching strict exact records.</p>
@@ -163,7 +163,7 @@ const AdminAITokenUsers = () => {
                                 ) : (
                                     users.map((u, i) => (
                                         <tr key={u.userId} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
                                                         <User className="w-5 h-5"/>
@@ -175,7 +175,7 @@ const AdminAITokenUsers = () => {
                                                 </div>
                                             </td>
 
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <div className="font-medium text-slate-700 dark:text-slate-300">
                                                     {u.User?.plan || 'Free'}
                                                 </div>
@@ -184,19 +184,19 @@ const AdminAITokenUsers = () => {
                                                 </div>
                                             </td>
 
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-4 md:px-6 py-4 text-right">
                                                 <span className="font-bold text-slate-900 dark:text-white text-base">
                                                     {new Intl.NumberFormat().format(u.totalTokens)}
                                                 </span>
                                             </td>
 
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-4 md:px-6 py-4 text-right">
                                                 <span className={`font-bold text-base ${(parseInt(u.User?.aiTokenBalance || 0) <= 1000) ? 'text-amber-500 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                                     {new Intl.NumberFormat().format(u.User?.aiTokenBalance || 0)}
                                                 </span>
                                             </td>
 
-                                            <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                                            <td className="px-4 md:px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 {u.lastActivity ? formatDate(u.lastActivity) : 'Unknown'}
                                             </td>
                                         </tr>
@@ -239,10 +239,10 @@ const AdminAITokenUsers = () => {
                         <button onClick={() => setIsTokenSettingsModalOpen(false)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white z-20">
                             <X className="w-5 h-5" />
                         </button>
-                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                        <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5">
                             <Zap className="w-48 h-48" />
                         </div>
-                        <div className="p-8 relative z-10 border-b border-slate-100 dark:border-white/5">
+                        <div className="p-4 md:p-8 relative z-10 border-b border-slate-100 dark:border-white/5">
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2.5 bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 rounded-lg">
                                     <Zap className="w-6 h-6" />
@@ -251,10 +251,10 @@ const AdminAITokenUsers = () => {
                             </div>
                             <p className="text-slate-500 dark:text-slate-400 font-medium">Configure token multipliers globally across all users sequentially.</p>
                         </div>
-                        <div className="p-8 space-y-8 bg-slate-50/50 dark:bg-transparent relative z-10 overflow-y-auto">
+                        <div className="p-4 md:p-8 space-y-8 bg-slate-50/50 dark:bg-transparent relative z-10 overflow-y-auto">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* Chatbot Setting */}
-                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-bold text-slate-800 dark:text-slate-200">AI Chatbot Multiplier</h3>
@@ -280,7 +280,7 @@ const AdminAITokenUsers = () => {
                                 </div>
 
                                 {/* Form Generator Setting */}
-                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-bold text-slate-800 dark:text-slate-200">AI Form Generator Multiplier</h3>
@@ -306,7 +306,7 @@ const AdminAITokenUsers = () => {
                                 </div>
 
                                 {/* AI Chat Drafter Setting */}
-                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-bold text-slate-800 dark:text-slate-200">AI Chat Drafter Multiplier</h3>
@@ -332,7 +332,7 @@ const AdminAITokenUsers = () => {
                                 </div>
 
                                 {/* AI Chat Enhancer Setting */}
-                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-bold text-slate-800 dark:text-slate-200">AI Chat Enhancer Multiplier</h3>
@@ -358,7 +358,7 @@ const AdminAITokenUsers = () => {
                                 </div>
 
                                 {/* AI Template Draft Setting */}
-                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-bold text-slate-800 dark:text-slate-200">AI Template Draft Multiplier</h3>
@@ -385,11 +385,11 @@ const AdminAITokenUsers = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark flex justify-end rounded-b-2xl">
+                        <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark flex justify-end rounded-b-2xl">
                             <button 
                                 onClick={handleSaveTokenSettings}
                                 disabled={savingTokens}
-                                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="px-4 md:px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {savingTokens ? <Loader2 className="w-5 h-5 animate-spin"/> : <Save className="w-5 h-5" />} Save Token Settings
                             </button>

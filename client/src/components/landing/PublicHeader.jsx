@@ -31,7 +31,7 @@ const PublicHeader = () => {
 
     return (
         <nav className="fixed top-0 w-full z-50 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 transition-colors duration-300">
-            <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
                 <Link to="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
                     {logoUrl ? (
                         <img src={logoUrl} alt={brandName} className="h-8 object-contain" />
@@ -48,7 +48,7 @@ const PublicHeader = () => {
                     <a href="/#solutions" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Solutions</a>
                     <a href="/#pricing" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Pricing</a>
                     <a href="/#faq" className="hover:text-indigo-600 dark:hover:text-white transition-colors">FAQ</a>
-                    <div className="h-4 w-[1px] bg-slate-300 dark:bg-white/10" />
+                    <div className="h-4 w-[1px] max-w-full bg-slate-300 dark:bg-white/10" />
                     <Link to="/login" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Log In</Link>
                     <Link to="/register" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all font-bold">
                         Get Started
@@ -63,7 +63,7 @@ const PublicHeader = () => {
             <AnimatePresence>
                 {isMenuOpen && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-white/10 overflow-hidden">
-                        <div className="flex flex-col p-6 gap-6 text-center text-slate-600 dark:text-slate-300 font-semibold">
+                        <div className="flex flex-col p-4 md:p-6 gap-6 text-center text-slate-600 dark:text-slate-300 font-semibold">
                             <a href="/#platform" onClick={() => setIsMenuOpen(false)}>Features</a>
                             <a href="/#solutions" onClick={() => setIsMenuOpen(false)}>Solutions</a>
                             <a href="/#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>

@@ -180,7 +180,7 @@ const Register = () => {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-50">
-            <div className="w-full max-w-md p-6 sm:p-8 space-y-6 bg-white rounded-xl shadow-lg border border-slate-100 mx-4 sm:mx-0">
+            <div className="w-full max-w-md p-6 sm:p-4 md:p-8 space-y-6 bg-white rounded-xl shadow-lg border border-slate-100 mx-4 sm:mx-0">
                 <div className="text-center space-y-2">
                     <div className="flex justify-center mb-4">
                         {publicSettings?.logoUrl ? (

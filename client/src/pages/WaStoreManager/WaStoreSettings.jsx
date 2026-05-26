@@ -100,12 +100,12 @@ export default function WaStoreSettings() {
 
             {/* Store Stats Card */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
                     <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <BarChart2 className="w-4 h-4 text-indigo-400" /> Store Overview
                     </h3>
                 </div>
-                <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-6">
+                <div className="p-4 md:p-6 grid grid-cols-2 md:grid-cols-3 gap-6">
                     <div className="text-center">
                         <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{store.views ?? 0}</div>
                         <div className="text-xs text-slate-500 font-medium mt-1 flex items-center justify-center gap-1">
@@ -123,7 +123,7 @@ export default function WaStoreSettings() {
                         <div className="text-xs text-slate-500 font-medium mt-1">Active Theme</div>
                     </div>
                 </div>
-                <div className="px-6 pb-5">
+                <div className="px-4 md:px-6 pb-5">
                     <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/40 text-sm text-indigo-700 dark:text-indigo-300">
                         <p className="font-semibold mb-0.5">Store URL</p>
                         <a
@@ -140,12 +140,12 @@ export default function WaStoreSettings() {
 
             {/* Custom Domain Mapping */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
                     <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Globe className="w-4 h-4 text-indigo-400" /> Custom Domain Mapping
                     </h3>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="p-4 md:p-6 space-y-4">
                     <p className="text-sm text-slate-500">
                         Map your own domain name (e.g., <strong>shop.yourbrand.com</strong>) to your Online Store.
                     </p>
@@ -221,13 +221,13 @@ export default function WaStoreSettings() {
 
             {/* Product Grid Layout */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
                     <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <LayoutGrid className="w-4 h-4 text-indigo-400" /> Product Grid Layout
                     </h3>
                     <p className="text-xs text-slate-500 mt-1">Control how many products appear per row on different devices.</p>
                 </div>
-                <div className="p-6 space-y-6">
+                <div className="p-4 md:p-6 space-y-6">
 
                     {/* Desktop Columns */}
                     <div>
@@ -299,11 +299,11 @@ export default function WaStoreSettings() {
 
             {/* Danger Zone */}
             <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-900/30 rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-rose-200 dark:border-rose-900/30 flex items-center gap-2">
+                <div className="px-4 md:px-6 py-4 border-b border-rose-200 dark:border-rose-900/30 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-rose-500" />
                     <h3 className="font-bold text-rose-800 dark:text-rose-400">Danger Zone</h3>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="p-4 md:p-6 space-y-4">
                     <p className="text-rose-700 dark:text-rose-300/80 text-sm leading-relaxed">
                         Deleting your store is <strong>permanent and irreversible</strong>. All products, settings, and analytics data will be lost. 
                         To confirm, type your store name exactly as shown below.

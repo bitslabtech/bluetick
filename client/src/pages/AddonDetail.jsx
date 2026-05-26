@@ -214,7 +214,7 @@ const AddonDetail = () => {
 
                 {/* CTA Sidebar */}
                 <div className="lg:col-span-4">
-                    <div className="sticky top-20 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-2xl border border-gray-100 dark:border-gray-700 space-y-6 overflow-hidden">
+                    <div className="sticky top-20 bg-white dark:bg-gray-800 rounded-3xl p-4 md:p-6 shadow-2xl border border-gray-100 dark:border-gray-700 space-y-6 overflow-hidden">
                         {/* Premium "Most Popular" Banner logic (optional visual flair) */}
                         <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl tracking-wider uppercase shadow-md">
                             Premium Addon
@@ -228,7 +228,7 @@ const AddonDetail = () => {
                         )}
 
                         {/* Price Block */}
-                        <div className="relative p-6 rounded-2xl bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-900/10 dark:to-gray-800 border border-indigo-100 dark:border-indigo-800/30 overflow-hidden">
+                        <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-900/10 dark:to-gray-800 border border-indigo-100 dark:border-indigo-800/30 overflow-hidden">
                             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay"></div>
 
                             <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1 relative z-10 flex items-center gap-1.5">
@@ -289,7 +289,7 @@ const AddonDetail = () => {
                                     <button
                                         onClick={() => setShowPurchaseModal(true)}
                                         disabled={purchasing}
-                                        className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-base font-bold rounded-xl flex justify-center items-center gap-2 transition-all shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] hover:-translate-y-1 transform disabled:opacity-70 disabled:transform-none relative overflow-hidden group"
+                                        className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-base font-bold rounded-xl flex justify-center items-center gap-2 transition-all shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] max-w-full hover:-translate-y-1 transform disabled:opacity-70 disabled:transform-none relative overflow-hidden group"
                                     >
                                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
                                         <span className="relative flex items-center gap-2">
@@ -302,7 +302,7 @@ const AddonDetail = () => {
                                     </button>
 
                                     {/* Trust Badges Row */}
-                                    <div className="grid grid-cols-2 gap-2 pt-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
                                         {addon.price > 0 && (
                                             <div className="flex items-center gap-2 justify-center bg-gray-50 dark:bg-gray-800/80 rounded-lg p-2 border border-gray-100 dark:border-gray-700">
                                                 <ShieldCheck className="w-4 h-4 text-green-500" />
@@ -358,7 +358,7 @@ const AddonDetail = () => {
                         </div>
 
                         {/* Content */}
-                        <div className="p-6 space-y-5">
+                        <div className="p-4 md:p-6 space-y-5">
                             {/* Addon Info */}
                             <div className="text-center space-y-2">
                                 <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">{addon.name}</h3>

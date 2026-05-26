@@ -419,7 +419,7 @@ const PublicForm = () => {
     if (error || !form) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-                <div className="text-center bg-white dark:bg-black p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-white/10 max-w-md w-full mx-4">
+                <div className="text-center bg-white dark:bg-black p-4 md:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-white/10 max-w-md w-full mx-4">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Form Unavailable</h2>
                     <p className="text-slate-500">{error}</p>
                 </div>
@@ -582,7 +582,7 @@ const PublicForm = () => {
             <div className={`w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col z-10 ${isDark ? 'bg-[#0B1120] border border-white/10' : 'bg-white border border-slate-200'}`}>
 
                 {brandConfig.logoUrl && (
-                    <div className="flex justify-center px-8 pt-4 pb-0 shrink-0">
+                    <div className="flex justify-center px-4 md:px-8 pt-4 pb-0 shrink-0">
                         <img src={brandConfig.logoUrl} alt="Organization Logo" className="h-[84px] object-contain" />
                     </div>
                 )}
@@ -597,7 +597,7 @@ const PublicForm = () => {
                 </div>
 
                 {isMultiStep && (
-                    <div className="px-8 pb-4">
+                    <div className="px-4 md:px-8 pb-4">
                         <div className="flex items-center gap-2 mb-2">
                             <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Step {currentStep + 1} of {totalSteps}</span>
                         </div>
@@ -607,7 +607,7 @@ const PublicForm = () => {
                     </div>
                 )}
 
-                <form className="p-8 flex-1 space-y-8 overflow-y-auto">
+                <form className="p-4 md:p-8 flex-1 space-y-8 overflow-y-auto">
                     {/* Only show explicit contact field if dedup is on and no phone/email field exists */}
                     {needsExplicitContact && currentStep === 0 && (
                         <div id="field-__contact__" className="space-y-2">
@@ -664,11 +664,11 @@ const PublicForm = () => {
                         )}
 
                         {isMultiStep && currentStep < totalSteps - 1 ? (
-                            <button type="button" onClick={nextStep} className="flex-1 py-4 px-6 rounded-xl text-white font-bold text-lg shadow-xl flex justify-center items-center gap-2 transition-transform hover:scale-[1.02]" style={{ backgroundColor: primaryColor, boxShadow: `0 10px 25px -5px ${primaryColor}60` }}>
+                            <button type="button" onClick={nextStep} className="flex-1 py-4 px-4 md:px-6 rounded-xl text-white font-bold text-lg shadow-xl flex justify-center items-center gap-2 transition-transform hover:scale-[1.02]" style={{ backgroundColor: primaryColor, boxShadow: `0 10px 25px -5px ${primaryColor}60` }}>
                                 Continue <ChevronRight className="w-5 h-5" />
                             </button>
                         ) : (
-                            <button type="button" onClick={handleSubmit} disabled={submitting || paymentProcessing} className="flex-1 py-4 px-6 rounded-xl text-white font-bold text-lg shadow-xl flex justify-center items-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-75 disabled:hover:scale-100" style={{ backgroundColor: primaryColor, boxShadow: `0 10px 25px -5px ${primaryColor}60` }}>
+                            <button type="button" onClick={handleSubmit} disabled={submitting || paymentProcessing} className="flex-1 py-4 px-4 md:px-6 rounded-xl text-white font-bold text-lg shadow-xl flex justify-center items-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-75 disabled:hover:scale-100" style={{ backgroundColor: primaryColor, boxShadow: `0 10px 25px -5px ${primaryColor}60` }}>
                                 {(submitting || paymentProcessing) ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                 {submitting ? 'Transmitting...' : paymentProcessing ? 'Processing Payment...' : form?.paymentConfig?.requirePayment ? 'Pay & Submit' : 'Complete Submission'}
                             </button>

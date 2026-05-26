@@ -156,7 +156,7 @@ const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) 
             </div>
 
             {/* Body */}
-            <div className="flex-1 flex flex-col bg-white dark:bg-surface-dark p-6 gap-5">
+            <div className="flex-1 flex flex-col bg-white dark:bg-surface-dark p-4 md:p-6 gap-5">
                 {/* Limits */}
                 <div className="space-y-3">
                     <LimitRow icon={MessageSquare} label="Messages / month" value={plan.messageLimit} />
@@ -306,7 +306,7 @@ const Billing = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
             {/* Header */}
-            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
                     <div>
                         <h1 className="text-xl font-bold text-slate-900 dark:text-white">Billing & Plans</h1>
@@ -328,13 +328,13 @@ const Billing = () => {
                         <span className="text-slate-500">Loading billing details...</span>
                     </div>
                 ) : (
-                    <div className="p-4 sm:p-6 md:p-10 max-w-[1400px] mx-auto space-y-10">
+                    <div className="p-4 sm:p-6 md:p-10 max-w-[1400px] max-w-full mx-auto space-y-10">
 
                         {/* Hero Banner — Current Plan + Usage */}
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
                             {/* Current Plan Card */}
-                            <div className="lg:col-span-3 relative overflow-hidden rounded-3xl p-8 text-white shadow-2xl shadow-indigo-500/20">
+                            <div className="lg:col-span-3 relative overflow-hidden rounded-3xl p-4 md:p-8 text-white shadow-2xl shadow-indigo-500/20">
                                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700" />
                                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10" />
                                 <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
@@ -383,7 +383,7 @@ const Billing = () => {
                             </div>
 
                             {/* Usage Card */}
-                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-3xl p-7 border border-slate-200 dark:border-white/5 shadow-sm flex flex-col gap-6">
+                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-3xl p-4 md:p-7 border border-slate-200 dark:border-white/5 shadow-sm flex flex-col gap-6">
                                 <div>
                                     <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">This Month's Usage</h3>
                                     <p className="text-xs text-slate-500 dark:text-slate-400">

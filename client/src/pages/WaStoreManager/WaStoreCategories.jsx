@@ -45,7 +45,7 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-white/10">
+                <div className="flex items-center justify-between px-4 md:px-6 py-5 border-b border-slate-100 dark:border-white/10">
                     <h3 className="font-bold text-lg text-slate-900 dark:text-white">
                         {mode === 'add' ? 'Add New Category' : 'Edit Category'}
                     </h3>
@@ -54,7 +54,7 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
                     </button>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="p-4 md:p-6 space-y-6">
                     {/* Image Upload */}
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -145,7 +145,7 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 px-6 pb-6">
+                <div className="flex items-center justify-end gap-3 px-4 md:px-6 pb-6">
                     <button
                         onClick={onClose}
                         className="px-5 py-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
@@ -155,7 +155,7 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
                     <button
                         onClick={handleSave}
                         disabled={!name.trim() || uploading}
-                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors flex items-center gap-2"
+                        className="px-4 md:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors flex items-center gap-2"
                     >
                         {mode === 'add' ? <Plus className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                         {mode === 'add' ? 'Add Category' : 'Save Changes'}
@@ -331,7 +331,7 @@ export default function WaStoreCategories() {
 
             {/* Category List */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] flex items-center justify-between">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] flex items-center justify-between">
                     <h3 className="font-bold text-slate-900 dark:text-white text-sm">
                         All Categories
                         <span className="ml-2 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold">
@@ -342,7 +342,7 @@ export default function WaStoreCategories() {
                 </div>
 
                 {categories.length === 0 ? (
-                    <div className="text-center py-16 px-6">
+                    <div className="text-center py-16 px-4 md:px-6">
                         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                             <Tag className="w-8 h-8 text-slate-300 dark:text-slate-600" />
                         </div>

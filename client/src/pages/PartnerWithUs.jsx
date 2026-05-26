@@ -15,8 +15,8 @@ const PartnerWithUs = () => {
         <PublicLayout title="" pageKey="partner" fullWidth={true}>
             {/* 1. HERO SECTION */}
             <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-[#F5F5F7] dark:bg-black">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
-                <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] max-w-full h-[600px] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
+                <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -47,10 +47,10 @@ const PartnerWithUs = () => {
                         transition={{ delay: 0.3 }}
                         className="flex flex-col sm:flex-row items-center justify-center gap-4"
                     >
-                        <a href="#affiliate" className="w-full sm:w-auto px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-black font-bold rounded-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-xl shadow-slate-900/20 dark:shadow-white/10 text-lg">
+                        <a href="#affiliate" className="w-full sm:w-auto px-4 md:px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-black font-bold rounded-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-xl shadow-slate-900/20 dark:shadow-white/10 text-lg">
                             Referral Program <ArrowDown className="w-5 h-5" />
                         </a>
-                        <a href="#tech-partner" className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2 text-lg">
+                        <a href="#tech-partner" className="w-full sm:w-auto px-4 md:px-8 py-4 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2 text-lg">
                             Agency & Tech Partner <ArrowDown className="w-5 h-5" />
                         </a>
                     </motion.div>
@@ -59,8 +59,8 @@ const PartnerWithUs = () => {
 
             {/* 2. AFFILIATE PROGRAM SECTION */}
             <section id="affiliate" className="py-24 bg-white dark:bg-[#05050A] border-t border-slate-200 dark:border-white/5 relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                <div className="absolute right-0 top-0 w-96 max-w-full h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
                     <div className="flex flex-col lg:flex-row items-center gap-16">
                         <div className="lg:w-1/2">
                             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-8 shadow-sm border border-emerald-200 dark:border-emerald-500/20">
@@ -91,14 +91,14 @@ const PartnerWithUs = () => {
                                 ))}
                             </div>
 
-                            <button onClick={() => setIsModalOpen(true)} className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/30">
+                            <button onClick={() => setIsModalOpen(true)} className="inline-flex items-center gap-2 px-4 md:px-8 py-4 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/30">
                                 Register to Get Link <ArrowRight className="w-5 h-5" />
                             </button>
                         </div>
 
                         <div className="lg:w-1/2 w-full">
                             {/* Infographic for Affiliate */}
-                            <div className="bg-slate-50 dark:bg-[#111115] border border-slate-200 dark:border-white/10 rounded-3xl p-8 relative">
+                            <div className="bg-slate-50 dark:bg-[#111115] border border-slate-200 dark:border-white/10 rounded-3xl p-4 md:p-8 relative">
                                 <h3 className="text-xl font-bold mb-8 text-center text-slate-900 dark:text-white">How it works</h3>
                                 <div className="space-y-8 relative before:absolute before:inset-0 before:ml-[27px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-white/10 before:to-transparent">
                                     <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
@@ -137,8 +137,8 @@ const PartnerWithUs = () => {
 
             {/* 3. TECH PARTNER PROGRAM SECTION */}
             <section id="tech-partner" className="py-24 bg-slate-50 dark:bg-[#0A0A0F] border-t border-slate-200 dark:border-white/5 relative overflow-hidden">
-                <div className="absolute left-0 bottom-0 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                <div className="absolute left-0 bottom-0 w-96 max-w-full h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
                     <div className="flex flex-col lg:flex-row-reverse items-center gap-16">
                         <div className="lg:w-1/2">
                             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 mb-8 shadow-sm border border-blue-200 dark:border-blue-500/20">
@@ -169,14 +169,14 @@ const PartnerWithUs = () => {
                                 ))}
                             </div>
 
-                            <button onClick={() => setIsModalOpen(true)} className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                            <button onClick={() => setIsModalOpen(true)} className="inline-flex items-center gap-2 px-4 md:px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
                                 Register to Apply <ArrowRight className="w-5 h-5" />
                             </button>
                         </div>
 
                         <div className="lg:w-1/2 w-full">
                             {/* Infographic for Tech Partner */}
-                            <div className="bg-white dark:bg-[#15151A] border border-slate-200 dark:border-white/10 rounded-3xl p-8 relative shadow-xl">
+                            <div className="bg-white dark:bg-[#15151A] border border-slate-200 dark:border-white/10 rounded-3xl p-4 md:p-8 relative shadow-xl">
                                 <h3 className="text-xl font-bold mb-8 text-center text-slate-900 dark:text-white">Partner Payout Flow</h3>
 
                                 <div className="flex flex-col items-center relative">
@@ -231,11 +231,11 @@ const PartnerWithUs = () => {
 
             {/* 4. COMPARISON CTA */}
             <section className="py-24 bg-white dark:bg-black">
-                <div className="max-w-4xl mx-auto px-6 text-center">
+                <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
                     <h2 className="text-3xl md:text-4xl font-extrabold mb-12 text-slate-900 dark:text-white">Which path is right for you?</h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                        <div className="p-8 rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900/50">
+                        <div className="p-4 md:p-8 rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900/50">
                             <h3 className="text-2xl font-bold mb-2">Referral Program</h3>
                             <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">Best for existing users, advocates, and marketers.</p>
                             <ul className="space-y-3 mb-8">
@@ -246,7 +246,7 @@ const PartnerWithUs = () => {
                             <button onClick={() => setIsModalOpen(true)} className="block w-full py-3 text-center bg-slate-900 dark:bg-white text-white dark:text-black font-bold rounded-xl hover:opacity-90">Register to Get Link</button>
                         </div>
 
-                        <div className="p-8 rounded-3xl border-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 relative">
+                        <div className="p-4 md:p-8 rounded-3xl border-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 relative">
                             <div className="absolute top-0 right-8 -translate-y-1/2 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">For Businesses</div>
                             <h3 className="text-2xl font-bold mb-2">Tech Partner Program</h3>
                             <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">Best for influencers, agencies, and core partners.</p>
@@ -267,7 +267,7 @@ const PartnerWithUs = () => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white dark:bg-[#1C1C1E] rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-white/10 relative"
+                        className="bg-white dark:bg-[#1C1C1E] rounded-3xl p-4 md:p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-white/10 relative"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-6 mx-auto">

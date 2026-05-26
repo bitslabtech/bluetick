@@ -123,7 +123,7 @@ const CRMLinkingPanel = ({ config: initialConfig, onConfigUpdate }) => {
     };
 
     return (
-        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm relative">
+        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm relative">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
             
             <div className="flex items-center justify-between mb-6 relative z-10">
@@ -171,7 +171,7 @@ const CRMLinkingPanel = ({ config: initialConfig, onConfigUpdate }) => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="p-6 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 border-dashed rounded-xl text-center">
+                            <div className="p-4 md:p-6 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 border-dashed rounded-xl text-center">
                                 <div className="w-12 h-12 bg-white dark:bg-black/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
                                     <Link2 className="w-6 h-6 text-slate-400" />
                                 </div>
@@ -232,7 +232,7 @@ const CRMLinkingPanel = ({ config: initialConfig, onConfigUpdate }) => {
                             
                             <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden min-h-[150px]">
                                 {searching ? (
-                                    <div className="p-8 text-center text-slate-400 text-sm">Searching...</div>
+                                    <div className="p-4 md:p-8 text-center text-slate-400 text-sm">Searching...</div>
                                 ) : searchResults.length > 0 ? (
                                     <div className="divide-y divide-slate-200 dark:divide-white/10">
                                         {searchResults.map(u => (
@@ -251,9 +251,9 @@ const CRMLinkingPanel = ({ config: initialConfig, onConfigUpdate }) => {
                                         ))}
                                     </div>
                                 ) : searchQuery.length > 1 ? (
-                                    <div className="p-8 text-center text-slate-400 text-sm">No users found.</div>
+                                    <div className="p-4 md:p-8 text-center text-slate-400 text-sm">No users found.</div>
                                 ) : (
-                                    <div className="p-8 text-center text-slate-400 text-sm flex flex-col items-center">
+                                    <div className="p-4 md:p-8 text-center text-slate-400 text-sm flex flex-col items-center">
                                         <Users className="w-8 h-8 opacity-20 mb-2" />
                                         Start typing to find a user...
                                     </div>

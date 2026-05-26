@@ -254,7 +254,7 @@ export default function WhatsAppSettings() {
                 title="WhatsApp Configuration" 
                 subtitle="Manage your live Meta Business Profile and Automated Messaging Rules."
             />
-            <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative p-6 sm:p-8">
+            <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative p-6 sm:p-4 md:p-8">
                 <div className="max-w-6xl mx-auto space-y-8">
                     
                     {/* Action Buttons Row */}
@@ -281,7 +281,7 @@ export default function WhatsAppSettings() {
 
                     {/* Left Column: Business Profile */}
                     <div className="flex flex-col gap-6">
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm p-6 relative overflow-hidden">
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm p-4 md:p-6 relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-[#25D366]" />
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                                 <Info className="w-5 h-5 text-[#25D366]" /> Live Business Profile
@@ -408,7 +408,7 @@ export default function WhatsAppSettings() {
                     <div className="flex flex-col gap-6">
 
                         {/* Webhook Configuration Card */}
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm p-6 relative overflow-hidden">
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm p-4 md:p-6 relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
                                 <Link2 className="w-5 h-5 text-blue-500" /> Webhook Configuration
@@ -485,7 +485,7 @@ export default function WhatsAppSettings() {
 
                         {/* Welcome Message Card */}
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden transition-all duration-300">
-                            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-background-dark/30">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-background-dark/30">
                                 <div>
                                     <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                         <MessageCircle className="w-5 h-5 text-purple-500" /> Welcome Auto-Reply
@@ -506,7 +506,7 @@ export default function WhatsAppSettings() {
                                 </label>
                             </div>
                             {automations.welcomeMessage.enabled && (
-                                <div className="p-6 bg-white dark:bg-surface-dark animate-in slide-in-from-top-2 fade-in duration-200">
+                                <div className="p-4 md:p-6 bg-white dark:bg-surface-dark animate-in slide-in-from-top-2 fade-in duration-200">
                                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 block">
                                         Message Content
                                     </label>
@@ -525,7 +525,7 @@ export default function WhatsAppSettings() {
 
                         {/* Off-Hours Message Card */}
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden transition-all duration-300">
-                            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-background-dark/30">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-background-dark/30">
                                 <div>
                                     <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                         <Clock className="w-5 h-5 text-orange-500" /> Off-Hours Auto-Reply
@@ -547,7 +547,7 @@ export default function WhatsAppSettings() {
                             </div>
 
                             {automations.offHoursMessage.enabled && (
-                                <div className="p-6 bg-white dark:bg-surface-dark space-y-6 animate-in slide-in-from-top-2 fade-in duration-200">
+                                <div className="p-4 md:p-6 bg-white dark:bg-surface-dark space-y-6 animate-in slide-in-from-top-2 fade-in duration-200">
                                     {/* Text Content */}
                                     <div>
                                         <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 block">

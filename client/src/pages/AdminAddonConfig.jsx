@@ -132,14 +132,14 @@ const AdminAddonConfig = () => {
 
     if (loading) {
         return (
-            <div className="p-6 flex justify-center items-center h-96">
+            <div className="p-4 md:p-6 flex justify-center items-center h-96">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
             </div>
         );
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in-up">
+        <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 animate-fade-in-up">
 
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -261,7 +261,7 @@ const AdminAddonConfig = () => {
                                         type="button"
                                         onClick={() => bannerInputRef.current?.click()}
                                         disabled={bannerUploading}
-                                        className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-10 flex flex-col items-center justify-center gap-3 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-all cursor-pointer text-gray-500 dark:text-gray-400 group disabled:opacity-50"
+                                        className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 md:p-10 flex flex-col items-center justify-center gap-3 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-all cursor-pointer text-gray-500 dark:text-gray-400 group disabled:opacity-50"
                                     >
                                         {bannerUploading ? (
                                             <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
@@ -323,7 +323,7 @@ const AdminAddonConfig = () => {
                                                 type="button"
                                                 onClick={() => videoInputRef.current?.click()}
                                                 disabled={videoUploading}
-                                                className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 flex flex-col items-center justify-center gap-2 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-all cursor-pointer text-gray-500 disabled:opacity-50"
+                                                className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4 md:p-8 flex flex-col items-center justify-center gap-2 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-all cursor-pointer text-gray-500 disabled:opacity-50"
                                             >
                                                 {videoUploading ? <div className="w-7 h-7 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div> : <Film className="w-9 h-9 text-gray-300 dark:text-gray-600" />}
                                                 <span className="text-sm font-semibold">{videoUploading ? 'Uploading...' : 'Click to upload video'}</span>
@@ -375,7 +375,7 @@ const AdminAddonConfig = () => {
                         <div className="p-5 space-y-4">
                             <div>
                                 <label className={labelClass}>Select Badge</label>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     {['', 'New', 'Trending', 'Popular', 'Best Value', 'Limited'].map(b => (
                                         <button
                                             key={b}

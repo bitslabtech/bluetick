@@ -217,7 +217,7 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border border-slate-200 dark:border-white/10">
-                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Store className="w-5 h-5 text-[#0088cc]" />
                         {item ? 'Edit Top-up Pack' : 'Create Top-up Pack'}
@@ -225,8 +225,8 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                     <button onClick={onClose}><X className="w-5 h-5 text-slate-400 hover:text-slate-600" /></button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
+                <form onSubmit={handleSubmit} className="p-4 md:p-6 overflow-y-auto space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pack Name</label>
                             <input name="name" value={formData.name} onChange={handleChange} required className="input-field" placeholder="e.g. 5K AI Tokens Pack" />
@@ -246,7 +246,7 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                         <input name="description" value={formData.description} onChange={handleChange} className="input-field" placeholder="Brief tagline or description..." />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Resource Amount</label>
                             <input type="number" name="amount" value={formData.amount} onChange={handleChange} required className="input-field" placeholder="e.g. 5000" title="The exact number of units to add to the user's balance" />
@@ -266,7 +266,7 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
                          <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Display Icon</label>
                             <select name="icon" value={formData.icon} onChange={handleChange} className="input-field">

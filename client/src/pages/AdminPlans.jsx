@@ -352,7 +352,7 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
                 )}
             </div>
 
-            <div className="grid grid-cols-4 gap-2 mb-6 border-y border-slate-100 dark:border-white/5 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-6 border-y border-slate-100 dark:border-white/5 py-4">
                 <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-white/5">
                     <div className="flex justify-center text-slate-400 mb-1"><CreditCard className="w-4 h-4" /></div>
                     <div className="font-bold text-slate-900 dark:text-white text-sm">{plan.messageLimit}</div>
@@ -596,12 +596,12 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
             <div className="bg-white dark:bg-surface-dark rounded-[24px] shadow-2xl max-w-6xl w-full h-[85vh] min-h-[650px] max-h-[900px] flex flex-col md:flex-row overflow-hidden border border-slate-200 dark:border-white/10">
                 
                 {/* ────── SIDEBAR TABS ────── */}
                 <div className="w-full md:w-64 bg-slate-50 dark:bg-black/20 border-b md:border-b-0 md:border-r border-slate-200 dark:border-white/10 flex flex-col shrink-0">
-                    <div className="p-6">
+                    <div className="p-4 md:p-6">
                         <h3 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
                             {plan ? 'Edit Plan' : 'Create Plan'}
                         </h3>
@@ -628,14 +628,14 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
 
                 {/* ────── MAIN CONTENT AREA ────── */}
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 bg-white dark:bg-surface-dark">
-                    <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                    <div className="flex-1 overflow-y-auto p-6 md:p-4 md:p-8">
                         
                         {/* ════ GENERAL TAB ════ */}
                         {activeTab === 'general' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div>
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Basic Information</h4>
-                                    <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="grid md:grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-1.5">
                                             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Plan Name</label>
                                             <input name="name" value={formData.name} onChange={handleChange} required className="modern-input" placeholder="e.g. Starter / Pro / Enterprise" />
@@ -658,7 +658,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
 
                                 <div>
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Visibility & Badges</h4>
-                                    <div className="grid sm:grid-cols-2 gap-4">
+                                    <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
                                         <ModernToggle 
                                             name="isPublic" checked={formData.isPublic} onChange={handleChange} 
                                             label="Public Visibility" description="Show this plan on the public pricing page."
@@ -686,7 +686,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Multi-Interval Pricing</h4>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Leave an interval empty or at 0 to hide it. If all are 0, it acts as a Free plan.</p>
                                     
-                                    <div className="grid md:grid-cols-3 gap-6">
+                                    <div className="grid md:grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10">
                                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Monthly Price</label>
                                             <div className="relative">
@@ -711,7 +711,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                     </div>
                                 </div>
 
-                                <div className="grid md:grid-cols-2 gap-6 pt-6 border-t border-slate-100 dark:border-white/5">
+                                <div className="grid md:grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100 dark:border-white/5">
                                     <div className="space-y-1.5">
                                         <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Currency</label>
                                         <select name="currency" value={formData.currency} onChange={handleChange} className="modern-input">
@@ -784,7 +784,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div>
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Platform Capabilities</h4>
-                                    <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="grid md:grid-cols-1 md:grid-cols-2 gap-4">
                                         <ModernToggle 
                                             name="flowBotEnabled" checked={formData.flowBotEnabled} onChange={handleChange} 
                                             label="FlowBot Builder" description="Drag & Drop automation flow builder."
@@ -820,7 +820,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
 
                                 <div className="pt-6 border-t border-slate-100 dark:border-white/5">
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">AI & Add-ons</h4>
-                                    <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="grid md:grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="bg-indigo-50 dark:bg-indigo-900/10 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
                                             <label className="flex items-center gap-2 text-sm font-bold text-indigo-900 dark:text-indigo-300 mb-2">
                                                 <Sparkles className="w-4 h-4" /> Default AI Tokens
@@ -901,13 +901,13 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                     </div>
 
                     {/* ────── FOOTER ACTION BAR ────── */}
-                    <div className="p-4 md:p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex justify-between items-center shrink-0">
+                    <div className="p-4 md:p-4 md:p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex justify-between items-center shrink-0">
                         <div className="flex items-center gap-3">
-                            <button type="button" onClick={onClose} className="px-6 py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
+                            <button type="button" onClick={onClose} className="px-4 md:px-6 py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
                                 Cancel
                             </button>
                             {!isFirstTab && (
-                                <button type="button" onClick={handlePrev} className="px-6 py-3 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors hidden sm:block">
+                                <button type="button" onClick={handlePrev} className="px-4 md:px-6 py-3 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors hidden sm:block">
                                     Previous
                                 </button>
                             )}
@@ -915,11 +915,11 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                         
                         <div className="flex items-center gap-3">
                             {!isLastTab ? (
-                                <button key="btn-next" type="button" onClick={handleNext} className="flex items-center gap-2 px-8 py-3 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
+                                <button key="btn-next" type="button" onClick={handleNext} className="flex items-center gap-2 px-4 md:px-8 py-3 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
                                     Next Step
                                 </button>
                             ) : (
-                                <button key="btn-save" type="submit" className="flex items-center gap-2 px-8 py-3 bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5">
+                                <button key="btn-save" type="submit" className="flex items-center gap-2 px-4 md:px-8 py-3 bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5">
                                     <Save className="w-5 h-5" />
                                     {plan ? 'Save Changes' : 'Create Plan'}
                                 </button>
@@ -1047,7 +1047,7 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border border-slate-200 dark:border-white/10">
-                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Store className="w-5 h-5 text-[#0088cc]" />
                         {item ? 'Edit Top-up Pack' : 'Create Top-up Pack'}
@@ -1055,8 +1055,8 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                     <button onClick={onClose}><X className="w-5 h-5 text-slate-400 hover:text-slate-600" /></button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
+                <form onSubmit={handleSubmit} className="p-4 md:p-6 overflow-y-auto space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pack Name</label>
                             <input name="name" value={formData.name} onChange={handleChange} required className="input-field" placeholder="e.g. 5K AI Tokens Pack" />
@@ -1076,7 +1076,7 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                         <input name="description" value={formData.description} onChange={handleChange} className="input-field" placeholder="Brief tagline or description..." />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Resource Amount</label>
                             <input type="number" name="amount" value={formData.amount} onChange={handleChange} required className="input-field" placeholder="e.g. 5000" title="The exact number of units to add to the user's balance" />
@@ -1096,7 +1096,7 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Display Icon</label>
                             <select name="icon" value={formData.icon} onChange={handleChange} className="input-field">

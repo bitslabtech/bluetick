@@ -32,7 +32,7 @@ const StatCard = ({ icon: Icon, label, value, sub, color = 'indigo' }) => {
         amber:   'bg-amber-50 dark:bg-amber-500/10 text-amber-500',
     };
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-200 dark:border-white/10 shadow-sm">
+        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-200 dark:border-white/10 shadow-sm">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${colors[color]}`}>
                 <Icon className="w-5 h-5" />
             </div>
@@ -124,7 +124,7 @@ const StepConnectFacebook = ({ onConnected }) => {
             <button
                 onClick={handleFBLogin}
                 disabled={loading}
-                className="inline-flex items-center gap-3 bg-[#1877F2] hover:bg-[#0866E0] text-white font-bold px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50"
+                className="inline-flex items-center gap-3 bg-[#1877F2] hover:bg-[#0866E0] text-white font-bold px-4 md:px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50"
             >
                 {loading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -344,7 +344,7 @@ const CTWADashboard = ({ onDisconnect }) => {
                         <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
                     </div>
                 ) : !data?.ads?.length ? (
-                    <div className="text-center py-16 px-6">
+                    <div className="text-center py-16 px-4 md:px-6">
                         <TrendingUp className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
                         <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">No CTWA Leads Yet</h4>
                         <p className="text-sm text-slate-500 max-w-sm mx-auto">
@@ -379,7 +379,7 @@ const CTWADashboard = ({ onDisconnect }) => {
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <div className="font-semibold text-slate-900 dark:text-white text-sm leading-tight max-w-[180px] truncate">{ad.adName}</div>
+                                                    <div className="font-semibold text-slate-900 dark:text-white text-sm leading-tight max-w-[180px] max-w-full truncate">{ad.adName}</div>
                                                     <div className="text-xs text-slate-400 font-mono mt-0.5">{ad.adId}</div>
                                                 </div>
                                             </div>

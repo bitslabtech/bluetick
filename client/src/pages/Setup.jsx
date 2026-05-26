@@ -150,7 +150,7 @@ export default function Setup() {
   );
 
   if (completed && result) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0f1e] p-6">
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0f1e] p-4 md:p-6">
       <div className="max-w-lg w-full text-center">
         <div className="text-7xl mb-6">🎉</div>
         <h1 className="text-3xl font-black text-white mb-3">Installation Complete!</h1>
@@ -199,7 +199,7 @@ export default function Setup() {
       `}</style>
 
       {/* Sidebar */}
-      <aside className="hidden md:flex w-72 flex-col bg-white/3 border-r border-white/5 p-8">
+      <aside className="hidden md:flex w-72 flex-col bg-white/3 border-r border-white/5 p-4 md:p-8">
         <div className="mb-10">
           <div className="text-2xl font-black text-white mb-1">⚡ Bluetick</div>
           <p className="text-xs text-slate-500">Installation Wizard</p>
@@ -230,7 +230,7 @@ export default function Setup() {
           <div className="step-bar h-full transition-all duration-500" style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }} />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-12 flex flex-col items-center justify-center">
+        <div className="flex-1 overflow-y-auto p-6 md:p-4 md:p-12 flex flex-col items-center justify-center">
           <div className="w-full max-w-xl fade-up" key={step}>
 
             {/* Step header */}
@@ -262,7 +262,7 @@ export default function Setup() {
             {/* ── STEP 2: Database ────────────────────────────────── */}
             {step === 2 && (
               <div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="col-span-2"><Field label="Host" hint="Usually 'localhost' if PostgreSQL is on the same server">
                     <Input value={db.host} onChange={e => { setDb(p => ({ ...p, host: e.target.value })); setDbTested(false); }} placeholder="localhost" mono />
                   </Field></div>
@@ -344,7 +344,7 @@ export default function Setup() {
                 </div>
                 <div className="border border-white/10 rounded-xl p-5">
                   <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2">📧 SMTP Email</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="col-span-2"><Field label="SMTP Host"><Input value={extras.smtpHost} onChange={e => setExtras(p => ({ ...p, smtpHost: e.target.value }))} placeholder="smtp.gmail.com" mono /></Field></div>
                     <Field label="Port"><Input value={extras.smtpPort} onChange={e => setExtras(p => ({ ...p, smtpPort: e.target.value }))} placeholder="587" mono /></Field>
                     <Field label="Username"><Input value={extras.smtpUser} onChange={e => setExtras(p => ({ ...p, smtpUser: e.target.value }))} placeholder="you@gmail.com" /></Field>

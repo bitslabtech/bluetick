@@ -134,7 +134,7 @@ const MediaNode = ({ data }) => (
                     )}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                <div className="flex flex-col items-center justify-center p-4 md:p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
                     <span className="text-xl mb-1 text-slate-400">📷</span>
                     <p className="text-[10px] text-slate-400">No media selected</p>
                 </div>

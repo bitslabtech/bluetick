@@ -87,7 +87,7 @@ const ReferralConfigPanel = ({ config, setConfig, onSave }) => {
     };
 
     return (
-        <div className="bg-white dark:bg-surface-dark border border-indigo-200 dark:border-indigo-500/30 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+        <div className="bg-white dark:bg-surface-dark border border-indigo-200 dark:border-indigo-500/30 rounded-2xl p-4 md:p-6 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
 
             <div className="flex justify-between items-center mb-6">
@@ -131,7 +131,7 @@ const ReferralConfigPanel = ({ config, setConfig, onSave }) => {
                 </div>
 
                 <div className="mt-6 flex justify-end">
-                    <button onClick={() => onSave()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/30 flex items-center gap-2">
+                    <button onClick={() => onSave()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 md:px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/30 flex items-center gap-2">
                         <Check className="w-4 h-4" /> Save settings
                     </button>
                 </div>
@@ -177,7 +177,7 @@ const AdminReferralSettings = () => {
         }
     };
 
-    if (loading) return <div className="p-8 text-center">Loading...</div>;
+    if (loading) return <div className="p-4 md:p-8 text-center">Loading...</div>;
     if (!config) return null;
 
     return (
@@ -196,7 +196,7 @@ const AdminReferralSettings = () => {
 
                 {/* Stats Overview */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex items-center gap-4">
                         <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-xl flex items-center justify-center text-xl">
                             <Users className="w-6 h-6" />
                         </div>
@@ -205,7 +205,7 @@ const AdminReferralSettings = () => {
                             <div className="text-xs font-bold uppercase text-slate-400 tracking-wider">Total Referred Users</div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex items-center gap-4">
                         <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center text-xl">
                             <Check className="w-6 h-6" />
                         </div>
@@ -214,7 +214,7 @@ const AdminReferralSettings = () => {
                             <div className="text-xs font-bold uppercase text-slate-400 tracking-wider">Total Rewards Given</div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex items-center gap-4">
                         <div className="w-12 h-12 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center text-xl">
                             <Users className="w-6 h-6" />
                         </div>

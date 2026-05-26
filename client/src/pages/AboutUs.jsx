@@ -14,7 +14,7 @@ const AboutUs = () => {
                 Customer communication has evolved, but the tools haven't kept up. We wanted to build a platform that isn't just a basic messaging tool, but an entire ecosystem for sales, marketing, and support — all within WhatsApp.
             </p>
 
-            <div className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20 rounded-2xl p-8 my-10">
+            <div className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20 rounded-2xl p-4 md:p-8 my-10">
                 <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-100 mb-2">Our Values</h3>
                 <ul className="list-disc pl-5 space-y-2 text-indigo-800 dark:text-indigo-200">
                     <li><strong>Customer First:</strong> We build for the people who use our product every day.</li>

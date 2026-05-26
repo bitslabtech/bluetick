@@ -116,7 +116,7 @@ const AiTokenHistory = () => {
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white overflow-y-auto">
 
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate('/dashboard')}
@@ -289,7 +289,7 @@ const AiTokenHistory = () => {
 
                     {/* ── Daily Consumption Area Chart ── */}
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                        className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-200 dark:border-[#2f455a] shadow-sm">
+                        className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-200 dark:border-[#2f455a] shadow-sm">
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h3 className="font-bold text-slate-900 dark:text-white">Daily Token Consumption</h3>
@@ -347,7 +347,7 @@ const AiTokenHistory = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                         {/* Weekly Bar */}
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-                            className="lg:col-span-3 bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-200 dark:border-[#2f455a] shadow-sm">
+                            className="lg:col-span-3 bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-200 dark:border-[#2f455a] shadow-sm">
                             <div className="mb-6">
                                 <h3 className="font-bold text-slate-900 dark:text-white">Weekly Breakdown</h3>
                                 <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Token usage grouped by week</p>
@@ -376,7 +376,7 @@ const AiTokenHistory = () => {
 
                         {/* Feature Donut */}
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                            className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-200 dark:border-[#2f455a] shadow-sm">
+                            className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-200 dark:border-[#2f455a] shadow-sm">
                             <div className="mb-4">
                                 <h3 className="font-bold text-slate-900 dark:text-white">Feature Usage</h3>
                                 <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Breakdown by AI feature</p>
@@ -422,7 +422,7 @@ const AiTokenHistory = () => {
 
                     {/* ── Token Balance Trend ── */}
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-                        className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-slate-200 dark:border-[#2f455a] shadow-sm">
+                        className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-200 dark:border-[#2f455a] shadow-sm">
                         <div className="mb-6">
                             <h3 className="font-bold text-slate-900 dark:text-white">Token Balance Trend</h3>
                             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">How your remaining balance changed over time</p>
@@ -454,7 +454,7 @@ const AiTokenHistory = () => {
                     {/* ── Daily Usage Log Table ── */}
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
                         className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-[#2f455a] shadow-sm overflow-hidden">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-[#2f455a]">
+                        <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 dark:border-[#2f455a]">
                             <div>
                                 <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <Calendar className="w-4 h-4 text-indigo-500" />
@@ -469,29 +469,29 @@ const AiTokenHistory = () => {
                             <table className="w-full text-sm">
                                 <thead className="bg-slate-50 dark:bg-background-dark text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">
                                     <tr>
-                                        <th className="px-6 py-3 text-left">Date</th>
-                                        <th className="px-6 py-3 text-right">
+                                        <th className="px-4 md:px-6 py-3 text-left">Date</th>
+                                        <th className="px-4 md:px-6 py-3 text-right">
                                             <span className="flex items-center justify-end gap-1.5">
                                                 <Bot className="w-3.5 h-3.5 text-indigo-400" /> AI Chatbot
                                             </span>
                                         </th>
-                                        <th className="px-6 py-3 text-right">
+                                        <th className="px-4 md:px-6 py-3 text-right">
                                             <span className="flex items-center justify-end gap-1.5">
                                                 <FileText className="w-3.5 h-3.5 text-violet-400" /> Form Gen
                                             </span>
                                         </th>
-                                        <th className="px-6 py-3 text-right">
+                                        <th className="px-4 md:px-6 py-3 text-right">
                                             <span className="flex items-center justify-end gap-1.5">
                                                 <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Template Draft
                                             </span>
                                         </th>
-                                        <th className="px-6 py-3 text-right">
+                                        <th className="px-4 md:px-6 py-3 text-right">
                                             <span className="flex items-center justify-end gap-1.5">
                                                 <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> Tmpl Enhancer
                                             </span>
                                         </th>
-                                        <th className="px-6 py-3 text-right">Total Used</th>
-                                        <th className="px-6 py-3 text-right">Balance After</th>
+                                        <th className="px-4 md:px-6 py-3 text-right">Total Used</th>
+                                        <th className="px-4 md:px-6 py-3 text-right">Balance After</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-background-dark">
@@ -499,7 +499,7 @@ const AiTokenHistory = () => {
                                         Array.from({ length: 7 }).map((_, i) => (
                                             <tr key={i}>
                                                 {Array.from({ length: 5 }).map((_, j) => (
-                                                    <td key={j} className="px-6 py-4">
+                                                    <td key={j} className="px-4 md:px-6 py-4">
                                                         <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div>
                                                     </td>
                                                 ))}
@@ -507,42 +507,42 @@ const AiTokenHistory = () => {
                                         ))
                                     ) : dailyData.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm">
+                                            <td colSpan={5} className="px-4 md:px-6 py-12 text-center text-slate-400 text-sm">
                                                 No token usage recorded yet in this period
                                             </td>
                                         </tr>
                                     ) : (
                                         [...dailyData].reverse().map((day, i) => (
                                             <tr key={i} className={`hover:bg-slate-50 dark:hover:bg-[#1e3345] transition-colors ${day.total === 0 ? 'opacity-40' : ''}`}>
-                                                <td className="px-6 py-3.5 font-medium text-slate-900 dark:text-white">
+                                                <td className="px-4 md:px-6 py-3.5 font-medium text-slate-900 dark:text-white">
                                                     {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                                 </td>
-                                                <td className="px-6 py-3.5 text-right">
+                                                <td className="px-4 md:px-6 py-3.5 text-right">
                                                     {day.ai_chatbot > 0
                                                         ? <span className="inline-flex px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-medium">{day.ai_chatbot.toLocaleString()}</span>
                                                         : <span className="text-slate-300 dark:text-slate-700">—</span>}
                                                 </td>
-                                                <td className="px-6 py-3.5 text-right">
+                                                <td className="px-4 md:px-6 py-3.5 text-right">
                                                     {day.ai_form_generator > 0
                                                         ? <span className="inline-flex px-2 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 rounded-lg text-xs font-medium">{day.ai_form_generator.toLocaleString()}</span>
                                                         : <span className="text-slate-300 dark:text-slate-700">—</span>}
                                                 </td>
-                                                <td className="px-6 py-3.5 text-right">
+                                                <td className="px-4 md:px-6 py-3.5 text-right">
                                                     {(day.ai_template_draft || 0) > 0
                                                         ? <span className="inline-flex px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium">{day.ai_template_draft.toLocaleString()}</span>
                                                         : <span className="text-slate-300 dark:text-slate-700">—</span>}
                                                 </td>
-                                                <td className="px-6 py-3.5 text-right">
+                                                <td className="px-4 md:px-6 py-3.5 text-right">
                                                     {(day.ai_template_enhancer || 0) > 0
                                                         ? <span className="inline-flex px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium">{day.ai_template_enhancer.toLocaleString()}</span>
                                                         : <span className="text-slate-300 dark:text-slate-700">—</span>}
                                                 </td>
-                                                <td className="px-6 py-3.5 text-right">
+                                                <td className="px-4 md:px-6 py-3.5 text-right">
                                                     <span className={`font-bold ${day.total > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-300 dark:text-slate-700'}`}>
                                                         {day.total > 0 ? day.total.toLocaleString() : '—'}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-3.5 text-right">
+                                                <td className="px-4 md:px-6 py-3.5 text-right">
                                                     <span className={`text-sm font-medium ${day.runningBalance < 1000 ? 'text-amber-500' : 'text-emerald-500'}`}>
                                                         {day.runningBalance.toLocaleString()}
                                                     </span>

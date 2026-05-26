@@ -184,7 +184,7 @@ export default function PublicWaProduct({ customSlug }) {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
-                <div className="lg:grid lg:grid-cols-2 lg:gap-x-16 xl:gap-x-24">
+                <div className="lg:grid lg:grid-cols-1 md:grid-cols-2 lg:gap-x-16 xl:gap-x-24">
                     
                     {/* Left: Product Image Gallery */}
                     <div className="mb-10 lg:mb-0">
@@ -345,7 +345,7 @@ export default function PublicWaProduct({ customSlug }) {
                                 </button>
                             </div>
                             
-                            <div className="mt-8 grid grid-cols-2 gap-4">
+                            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className={`flex items-start gap-3 p-4 rounded-2xl ${theme.searchStyle}`}>
                                     <Truck className={`w-6 h-6 ${theme.textMuted} shrink-0`} />
                                     <div>
@@ -474,7 +474,7 @@ export default function PublicWaProduct({ customSlug }) {
 
             {/* ─── POLICY MODAL ─── */}
             {activePolicy && (
-                <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6" onClick={() => setActivePolicy(null)}>
+                <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-4 md:p-6" onClick={() => setActivePolicy(null)}>
                     <div className={`w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl ${theme.pageBg}`} onClick={e => e.stopPropagation()}>
                         <div className={`flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/10 ${theme.header}`}>
                             <h2 className={`text-xl font-bold ${theme.text}`}>
@@ -486,7 +486,7 @@ export default function PublicWaProduct({ customSlug }) {
                                 <X className={`w-6 h-6 ${theme.text}`} />
                             </button>
                         </div>
-                        <div className="p-6 overflow-y-auto">
+                        <div className="p-4 md:p-6 overflow-y-auto">
                             <div className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none whitespace-pre-wrap ${theme.text}`}>
                                 {activePolicy === 'privacy' && store.privacyPolicy}
                                 {activePolicy === 'terms' && store.termsConditions}

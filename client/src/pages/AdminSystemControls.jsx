@@ -355,8 +355,8 @@ const AdminSystemControls = () => {
         });
     };
 
-    if (loading) return <div className="p-8 text-center">Loading Mission Control...</div>;
-    if (!config) return <div className="p-8 text-center text-red-500 font-bold">Error: Could not load system configuration. Please ensure the backend server is running and try again.</div>;
+    if (loading) return <div className="p-4 md:p-8 text-center">Loading Mission Control...</div>;
+    if (!config) return <div className="p-4 md:p-8 text-center text-red-500 font-bold">Error: Could not load system configuration. Please ensure the backend server is running and try again.</div>;
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
@@ -417,7 +417,7 @@ const AdminSystemControls = () => {
                     <div className="lg:col-span-2 space-y-8">
 
                         {/* 1. OPERATIONS PANEL */}
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">
                             <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
                                 <Zap className="w-5 h-5 text-amber-500" /> Global Operations
                             </h3>
@@ -460,7 +460,7 @@ const AdminSystemControls = () => {
                                 {/* Global Rate Limit Config */}
                                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 mt-4">
                                     <div className="font-bold text-slate-800 dark:text-white mb-4">API Rate Limits</div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Max Requests</label>
                                             <input
@@ -499,14 +499,14 @@ const AdminSystemControls = () => {
                         </div>
 
                         {/* AI MODEL CONFIGURATION */}
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">
                             <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
                                 <Sparkles className="w-5 h-5 text-violet-500" /> AI Model Configuration
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
                                 Select the Gemini model used globally across the platform — AI Auto-Responder, FlowBot AI Node, Template AI, AI Draft, and the public AI Chatbot all use this setting.
                             </p>
-                            <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                                 {[
                                     { model: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite', desc: 'Cheapest & fastest. Great for free-tier API keys.', color: 'text-emerald-500', border: 'border-emerald-400' },
                                     { model: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash',      desc: 'Best speed/quality balance. Recommended.',      color: 'text-blue-500',    border: 'border-blue-400' },
@@ -608,7 +608,7 @@ const AdminSystemControls = () => {
                                             </span>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                         <div className="bg-white dark:bg-black/20 rounded-xl p-3 text-center border border-slate-100 dark:border-white/5">
                                             <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">Input</div>
                                             <div className="text-sm font-bold text-slate-800 dark:text-white font-mono">{calcResult.symbol}{calcResult.inputCost}</div>
@@ -631,7 +631,7 @@ const AdminSystemControls = () => {
                         </div>
 
                         {/* 2. SECURITY PANEL */}
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">
                             <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
                                 <Shield className="w-5 h-5 text-red-500" /> Security & Access
                             </h3>
@@ -667,7 +667,7 @@ const AdminSystemControls = () => {
                         </div>
 
                         {/* 3. COMMUNICATION PANEL */}
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">
                             <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
                                 <Bell className="w-5 h-5 text-blue-500" /> Global Announcement
                             </h3>
@@ -683,7 +683,7 @@ const AdminSystemControls = () => {
                                 />
 
                                 {/* Optional Button */}
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
                                             Button Label <span className="normal-case font-normal text-slate-400">(optional)</span>
@@ -739,7 +739,7 @@ const AdminSystemControls = () => {
                         </div>
 
                         {/* 4. VERSIONING PANEL */}
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900 dark:text-white">
                                     <Tag className="w-5 h-5 text-purple-500" /> App Versioning
@@ -811,7 +811,7 @@ const AdminSystemControls = () => {
                     <div className="space-y-8">
 
                         {/* CONSOLE */}
-                        <div className="bg-slate-900 rounded-2xl p-6 shadow-lg text-slate-300 font-mono text-sm h-[500px] flex flex-col">
+                        <div className="bg-slate-900 rounded-2xl p-4 md:p-6 shadow-lg text-slate-300 font-mono text-sm h-[500px] flex flex-col">
                             <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-4">
                                 <h3 className="font-bold text-white flex items-center gap-2">
                                     <Terminal className="w-4 h-4" /> System Logs (Tail)
@@ -828,7 +828,7 @@ const AdminSystemControls = () => {
                         </div>
 
                         {/* Quick Diagnostics */}
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">
                             <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">Diagnostics</h3>
                             <ul className="space-y-4">
                                 <DiagItem
@@ -897,7 +897,7 @@ const VersionModal = ({ open, onClose, form, setForm, onSave, saving, editing })
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl w-full max-w-lg overflow-hidden">
-                <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-white/5">
+                <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 dark:border-white/5">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
                             <Tag className="w-5 h-5" />
@@ -908,8 +908,8 @@ const VersionModal = ({ open, onClose, form, setForm, onSave, saving, editing })
                         <X className="w-5 h-5" />
                     </button>
                 </div>
-                <div className="p-6 flex flex-col gap-5">
-                    <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 md:p-6 flex flex-col gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-bold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Version *</label>
                             <input value={form.version} onChange={(e) => setForm({ ...form, version: e.target.value })} placeholder="e.g. 1.2.0" className="px-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
@@ -936,9 +936,9 @@ const VersionModal = ({ open, onClose, form, setForm, onSave, saving, editing })
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Mark as Current Version</span>
                     </label>
                 </div>
-                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                <div className="flex items-center justify-end gap-3 px-4 md:px-6 py-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
                     <button onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">Cancel</button>
-                    <button onClick={onSave} disabled={saving} className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-60">
+                    <button onClick={onSave} disabled={saving} className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-60">
                         {saving ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div> : <Check className="w-4 h-4" />}
                         {editing ? 'Save Changes' : 'Create Version'}
                     </button>
@@ -950,7 +950,7 @@ const VersionModal = ({ open, onClose, form, setForm, onSave, saving, editing })
 
 // UI Components
 const StatusCard = ({ label, value, color, icon: Icon }) => (
-    <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex items-center gap-4">
+    <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex items-center gap-4">
         <div className={`p-3 rounded-xl bg-slate-50 dark:bg-white/5 ${color}`}>
             <Icon className="w-6 h-6" />
         </div>
@@ -1080,7 +1080,7 @@ const MenuOrderPanel = ({ config, onSave }) => {
     if (!config) return null;
 
     return (
-        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">
             <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-white">Sidebar Menu Order</h3>
             <p className="text-sm text-slate-500 mb-6">Drag and drop the items below to change the order of the main navigation menu for all users. Changes are saved instantly.</p>
             

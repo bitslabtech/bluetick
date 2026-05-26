@@ -956,7 +956,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                                                         const varNum = v.replace(/[{}]/g, '');
                                                         return (
                                                             <div key={v} className="flex items-center gap-2">
-                                                                <span className="text-xs font-mono text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1.5 rounded-lg min-w-[48px] text-center">{v}</span>
+                                                                <span className="text-xs font-mono text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1.5 rounded-lg min-w-[48px] max-w-full text-center">{v}</span>
                                                                 <input
                                                                     type="text"
                                                                     value={(localData.templateVars || {})[varNum] || ''}
@@ -1012,7 +1012,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                                                         const varNum = v.replace(/[{}]/g, '');
                                                         return (
                                                             <div key={v} className="flex items-center gap-2">
-                                                                <span className="text-xs font-mono text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1.5 rounded-lg min-w-[48px] text-center">{v}</span>
+                                                                <span className="text-xs font-mono text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1.5 rounded-lg min-w-[48px] max-w-full text-center">{v}</span>
                                                                 <input type="text" value={(localData.templateVars || {})[varNum] || ''} onChange={(e) => { const vars = { ...(localData.templateVars || {}), [varNum]: e.target.value }; handleChange('templateVars', vars); }} className="flex-1 px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none text-sm" placeholder={`Value for {{${varNum}}}`} />
                                                             </div>
                                                         );
@@ -1087,7 +1087,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                                                                         const paramKey = `card_${cardIdx}_var_${varNum}`;
                                                                         return (
                                                                             <div key={v} className="flex items-center gap-2">
-                                                                                <span className="text-[10px] font-mono text-fuchsia-500 bg-fuchsia-50 dark:bg-fuchsia-900/20 px-1.5 py-1 rounded min-w-[40px] text-center">{v}</span>
+                                                                                <span className="text-[10px] font-mono text-fuchsia-500 bg-fuchsia-50 dark:bg-fuchsia-900/20 px-1.5 py-1 rounded min-w-[40px] max-w-full text-center">{v}</span>
                                                                                 <input
                                                                                     type="text"
                                                                                     value={(localData.cardParams || {})[paramKey] || ''}
@@ -1186,7 +1186,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                                 <li>If they reply with text instead, the request is re-sent</li>
                             </ul>
                             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-3 mb-1.5 uppercase tracking-wider">Saved Variables</p>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 {['last_location_lat', 'last_location_lng', 'last_location_name', 'last_location_address'].map(v => (
                                     <button
                                         key={v}
@@ -1508,7 +1508,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     };
 
     return (
-        <aside className="w-80 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col shadow-xl z-20 absolute right-0 h-full">
+        <aside className="w-80 max-w-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col shadow-xl z-20 absolute right-0 h-full">
             <div className="h-14 flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800/50">
                 <h3 className="font-semibold text-slate-800 dark:text-white capitalize">
                     {node.type.replace('Node', '')} Settings

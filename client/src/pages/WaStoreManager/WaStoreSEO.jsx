@@ -145,12 +145,12 @@ export default function WaStoreSEO() {
             <form onSubmit={handleSave} className="space-y-6">
                 {/* Search Engine Optimization */}
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                    <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                    <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
                         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <Globe className="w-4 h-4 text-indigo-400" /> Search Engine Details
                         </h3>
                     </div>
-                    <div className="p-6 space-y-5">
+                    <div className="p-4 md:p-6 space-y-5">
                         <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/30 rounded-xl mb-4">
                             <h4 className="text-xs font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider mb-2">Search Engine Preview</h4>
                             <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -206,12 +206,12 @@ export default function WaStoreSEO() {
 
                 {/* Social Sharing */}
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                    <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                    <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
                         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <ImageIcon className="w-4 h-4 text-indigo-400" /> Social Media Sharing (Open Graph)
                         </h3>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4 md:p-6">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Social Share Image</label>
                         <p className="text-xs text-slate-500 mb-3">This image appears when your store link is shared on WhatsApp, Facebook, or Twitter. Supported formats: JPG, PNG, WEBP (Max 5MB).</p>
                         
@@ -237,12 +237,12 @@ export default function WaStoreSEO() {
 
                 {/* Tracking & Analytics */}
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                    <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                    <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
                         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <Code className="w-4 h-4 text-indigo-400" /> Tracking & Analytics
                         </h3>
                     </div>
-                    <div className="p-6 space-y-5">
+                    <div className="p-4 md:p-6 space-y-5">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Google Analytics (GA4) Measurement ID</label>
                             <input
@@ -270,7 +270,7 @@ export default function WaStoreSEO() {
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-sm"
+                        className="flex items-center gap-2 px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-sm"
                     >
                         <Save className="w-4 h-4" />
                         {saving ? 'Saving Settings...' : 'Save SEO & Tracking Settings'}

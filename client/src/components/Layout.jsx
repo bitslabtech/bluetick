@@ -60,7 +60,7 @@ export default function Layout() {
                         <div className="flex items-center justify-center rounded-lg bg-primary size-8 text-white shadow-lg shadow-blue-500/20" style={{ display: publicSettings?.logoUrl ? 'none' : 'flex' }}>
                             <span className="font-bold text-sm">Wa</span>
                         </div>
-                        <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px] min-h-[1.5rem]">
+                        <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px] max-w-full min-h-[1.5rem]">
                             {!publicSettingsLoading && (publicSettings?.appName || 'Bluetick')}
                         </h1>
                     </div>
@@ -111,7 +111,7 @@ export default function Layout() {
 
                 {/* Impersonation Warning Banner */}
                 {isImpersonating && user && (
-                    <div className="bg-amber-500 text-white px-6 py-2 flex items-center justify-between shadow-md">
+                    <div className="bg-amber-500 text-white px-4 md:px-6 py-2 flex items-center justify-between shadow-md">
                         <div className="font-semibold text-sm flex items-center gap-2">
                             <span>Warning: You are currently viewing as <strong>{user.name}</strong> ({user.email})</span>
                         </div>
@@ -137,7 +137,7 @@ export default function Layout() {
                 {/* MAINTENANCE MODAL */}
                 {isMaintenance && !user?.isAdmin && (
                     <div className="absolute inset-0 z-[100] bg-white/50 dark:bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
-                        <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-slate-200 dark:border-slate-800">
+                        <div className="bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-slate-200 dark:border-slate-800">
                             <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <AlertTriangle className="w-8 h-8" />
                             </div>

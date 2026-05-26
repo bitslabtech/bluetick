@@ -74,8 +74,8 @@ const AdminAddons = () => {
     };
 
     return (
-        <div className="p-6 w-[90%] max-w-none mx-auto space-y-6 animate-fade-in-up">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="p-4 md:p-6 w-[90%] max-w-none mx-auto space-y-6 animate-fade-in-up">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white dark:bg-gray-800 p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                 <div>
                     <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3">
                         <Layers className="w-8 h-8 text-indigo-600" />
@@ -85,7 +85,7 @@ const AdminAddons = () => {
                 </div>
                 <button
                     onClick={() => setUploadModalOpen(true)}
-                    className="mt-4 md:mt-0 flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                    className="mt-4 md:mt-0 flex items-center gap-2 px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 >
                     <UploadCloud className="w-5 h-5" />
                     Deploy New Plugin
@@ -137,11 +137,11 @@ const AdminAddons = () => {
                                     )}
                                 </div>
 
-                                <div className="p-6 flex flex-col flex-grow">
+                                <div className="p-4 md:p-6 flex flex-col flex-grow">
                                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{addon.name}</h3>
                                     <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 line-clamp-2">{addon.description}</p>
 
-                                <div className="grid grid-cols-2 gap-3 mt-auto pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-auto pt-4 border-t border-gray-100 dark:border-gray-700/50">
                                     <div className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 flex flex-col justify-center border border-gray-100 dark:border-gray-700/50 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50">
                                         <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
                                             <Tag className="w-3.5 h-3.5" /> Price
@@ -184,7 +184,7 @@ const AdminAddons = () => {
                                 </div>
                             </div>
                             </div>
-                            <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="bg-gray-50 dark:bg-gray-800/50 px-4 md:px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => navigate(`/superadmin/addons/${addon.id}/config`)} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-colors">
                                     <Edit className="w-5 h-5" />
                                 </button>
@@ -207,7 +207,7 @@ const AdminAddons = () => {
             {/* Upload Modal */}
             {isUploadModalOpen && (
                 <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-4 md:p-8 transform transition-all">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <DownloadCloud className="w-6 h-6 text-indigo-600" />
@@ -218,7 +218,7 @@ const AdminAddons = () => {
                             </button>
                         </div>
                         <form onSubmit={handleUpload} className="space-y-6">
-                            <div className="border-2 border-dashed border-indigo-200 dark:border-gray-600 rounded-xl p-8 text-center hover:bg-indigo-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer relative">
+                            <div className="border-2 border-dashed border-indigo-200 dark:border-gray-600 rounded-xl p-4 md:p-8 text-center hover:bg-indigo-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer relative">
                                 <input
                                     type="file"
                                     accept=".zip"

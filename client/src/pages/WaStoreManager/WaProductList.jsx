@@ -96,7 +96,7 @@ function MultiImageUploader({ imageUrls, onImagesChange }) {
 
             {/* Image Grid */}
             {imageUrls.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     {imageUrls.map((url, idx) => (
                         <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700">
                             <img
@@ -313,13 +313,13 @@ export default function WaProductList() {
             </div>
 
             {loading ? (
-                <div className="p-8 animate-pulse text-slate-500 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/10">Loading inventory...</div>
+                <div className="p-4 md:p-8 animate-pulse text-slate-500 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/10">Loading inventory...</div>
             ) : products.length === 0 ? (
-                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-12 text-center">
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-12 text-center">
                     <Package className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No products found</h3>
                     <p className="text-slate-500 mb-6 max-w-sm mx-auto">Start adding items to your store to start selling on WhatsApp.</p>
-                    <button onClick={() => { setEditingProduct(null); setForm(defaultForm); setIsAddingNewCategory(false); setShowModal(true); }} className="px-6 py-2 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 font-medium rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors inline-flex items-center gap-2">
+                    <button onClick={() => { setEditingProduct(null); setForm(defaultForm); setIsAddingNewCategory(false); setShowModal(true); }} className="px-4 md:px-6 py-2 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 font-medium rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors inline-flex items-center gap-2">
                         <Plus className="w-4 h-4" /> Add First Product
                     </button>
                 </div>
@@ -329,17 +329,17 @@ export default function WaProductList() {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
                                 <tr>
-                                    <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Product</th>
-                                    <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Price</th>
-                                    <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Category</th>
-                                    <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Status</th>
-                                    <th className="px-6 py-4 text-right font-medium text-slate-500 dark:text-slate-400">Actions</th>
+                                    <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Product</th>
+                                    <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Price</th>
+                                    <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Category</th>
+                                    <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Status</th>
+                                    <th className="px-4 md:px-6 py-4 text-right font-medium text-slate-500 dark:text-slate-400">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-white/5">
                                 {products.map(product => (
                                     <tr key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 md:px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 {product.imageUrls?.[0] ? (
                                                     <img src={product.imageUrls[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800" />
@@ -350,16 +350,16 @@ export default function WaProductList() {
                                                 )}
                                                 <div>
                                                     <p className="font-bold text-slate-900 dark:text-white">{product.name}</p>
-                                                    <p className="text-xs text-slate-500 truncate max-w-[200px]">{product.description}</p>
+                                                    <p className="text-xs text-slate-500 truncate max-w-[200px] max-w-full">{product.description}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 md:px-6 py-4">
                                             <div className="font-medium text-slate-900 dark:text-white">{getCurrencySymbol(currency)}{product.price}</div>
                                             {product.compareAtPrice && <div className="text-xs text-slate-500 line-through">{getCurrencySymbol(currency)}{product.compareAtPrice}</div>}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{product.category || '-'}</td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 md:px-6 py-4 text-slate-600 dark:text-slate-400">{product.category || '-'}</td>
+                                        <td className="px-4 md:px-6 py-4">
                                             {product.inStock ? (
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> In Stock
@@ -370,7 +370,7 @@ export default function WaProductList() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-4 md:px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => openEdit(product)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                                     <Edit3 className="w-4 h-4" />
@@ -390,7 +390,7 @@ export default function WaProductList() {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-surface-dark rounded-2xl max-w-2xl w-full p-6 shadow-xl my-8">
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl max-w-2xl w-full p-4 md:p-6 shadow-xl my-8">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
                             {editingProduct ? 'Edit Product' : 'Add New Product'}
                         </h2>

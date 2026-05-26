@@ -181,7 +181,7 @@ export default function GlobalSearch() {
                             Searching...
                         </div>
                     ) : results.length === 0 ? (
-                        <div className="p-6 text-center text-sm text-slate-500 dark:text-text-secondary">
+                        <div className="p-4 md:p-6 text-center text-sm text-slate-500 dark:text-text-secondary">
                             <Search className="w-8 h-8 mx-auto mb-2 opacity-20" />
                             <p>No results found for "{query}"</p>
                         </div>

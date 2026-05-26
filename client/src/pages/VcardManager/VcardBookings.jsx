@@ -81,7 +81,7 @@ export default function VcardBookings() {
                                 ))
                             ) : bookings.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="p-8 text-center text-slate-400">
+                                    <td colSpan="5" className="p-4 md:p-8 text-center text-slate-400">
                                         No booking requests found. When visitors use your veCard native booking form, requests will appear here.
                                     </td>
                                 </tr>

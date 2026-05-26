@@ -687,7 +687,7 @@ const Settings = () => {
         });
     };
 
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading settings...</div>;
+    if (loading) return <div className="p-4 md:p-8 text-center text-slate-500">Loading settings...</div>;
 
     const emailCategories = [
         {
@@ -766,7 +766,7 @@ const Settings = () => {
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-y-auto">
             {/* Top Bar */}
             {/* Top Bar matching Support.jsx */}
-            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-30">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-30">
                 <div className="flex items-center gap-6 w-full">
                     {/* Search Bar */}
                     <div className="flex items-center w-full max-w-md transition-colors">
@@ -793,7 +793,7 @@ const Settings = () => {
                     <button
                         onClick={handleSubmit}
                         disabled={saving}
-                        className="w-full sm:w-auto px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
+                        className="w-full sm:w-auto px-4 md:px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
                     >
                         {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         {saving ? 'Saving...' : 'Save Settings'}
@@ -849,7 +849,7 @@ const Settings = () => {
                     </aside>
 
                     {/* Content Area */}
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-8 shrink-0">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-4 md:p-8 shrink-0">
                         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                             {/* CRM LINKING TAB */}
@@ -863,7 +863,7 @@ const Settings = () => {
                             {activeTab === 'profile' && (
                                 <div className="space-y-6">
                                     {/* Personal Info Header */}
-                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                         <div className="flex flex-col md:flex-row items-center gap-6">
                                             <div className="relative group">
                                                 <div className="w-24 h-24 rounded-full bg-indigo-500 flex items-center justify-center text-white text-3xl font-bold border-4 border-slate-100 dark:border-surface-dark shadow-lg overflow-hidden">
@@ -890,7 +890,7 @@ const Settings = () => {
 
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         {/* Personal Details Form */}
-                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm h-full">
+                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm h-full">
                                             <div className="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-white/5 pb-4">
                                                 <User className="w-5 h-5 text-indigo-500" />
                                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Personal Information</h3>
@@ -954,7 +954,7 @@ const Settings = () => {
                                                     <button
                                                         onClick={handleProfileUpdate}
                                                         disabled={saving}
-                                                        className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
+                                                        className="w-full px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
                                                     >
                                                         {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                                         {saving ? 'Saving...' : 'Save Profile'}
@@ -966,7 +966,7 @@ const Settings = () => {
 
                                         {/* Security & Password */}
                                         <div className="space-y-6">
-                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                                 <div className="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-white/5 pb-4">
                                                     <Key className="w-5 h-5 text-indigo-500" />
                                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Security</h3>
@@ -983,7 +983,7 @@ const Settings = () => {
                                                             className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
                                                         />
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <div>
                                                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">New Password</label>
                                                             <input
@@ -1017,7 +1017,7 @@ const Settings = () => {
                                                 </div>
                                             </section>
 
-                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                                 <div className="flex items-center gap-2 mb-4">
                                                     <Clock className="w-5 h-5 text-slate-400" />
                                                     <h3 className="text-md font-bold text-slate-900 dark:text-white">Account Activity</h3>
@@ -1041,7 +1041,7 @@ const Settings = () => {
                                     </div>
 
                                     {/* Danger Zone */}
-                                    <section className="bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/20 p-6">
+                                    <section className="bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/20 p-4 md:p-6">
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <h3 className="text-lg font-bold text-red-700 dark:text-red-400">Delete Account</h3>
@@ -1085,11 +1085,11 @@ const Settings = () => {
                             {activeTab === 'general' && (
                                 <>
                                     {/* Appearance Section */}
-                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm">
+                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm">
                                         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                                             <Monitor className="w-5 h-5 text-indigo-500" /> Default Appearance
                                         </h2>
-                                        <div className="grid grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             {[
                                                 { id: 'light', label: 'Light', icon: Sun },
                                                 { id: 'dark', label: 'Dark', icon: Moon },
@@ -1124,7 +1124,7 @@ const Settings = () => {
                                     </section>
 
                                     {/* Regional Settings */}
-                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm">
+                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm">
                                         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                                             <Globe className="w-5 h-5 text-indigo-500" /> Regional Settings
                                         </h2>
@@ -1164,7 +1164,7 @@ const Settings = () => {
 
                             {/* BRANDING TAB - Moved to Landing Page */}
                             {activeTab === 'branding' && (
-                                <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-10 shadow-sm">
+                                <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-10 shadow-sm">
                                     <div className="flex flex-col items-center text-center gap-4 max-w-md mx-auto">
                                         <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl">
                                             <Palette className="w-10 h-10 text-indigo-500" />
@@ -1175,7 +1175,7 @@ const Settings = () => {
                                         </p>
                                         <a
                                             href="/superadmin/landing-page"
-                                            className="mt-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center gap-2"
+                                            className="mt-2 px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center gap-2"
                                         >
                                             <Layout className="w-4 h-4" /> Go to Landing Page → Branding
                                         </a>
@@ -1208,9 +1208,9 @@ const Settings = () => {
                                         </button>
                                     </div>
 
-                                    <div className="p-6 space-y-8">
+                                    <div className="p-4 md:p-6 space-y-8">
                                         {activeSubTab === 'email' && emailCategories.map(cat => (
-                                            <div key={cat.id} className="p-6 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
+                                            <div key={cat.id} className="p-4 md:p-6 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
                                                 <h3 className="font-bold text-slate-900 dark:text-white mb-4">{cat.label}</h3>
                                                 <div className="space-y-4">
                                                     <div>
@@ -1249,7 +1249,7 @@ const Settings = () => {
                                         {activeSubTab === 'whatsapp' && whatsappCategories.map(cat => (
                                             <div key={cat.id} className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                                                 {/* Card Header */}
-                                                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-start justify-between gap-4">
+                                                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex items-start justify-between gap-4">
                                                     <div className="flex gap-4">
                                                         <div className="p-3 bg-green-50 dark:bg-green-900/10 rounded-lg text-green-600 dark:text-green-400 shrink-0">
                                                             <cat.icon className="w-6 h-6" />
@@ -1276,14 +1276,14 @@ const Settings = () => {
                                                 </div>
 
                                                 {/* Card Body */}
-                                                <div className="p-6 space-y-6">
+                                                <div className="p-4 md:p-6 space-y-6">
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                         <div>
                                                             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
                                                                 Meta Template Name
                                                             </label>
                                                             <div className="relative">
-                                                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs border border-slate-200 dark:border-white/10 rounded px-1 min-w-[24px] text-center bg-slate-50 dark:bg-white/5">ID</div>
+                                                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs border border-slate-200 dark:border-white/10 rounded px-1 min-w-[24px] max-w-full text-center bg-slate-50 dark:bg-white/5">ID</div>
                                                                 <input
                                                                     type="text"
                                                                     value={formData.notificationTemplates.whatsapp[cat.id]?.templateName || ''}
@@ -1369,7 +1369,7 @@ const Settings = () => {
                                     {waGatewayTab === 'embedded' && (
                                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                             <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
-                                                <div className="p-8 pb-10 border-b border-slate-100 dark:border-white/5 bg-gradient-to-br from-[#1877F2]/5 to-transparent relative">
+                                                <div className="p-4 md:p-8 pb-10 border-b border-slate-100 dark:border-white/5 bg-gradient-to-br from-[#1877F2]/5 to-transparent relative">
                                                     <div className="absolute top-0 right-0 w-64 h-64 bg-[#1877F2]/5 rounded-full blur-3xl -mb-10 -mr-10"></div>
                                                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                                                         <div className="flex-1">
@@ -1393,7 +1393,7 @@ const Settings = () => {
                                                             <button
                                                                 onClick={handleDisconnect}
                                                                 disabled={fbLoading}
-                                                                className="px-8 py-4 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 font-bold rounded-xl transition-all flex items-center justify-center gap-3 w-full md:w-auto text-lg disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-1 border border-red-200 dark:border-red-500/20"
+                                                                className="px-4 md:px-8 py-4 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 font-bold rounded-xl transition-all flex items-center justify-center gap-3 w-full md:w-auto text-lg disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-1 border border-red-200 dark:border-red-500/20"
                                                             >
                                                                 {fbLoading ? (
                                                                     <RefreshCw className="w-6 h-6 animate-spin" />
@@ -1406,7 +1406,7 @@ const Settings = () => {
                                                             <button
                                                                 onClick={handleFacebookLogin}
                                                                 disabled={fbLoading}
-                                                                className="px-8 py-4 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 w-full md:w-auto text-lg disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-1"
+                                                                className="px-4 md:px-8 py-4 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 w-full md:w-auto text-lg disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-1"
                                                             >
                                                                 {fbLoading ? (
                                                                     <div className="w-6 h-6 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
@@ -1423,7 +1423,7 @@ const Settings = () => {
                                             </section>
 
                                             {/* Connection Details */}
-                                            <div className="p-8 bg-slate-50 dark:bg-background-dark/50">
+                                            <div className="p-4 md:p-8 bg-slate-50 dark:bg-background-dark/50">
                                                 <h3 className="font-bold text-slate-900 dark:text-white mb-6 uppercase text-xs tracking-wider">Account Information</h3>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <div className="bg-white dark:bg-surface-dark p-5 rounded-xl border border-slate-200 dark:border-white/5 flex items-start gap-4 shadow-sm">
@@ -1444,7 +1444,7 @@ const Settings = () => {
                                             </div>
 
                                             {/* Webhook Configuration for Embedded */}
-                                            <div className="p-8 border-t border-slate-100 dark:border-white/5">
+                                            <div className="p-4 md:p-8 border-t border-slate-100 dark:border-white/5">
                                                 <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                                                     <Globe className="w-5 h-5 text-green-500" /> Webhook Configuration
                                                 </h3>
@@ -1487,7 +1487,7 @@ const Settings = () => {
                                     {waGatewayTab === 'manual' && (
                                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                             {/* API Configuration */}
-                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
                                                     <Server className="w-5 h-5 text-indigo-500" /> WhatsApp Cloud API
                                                 </h2>
@@ -1533,7 +1533,7 @@ const Settings = () => {
                                             </section>
 
                                             {/* Webhook Configuration */}
-                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
                                                     <Globe className="w-5 h-5 text-green-500" /> Webhook Configuration
                                                 </h2>
@@ -1573,7 +1573,7 @@ const Settings = () => {
 
                                     {/* Unified Test Console */}
                                     <section className="bg-slate-900 rounded-2xl overflow-hidden shadow-xl border border-slate-800">
-                                        <div className="bg-slate-800/80 px-6 py-4 flex items-center justify-between border-b border-slate-700/50">
+                                        <div className="bg-slate-800/80 px-4 md:px-6 py-4 flex items-center justify-between border-b border-slate-700/50">
                                             <div className="flex items-center gap-3">
                                                 <Terminal className="w-5 h-5 text-indigo-400" />
                                                 <h3 className="text-slate-300 font-bold uppercase tracking-wider text-sm">Send Test Message</h3>
@@ -1584,7 +1584,7 @@ const Settings = () => {
                                                 <div className="w-3 h-3 rounded-full bg-slate-700" />
                                             </div>
                                         </div>
-                                        <div className="p-8">
+                                        <div className="p-4 md:p-8">
                                             <div className="flex flex-col sm:flex-row items-end gap-4">
                                                 <div className="flex-1 w-full">
                                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Destination WhatsApp Number</label>
@@ -1599,7 +1599,7 @@ const Settings = () => {
                                                 <button
                                                     onClick={handleTestMessage}
                                                     disabled={testLoading}
-                                                    className="w-full sm:w-auto px-8 py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl shadow-lg shadow-green-900/50 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
+                                                    className="w-full sm:w-auto px-4 md:px-8 py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl shadow-lg shadow-green-900/50 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
                                                 >
                                                     {testLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                                     Send Test
@@ -1669,7 +1669,7 @@ const Settings = () => {
                                         </section>
 
                                         {/* Global Payment Settings */}
-                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Global Payment Settings</h3>
                                             <div className="max-w-xl">
                                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Transaction Fee Handling</label>
@@ -1690,7 +1690,7 @@ const Settings = () => {
 
                                         {/* Configuration Form */}
                                         {activePaymentGateway && formData.paymentGateways && (
-                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                                 <div className="flex items-center justify-between mb-8">
                                                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                                         <Shield className="w-6 h-6 text-indigo-500" />
@@ -1814,7 +1814,7 @@ const Settings = () => {
                                                                     placeholder="099ebbf4-..."
                                                                 />
                                                             </div>
-                                                            <div className="grid grid-cols-2 gap-6">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                                 <div>
                                                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Salt Index</label>
                                                                     <input
@@ -1902,7 +1902,7 @@ const Settings = () => {
                             {
                                 activeTab === 'smtp' && (
                                     <div className="space-y-8">
-                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                             <div className="flex items-center justify-between mb-8">
                                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                                     <Mail className="w-6 h-6 text-indigo-500" />
@@ -2052,7 +2052,7 @@ const Settings = () => {
                             {
                                 activeTab === 'storage' && (
                                     <div className="space-y-8">
-                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                             <div className="flex items-center justify-between mb-8">
                                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                                     <Database className="w-6 h-6 text-indigo-500" />
@@ -2084,7 +2084,7 @@ const Settings = () => {
                                                 {/* Storage Engine Selection */}
                                                 <div className="md:col-span-2 mb-4">
                                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Active Storage Backend</label>
-                                                    <div className="grid grid-cols-3 gap-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                         {/* Local Drive */}
                                                         <div
                                                             className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 'local' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
@@ -2354,7 +2354,7 @@ const Settings = () => {
                             {
                                 activeTab === 'security' && (
                                     <div className="space-y-8">
-                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                        <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                             <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-8">
                                                 <Shield className="w-6 h-6 text-red-500" />
                                                 System Security
@@ -2449,7 +2449,7 @@ const Settings = () => {
                             {/* INTEGRATIONS TAB */}
                             {activeTab === 'integrations' && (
                                 <div className="space-y-6">
-                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
                                         <div className="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-white/5 pb-4">
                                             <Globe2 className="w-5 h-5 text-emerald-500" />
                                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Integrations</h3>
@@ -2483,7 +2483,7 @@ const Settings = () => {
                                                 </button>
                                             </div>
 
-                                            <div className="p-6 space-y-5">
+                                            <div className="p-4 md:p-6 space-y-5">
                                                 <div className="bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20 rounded-xl p-4 flex gap-3">
                                                     <AlertTriangle className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                                                     <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
@@ -2545,7 +2545,7 @@ const Settings = () => {
                                                     <button
                                                         onClick={() => saveGoogleIntegration()}
                                                         disabled={integrationSaving}
-                                                        className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-60 shadow-sm"
+                                                        className="flex items-center gap-2 px-4 md:px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-60 shadow-sm"
                                                     >
                                                         {integrationSaving
                                                             ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>

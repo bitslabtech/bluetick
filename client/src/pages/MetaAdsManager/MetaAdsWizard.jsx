@@ -122,7 +122,7 @@ export default function MetaAdsWizard() {
             case 0:
                 return (
                     <div className="space-y-6">
-                        <div className="bg-gradient-to-br from-primary/10 to-transparent p-6 rounded-2xl border border-primary/20">
+                        <div className="bg-gradient-to-br from-primary/10 to-transparent p-4 md:p-6 rounded-2xl border border-primary/20">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
                                 <Sparkles className="w-5 h-5 text-primary" /> Describe Your Business
                             </h3>
@@ -154,7 +154,7 @@ export default function MetaAdsWizard() {
                             <button 
                                 onClick={handleGenerateAudience}
                                 disabled={loading || !businessData.description}
-                                className="flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white px-8 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                                className="flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white px-4 md:px-8 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                                 AI: Generate Audience Details
@@ -165,7 +165,7 @@ export default function MetaAdsWizard() {
             case 1:
                 return (
                     <div className="space-y-6">
-                        <div className="bg-gradient-to-br from-blue-500/10 to-transparent p-6 rounded-2xl border border-blue-500/20 mb-6">
+                        <div className="bg-gradient-to-br from-blue-500/10 to-transparent p-4 md:p-6 rounded-2xl border border-blue-500/20 mb-6">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
                                 <Target className="w-5 h-5 text-blue-500" /> AI Target Audience
                             </h3>
@@ -223,7 +223,7 @@ export default function MetaAdsWizard() {
                             <button 
                                 onClick={handleGenerateCopy}
                                 disabled={loading}
-                                className="flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white px-8 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                                className="flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white px-4 md:px-8 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                                 AI: Generate Ad Copy
@@ -306,7 +306,7 @@ export default function MetaAdsWizard() {
                             <button onClick={() => setCurrentStep(1)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium px-4 py-2">Back</button>
                             <button 
                                 onClick={() => setCurrentStep(3)}
-                                className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-8 py-3.5 rounded-xl font-bold transition-all"
+                                className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 md:px-8 py-3.5 rounded-xl font-bold transition-all"
                             >
                                 Proceed to Publish <ChevronRight className="w-5 h-5" />
                             </button>
@@ -343,7 +343,7 @@ export default function MetaAdsWizard() {
                             </div>
                         )}
 
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
                             <div className="flex items-center gap-2 mb-6">
                                 <CreditCard className="w-5 h-5 text-slate-400" />
                                 <h4 className="font-bold text-slate-900 dark:text-white">Budget &amp; Schedule</h4>
@@ -399,7 +399,7 @@ export default function MetaAdsWizard() {
     }
 
     return (
-        <div className="min-h-screen p-6 max-w-5xl mx-auto">
+        <div className="min-h-screen p-4 md:p-6 max-w-5xl mx-auto">
             {/* Stepper Header */}
             <div className="mb-10">
                 <div className="flex items-center justify-between relative">
@@ -425,7 +425,7 @@ export default function MetaAdsWizard() {
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-8 shadow-xl mt-12 min-h-[500px]">
+            <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-4 md:p-8 shadow-xl mt-12 min-h-[500px]">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentStep}

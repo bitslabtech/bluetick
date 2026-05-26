@@ -142,7 +142,7 @@ const AiBotSettings = () => {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
+                    className="w-full sm:w-auto px-4 md:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
                 >
                     <Save className="w-4 h-4" />
                     {saving ? 'Saving...' : 'Save Configuration'}
@@ -152,11 +152,11 @@ const AiBotSettings = () => {
             <form onSubmit={handleSave} className="space-y-6">
                 {/* ── Section 1: Bot Persona ── */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
-                    <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-2 px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
                         <FileText className="w-5 h-5 text-indigo-500" />
                         <h3 className="font-semibold text-slate-800 dark:text-white">Bot Persona & Identity</h3>
                     </div>
-                    <div className="p-6 space-y-5">
+                    <div className="p-4 md:p-6 space-y-5">
                         {/* System Prompt */}
                         <div>
                             <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -217,11 +217,11 @@ const AiBotSettings = () => {
 
                 {/* ── Section 2: Response Behavior ── */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
-                    <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-2 px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
                         <Sliders className="w-5 h-5 text-indigo-500" />
                         <h3 className="font-semibold text-slate-800 dark:text-white">Response Behavior</h3>
                     </div>
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 md:p-6 space-y-6">
                         {/* Temperature Slider */}
                         <div>
                             <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -241,7 +241,7 @@ const AiBotSettings = () => {
                                     className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                 />
                                 <span className="text-xs text-slate-400 w-14 text-right">Creative</span>
-                                <span className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2.5 py-1 rounded-lg min-w-[3rem] text-center">{config.temperature ?? 0.7}</span>
+                                <span className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2.5 py-1 rounded-lg min-w-[3rem] max-w-full text-center">{config.temperature ?? 0.7}</span>
                             </div>
                         </div>
 
@@ -262,7 +262,7 @@ const AiBotSettings = () => {
                                     onChange={(e) => handleChange('maxResponseLength', parseInt(e.target.value))}
                                     className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                 />
-                                <span className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2.5 py-1 rounded-lg min-w-[4rem] text-center">{config.maxResponseLength ?? 200}</span>
+                                <span className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2.5 py-1 rounded-lg min-w-[4rem] max-w-full text-center">{config.maxResponseLength ?? 200}</span>
                             </div>
                             <p className="text-xs text-slate-400 mt-1">Lower values save tokens and keep messages short. Higher values allow detailed responses.</p>
                         </div>
@@ -295,11 +295,11 @@ const AiBotSettings = () => {
 
                 {/* ── Section 3: Knowledge Base ── */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-white/10">
-                    <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-2 px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
                         <BookOpen className="w-5 h-5 text-indigo-500" />
                         <h3 className="font-semibold text-slate-800 dark:text-white">Knowledge Base / FAQ</h3>
                     </div>
-                    <div className="p-6 space-y-5">
+                    <div className="p-4 md:p-6 space-y-5">
                         <div>
                             <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                 Custom Knowledge
@@ -384,11 +384,11 @@ const AiBotSettings = () => {
 
                 {/* ── Section 4: Human Handoff ── */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
-                    <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-2 px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
                         <Users className="w-5 h-5 text-indigo-500" />
                         <h3 className="font-semibold text-slate-800 dark:text-white">Human Handoff</h3>
                     </div>
-                    <div className="p-6 space-y-5">
+                    <div className="p-4 md:p-6 space-y-5">
                         {/* Handoff Keywords */}
                         <div>
                             <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -428,11 +428,11 @@ const AiBotSettings = () => {
 
                 {/* ── Section 5: Operating Mode ── */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
-                    <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-2 px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/50">
                         <Zap className="w-5 h-5 text-indigo-500" />
                         <h3 className="font-semibold text-slate-800 dark:text-white">Operating Mode</h3>
                     </div>
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 md:p-6 space-y-6">
                         <div>
                             <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
                                 When should the AI respond?
@@ -486,7 +486,7 @@ const AiBotSettings = () => {
                     <button
                         type="submit"
                         disabled={saving}
-                        className="w-full sm:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
+                        className="w-full sm:w-auto px-4 md:px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
                     >
                         <Save className="w-4 h-4" />
                         {saving ? 'Saving...' : 'Save All Settings'}

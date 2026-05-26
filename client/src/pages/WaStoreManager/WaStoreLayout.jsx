@@ -87,8 +87,8 @@ export default function WaStoreLayout() {
         { path: `/wastore/${id}/settings`, icon: <Settings className="w-5 h-5" />, label: 'Settings' },
     ];
 
-    if (loading) return <div className="p-8 animate-pulse text-slate-500">Loading store manager...</div>;
-    if (!store) return <div className="p-8 text-rose-500">Store not found</div>;
+    if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading store manager...</div>;
+    if (!store) return <div className="p-4 md:p-8 text-rose-500">Store not found</div>;
 
     const storeUrl = `${window.location.origin}/store/${store.slug}`;
 
@@ -179,7 +179,7 @@ export default function WaStoreLayout() {
                 </div>
                 
                 {/* Store Details */}
-                <div className="relative px-6 pb-6 sm:px-8">
+                <div className="relative px-6 pb-6 sm:px-4 md:px-8">
                     <div className="flex flex-col sm:flex-row sm:items-end gap-6 -mt-12 sm:-mt-16 mb-4">
                         {store.logo ? (
                             <img src={store.logo} alt="Logo" className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-white dark:border-surface-dark shadow-md bg-white" />

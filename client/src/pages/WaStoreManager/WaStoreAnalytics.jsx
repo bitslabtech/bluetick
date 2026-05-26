@@ -80,7 +80,7 @@ const BAR_COLORS = ['#6366f1','#8b5cf6','#3b82f6','#10b981','#f59e0b'];
 function CustomAreaTooltip({ active, payload, label, currency }) {
     if (!active || !payload?.length) return null;
     return (
-        <div className="bg-slate-900 border border-white/10 rounded-xl px-4 py-3 shadow-2xl text-sm min-w-[160px]">
+        <div className="bg-slate-900 border border-white/10 rounded-xl px-4 py-3 shadow-2xl text-sm min-w-[160px] max-w-full">
             <p className="text-slate-400 mb-2 font-medium">{fmtDate(label)}</p>
             {payload.map((p, i) => (
                 <div key={i} className="flex items-center justify-between gap-4">
@@ -101,7 +101,7 @@ function CustomBarTooltip({ active, payload, currency }) {
     const d = payload[0]?.payload;
     return (
         <div className="bg-slate-900 border border-white/10 rounded-xl px-4 py-3 shadow-2xl text-sm">
-            <p className="text-white font-semibold mb-1 truncate max-w-[180px]">{d?.name}</p>
+            <p className="text-white font-semibold mb-1 truncate max-w-[180px] max-w-full">{d?.name}</p>
             <p className="text-indigo-400">{d?.orders} orders</p>
             <p className="text-emerald-400">{fmtCurrency(d?.revenue, currency)}</p>
         </div>
@@ -160,7 +160,7 @@ function KpiCard({ icon, label, value, sub, color, loading }) {
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 function ChartCard({ title, subtitle, children, loading, height = 260, action }) {
     return (
-        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
             <div className="flex items-start justify-between mb-5">
                 <div>
                     <h3 className="font-bold text-slate-900 dark:text-white text-base">{title}</h3>

@@ -65,12 +65,12 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-4 md:p-8">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
             <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl text-slate-900 dark:text-white">
                 
                 {/* Header */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/10 bg-white dark:bg-zinc-900 rounded-t-3xl">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/10 bg-white dark:bg-zinc-900 rounded-t-3xl">
                     <div>
                         <h2 className="text-xl font-black">{order.orderNumber}</h2>
                         <p className="text-xs text-slate-500 mt-0.5">{formatDate(order.createdAt)}</p>
@@ -80,7 +80,7 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
                     </button>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="p-4 md:p-6 space-y-6">
                     {/* Status & Actions row */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
                         <div className="flex-1 space-y-1">
@@ -344,7 +344,7 @@ export default function WaStoreOrders() {
                     <select
                         value={statusFilter}
                         onChange={e => setStatusFilter(e.target.value)}
-                        className="pl-11 pr-8 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white appearance-none cursor-pointer min-w-[160px]"
+                        className="pl-11 pr-8 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white appearance-none cursor-pointer min-w-[160px] max-w-full"
                     >
                         <option value="all">All Status</option>
                         {Object.entries(STATUS_CONFIG).map(([k, { label }]) => (
@@ -376,10 +376,10 @@ export default function WaStoreOrders() {
                             <div
                                 key={order.id}
                                 onClick={() => setSelected(order)}
-                                className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] cursor-pointer transition-colors group"
+                                className="flex items-center gap-4 px-4 md:px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] cursor-pointer transition-colors group"
                             >
                                 {/* Order # */}
-                                <div className="min-w-[100px]">
+                                <div className="min-w-[100px] max-w-full">
                                     <p className="font-black text-sm text-indigo-600 dark:text-indigo-400">{order.orderNumber}</p>
                                     <p className="text-xs text-slate-400 mt-0.5">{formatDate(order.createdAt)}</p>
                                 </div>
@@ -393,20 +393,20 @@ export default function WaStoreOrders() {
                                 </div>
 
                                 {/* Items count */}
-                                <div className="hidden md:block text-center min-w-[60px]">
+                                <div className="hidden md:block text-center min-w-[60px] max-w-full">
                                     <p className="font-bold text-sm">{order.items?.length || 0}</p>
                                     <p className="text-xs text-slate-400">items</p>
                                 </div>
 
                                 {/* Amount */}
-                                <div className="text-right min-w-[90px]">
+                                <div className="text-right min-w-[90px] max-w-full">
                                     <p className="font-black text-base text-slate-900 dark:text-white">
                                         {sym(order.currency)} {Number(order.subtotal).toFixed(2)}
                                     </p>
                                 </div>
 
                                 {/* Status */}
-                                <div className="hidden sm:block min-w-[110px] text-right">
+                                <div className="hidden sm:block min-w-[110px] max-w-full text-right">
                                     <StatusBadge status={order.status} />
                                 </div>
 

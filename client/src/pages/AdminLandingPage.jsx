@@ -302,8 +302,8 @@ const AdminLandingPage = () => {
         });
     };
 
-    if (loading) return <div className="p-10 text-center text-slate-500">Loading configuration...</div>;
-    if (!config) return <div className="p-10 text-center text-red-500">Failed to load configuration. Please check backend connection.</div>;
+    if (loading) return <div className="p-4 md:p-10 text-center text-slate-500">Loading configuration...</div>;
+    if (!config) return <div className="p-4 md:p-10 text-center text-red-500">Failed to load configuration. Please check backend connection.</div>;
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
@@ -330,7 +330,7 @@ const AdminLandingPage = () => {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex-1 sm:flex-none justify-center px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2 disabled:opacity-70"
+                            className="flex-1 sm:flex-none justify-center px-4 md:px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2 disabled:opacity-70"
                         >
                             {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             {saving ? 'Saving...' : 'Save Changes'}
@@ -433,7 +433,7 @@ const AdminLandingPage = () => {
                             </div>
 
                             {/* RIGHT: Content Panel */}
-                            <div className="flex-1 min-w-0 w-full overflow-y-auto p-8">
+                            <div className="flex-1 min-w-0 w-full overflow-y-auto p-4 md:p-8">
 
                                 {/* HERO SECTION */}
                                 {contentTab === 'hero' && (
@@ -486,7 +486,7 @@ const AdminLandingPage = () => {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <label className="w-full border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-slate-400 hover:text-indigo-500 h-32">
+                                                <label className="w-full border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-slate-400 hover:text-indigo-500 h-32">
                                                     <Upload className="w-6 h-6 mb-1" />
                                                     <span className="text-sm font-bold">Click to Upload Hero Image ({config.hero.layout === 'type2' ? 'Type 2' : 'Type 1'})</span>
                                                     <span className="text-xs opacity-70">High resolution recommended. PNG, JPG up to 5MB</span>
@@ -510,7 +510,7 @@ const AdminLandingPage = () => {
 
                                         <div className="pt-6 border-t border-slate-100 dark:border-white/5">
                                             <h4 className="font-bold text-slate-900 dark:text-white mb-4">Visual Style</h4>
-                                            <div className="grid grid-cols-2 gap-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div className="space-y-2">
                                                     <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Gradient Start</label>
                                                     <div className="flex gap-3 items-center">
@@ -692,7 +692,7 @@ const AdminLandingPage = () => {
 
                                                                     <span className="text-[10px] text-slate-400 font-mono uppercase ml-2">{feat.id}</span>
                                                                 </div>
-                                                                <div className="grid grid-cols-2 gap-4">
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                     <InputGroup label="Tab Label" value={feat.label} onChange={v => updateFeat('label', v)} />
                                                                     <InputGroup label="Tag" value={feat.tagText} onChange={v => updateFeat('tagText', v)} />
                                                                 </div>
@@ -922,7 +922,7 @@ const AdminLandingPage = () => {
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                     <div className="space-y-3">
-                                                        <div className="grid grid-cols-2 gap-3">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                             <InputGroup label="Name" value={t.name} onChange={v => { const nt = [...config.testimonials]; nt[idx].name = v; setConfig({ ...config, testimonials: nt }); }} />
                                                             <InputGroup label="Role" value={t.role} onChange={v => { const nt = [...config.testimonials]; nt[idx].role = v; setConfig({ ...config, testimonials: nt }); }} />
                                                         </div>
@@ -1148,7 +1148,7 @@ const AdminLandingPage = () => {
                                                         <input
                                                             value={col.heading}
                                                             onChange={e => { const nc = [...config.footer.columns]; nc[cIdx].heading = e.target.value; setConfig({ ...config, footer: { ...config.footer, columns: nc } }); }}
-                                                            className="font-bold text-lg bg-transparent border-none outline-none focus:ring-0 text-slate-900 dark:text-white w-[200px]"
+                                                            className="font-bold text-lg bg-transparent border-none outline-none focus:ring-0 text-slate-900 dark:text-white w-[200px] max-w-full"
                                                             placeholder="Column Heading"
                                                         />
                                                         <div className="flex items-center gap-4">
@@ -1324,7 +1324,7 @@ const AdminLandingPage = () => {
                 {/* SEO TAB */}
                 {mainTab === 'seo' && (
                     <div className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-y-auto" style={{ height: '680px' }}>
-                        <div className="p-8 w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="p-4 md:p-8 w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="flex items-start gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl text-indigo-700 dark:text-indigo-300">
                                 <Monitor className="w-6 h-6 shrink-0 mt-1" />
                                 <div>
@@ -1442,7 +1442,7 @@ const AdminLandingPage = () => {
                 {/* COUPONS TAB */}
                 {mainTab === 'coupons' && (
                     <div className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-y-auto" style={{ height: '680px' }}>
-                        <div className="p-8">
+                        <div className="p-4 md:p-8">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                                 <div>
                                     <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1467,7 +1467,7 @@ const AdminLandingPage = () => {
                             </div>
 
                             <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
-                                <table className="w-full text-left border-collapse min-w-[700px]">
+                                <table className="w-full text-left border-collapse min-w-[700px] max-w-full">
                                     <thead>
                                         <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">
                                             <th className="p-4">Code</th>
@@ -1479,7 +1479,7 @@ const AdminLandingPage = () => {
                                     </thead>
                                     <tbody>
                                         {coupons.length === 0 ? (
-                                            <tr><td colSpan="5" className="p-8 text-center text-slate-500 font-medium">No coupons created yet.</td></tr>
+                                            <tr><td colSpan="5" className="p-4 md:p-8 text-center text-slate-500 font-medium">No coupons created yet.</td></tr>
                                         ) : coupons.map(c => (
                                             <tr key={c.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
                                                 <td className="p-4">
@@ -1559,7 +1559,7 @@ const AdminLandingPage = () => {
                 {showCouponModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
                         <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-white/10 animate-in zoom-in-95 duration-300">
-                            <div className="p-6 border-b border-slate-100 dark:border-white/10 flex justify-between items-center bg-slate-50/50 dark:bg-black/10">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/10 flex justify-between items-center bg-slate-50/50 dark:bg-black/10">
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <Tag className="w-5 h-5 text-indigo-500" />
                                     {editingCoupon ? 'Edit Coupon' : 'Create New Coupon'}
@@ -1568,7 +1568,7 @@ const AdminLandingPage = () => {
                                     ✕
                                 </button>
                             </div>
-                            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+                            <div className="p-4 md:p-6 max-h-[70vh] overflow-y-auto space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div className="space-y-2 md:col-span-2">
                                         <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Coupon Code *</label>
@@ -1750,17 +1750,17 @@ const AdminLandingPage = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="p-6 border-t border-slate-100 dark:border-white/10 flex justify-end gap-3 bg-slate-50/50 dark:bg-black/20">
+                            <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/10 flex justify-end gap-3 bg-slate-50/50 dark:bg-black/20">
                                 <button
                                     onClick={() => setShowCouponModal(false)}
-                                    className="px-6 py-2.5 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors"
+                                    className="px-4 md:px-6 py-2.5 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSaveCoupon}
                                     disabled={saving || !couponForm.code || couponForm.discountValue <= 0}
-                                    className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2"
+                                    className="px-4 md:px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2"
                                 >
                                     {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                     {saving ? 'Saving...' : 'Save Coupon'}
@@ -1775,7 +1775,7 @@ const AdminLandingPage = () => {
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowPageEditor(false)}></div>
                         <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col flex-shrink-0 animate-in zoom-in-95 duration-200">
-                            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-white/10">
+                            <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 dark:border-white/10">
                                 <div>
                                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">Editing: {pageEditorTitle}</h2>
                                     <p className="text-sm text-slate-500 mt-1">Make changes using the rich text editor below.</p>
@@ -1788,7 +1788,7 @@ const AdminLandingPage = () => {
                                 </button>
                             </div>
 
-                            <div className="p-6 overflow-y-auto flex-1">
+                            <div className="p-4 md:p-6 overflow-y-auto flex-1">
                                 <ReactQuill
                                     theme="snow"
                                     value={pageEditorContent}
@@ -1806,10 +1806,10 @@ const AdminLandingPage = () => {
                                 />
                             </div>
 
-                            <div className="p-6 border-t border-slate-100 dark:border-white/10 flex justify-end gap-3 bg-slate-50/50 dark:bg-black/20 rounded-b-2xl">
+                            <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/10 flex justify-end gap-3 bg-slate-50/50 dark:bg-black/20 rounded-b-2xl">
                                 <button
                                     onClick={() => setShowPageEditor(false)}
-                                    className="px-6 py-2.5 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors"
+                                    className="px-4 md:px-6 py-2.5 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors"
                                 >
                                     Done
                                 </button>
@@ -1825,7 +1825,7 @@ const AdminLandingPage = () => {
                                         setShowPageEditor(false);
                                         showToast({ type: 'success', title: 'Content Updated', message: 'Click Save Changes to publish your changes.' });
                                     }}
-                                    className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2"
+                                    className="px-4 md:px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2"
                                 >
                                     <Save className="w-4 h-4" />
                                     Save to Config

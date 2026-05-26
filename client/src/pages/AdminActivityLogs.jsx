@@ -83,7 +83,7 @@ const AdminActivityLogs = () => {
                 <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
 
                     {/* Header: Title & Controls */}
-                    <div className="p-6 border-b border-slate-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
                         <div>
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Activity className="w-6 h-6 text-orange-500" />
@@ -128,20 +128,20 @@ const AdminActivityLogs = () => {
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-slate-50 dark:bg-white/5 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-text-secondary sticky top-0 backdrop-blur-sm z-10 border-b border-slate-200 dark:border-white/5">
                                 <tr>
-                                    <th className="px-6 py-4 w-48">Timestamp</th>
-                                    <th className="px-6 py-4 w-64">User / Admin</th>
-                                    <th className="px-6 py-4 w-48">Action</th>
-                                    <th className="px-6 py-4">Details</th>
+                                    <th className="px-4 md:px-6 py-4 w-48">Timestamp</th>
+                                    <th className="px-4 md:px-6 py-4 w-64">User / Admin</th>
+                                    <th className="px-4 md:px-6 py-4 w-48">Action</th>
+                                    <th className="px-4 md:px-6 py-4">Details</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm bg-white dark:bg-surface-dark">
                                 {loading ? (
                                     [...Array(5)].map((_, i) => (
                                         <tr key={i} className="animate-pulse">
-                                            <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-24"></div></td>
-                                            <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-32"></div></td>
-                                            <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-20"></div></td>
-                                            <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-64"></div></td>
+                                            <td className="px-4 md:px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-24"></div></td>
+                                            <td className="px-4 md:px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-32"></div></td>
+                                            <td className="px-4 md:px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-20"></div></td>
+                                            <td className="px-4 md:px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-64"></div></td>
                                         </tr>
                                     ))
                                 ) : filteredLogs.length === 0 ? (
@@ -156,7 +156,7 @@ const AdminActivityLogs = () => {
                                 ) : (
                                     filteredLogs.map((log) => (
                                         <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                                                     <Clock className="w-3.5 h-3.5" />
                                                     <span className="font-mono text-xs">
@@ -167,7 +167,7 @@ const AdminActivityLogs = () => {
                                                     {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="size-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">
                                                         {log.User?.name?.[0] || '?'}
@@ -178,13 +178,13 @@ const AdminActivityLogs = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${getActionColor(log.action)}`}>
                                                     {getActionIcon(log.action)}
                                                     {log.action}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                                            <td className="px-4 md:px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 {log.details}
                                                 {log.ip && (
                                                     <span className="ml-2 inline-block px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-[10px] font-mono text-slate-500">

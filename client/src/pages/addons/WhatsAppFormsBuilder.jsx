@@ -228,7 +228,7 @@ const DraggableFieldItem = ({ field, editingFieldId, setEditingFieldId, deleteFi
                         {/* Phone: digit count validation */}
                         {field.type === 'phone' && (
                             <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Min Digits</label>
                                         <input type="number" min="1" max="20" value={field.minDigits || ''} onChange={e => updateField(field.id, { minDigits: e.target.value })} placeholder="e.g. 10" className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:border-indigo-500 text-sm font-mono" />
@@ -260,7 +260,7 @@ const DraggableFieldItem = ({ field, editingFieldId, setEditingFieldId, deleteFi
 
                         {/* Number: min/max value */}
                         {field.type === 'number' && (
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Min Value</label>
                                     <input type="number" value={field.minValue ?? ''} onChange={e => updateField(field.id, { minValue: e.target.value })} placeholder="e.g. 0" className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:border-indigo-500 text-sm font-mono" />
@@ -725,7 +725,7 @@ const WhatsAppFormsBuilder = () => {
 
     if (!activeForm) {
         return (
-            <div className="p-8 max-w-7xl mx-auto min-h-screen">
+            <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
                 <div className="flex items-center justify-between mb-10 border-b border-slate-200 dark:border-white/10 pb-6">
                     <div>
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
@@ -756,7 +756,7 @@ const WhatsAppFormsBuilder = () => {
                         <Zap className="w-12 h-12 text-slate-400 mb-6" />
                         <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Build Forms Like Magic</h2>
                         <p className="text-slate-500 mb-8 max-w-md">Purchase the Web Forms Add-on from the marketplace to unlock advanced routing and landing page components.</p>
-                        <Link to="/marketplace" className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl">Browse Marketplace</Link>
+                        <Link to="/marketplace" className="px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl">Browse Marketplace</Link>
                     </div>
                 ) : allForms.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-32 text-center bg-white dark:bg-surface-dark border border-dashed border-slate-200 dark:border-white/10 rounded-3xl">
@@ -766,10 +766,10 @@ const WhatsAppFormsBuilder = () => {
                         <h3 className="text-xl font-bold mb-2">You haven't built any forms yet</h3>
                         <p className="text-slate-500 max-w-md mb-8">Deploy zero-code surveys, file collections, and lead generation links tied strictly to your databases.</p>
                         <div className="flex gap-3">
-                            <button onClick={() => setShowAiModal(true)} className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center gap-2">
+                            <button onClick={() => setShowAiModal(true)} className="px-4 md:px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center gap-2">
                                 <Sparkles className="w-4 h-4" /> Create with AI
                             </button>
-                            <button onClick={handleCreateNewForm} className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-900 dark:text-white font-bold rounded-xl transition-all">
+                            <button onClick={handleCreateNewForm} className="px-4 md:px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-900 dark:text-white font-bold rounded-xl transition-all">
                                 Start Blank Form
                             </button>
                         </div>
@@ -782,8 +782,8 @@ const WhatsAppFormsBuilder = () => {
                             const dropoffCount = Math.max(0, (form.views || 0) - submittedCount);
                             
                             return (
-                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={form.id} onClick={() => handleLoadForm(form)} className="group cursor-pointer bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl p-6 hover:shadow-2xl hover:border-indigo-500/30 transition-all flex flex-col h-64 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-6 flex gap-2">
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={form.id} onClick={() => handleLoadForm(form)} className="group cursor-pointer bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl p-4 md:p-6 hover:shadow-2xl hover:border-indigo-500/30 transition-all flex flex-col h-64 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4 md:p-6 flex gap-2">
                                         {isExpired ? (
                                             <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] font-bold uppercase py-1 px-2 rounded-md flex items-center gap-1"><Clock className="w-3 h-3" /> Expired</span>
                                         ) : form.isPublished ? (
@@ -827,13 +827,13 @@ const WhatsAppFormsBuilder = () => {
                     {showAiModal && (
                         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl shadow-emerald-500/10 max-w-xl w-full flex flex-col overflow-hidden">
-                                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-emerald-500/10 to-transparent">
+                                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-emerald-500/10 to-transparent">
                                     <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                         <Sparkles className="w-5 h-5 text-emerald-500" /> Generate Form with AI
                                     </h3>
                                     <button onClick={() => setShowAiModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
                                 </div>
-                                <div className="p-6 space-y-6">
+                                <div className="p-4 md:p-6 space-y-6">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">What kind of form do you need?</label>
                                         <textarea 
@@ -863,9 +863,9 @@ const WhatsAppFormsBuilder = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/20 flex justify-end gap-3">
+                                <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/20 flex justify-end gap-3">
                                     <button onClick={() => setShowAiModal(false)} className="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-all" disabled={aiGenerating}>Cancel</button>
-                                    <button onClick={handleGenerateAI} disabled={aiGenerating || !aiPrompt.trim()} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]">
+                                    <button onClick={handleGenerateAI} disabled={aiGenerating || !aiPrompt.trim()} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px] max-w-full">
                                         {aiGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-4 h-4" /> Generate Magic</>}
                                     </button>
                                 </div>
@@ -889,7 +889,7 @@ const WhatsAppFormsBuilder = () => {
 
     return (
         <div className="fixed inset-0 z-[100] bg-[#F5F5F7] dark:bg-[#0B1120] flex flex-col overflow-hidden font-sans">
-            <nav className="h-16 bg-white dark:bg-surface-dark border-b border-black/5 dark:border-white/5 flex items-center justify-between px-6 shrink-0 relative z-20 shadow-sm">
+            <nav className="h-16 bg-white dark:bg-surface-dark border-b border-black/5 dark:border-white/5 flex items-center justify-between px-4 md:px-6 shrink-0 relative z-20 shadow-sm">
                 <div className="flex items-center gap-4 flex-1">
                     <button onClick={() => { setSearchParams({}); fetchForms(); }} className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 dark:hover:text-white rounded-xl hover:bg-slate-50 dark:hover:bg-white/5">
                         <ChevronLeft className="w-5 h-5" />
@@ -925,7 +925,7 @@ const WhatsAppFormsBuilder = () => {
                         </label>
                     </div>
 
-                    <button onClick={handleSaveForm} disabled={saving} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2 disabled:opacity-75">
+                    <button onClick={handleSaveForm} disabled={saving} className="px-4 md:px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2 disabled:opacity-75">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         {saving ? 'Synchronizing...' : 'Save Changes'}
                     </button>
@@ -949,7 +949,7 @@ const WhatsAppFormsBuilder = () => {
 const TemplateGalleryView = ({ handleTemplateSelect, setSearchParams }) => {
     return (
         <div className="min-h-screen flex flex-col bg-[#F5F5F7] dark:bg-[#0B1120] overflow-y-auto">
-            <div className="max-w-7xl mx-auto w-full p-8 py-12">
+            <div className="max-w-7xl mx-auto w-full p-4 md:p-8 py-12">
                 <div className="flex items-center gap-4 mb-2">
                     <button onClick={() => setSearchParams({})} className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
                         <ArrowLeft className="w-5 h-5 text-slate-500" />
@@ -967,7 +967,7 @@ const TemplateGalleryView = ({ handleTemplateSelect, setSearchParams }) => {
                             <div 
                                 key={tpl.id}
                                 onClick={() => handleTemplateSelect(tpl)}
-                                className="group cursor-pointer bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl p-6 hover:shadow-2xl hover:border-indigo-500/30 transition-all flex flex-col relative overflow-hidden h-full"
+                                className="group cursor-pointer bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl p-4 md:p-6 hover:shadow-2xl hover:border-indigo-500/30 transition-all flex flex-col relative overflow-hidden h-full"
                             >
                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shrink-0 transition-transform group-hover:scale-110 ${tpl.bg} ${tpl.color}`}>
                                     <Icon className="w-7 h-7" />
@@ -1002,7 +1002,7 @@ const BuilderView = (props) => {
     } = props;
     return (
 <>
-                        <div className="flex-1 flex flex-col bg-white dark:bg-surface-dark border-r border-slate-200 dark:border-white/5 relative z-10 overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)]">
+                        <div className="flex-1 flex flex-col bg-white dark:bg-surface-dark border-r border-slate-200 dark:border-white/5 relative z-10 overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] max-w-full">
                             <div className="flex-1 flex overflow-hidden">
                                 {/* Left Sidebar for Nodes */}
                                 <div className="w-64 bg-slate-50 dark:bg-black/20 border-r border-slate-200 dark:border-white/10 overflow-y-auto p-5 hidden md:block shrink-0">
@@ -1041,7 +1041,7 @@ const BuilderView = (props) => {
                                 <div className="flex-1 flex flex-col bg-slate-100/50 dark:bg-[#0B1120] relative overflow-hidden">
 
                                     {/* TOP SETTINGS BAR (EDGE-TO-EDGE) */}
-                                    <div className="shrink-0 bg-white dark:bg-[#0B1120] border-b border-slate-200 dark:border-white/10 px-6 py-2.5 flex items-stretch gap-0 z-30 overflow-x-auto scrollbar-hide shadow-sm relative">
+                                    <div className="shrink-0 bg-white dark:bg-[#0B1120] border-b border-slate-200 dark:border-white/10 px-4 md:px-6 py-2.5 flex items-stretch gap-0 z-30 overflow-x-auto scrollbar-hide shadow-sm relative">
 
                                         {/* Layout / Multi-step */}
                                         <div className="flex flex-col items-start justify-center gap-1 pr-6 shrink-0">
@@ -1059,7 +1059,7 @@ const BuilderView = (props) => {
                                         </div>
 
                                         {/* Block Duplicates */}
-                                        <div className="flex flex-col items-start justify-center gap-1 px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
+                                        <div className="flex flex-col items-start justify-center gap-1 px-4 md:px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
                                             <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Duplicates</span>
                                             <label className="flex items-center gap-2 cursor-pointer">
                                                 <input type="checkbox" checked={activeForm.restrictions?.preventDuplicates || false} onChange={e => updateNestedState('restrictions', 'preventDuplicates', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
@@ -1068,7 +1068,7 @@ const BuilderView = (props) => {
                                         </div>
 
                                         {/* Submission Limit */}
-                                        <div className="flex flex-col items-start justify-center gap-1 px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
+                                        <div className="flex flex-col items-start justify-center gap-1 px-4 md:px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
                                             <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Max Submissions</span>
                                             <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 focus-within:border-indigo-400 transition-colors">
                                                 <ShieldAlert className="w-3 h-3 text-slate-400 shrink-0" />
@@ -1077,7 +1077,7 @@ const BuilderView = (props) => {
                                         </div>
 
                                         {/* Expiry Date */}
-                                        <div className="flex flex-col items-start justify-center gap-1 px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
+                                        <div className="flex flex-col items-start justify-center gap-1 px-4 md:px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
                                             <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Expires At</span>
                                             <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 focus-within:border-indigo-400 transition-colors">
                                                 <Clock className="w-3 h-3 text-slate-400 shrink-0" />
@@ -1088,9 +1088,9 @@ const BuilderView = (props) => {
                                     </div>
 
                                     {/* SCROLLING CANVAS */}
-                                    <div className="flex-1 overflow-y-auto p-8 scrollbar-hide flex flex-col relative w-full">
+                                    <div className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-hide flex flex-col relative w-full">
                                         <div className="max-w-3xl mx-auto w-full space-y-6 flex-1 pb-16">
-                                            <div className="p-6 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-500/20 mb-6 flex flex-col md:flex-row gap-6 md:items-center">
+                                            <div className="p-4 md:p-6 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-500/20 mb-6 flex flex-col md:flex-row gap-6 md:items-center">
                                                 <div className="flex-1">
                                                     <label className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-2 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Brand Logo</label>
                                                     <div className="flex gap-2">
@@ -1129,7 +1129,7 @@ const BuilderView = (props) => {
                                                 </div>
                                             </div>
 
-                                            <div className="p-6 rounded-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 focus-within:border-indigo-500 focus-within:ring-4 ring-indigo-500/10 mb-8 shadow-sm">
+                                            <div className="p-4 md:p-6 rounded-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 focus-within:border-indigo-500 focus-within:ring-4 ring-indigo-500/10 mb-8 shadow-sm">
                                                 <input
                                                     type="text"
                                                     value={activeForm.name}
@@ -1147,7 +1147,7 @@ const BuilderView = (props) => {
                                             </div>
 
                                             {/* MONETIZATION / PAYMENT CONFIG */}
-                                            <div className="p-6 rounded-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 mb-8 shadow-sm transition-all focus-within:ring-4 ring-green-500/10 focus-within:border-green-500">
+                                            <div className="p-4 md:p-6 rounded-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 mb-8 shadow-sm transition-all focus-within:ring-4 ring-green-500/10 focus-within:border-green-500">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                                         <CreditCard className="w-5 h-5 text-green-500" /> Payments & Checkout
@@ -1279,14 +1279,14 @@ const BuilderView = (props) => {
                                 </div>
 
 
-                                <div className="hidden lg:flex flex-col w-[450px] bg-[#F5F5F7] dark:bg-[#0B1120] relative z-0 items-center justify-center p-8 overflow-y-auto border-l border-slate-300 dark:border-slate-800">
+                                <div className="hidden lg:flex flex-col w-[450px] max-w-full bg-[#F5F5F7] dark:bg-[#0B1120] relative z-0 items-center justify-center p-4 md:p-8 overflow-y-auto border-l border-slate-300 dark:border-slate-800">
                                     <div className="absolute top-10 flex flex-col items-center">
                                         <div className="px-4 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-[10px] font-bold uppercase tracking-widest mb-3 border border-green-200 dark:border-green-500/20 flex items-center gap-1">
                                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Dynamic Mapping UI
                                         </div>
                                     </div>
 
-                                    <div className="w-[320px] h-[650px] bg-black rounded-[3rem] p-3 shadow-2xl relative border-4 border-slate-400 dark:border-slate-800 shadow-slate-900/40">
+                                    <div className="w-[320px] max-w-full h-[650px] bg-black rounded-[3rem] p-3 shadow-2xl relative border-4 border-slate-400 dark:border-slate-800 shadow-slate-900/40">
                                         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-2xl z-20 flex justify-center">
                                             <div className="w-12 h-1 bg-[#1C1C1E] mt-2 rounded-full"></div>
                                         </div>
@@ -1294,16 +1294,16 @@ const BuilderView = (props) => {
                                         <div className="w-full h-full rounded-[2.5rem] overflow-x-hidden overflow-y-auto scrollbar-hide flex flex-col pt-10 relative bg-[#F2F2F7] text-black">
 
                                             {activeForm.brandConfig?.logoUrl && (
-                                                <div className="px-6 pt-3 flex justify-center pb-0">
+                                                <div className="px-4 md:px-6 pt-3 flex justify-center pb-0">
                                                     <img src={activeForm.brandConfig.logoUrl} alt="Logo" className="h-14 object-contain" />
                                                 </div>
                                             )}
 
-                                            <div className="shrink-0 px-6 py-4 border-b border-black/5 mt-2">
+                                            <div className="shrink-0 px-4 md:px-6 py-4 border-b border-black/5 mt-2">
                                                 <h1 className="text-xl font-bold tracking-tight" style={{ color: activeForm.brandConfig?.primaryColor || '#000' }}>{activeForm.name || 'Untitled Endpoint'}</h1>
                                             </div>
 
-                                            <div className="p-6 flex-1 space-y-6">
+                                            <div className="p-4 md:p-6 flex-1 space-y-6">
                                                 {activeForm.description && (
                                                     <p className="text-sm leading-relaxed text-slate-500">
                                                         {activeForm.description}
@@ -1345,7 +1345,7 @@ const BuilderView = (props) => {
                                                                         <label className="block text-xs font-bold uppercase tracking-widest px-1 text-slate-500">
                                                                             WhatsApp / Contact Number <span className="text-red-500">*</span>
                                                                         </label>
-                                                                        <div className="flex w-full rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] overflow-hidden text-sm font-medium">
+                                                                        <div className="flex w-full rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full overflow-hidden text-sm font-medium">
                                                                             <div className="bg-slate-50 border-r border-slate-100 px-3 py-3 flex items-center justify-center text-slate-600 font-bold tracking-tight">+91</div>
                                                                             <div className="px-3 py-3 text-slate-400 w-full">+15551234567</div>
                                                                         </div>
@@ -1357,19 +1357,19 @@ const BuilderView = (props) => {
                                                                     {field.label} {field.required && <span className="text-red-500">*</span>}
                                                                 </label>
                                                                 {field.type === 'text' && (
-                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] text-sm text-slate-400 font-medium">Input mapped area</div>
+                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm text-slate-400 font-medium">Input mapped area</div>
                                                                 )}
                                                                 {field.type === 'phone' && (
-                                                                    <div className="flex w-full rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] overflow-hidden text-sm font-medium">
+                                                                    <div className="flex w-full rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full overflow-hidden text-sm font-medium">
                                                                         <div className="bg-slate-50 border-r border-slate-100 px-3 py-3 flex items-center justify-center text-slate-600 font-bold tracking-tight">+91</div>
                                                                         <div className="px-3 py-3 text-slate-400 w-full">1234567890</div>
                                                                     </div>
                                                                 )}
                                                                 {field.type === 'email' && (
-                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] text-sm text-slate-400 font-medium">name@example.com</div>
+                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm text-slate-400 font-medium">name@example.com</div>
                                                                 )}
                                                                 {field.type === 'number' && (
-                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] text-sm text-slate-400 font-medium font-mono">0 {field.minValue !== undefined && field.maxValue !== undefined ? `(${field.minValue}-${field.maxValue})` : ''}</div>
+                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm text-slate-400 font-medium font-mono">0 {field.minValue !== undefined && field.maxValue !== undefined ? `(${field.minValue}-${field.maxValue})` : ''}</div>
                                                                 )}
                                                                 {field.type === 'yesno' && (
                                                                     <div className="flex gap-3">
@@ -1394,14 +1394,14 @@ const BuilderView = (props) => {
                                                                     </div>
                                                                 )}
                                                                 {field.type === 'select' && (
-                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] text-sm flex items-center justify-between text-slate-400 font-medium">
+                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm flex items-center justify-between text-slate-400 font-medium">
                                                                         Dropdown Array UI <ChevronDown width={16} />
                                                                     </div>
                                                                 )}
                                                                 {field.type === 'radio' && (
                                                                     <div className="space-y-3 pt-1">
                                                                         {(field.options || ['Option 1']).map((opt, i) => (
-                                                                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
+                                                                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full">
                                                                                 <div className="w-4 h-4 rounded-full border border-slate-300"></div>
                                                                                 <span className="text-sm font-medium">{opt}</span>
                                                                             </div>
@@ -1438,7 +1438,7 @@ const BuilderView = (props) => {
                                                 </div>
                                             </div>
 
-                                            <div className="p-6 pt-0 mt-auto shrink-0 pb-10">
+                                            <div className="p-4 md:p-6 pt-0 mt-auto shrink-0 pb-10">
                                                 {activeForm.formLogic?.isMultiStep ? (() => {
                                                     const perPage = activeForm.formLogic?.fieldsPerPage || 3;
                                                     const totalSteps = Math.ceil((activeForm.fields || []).length / perPage) || 1;
@@ -1547,7 +1547,7 @@ const AutomationsView = (props) => {
 <div className="flex-1 flex overflow-hidden bg-[#F5F5F7] dark:bg-[#0B1120]">
                             
                             {/* Left Pane - Configuration */}
-                            <div className="flex-1 border-r border-slate-200 dark:border-white/10 overflow-y-auto p-8 bg-white dark:bg-surface-dark shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] relative z-10">
+                            <div className="flex-1 border-r border-slate-200 dark:border-white/10 overflow-y-auto p-4 md:p-8 bg-white dark:bg-surface-dark shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] max-w-full relative z-10">
                                 <div className="space-y-6 max-w-3xl mx-auto">
                                     <div className="flex items-center gap-4 border-b border-slate-100 dark:border-white/5 pb-6 mb-6">
                                         <div className="w-14 h-14 bg-green-50 dark:bg-green-900/20 text-green-500 flex justify-center items-center rounded-2xl shadow-sm">
@@ -1602,7 +1602,7 @@ const AutomationsView = (props) => {
                                             </div>
 
                                             {selTmplName && (hasMediaHeader || vars.length > 0 || hasDynamicButtons || isCarousel) && (
-                                                <div className="border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/20 rounded-2xl p-6">
+                                                <div className="border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/20 rounded-2xl p-4 md:p-6">
                                                     
                                                     {hasMediaHeader && (
                                                         <div className="mb-8">
@@ -1702,7 +1702,7 @@ const AutomationsView = (props) => {
                                                                     <div key={btn.index} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 bg-white dark:bg-surface-dark p-3 rounded-xl shadow-sm border border-slate-200 dark:border-white/10">
                                                                         <div className="shrink-0 px-3 h-10 bg-violet-50 dark:bg-violet-900/20 text-violet-600 font-bold rounded-lg flex space-x-2 items-center justify-center text-[10px] uppercase">
                                                                             <span>{btn.type === 'URL' ? '🔗' : '⚡'}</span>
-                                                                            <span className="truncate max-w-[80px]">{btn.text}</span>
+                                                                            <span className="truncate max-w-[80px] max-w-full">{btn.text}</span>
                                                                         </div>
                                                                         <div className="hidden sm:block font-bold text-slate-400 dark:text-slate-500">→</div>
                                                                         <div className="flex-1 flex gap-2">
@@ -1776,7 +1776,7 @@ const AutomationsView = (props) => {
                                                                     const cardBtns = (card.buttons || []).map((b, i) => ({...b, index: i})).filter(b => b.type === 'URL' || b.type === 'QUICK_REPLY');
                                                                     
                                                                     return (
-                                                                        <div key={cIdx} className="w-[320px] shrink-0 border border-slate-200 dark:border-white/10 rounded-2xl bg-white dark:bg-black/20 overflow-hidden flex flex-col shadow-sm">
+                                                                        <div key={cIdx} className="w-[320px] max-w-full shrink-0 border border-slate-200 dark:border-white/10 rounded-2xl bg-white dark:bg-black/20 overflow-hidden flex flex-col shadow-sm">
                                                                             <div className="p-3 bg-slate-50 dark:bg-white/5 font-bold text-xs text-slate-500 border-b border-slate-100 dark:border-white/5">
                                                                                 Card {cIdx + 1}
                                                                             </div>
@@ -1790,7 +1790,7 @@ const AutomationsView = (props) => {
                                                                                                 activeForm.automation?.whatsappTemplate?.cards?.[cIdx]?.headerFileName ? (
                                                                                                     <div className="flex flex-col items-center p-2 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400">
                                                                                                         <UploadCloud className="w-5 h-5 mb-1" />
-                                                                                                        <span className="truncate max-w-[200px]">{activeForm.automation.whatsappTemplate.cards[cIdx].headerFileName}</span>
+                                                                                                        <span className="truncate max-w-[200px] max-w-full">{activeForm.automation.whatsappTemplate.cards[cIdx].headerFileName}</span>
                                                                                                     </div>
                                                                                                 ) : (
                                                                                                     <div className="flex flex-col items-center gap-1.5 text-slate-400 group-hover:text-emerald-500 transition-colors">
@@ -1893,7 +1893,7 @@ const AutomationsView = (props) => {
                                         </div>
                                     )}
 
-                                    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-black/20 p-6 space-y-3">
+                                    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-black/20 p-4 md:p-6 space-y-3">
                                         <div className="flex items-start gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center shrink-0">
                                                 <LinkIcon className="w-5 h-5" />
@@ -1918,7 +1918,7 @@ const AutomationsView = (props) => {
                             </div>
 
                             {/* Right Pane - Phone Mockup Preview (same style as Form Designing tab) */}
-                            <div className="hidden lg:flex flex-col w-[450px] bg-[#F5F5F7] dark:bg-[#0B1120] relative z-0 items-center justify-center p-8 overflow-y-auto border-l border-slate-300 dark:border-slate-800 shrink-0">
+                            <div className="hidden lg:flex flex-col w-[450px] max-w-full bg-[#F5F5F7] dark:bg-[#0B1120] relative z-0 items-center justify-center p-4 md:p-8 overflow-y-auto border-l border-slate-300 dark:border-slate-800 shrink-0">
                                 <div className="absolute top-10 flex flex-col items-center">
                                     <div className="px-4 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-[10px] font-bold uppercase tracking-widest mb-3 border border-green-200 dark:border-green-500/20 flex items-center gap-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Live Preview
@@ -1926,7 +1926,7 @@ const AutomationsView = (props) => {
                                 </div>
 
                                 {/* Phone frame — identical to form design tab */}
-                                <div className="w-[320px] h-[650px] bg-black rounded-[3rem] p-3 shadow-2xl relative border-4 border-slate-400 dark:border-slate-800 shadow-slate-900/40">
+                                <div className="w-[320px] max-w-full h-[650px] bg-black rounded-[3rem] p-3 shadow-2xl relative border-4 border-slate-400 dark:border-slate-800 shadow-slate-900/40">
                                     <div className="absolute top-3 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-2xl z-20 flex justify-center">
                                         <div className="w-12 h-1 bg-[#1C1C1E] mt-2 rounded-full"></div>
                                     </div>
@@ -1996,7 +1996,7 @@ const AutomationsView = (props) => {
                                                                     {cardsArr.map((card, ci) => {
                                                                         const url = activeForm.automation?.whatsappTemplate?.cards?.[ci]?.headerLocalUrl;
                                                                         return (
-                                                                            <div key={ci} className="shrink-0 w-[120px] bg-slate-50 dark:bg-[#2a3942] rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col">
+                                                                            <div key={ci} className="shrink-0 w-[120px] max-w-full bg-slate-50 dark:bg-[#2a3942] rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 flex flex-col">
                                                                                 {card.headerType === 'IMAGE' && <div className="w-full h-[70px] bg-slate-200 dark:bg-slate-700 overflow-hidden">{url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center opacity-30 text-xl"><ImageIcon className="w-6 h-6" /></div>}</div>}
                                                                                 {card.headerType === 'VIDEO' && <div className="w-full h-[70px] bg-black overflow-hidden flex items-center justify-center">{url ? <video src={url} className="w-full h-full object-cover" muted /> : <div className="opacity-30 text-xl"><Play className="w-6 h-6" /></div>}</div>}
                                                                                 {card.content && <div className="text-[9px] px-1.5 py-1 leading-snug text-slate-700 dark:text-slate-300" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{card.content}</div>}
@@ -2028,7 +2028,7 @@ const AutomationsView = (props) => {
                                                 </div>
                                             </>
                                         ) : (
-                                            <div className="flex-1 flex flex-col items-center justify-center gap-3 opacity-35 p-6">
+                                            <div className="flex-1 flex flex-col items-center justify-center gap-3 opacity-35 p-4 md:p-6">
                                                 <Zap className="w-10 h-10 text-slate-400" />
                                                 <p className="text-[10px] text-slate-500 text-center font-bold leading-relaxed">Enable WhatsApp Auto-Responder &amp; select a template to preview</p>
                                             </div>
@@ -2053,38 +2053,38 @@ const ResponsesView = (props) => {
         viewMode, setViewMode
     } = props;
     return (
-<div className="flex-1 p-8 overflow-y-auto w-full items-start justify-start flex flex-col relative">
+<div className="flex-1 p-4 md:p-8 overflow-y-auto w-full items-start justify-start flex flex-col relative">
                         <div className="max-w-7xl mx-auto w-full space-y-8">
 
                             {/* Rich Stats Cards */}
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
                                     <div className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-1">Total Views</div>
                                     <div className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                                         <Eye className="w-6 h-6 text-indigo-500" /> {activeForm.views || 0}
                                     </div>
                                 </div>
-                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
                                     <div className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-1">Total Submitted</div>
                                     <div className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                                         <Database className="w-6 h-6 text-green-500" /> {responses.length}
                                     </div>
                                 </div>
-                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
                                     <div className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-1">Conversion Rate</div>
                                     <div className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                                         <TrendingUp className="w-6 h-6 text-amber-500" />
                                         {activeForm.views > 0 ? Math.round(responses.length / activeForm.views * 100) : 0}%
                                     </div>
                                 </div>
-                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
                                     <div className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-1">Drop-offs</div>
                                     <div className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                                         <LogOut className="w-6 h-6 text-red-500" />
                                         {Math.max(0, (activeForm.views || 0) - responses.length)}
                                     </div>
                                 </div>
-                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
                                     <div className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-1">Today's Leads</div>
                                     <div className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                                         <Clock className="w-6 h-6 text-blue-500" />
@@ -2096,7 +2096,7 @@ const ResponsesView = (props) => {
                             {/* Detailed Submissions Table */}
                             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm flex flex-col h-[600px]">
                                 {/* Responses toolbar */}
-                                <div className="shrink-0 px-6 py-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 bg-slate-50 dark:bg-black/30">
+                                <div className="shrink-0 px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 bg-slate-50 dark:bg-black/30">
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                             <Database className="w-4 h-4 text-indigo-500" />
@@ -2135,7 +2135,7 @@ const ResponsesView = (props) => {
                                             <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
                                         </div>
                                     ) : responses.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center h-full text-center p-12">
+                                        <div className="flex flex-col items-center justify-center h-full text-center p-4 md:p-12">
                                             <Database className="w-12 h-12 text-slate-200 dark:text-slate-700 mb-4" />
                                             <h3 className="font-bold text-slate-500 dark:text-slate-400 mb-1">No submissions yet</h3>
                                             <p className="text-sm text-slate-400">Once users submit your form, entries will appear here.</p>
@@ -2166,7 +2166,7 @@ const ResponsesView = (props) => {
                                                             else if (v) display = String(v);
                                                             const isImg = typeof v === 'string' && v.startsWith('data:image');
                                                             return (
-                                                                <td key={f.id} className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[180px] truncate">
+                                                                <td key={f.id} className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[180px] max-w-full truncate">
                                                                     {isImg ? <img src={v} alt="upload" className="h-8 w-14 object-cover rounded" /> : display}
                                                                 </td>
                                                             );

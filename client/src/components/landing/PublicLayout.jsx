@@ -39,7 +39,7 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
         );
     }
 
-    if (!config) return <div className="text-center p-20 text-red-500">Failed to load configuration.</div>;
+    if (!config) return <div className="text-center p-4 md:p-20 text-red-500">Failed to load configuration.</div>;
 
     const brandName = config.brand?.name || 'Platform';
 
@@ -66,7 +66,7 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
 
             {/* Dynamic Footer */}
             <footer className="pt-20 pb-10 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-zinc-950 transition-colors mt-auto">
-                <div className="max-w-7xl mx-auto px-6">
+                <div className="max-w-7xl mx-auto px-4 md:px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
                         <div className="col-span-2 lg:col-span-2 space-y-6">
                             <div className="flex items-center gap-3 font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">

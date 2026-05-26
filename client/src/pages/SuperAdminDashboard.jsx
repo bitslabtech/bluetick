@@ -239,7 +239,7 @@ const SuperAdminDashboard = () => {
                         {/* 2. GRAPHS ROW */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Message Volume */}
-                            <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Message Volume</h3>
                                 <div className="h-64">
                                     {messageChartData.length === 0 ? (
@@ -280,7 +280,7 @@ const SuperAdminDashboard = () => {
                             </div>
 
                             {/* Revenue Growth */}
-                            <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Revenue Growth</h3>
                                 <div className="h-64">
                                     {revenueChartData.length === 0 ? (
@@ -324,7 +324,7 @@ const SuperAdminDashboard = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Purchases List */}
                             <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Purchases</h3>
                                     <Link to="/superadmin/purchases" className="text-primary text-sm font-medium hover:underline">View All</Link>
                                 </div>
@@ -332,28 +332,28 @@ const SuperAdminDashboard = () => {
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-slate-50 dark:bg-white/5 text-slate-500 uppercase text-xs">
                                             <tr>
-                                                <th className="px-6 py-3">User</th>
-                                                <th className="px-6 py-3">Plan</th>
-                                                <th className="px-6 py-3">Amount</th>
-                                                <th className="px-6 py-3">Date</th>
+                                                <th className="px-4 md:px-6 py-3">User</th>
+                                                <th className="px-4 md:px-6 py-3">Plan</th>
+                                                <th className="px-4 md:px-6 py-3">Amount</th>
+                                                <th className="px-4 md:px-6 py-3">Date</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                             {data.recentPurchases.map((tx, i) => (
                                                 <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-4 md:px-6 py-4">
                                                         <div className="font-medium text-slate-900 dark:text-white">{tx.userName}</div>
                                                         <div className="text-xs text-slate-500">{tx.userEmail}</div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-4 md:px-6 py-4">
                                                         <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                                                             {tx.planName}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                                                    <td className="px-4 md:px-6 py-4 font-medium text-slate-900 dark:text-white">
                                                         {formatCurrency(tx.amount)}
                                                     </td>
-                                                    <td className="px-6 py-4 text-slate-500">
+                                                    <td className="px-4 md:px-6 py-4 text-slate-500">
                                                         {new Date(tx.createdAt).toLocaleDateString()}
                                                     </td>
                                                 </tr>
@@ -367,7 +367,7 @@ const SuperAdminDashboard = () => {
                             </div>
 
                             {/* Plan Distribution Pie */}
-                            <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex flex-col">
+                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex flex-col">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Plan Distribution</h3>
                                 <div className="flex-1 min-h-[250px] relative">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -411,7 +411,7 @@ const SuperAdminDashboard = () => {
                         {/* 3.5 AI TOKEN USAGE & TOP USERS */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* AI Token Graph */}
-                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                     <Sparkles className="w-5 h-5 text-purple-500" />
                                     AI Token Consumption
@@ -455,7 +455,7 @@ const SuperAdminDashboard = () => {
 
                             {/* Top AI Token Users */}
                             <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white pb-1">Top Consumers</h3>
                                     <Link to="/superadmin/ai-tokens" className="text-primary text-sm font-medium hover:underline">View All</Link>
                                 </div>
@@ -487,7 +487,7 @@ const SuperAdminDashboard = () => {
                         </div>
 
                         {/* 4. ACTIVITY LOGS */}
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm p-6">
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm p-4 md:p-6">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Platform Activity Logs</h3>
                                 <Link to="/superadmin/activity-logs" className="text-primary text-sm font-medium hover:underline">View All</Link>

@@ -70,7 +70,7 @@ const AdminMessages = () => {
 
                 <div className="grid grid-cols-1 gap-4">
                     {messages.length === 0 ? (
-                        <div className="text-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-12">
+                        <div className="text-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-12">
                             <Mail className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">No messages yet</h3>
                             <p className="text-slate-500">When someone fills out the contact form, it will appear here.</p>

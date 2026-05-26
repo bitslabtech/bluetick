@@ -14,7 +14,7 @@ const AdminHeader = ({ title, subtitle, children, showSearch = true, searchTerm 
 
 
     return (
-        <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
+        <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
             <div className="flex items-center gap-6 w-full">
                 {showSearch && (
                     <div className="flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors hidden md:flex">

@@ -257,37 +257,37 @@ const AdminUsers = () => {
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 dark:bg-white/5 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-text-secondary">
                                 <tr>
-                                    <th className="px-6 py-4">User</th>
-                                    <th className="px-6 py-4">Companies</th>
-                                    <th className="px-6 py-4">Role</th>
-                                    <th className="px-6 py-4">Current Plan</th>
-                                    <th className="px-6 py-4">Plan Expiry</th>
-                                    <th className="px-6 py-4">Last Login</th>
-                                    <th className="px-6 py-4 w-10"></th>
+                                    <th className="px-4 md:px-6 py-4">User</th>
+                                    <th className="px-4 md:px-6 py-4">Companies</th>
+                                    <th className="px-4 md:px-6 py-4">Role</th>
+                                    <th className="px-4 md:px-6 py-4">Current Plan</th>
+                                    <th className="px-4 md:px-6 py-4">Plan Expiry</th>
+                                    <th className="px-4 md:px-6 py-4">Last Login</th>
+                                    <th className="px-4 md:px-6 py-4 w-10"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
                                 {loading ? (
-                                    <tr><td colSpan="6" className="p-8 text-center text-slate-500">Loading users...</td></tr>
+                                    <tr><td colSpan="6" className="p-4 md:p-8 text-center text-slate-500">Loading users...</td></tr>
                                 ) : filteredUsers.length === 0 ? (
-                                    <tr><td colSpan="6" className="p-8 text-center text-slate-500">No users found matching "{searchTerm}"</td></tr>
+                                    <tr><td colSpan="6" className="p-4 md:p-8 text-center text-slate-500">No users found matching "{searchTerm}"</td></tr>
                                 ) : (
                                     filteredUsers.map((u) => (
                                         <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                             {/* User Info */}
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <div className="font-bold text-slate-900 dark:text-white text-[15px]">{u.name}</div>
                                                 <div className="text-slate-500 text-xs mt-0.5">{u.email}</div>
                                             </td>
 
                                             {/* Company */}
-                                            <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                                            <td className="px-4 md:px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 {u.company || '-'}
                                             </td>
 
                                             {/* Role Badge */}
                                             {/* Role Badge */}
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 {u.isAdmin ? (
                                                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
                                                         <ShieldCheck className="w-3 h-3" /> Superadmin
@@ -300,7 +300,7 @@ const AdminUsers = () => {
                                             </td>
 
                                             {/* Current Plan */}
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 {(() => {
                                                     const plan = availablePlans.find(p => p.name === u.plan);
                                                     const color = plan?.color || 'blue'; // Default to blue
@@ -327,17 +327,17 @@ const AdminUsers = () => {
                                             </td>
 
                                             {/* Plan Expiry */}
-                                            <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                                            <td className="px-4 md:px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 {u.planExpiry ? formatDate(u.planExpiry) : 'N/A'}
                                             </td>
 
                                             {/* Last Login */}
-                                            <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                                            <td className="px-4 md:px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 {u.lastLogin ? formatDate(u.lastLogin) : 'Never'}
                                             </td>
 
                                             {/* Actions */}
-                                            <td className="px-6 py-4 relative">
+                                            <td className="px-4 md:px-6 py-4 relative">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button onClick={() => handleViewUser(u)} className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold px-3 shadow-sm border border-blue-200 dark:border-blue-800">
                                                         <Eye className="w-4 h-4" /> View
@@ -429,7 +429,7 @@ const AdminUsers = () => {
             {
                 deleteId && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-sm animate-in fade-in">
-                        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-white/10">
+                        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-sm w-full p-4 md:p-6 border border-slate-200 dark:border-white/10">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Delete User?</h3>
                             <p className="text-slate-500 dark:text-text-secondary mb-6 text-sm">
                                 This action cannot be undone. Usually we recommend deactivating instead of deleting.
@@ -457,7 +457,7 @@ const AdminUsers = () => {
             {
                 isHistoryOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
-                        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-2xl w-full p-6 border border-slate-200 dark:border-white/10 max-h-[80vh] flex flex-col">
+                        <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-2xl w-full p-4 md:p-6 border border-slate-200 dark:border-white/10 max-h-[80vh] flex flex-col">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                                     Impersonation History {editingUser ? `for ${editingUser.name}` : ''}
@@ -565,7 +565,7 @@ const UserModal = ({ user, plans, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-white/10">
+            <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-md w-full p-4 md:p-6 border border-slate-200 dark:border-white/10">
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
                     {user ? 'Edit User' : 'Add New User'}
                 </h3>
@@ -611,7 +611,7 @@ const UserModal = ({ user, plans, onClose, onSave }) => {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Role */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role</label>
@@ -694,7 +694,7 @@ const HistorySessionCard = ({ session }) => {
                     {actions.length === 0 ? (
                         <p className="text-xs text-slate-400 italic pl-4">No actions recorded in this session.</p>
                     ) : (
-                        <div className="relative pl-4 space-y-6 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-200 dark:before:bg-white/10">
+                        <div className="relative pl-4 space-y-6 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] max-w-full before:bg-slate-200 dark:before:bg-white/10">
                             {actions.map(log => (
                                 <div key={log.id} className="relative">
                                     <span className="absolute -left-[21px] top-1.5 size-2.5 rounded-full border-2 border-slate-50 dark:border-surface-dark bg-slate-300 dark:bg-slate-600"></span>
@@ -730,7 +730,7 @@ const GrantTrialModal = ({ user, plans, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-white/10">
+            <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-sm w-full p-4 md:p-6 border border-slate-200 dark:border-white/10">
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
                     Grant Trial to {user.name}
                 </h3>
@@ -818,12 +818,12 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
             <div className="bg-white dark:bg-surface-dark rounded-[24px] shadow-2xl max-w-5xl w-full h-[85vh] min-h-[600px] max-h-[900px] flex flex-col md:flex-row overflow-hidden border border-slate-200 dark:border-white/10">
                 
                 {/* ────── SIDEBAR TABS ────── */}
                 <div className="w-full md:w-64 bg-slate-50 dark:bg-black/20 border-b md:border-b-0 md:border-r border-slate-200 dark:border-white/10 flex flex-col shrink-0">
-                    <div className="p-6">
+                    <div className="p-4 md:p-6">
                         <h3 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight truncate">
                             {user?.name || 'Loading...'}
                         </h3>
@@ -861,7 +861,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-6 md:p-4 md:p-8 custom-scrollbar">
                         
                         {/* ════ PROFILE TAB ════ */}
                         {activeTab === 'profile' && details && (
@@ -964,7 +964,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Transaction History</h4>
                                     
                                     {details.purchases?.length === 0 ? (
-                                        <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-8 text-center border border-slate-200 dark:border-white/10">
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-4 md:p-8 text-center border border-slate-200 dark:border-white/10">
                                             <DollarSign className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                                             <p className="text-slate-500 font-medium">No purchase history found for this user.</p>
                                         </div>
@@ -1005,7 +1005,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                         {/* ════ REFERRALS TAB ════ */}
                         {activeTab === 'referrals' && details && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+                                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 md:p-6 text-white shadow-lg">
                                     <h4 className="text-lg font-bold mb-1 opacity-90">Affiliate / Referrals</h4>
                                     <p className="text-sm opacity-80 mb-6">Users who registered using this account's referral link.</p>
                                     
@@ -1028,8 +1028,8 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                     </div>
 
                     {/* ────── FOOTER ACTION BAR ────── */}
-                    <div className="p-4 md:p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex justify-end shrink-0">
-                        <button type="button" onClick={onClose} className="px-8 py-2.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
+                    <div className="p-4 md:p-4 md:p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex justify-end shrink-0">
+                        <button type="button" onClick={onClose} className="px-4 md:px-8 py-2.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
                             Close Profile
                         </button>
                     </div>

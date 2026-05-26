@@ -198,7 +198,7 @@ const Checkout = () => {
                     {/* Left: Order Summary (3/5 width) */}
                     <div className="md:col-span-3 space-y-6">
                         {/* Plan Card */}
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-7 border border-slate-200 dark:border-white/10 shadow-sm">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 md:p-7 border border-slate-200 dark:border-white/10 shadow-sm">
                             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-5">Order Summary</h2>
                             
                             {/* Interval Switcher */}
@@ -363,7 +363,7 @@ const Checkout = () => {
 
                     {/* Right: Pay Button (2/5 width) */}
                     <div className="md:col-span-2">
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-7 border border-slate-200 dark:border-white/10 shadow-sm sticky top-8">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 md:p-7 border border-slate-200 dark:border-white/10 shadow-sm sticky top-8">
                             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-5">Complete Purchase</h2>
 
                             <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl flex items-start gap-3">

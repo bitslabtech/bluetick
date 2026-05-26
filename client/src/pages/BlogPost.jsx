@@ -83,10 +83,10 @@ const BlogPost = () => {
 
     if (!blog) {
         return (
-            <div className="min-h-screen bg-[#F5F5F7] dark:bg-black text-slate-900 dark:text-white flex flex-col items-center justify-center p-6 text-center">
+            <div className="min-h-screen bg-[#F5F5F7] dark:bg-black text-slate-900 dark:text-white flex flex-col items-center justify-center p-4 md:p-6 text-center">
                 <h1 className="text-4xl font-bold mb-4">Post Not Found</h1>
                 <p className="text-slate-500 mb-8 max-w-md">The article you're looking for was either removed or doesn't exist.</p>
-                <Link to="/blog" className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-105 transition-transform">Return to Blog</Link>
+                <Link to="/blog" className="px-4 md:px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold hover:scale-105 transition-transform">Return to Blog</Link>
             </div>
         );
     }
@@ -97,7 +97,7 @@ const BlogPost = () => {
 
             <article className="pt-32 pb-40">
                 {/* Article Header */}
-                <header className="max-w-4xl mx-auto px-6 text-center mb-16">
+                <header className="max-w-4xl mx-auto px-4 md:px-6 text-center mb-16">
                     <Link to="/blog" className="inline-flex items-center gap-2 text-sm font-bold tracking-tight hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors mb-12 bg-slate-100 dark:bg-white/5 px-4 py-2 rounded-full">
                         <ChevronLeft className="w-4 h-4" /> Back to Blog
                     </Link>
@@ -120,7 +120,7 @@ const BlogPost = () => {
 
                 {/* Hero Image */}
                 {blog.coverImage && (
-                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.7 }} className="max-w-6xl mx-auto px-6 mb-20">
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.7 }} className="max-w-6xl mx-auto px-4 md:px-6 mb-20">
                         <div className="aspect-[21/9] rounded-[2rem] overflow-hidden shadow-2xl relative">
                             <img src={blog.coverImage} className="w-full h-full object-cover" alt={blog.title} />
                         </div>
@@ -128,7 +128,7 @@ const BlogPost = () => {
                 )}
 
                 {/* Rich Text Content */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="max-w-3xl mx-auto px-6">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="max-w-3xl mx-auto px-4 md:px-6">
                     <div 
                         className="prose prose-lg md:prose-xl dark:prose-invert max-w-none prose-indigo prose-headings:font-extrabold prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-img:rounded-3xl prose-img:shadow-xl"
                         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content) }} 
@@ -167,9 +167,9 @@ const BlogPost = () => {
 
             {/* Read Next Section Placeholder */}
             <div className="bg-[#F5F5F7] dark:bg-black py-24 border-t border-slate-200 dark:border-white/5">
-                <div className="max-w-5xl mx-auto px-6 text-center">
+                <div className="max-w-5xl mx-auto px-4 md:px-6 text-center">
                     <h2 className="text-3xl font-extrabold mb-8">Want to read more?</h2>
-                    <Link to="/blog" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all">View All Articles</Link>
+                    <Link to="/blog" className="px-4 md:px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg shadow-xl shadow-indigo-500/30 transition-all">View All Articles</Link>
                 </div>
             </div>
             </div>

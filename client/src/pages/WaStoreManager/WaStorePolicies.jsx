@@ -51,7 +51,7 @@ export default function WaStorePolicies() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center p-12">
+            <div className="flex items-center justify-center p-4 md:p-12">
                 <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
             </div>
         );
@@ -87,7 +87,7 @@ export default function WaStorePolicies() {
 
             <form onSubmit={handleSave} className="space-y-6">
                 
-                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
                     <label className="block text-sm font-bold text-slate-900 dark:text-white mb-2">Terms & Conditions</label>
                     <p className="text-xs text-slate-500 mb-4">The rules and guidelines that users must agree to in order to use your store.</p>
                     <textarea 
@@ -99,7 +99,7 @@ export default function WaStorePolicies() {
                     />
                 </div>
 
-                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
                     <label className="block text-sm font-bold text-slate-900 dark:text-white mb-2">Privacy Policy</label>
                     <p className="text-xs text-slate-500 mb-4">How you collect, use, and protect your customers' personal information.</p>
                     <textarea 
@@ -111,7 +111,7 @@ export default function WaStorePolicies() {
                     />
                 </div>
 
-                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
                     <label className="block text-sm font-bold text-slate-900 dark:text-white mb-2">Return & Refund Policy</label>
                     <p className="text-xs text-slate-500 mb-4">Your rules for accepting returns, issuing refunds, and exchanges.</p>
                     <textarea 

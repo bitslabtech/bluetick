@@ -78,7 +78,7 @@ const TechPartner = () => {
     const canRequestPayout = (techPartnerBalance || 0) >= (minPayoutBalance || 10000);
 
     return (
-        <div className="px-4 py-8 lg:px-12 max-w-7xl mx-auto w-full font-display">
+        <div className="px-4 py-8 lg:px-4 md:px-12 max-w-7xl mx-auto w-full font-display">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
@@ -154,8 +154,8 @@ const TechPartner = () => {
             {activeTab === 'overview' && (
                 <>
                     {/* Tracking Link Banner */}
-                    <div className="bg-gradient-to-br from-purple-700 to-indigo-900 rounded-2xl p-8 lg:p-10 text-white shadow-xl relative overflow-hidden mb-8">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                    <div className="bg-gradient-to-br from-purple-700 to-indigo-900 rounded-2xl p-8 lg:p-4 md:p-10 text-white shadow-xl relative overflow-hidden mb-8">
+                        <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10 pointer-events-none">
                             <TrendingUp className="w-48 h-48 transform -rotate-12" />
                         </div>
                         <div className="relative z-10 max-w-3xl">
@@ -168,7 +168,7 @@ const TechPartner = () => {
                                 </div>
                                 <button
                                     onClick={() => handleCopy(`${window.location.origin}/register?partner=${data?.partnerCode || ''}`)}
-                                    className="flex items-center justify-center gap-2 bg-white text-purple-700 hover:bg-slate-50 font-bold px-8 py-4 rounded-xl transition-all shadow-lg min-w-[160px]"
+                                    className="flex items-center justify-center gap-2 bg-white text-purple-700 hover:bg-slate-50 font-bold px-4 md:px-8 py-4 rounded-xl transition-all shadow-lg min-w-[160px] max-w-full"
                                 >
                                     {copying ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
                                     {copying ? 'Copied!' : 'Copy Link'}
@@ -215,7 +215,7 @@ const TechPartner = () => {
 
                     {/* Earnings Table */}
                     <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                        <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                             <h3 className="font-bold text-slate-900 dark:text-white text-lg">Commission History</h3>
                             <span className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full text-xs font-bold">
                                 {earnings?.length || 0} records
@@ -227,31 +227,31 @@ const TechPartner = () => {
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="bg-slate-50 dark:bg-white/5">
-                                            <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Plan</th>
-                                            <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Plan Price</th>
-                                            <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Commission</th>
-                                            <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Date</th>
-                                            <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Status</th>
+                                            <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Plan</th>
+                                            <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Plan Price</th>
+                                            <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Commission</th>
+                                            <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Date</th>
+                                            <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                         {earnings.map((e) => (
                                             <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 md:px-6 py-4">
                                                     <div className="font-bold text-sm text-slate-900 dark:text-white">{e.planName}</div>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                                                <td className="px-4 md:px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                                                     ₹{e.planPrice?.toLocaleString()}
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 md:px-6 py-4">
                                                     <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
                                                         +₹{e.commissionAmount?.toLocaleString()} ({e.commissionRate}%)
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-slate-500">
+                                                <td className="px-4 md:px-6 py-4 text-sm text-slate-500">
                                                     {new Date(e.createdAt).toLocaleDateString()}
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-4 md:px-6 py-4">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${e.status === 'paid'
                                                         ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400'
                                                         : 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400'
@@ -265,7 +265,7 @@ const TechPartner = () => {
                                 </table>
                             </div>
                         ) : (
-                            <div className="p-12 text-center">
+                            <div className="p-4 md:p-12 text-center">
                                 <DollarSign className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                                 <h3 className="text-slate-900 dark:text-white font-bold mb-1">No commissions yet</h3>
                                 <p className="text-slate-500 text-sm">Share your referral link — commissions appear here when referred users purchase plans.</p>
@@ -295,11 +295,11 @@ const ApplicationView = ({ status, onApply, applying }) => {
     ];
 
     return (
-        <div className="px-4 py-8 lg:px-12 max-w-5xl mx-auto w-full font-display">
+        <div className="px-4 py-8 lg:px-4 md:px-12 max-w-5xl mx-auto w-full font-display">
             {/* Hero */}
-            <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 rounded-3xl p-10 lg:p-16 text-white shadow-2xl relative overflow-hidden mb-10">
+            <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 rounded-3xl p-10 lg:p-4 md:p-16 text-white shadow-2xl relative overflow-hidden mb-10">
                 <div className="absolute -top-10 -right-10 w-64 h-64 bg-white/5 rounded-full pointer-events-none" />
-                <div className="absolute -bottom-16 -left-10 w-80 h-80 bg-white/5 rounded-full pointer-events-none" />
+                <div className="absolute -bottom-16 -left-10 w-80 max-w-full h-80 bg-white/5 rounded-full pointer-events-none" />
                 <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-4">
                         <Briefcase className="w-10 h-10 text-indigo-200" />
@@ -324,7 +324,7 @@ const ApplicationView = ({ status, onApply, applying }) => {
                     )}
 
                     {isPending ? (
-                        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl px-6 py-4 inline-flex items-center gap-3">
+                        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl px-4 md:px-6 py-4 inline-flex items-center gap-3">
                             <Clock className="w-6 h-6 text-amber-300" />
                             <div>
                                 <div className="font-bold text-white">Application Under Review</div>
@@ -332,7 +332,7 @@ const ApplicationView = ({ status, onApply, applying }) => {
                             </div>
                         </div>
                     ) : isRejected ? (
-                        <div className="bg-red-500/30 border border-red-400/30 rounded-2xl px-6 py-4 inline-flex items-center gap-3">
+                        <div className="bg-red-500/30 border border-red-400/30 rounded-2xl px-4 md:px-6 py-4 inline-flex items-center gap-3">
                             <AlertCircle className="w-6 h-6 text-red-300" />
                             <div>
                                 <div className="font-bold text-white">Application Not Approved</div>
@@ -343,7 +343,7 @@ const ApplicationView = ({ status, onApply, applying }) => {
                         <button
                             onClick={onApply}
                             disabled={applying}
-                            className="flex items-center gap-2 bg-white text-indigo-700 hover:bg-indigo-50 font-bold px-8 py-4 rounded-2xl transition-all shadow-xl text-lg disabled:opacity-60"
+                            className="flex items-center gap-2 bg-white text-indigo-700 hover:bg-indigo-50 font-bold px-4 md:px-8 py-4 rounded-2xl transition-all shadow-xl text-lg disabled:opacity-60"
                         >
                             {applying ? (
                                 <div className="w-5 h-5 rounded-full border-2 border-indigo-300 border-t-indigo-700 animate-spin" />
@@ -360,7 +360,7 @@ const ApplicationView = ({ status, onApply, applying }) => {
             {/* Perks Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
                 {perks.map((perk, i) => (
-                    <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow">
                         <div className="text-3xl mb-3">{perk.icon}</div>
                         <h3 className="font-bold text-slate-900 dark:text-white mb-2">{perk.title}</h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{perk.desc}</p>
@@ -369,7 +369,7 @@ const ApplicationView = ({ status, onApply, applying }) => {
             </div>
 
             {/* How It Works */}
-            <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-8">
+            <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-4 md:p-8">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">How It Works</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
@@ -395,7 +395,7 @@ const ApplicationView = ({ status, onApply, applying }) => {
 
 // ── Shared sub-components ────────────────────────────────────────────────────
 const StatCard = ({ label, value, icon: Icon, color, bg }) => (
-    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex items-center gap-4">
         <div className={`w-12 h-12 ${bg} ${color} rounded-xl flex items-center justify-center`}>
             <Icon className="w-6 h-6" />
         </div>
@@ -411,7 +411,7 @@ const StatCard = ({ label, value, icon: Icon, color, bg }) => (
 const PartnerLeads = ({ leads }) => {
     return (
         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                 <h3 className="font-bold text-slate-900 dark:text-white text-lg">My Leads ({leads?.length || 0})</h3>
             </div>
             {leads && leads.length > 0 ? (
@@ -419,20 +419,20 @@ const PartnerLeads = ({ leads }) => {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-white/5">
-                                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Name</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Email</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Plan</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Joined At</th>
+                                <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Name</th>
+                                <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Email</th>
+                                <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Plan</th>
+                                <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Status</th>
+                                <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">Joined At</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {leads.map((lead) => (
                                 <tr key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4 font-bold text-sm text-slate-900 dark:text-white">{lead.name}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{lead.email}</td>
-                                    <td className="px-6 py-4 text-sm font-medium">{lead.plan}</td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4 font-bold text-sm text-slate-900 dark:text-white">{lead.name}</td>
+                                    <td className="px-4 md:px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{lead.email}</td>
+                                    <td className="px-4 md:px-6 py-4 text-sm font-medium">{lead.plan}</td>
+                                    <td className="px-4 md:px-6 py-4">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${lead.planStatus === 'Active' ? 'bg-emerald-100 text-emerald-800' :
                                             lead.planStatus === 'Trial' ? 'bg-indigo-100 text-indigo-800' :
                                                 'bg-slate-100 text-slate-800'
@@ -440,14 +440,14 @@ const PartnerLeads = ({ leads }) => {
                                             {lead.planStatus}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-slate-500">{new Date(lead.createdAt).toLocaleDateString()}</td>
+                                    <td className="px-4 md:px-6 py-4 text-sm text-slate-500">{new Date(lead.createdAt).toLocaleDateString()}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             ) : (
-                <div className="p-12 text-center">
+                <div className="p-4 md:p-12 text-center">
                     <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                     <h3 className="text-slate-900 dark:text-white font-bold mb-1">No leads yet</h3>
                     <p className="text-slate-500 text-sm">When users sign up using your link, they will appear here.</p>
@@ -513,7 +513,7 @@ const PartnerCoupons = ({ commissionRate }) => {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl p-6">
+            <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl p-4 md:p-6">
                 <h3 className="font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-2 mb-2">
                     <Award className="w-5 h-5" /> Subsidize Your Leads
                 </h3>
@@ -538,7 +538,7 @@ const PartnerCoupons = ({ commissionRate }) => {
                         <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className="w-full px-4 py-2 border rounded-xl dark:bg-white/5 dark:border-white/10 min-h-[42px]" />
                     </div>
                     <div className="sm:col-span-2 md:col-span-4 mt-2">
-                        <button type="submit" className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-xl transition-colors whitespace-nowrap shadow-sm">
+                        <button type="submit" className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 md:px-8 py-3 rounded-xl transition-colors whitespace-nowrap shadow-sm">
                             Create Custom Coupon
                         </button>
                     </div>
@@ -546,29 +546,29 @@ const PartnerCoupons = ({ commissionRate }) => {
             </div>
 
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-100 dark:border-white/5">
+                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5">
                     <h3 className="font-bold text-slate-900 dark:text-white text-lg">Active Coupons</h3>
                 </div>
-                {loading ? <div className="p-8 text-center text-slate-500">Loading...</div> : coupons.length > 0 ? (
+                {loading ? <div className="p-4 md:p-8 text-center text-slate-500">Loading...</div> : coupons.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-white/5">
-                                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Code</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Discount</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Uses</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Expiry</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 text-right">Actions</th>
+                                    <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500">Code</th>
+                                    <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500">Discount</th>
+                                    <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500">Uses</th>
+                                    <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500">Expiry</th>
+                                    <th className="px-4 md:px-6 py-4 text-xs font-bold uppercase text-slate-500 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {coupons.map(c => (
                                     <tr key={c.id}>
-                                        <td className="px-6 py-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{c.code}</td>
-                                        <td className="px-6 py-4 text-sm font-medium">{c.discountValue}% Off</td>
-                                        <td className="px-6 py-4 text-sm text-slate-500">{c.usesCount || 0} / {c.maxUses > 0 ? c.maxUses : '∞'}</td>
-                                        <td className="px-6 py-4 text-sm text-slate-500">{c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : 'Never'}</td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-4 md:px-6 py-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{c.code}</td>
+                                        <td className="px-4 md:px-6 py-4 text-sm font-medium">{c.discountValue}% Off</td>
+                                        <td className="px-4 md:px-6 py-4 text-sm text-slate-500">{c.usesCount || 0} / {c.maxUses > 0 ? c.maxUses : '∞'}</td>
+                                        <td className="px-4 md:px-6 py-4 text-sm text-slate-500">{c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : 'Never'}</td>
+                                        <td className="px-4 md:px-6 py-4 text-right">
                                             <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:text-red-700 font-bold text-sm">Delete</button>
                                         </td>
                                     </tr>
@@ -576,7 +576,7 @@ const PartnerCoupons = ({ commissionRate }) => {
                             </tbody>
                         </table>
                     </div>
-                ) : <div className="p-8 text-center text-slate-500">No custom coupons created yet.</div>}
+                ) : <div className="p-4 md:p-8 text-center text-slate-500">No custom coupons created yet.</div>}
             </div>
         </div>
     );
@@ -586,7 +586,7 @@ const PartnerAssets = ({ assets = [] }) => {
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {assets.length === 0 ? (
-                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-12 text-center shadow-sm">
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-12 text-center shadow-sm">
                     <Briefcase className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                     <h3 className="text-slate-900 dark:text-white font-bold mb-1">No Assets Available</h3>
                     <p className="text-slate-500 text-sm">Marketing materials will appear here when added by the admin.</p>
@@ -594,7 +594,7 @@ const PartnerAssets = ({ assets = [] }) => {
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {assets.map((asset, i) => (
-                        <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center group">
+                        <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center group">
                             <div className="w-full h-36 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center mb-4 text-slate-400 group-hover:text-indigo-500 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-500/10 transition-colors overflow-hidden">
                                 {asset.type === 'IMG' ? (
                                     <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />

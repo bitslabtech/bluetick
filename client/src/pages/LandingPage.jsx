@@ -126,7 +126,7 @@ const CapabilitiesBento = ({ config }) => {
             <div className="absolute top-0 right-0 w-1/2 h-[500px] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[80px] pointer-events-none -translate-y-1/2 translate-x-1/3" style={{ transform: 'translateZ(0) translate(33%, -50%)' }} />
             <div className="absolute bottom-0 left-0 w-1/2 h-[500px] bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none translate-y-1/3 -translate-x-1/3" style={{ transform: 'translateZ(0) translate(-33%, 33%)' }} />
 
-            <div className="max-w-7xl mx-auto px-6">
+            <div className="max-w-7xl mx-auto px-4 md:px-6">
                 <div className="mb-12 md:mb-16">
                     <h2 className="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-4 leading-tight whitespace-pre-line">
                         {data.title}
@@ -142,7 +142,7 @@ const CapabilitiesBento = ({ config }) => {
                     {/* CARD 1: MARKETING (Large Left) */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                         className="md:col-span-7 rounded-[32px] bg-[#FFF5F3] dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
-                        <div className="p-8 md:p-10 relative z-10 w-full md:w-[55%] lg:w-[50%] mb-auto">
+                        <div className="p-8 md:p-4 md:p-10 relative z-10 w-full md:w-[55%] lg:w-[50%] mb-auto">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-rose-500 dark:text-rose-400 mb-4">{marketingCard.tag}</div>
                             <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight whitespace-pre-line">{marketingCard.title}</h3>
                             <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium mb-6 md:mb-8 whitespace-pre-line">{marketingCard.desc}</p>
@@ -153,7 +153,7 @@ const CapabilitiesBento = ({ config }) => {
                                 <img loading="lazy" src={marketingCard.image} className="w-full h-full object-cover" alt={marketingCard.title} />
                             </div>
                         ) : (
-                            <div className="relative md:absolute md:right-0 md:bottom-0 w-[90%] md:w-[50%] lg:w-[45%] h-64 md:h-[85%] self-end bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-[0_-10px_40px_-15px_rgba(244,63,94,0.15)] flex flex-col p-4 md:p-6 md:translate-x-4 md:translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500 overflow-hidden">
+                            <div className="relative md:absolute md:right-0 md:bottom-0 w-[90%] md:w-[50%] lg:w-[45%] h-64 md:h-[85%] self-end bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-[0_-10px_40px_-15px_rgba(244,63,94,0.15)] max-w-full flex flex-col p-4 md:p-4 md:p-6 md:translate-x-4 md:translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500 overflow-hidden">
                                 {/* FB/IG Ad Header */}
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center">
@@ -199,18 +199,18 @@ const CapabilitiesBento = ({ config }) => {
                     {/* CARD 2: SUPPORT (Large Right) */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
                         className="md:col-span-5 rounded-[32px] bg-[#F0FDF4] dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
-                        <div className="p-8 md:p-10 relative z-10 w-full">
+                        <div className="p-8 md:p-4 md:p-10 relative z-10 w-full">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400 mb-4">{supportCard.tag}</div>
                             <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight whitespace-pre-line">{supportCard.title}</h3>
                             <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium mb-6 md:mb-8 whitespace-pre-line">{supportCard.desc}</p>
                             <a href="#" className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4" /></a>
                         </div>
                         {supportCard.image ? (
-                            <div className="absolute bottom-0 inset-x-8 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-emerald-900/20 border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-6 group-hover:translate-y-0 transition-transform duration-500 h-48">
+                            <div className="absolute bottom-0 inset-x-8 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] max-w-full dark:shadow-emerald-900/20 border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-6 group-hover:translate-y-0 transition-transform duration-500 h-48">
                                 <img loading="lazy" src={supportCard.image} className="w-full h-full object-cover" alt={supportCard.title} />
                             </div>
                         ) : (
-                            <div className="absolute bottom-0 inset-x-4 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-20px_50px_-15px_rgba(16,185,129,0.15)] border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-8 group-hover:translate-y-0 transition-transform duration-500 flex h-52">
+                            <div className="absolute bottom-0 inset-x-4 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-20px_50px_-15px_rgba(16,185,129,0.15)] max-w-full border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-8 group-hover:translate-y-0 transition-transform duration-500 flex h-52">
                                 {/* Sidebar (Agents/Chats) */}
                                 <div className="w-1/3 bg-slate-50 dark:bg-zinc-950 border-r border-slate-100 dark:border-white/5 p-3 flex flex-col gap-2">
                                     <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Open Chats</div>
@@ -278,7 +278,7 @@ const CapabilitiesBento = ({ config }) => {
                     {/* CARD 3: AUTOMATION */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.15 }}
                         className="md:col-span-4 rounded-[32px] bg-[#EEF2FF] dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
-                        <div className="p-10 relative z-10 w-full mb-auto text-center">
+                        <div className="p-4 md:p-10 relative z-10 w-full mb-auto text-center">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-400 mb-4">{automationCard.tag}</div>
                             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{automationCard.title}</h3>
                             {automationCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{automationCard.desc}</p>}
@@ -314,13 +314,13 @@ const CapabilitiesBento = ({ config }) => {
                     {/* CARD 4: COMMERCE */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
                         className="md:col-span-4 rounded-[32px] bg-[#FFFBEB] dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
-                        <div className="p-10 relative z-10 w-full mb-auto text-center">
+                        <div className="p-4 md:p-10 relative z-10 w-full mb-auto text-center">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500 mb-4">{commerceCard.tag}</div>
                             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{commerceCard.title}</h3>
                             {commerceCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{commerceCard.desc}</p>}
                         </div>
                         {commerceCard.image ? (
-                            <div className="relative h-56 w-full mt-auto flex flex-col items-center justify-end px-8 pb-8">
+                            <div className="relative h-56 w-full mt-auto flex flex-col items-center justify-end px-4 md:px-8 pb-8">
                                 <img loading="lazy" src={commerceCard.image} className="w-full h-full object-cover rounded-2xl shadow-xl border border-amber-100 dark:border-white/10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500" alt={commerceCard.title} />
                             </div>
                         ) : (
@@ -340,7 +340,7 @@ const CapabilitiesBento = ({ config }) => {
 
                                     {/* Product grid */}
                                     <div className="bg-white dark:bg-zinc-900 border border-t-0 border-amber-100 dark:border-white/10 rounded-b-2xl p-3 shadow-xl">
-                                        <div className="grid grid-cols-3 gap-2 mb-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
                                             {[
                                                 { name: 'Sneakers', price: '₹1,299', color: 'bg-blue-100', dot: 'bg-blue-400' },
                                                 { name: 'Watch', price: '₹2,999', color: 'bg-amber-100', dot: 'bg-amber-400' },
@@ -374,21 +374,21 @@ const CapabilitiesBento = ({ config }) => {
                     {/* CARD 5: vCards */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.25 }}
                         className="md:col-span-4 rounded-[32px] bg-[#F8FAFC] dark:bg-slate-900 border border-slate-200 dark:border-white/10 overflow-hidden relative group flex flex-col min-h-[360px]">
-                        <div className="p-10 relative z-10 w-full mb-auto text-center">
+                        <div className="p-4 md:p-10 relative z-10 w-full mb-auto text-center">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400 mb-4">{vcardCard.tag}</div>
                             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{vcardCard.title}</h3>
                             {vcardCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{vcardCard.desc}</p>}
                         </div>
                         {vcardCard.image ? (
-                            <div className="relative h-56 w-full mt-auto px-6 overflow-hidden flex items-end">
+                            <div className="relative h-56 w-full mt-auto px-4 md:px-6 overflow-hidden flex items-end">
                                 <img loading="lazy" src={vcardCard.image} className="w-full h-full object-cover rounded-t-xl translate-y-8 group-hover:translate-y-4 transition-transform duration-500" alt={vcardCard.title} />
                             </div>
                         ) : (
-                            <div className="relative h-56 w-full mt-auto flex items-end justify-center px-6 overflow-hidden pb-0">
+                            <div className="relative h-56 w-full mt-auto flex items-end justify-center px-4 md:px-6 overflow-hidden pb-0">
                                 {/* Ambient glow */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent dark:from-cyan-500/20 pointer-events-none" />
 
-                                <div className="relative w-52 h-52 bg-white dark:bg-zinc-900 shadow-[0_-10px_40px_-15px_rgba(6,182,212,0.3)] border-t border-x border-slate-200 dark:border-white/10 rounded-t-[32px] p-5 flex flex-col items-center translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
+                                <div className="relative w-52 h-52 bg-white dark:bg-zinc-900 shadow-[0_-10px_40px_-15px_rgba(6,182,212,0.3)] max-w-full border-t border-x border-slate-200 dark:border-white/10 rounded-t-[32px] p-5 flex flex-col items-center translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
                                     {/* Phone notch mockup */}
                                     <div className="absolute top-0 inset-x-0 h-4 flex justify-center">
                                         <div className="w-16 h-3 bg-slate-100 dark:bg-zinc-800 rounded-b-xl border-x border-b border-slate-200 dark:border-white/5"></div>
@@ -438,9 +438,9 @@ const CapabilitiesBento = ({ config }) => {
                                 <div className="absolute right-4 md:right-8 top-4 w-20 h-24 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/50 dark:border-white/10 p-2 flex flex-col items-center translate-y-4 group-hover:-translate-y-2 opacity-0 group-hover:opacity-100 transition-all duration-700 delay-100">
                                     <div className="w-full bg-cyan-50 dark:bg-cyan-900/30 rounded-xl p-1.5 mb-1.5 aspect-square flex items-center justify-center relative overflow-hidden">
                                         {/* Scanner line animation */}
-                                        <div className="absolute top-0 inset-x-0 h-0.5 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
+                                        <div className="absolute top-0 inset-x-0 h-0.5 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] max-w-full animate-[scan_2s_ease-in-out_infinite]"></div>
 
-                                        <div className="grid grid-cols-3 gap-[2px] opacity-70 w-full h-full p-1 bg-white dark:bg-transparent rounded">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-[2px] opacity-70 w-full h-full p-1 bg-white dark:bg-transparent rounded">
                                             <div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div>
                                             <div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-transparent"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div>
                                             <div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div>
@@ -824,7 +824,7 @@ function FeaturePreview({ feature }) {
                     <div><div className="w-28 h-2.5 bg-black/15 rounded-full mb-1" /><div className="w-16 h-2 bg-black/10 rounded-full" /></div>
                     <div className={`ml-auto px-3 py-1 ${barColor} text-white rounded-full text-[10px] font-bold`}>LIVE</div>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                     {[['Sent', '17.8K'], ['Delivered', '17.2K'], ['Read', '16.9K'], ['Clicked', '8.1K']].map(([l, v]) => (
                         <div key={l} className="bg-white/60 rounded-xl p-2 text-center"><div className="font-black text-xs text-slate-700">{v}</div><div className="text-[9px] text-slate-400 font-medium">{l}</div></div>
                     ))}
@@ -893,7 +893,7 @@ function FeaturePreview({ feature }) {
         ),
         analytics_meta: (
             <div className="w-full h-full flex flex-col gap-3">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     {[['45%', 'CTR'], ['98%', 'Open Rate'], ['12K', 'Replies']].map(([v, l]) => (
                         <div key={l} className="bg-white/70 rounded-xl p-2 text-center"><div className="font-black text-sm text-slate-800">{v}</div><div className="text-[9px] text-slate-400 font-bold">{l}</div></div>
                     ))}
@@ -914,7 +914,7 @@ function FeaturePreview({ feature }) {
         ),
         analytics_wa: (
             <div className="w-full h-full flex flex-col gap-3">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     {[['99%', 'Delivered'], ['94%', 'Read'], ['65%', 'Replied']].map(([v, l]) => (
                         <div key={l} className="bg-white/70 rounded-xl p-2 text-center"><div className="font-black text-sm text-slate-800">{v}</div><div className="text-[9px] text-slate-400 font-bold">{l}</div></div>
                     ))}
@@ -934,7 +934,7 @@ function FeaturePreview({ feature }) {
             <div className="w-full h-full flex flex-col gap-3">
                 <div className="bg-white/70 rounded-xl p-3 flex-1 overflow-hidden">
                     <div className="text-[10px] font-bold text-slate-600 mb-2">🛍️ Our Products</div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {[{ name: 'Headphones', price: '₹1,499' }, { name: 'Smart Watch', price: '₹3,299' }, { name: 'Phone Case', price: '₹299' }, { name: 'Earbuds', price: '₹899' }].map((p, i) => (
                             <motion.div key={p.name} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.15 }} className="bg-white rounded-lg p-2">
                                 <div className={`h-10 ${barColor} opacity-20 rounded-md mb-1`} />
@@ -989,7 +989,7 @@ function FeaturePreview({ feature }) {
                         </div>
                     </motion.div>
                 </div>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
                     {[['🧠', 'GPT-4'], ['⚡', '< 1s reply'], ['🔒', 'No Halluc.']].map(([ic, lb]) => (
                         <div key={lb} className="bg-white/60 rounded-lg p-1.5 text-center"><div className="text-base">{ic}</div><div className="text-[8px] font-bold text-slate-500">{lb}</div></div>
                     ))}
@@ -1054,9 +1054,9 @@ function FeaturePreview({ feature }) {
                             <QrCode className="w-10 h-10 text-slate-800" />
                         </div>
                     </div>
-                    <motion.div animate={{ top: ['0%', '100%', '0%'] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="absolute left-0 right-0 h-0.5 bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.8)] z-10" />
+                    <motion.div animate={{ top: ['0%', '100%', '0%'] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="absolute left-0 right-0 h-0.5 bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.8)] max-w-full z-10" />
                 </div>
-                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1 }} className="bg-white/90 backdrop-blur-sm rounded-xl p-2.5 w-full max-w-[180px] shadow-sm border border-fuchsia-100">
+                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1 }} className="bg-white/90 backdrop-blur-sm rounded-xl p-2.5 w-full max-w-[180px] max-w-full shadow-sm border border-fuchsia-100">
                     <div className="flex items-center gap-1 text-[8px] font-bold text-fuchsia-600 uppercase mb-1.5"><Users className="w-3 h-3" /> New Lead Captured</div>
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex-shrink-0 flex items-center justify-center text-slate-500 font-bold text-[10px]">RS</div>
@@ -1116,7 +1116,7 @@ function FeaturePreview({ feature }) {
                         <div className="text-[8px] text-slate-500">Custom Audience</div>
                     </motion.div>
                 </div>
-                <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "80%" }} transition={{ delay: 1, duration: 1 }} className="h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] mt-2 relative overflow-hidden">
+                <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "80%" }} transition={{ delay: 1, duration: 1 }} className="h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] max-w-full mt-2 relative overflow-hidden">
                     <div className="absolute inset-0 w-1/2 bg-white/50 -skew-x-12" style={{ animation: 'shimmer-slide 1.5s linear infinite' }}></div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }} className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Live Sync Active</motion.div>
@@ -1147,7 +1147,7 @@ function FeaturePreview({ feature }) {
                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.6 }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white p-2 rounded-xl shadow-lg border border-slate-100 z-20">
                     <div className="w-12 h-12 border-2 border-cyan-500/20 rounded-md flex items-center justify-center p-1 relative overflow-hidden">
                         <div className="absolute inset-0 bg-cyan-500/5"></div>
-                        <div className="grid grid-cols-3 gap-0.5 w-full h-full opacity-80">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-0.5 w-full h-full opacity-80">
                             <div className="bg-slate-800 rounded-[1px]"></div><div className="bg-slate-800 rounded-[1px]"></div><div className="bg-slate-800 rounded-[1px]"></div>
                             <div className="bg-slate-800 rounded-[1px]"></div><div className="bg-transparent"></div><div className="bg-slate-800 rounded-[1px]"></div>
                             <div className="bg-slate-800 rounded-[1px]"></div><div className="bg-slate-800 rounded-[1px]"></div><div className="bg-slate-800 rounded-[1px]"></div>
@@ -1327,7 +1327,7 @@ function AdvancedFeaturesShowcase({ config }) {
                 })}
             </div>
 
-            <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 items-start">
+            <div className="flex flex-col lg:grid lg:grid-cols-1 md:grid-cols-5 gap-8 items-start">
                 {/* TOP/LEFT: Feature Tab list (All Features) */}
                 <div
                     ref={scrollContainerRef}
@@ -1394,7 +1394,7 @@ function AdvancedFeaturesShowcase({ config }) {
                             {/* Gradient top bar */}
                             <div className={`h-1 w-full bg-gradient-to-r ${feature.gradientIcon || 'from-indigo-500 to-violet-500'}`} />
 
-                            <div className="p-6 md:p-7">
+                            <div className="p-6 md:p-4 md:p-7">
                                 <div className="flex flex-wrap items-start gap-3 md:gap-4 mb-4">
                                     <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${feature.gradientIcon || 'from-indigo-500 to-violet-500'} flex items-center justify-center shrink-0 shadow-lg`}>
                                         <TabIcon className="w-6 h-6 text-white" />
@@ -1486,15 +1486,15 @@ const HeroBackground = () => {
 
             {/* ── Layer 3: Central Radial Glow (CSS animation, reduced blur) ── */}
             <div
-                className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-indigo-500/15 dark:bg-indigo-600/25 blur-[60px] hero-glow-1"
+                className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[700px] max-w-full h-[700px] rounded-full bg-indigo-500/15 dark:bg-indigo-600/25 blur-[60px] hero-glow-1"
                 style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
             />
             <div
-                className="absolute top-[20%] left-[60%] w-[500px] h-[500px] rounded-full bg-violet-500/10 dark:bg-violet-600/20 blur-[50px] hero-glow-2"
+                className="absolute top-[20%] left-[60%] w-[500px] max-w-full h-[500px] rounded-full bg-violet-500/10 dark:bg-violet-600/20 blur-[50px] hero-glow-2"
                 style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
             />
             <div
-                className="absolute top-[30%] right-[5%] w-[400px] h-[400px] rounded-full bg-emerald-500/10 dark:bg-emerald-600/15 blur-[50px] hero-glow-3"
+                className="absolute top-[30%] right-[5%] w-[400px] max-w-full h-[400px] rounded-full bg-emerald-500/10 dark:bg-emerald-600/15 blur-[50px] hero-glow-3"
                 style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
             />
 
@@ -1542,13 +1542,13 @@ const HeroBackground = () => {
 
             {/* ── Layer 6: Orbiting Ring (CSS animation for pure GPU rotation) ── */}
             <div
-                className="absolute top-[5%] left-[55%] w-[520px] h-[520px] border border-indigo-300/10 dark:border-indigo-500/10 rounded-full hidden lg:block hero-orbit"
+                className="absolute top-[5%] left-[55%] w-[520px] max-w-full h-[520px] border border-indigo-300/10 dark:border-indigo-500/10 rounded-full hidden lg:block hero-orbit"
                 style={{ animationDuration: '40s', willChange: 'transform', transform: 'translateZ(0)' }}
             >
                 <div className="absolute -top-1.5 left-1/2 w-3 h-3 rounded-full bg-indigo-400/60 blur-[2px]" />
             </div>
             <div
-                className="absolute top-[15%] left-[60%] w-[380px] h-[380px] border border-violet-400/10 dark:border-violet-500/10 rounded-full hidden lg:block hero-orbit-reverse"
+                className="absolute top-[15%] left-[60%] w-[380px] max-w-full h-[380px] border border-violet-400/10 dark:border-violet-500/10 rounded-full hidden lg:block hero-orbit-reverse"
                 style={{ animationDuration: '55s', willChange: 'transform', transform: 'translateZ(0)' }}
             >
                 <div className="absolute -bottom-1.5 right-1/4 w-2 h-2 rounded-full bg-violet-400/60 blur-[2px]" />
@@ -1571,9 +1571,9 @@ function FAQSection({ faqs }) {
     return (
         <section className="py-24 bg-white dark:bg-[#05050A] transition-colors relative overflow-hidden">
             {/* Ambient background */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-indigo-400/5 dark:bg-indigo-500/8 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] max-w-full h-[400px] bg-indigo-400/5 dark:bg-indigo-500/8 rounded-full blur-[100px] pointer-events-none" />
 
-            <div className="max-w-4xl mx-auto px-6 relative z-10">
+            <div className="max-w-4xl mx-auto px-4 md:px-6 relative z-10">
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
@@ -1605,7 +1605,7 @@ function FAQSection({ faqs }) {
                             >
                                 <button
                                     onClick={() => setOpenIdx(isOpen ? null : i)}
-                                    className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
+                                    className="w-full flex items-center justify-between gap-4 px-4 md:px-6 py-5 text-left"
                                 >
                                     <span className={`font-bold text-base leading-snug transition-colors ${isOpen ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-900 dark:text-white'}`}>
                                         {faq.question}
@@ -1628,7 +1628,7 @@ function FAQSection({ faqs }) {
                                             transition={{ duration: 0.25, ease: 'easeInOut' }}
                                             className="overflow-hidden"
                                         >
-                                            <p className="px-6 pb-6 text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                            <p className="px-4 md:px-6 pb-6 text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                                                 {faq.answer}
                                             </p>
                                         </motion.div>
@@ -1659,13 +1659,13 @@ const AddonMarketplaceShowcase = () => {
     return (
         <section className="py-24 relative bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden border-t border-slate-200 dark:border-white/5">
             {/* Ambient Backgrounds (reduced blur for GPU perf) */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[80px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
-            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/10 dark:bg-violet-500/15 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateZ(0)' }} />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] max-w-full h-[600px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[80px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
+            <div className="absolute bottom-0 right-0 w-[500px] max-w-full h-[500px] bg-violet-500/10 dark:bg-violet-500/15 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateZ(0)' }} />
 
             {/* Subtle Grid Pattern */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgxNTAsMTUwLDE1MCwwLjE1KSIvPjwvc3ZnPg==')] opacity-40 dark:opacity-[0.15] pointer-events-none" />
 
-            <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
                 <div className="text-center mb-16 relative">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -1707,7 +1707,7 @@ const AddonMarketplaceShowcase = () => {
                                 viewport={{ once: true, margin: "-50px" }}
                                 transition={{ duration: 0.5, delay: i * 0.08 }}
                                 whileHover={{ y: -6, scale: 1.01 }}
-                                className="group relative rounded-3xl p-6 bg-white dark:bg-[#0c0c14] border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-200/50 dark:shadow-none hover:shadow-xl transition-all duration-300 cursor-pointer overflow-visible"
+                                className="group relative rounded-3xl p-4 md:p-6 bg-white dark:bg-[#0c0c14] border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-200/50 dark:shadow-none hover:shadow-xl transition-all duration-300 cursor-pointer overflow-visible"
                                 style={{ willChange: 'transform' }}
                             >
                                 {/* Glowing backdrop that appears on hover */}
@@ -1902,7 +1902,7 @@ export default function LandingPage() {
                 <PublicHeader />
 
                 {/* 2. HERO SECTION */}
-                <section className="relative pt-24 pb-20 md:pt-32 md:pb-24 px-6 overflow-hidden">
+                <section className="relative pt-24 pb-20 md:pt-32 md:pb-24 px-4 md:px-6 overflow-hidden">
                     <HeroBackground />
 
                     <div className="max-w-7xl mx-auto">
@@ -1920,10 +1920,10 @@ export default function LandingPage() {
                                     </p>
 
                                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-                                        <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
+                                        <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-4 md:px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
                                             {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
                                         </Link>
-                                        <a href="#platform" className="w-full sm:w-auto px-10 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                        <a href="#platform" className="w-full sm:w-auto px-4 md:px-10 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
                                             <Play className="w-5 h-5 fill-current" /> See how it works
                                         </a>
                                     </div>
@@ -1952,10 +1952,10 @@ export default function LandingPage() {
                                     </p>
 
                                     <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                                        <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
+                                        <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-4 md:px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
                                             {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
                                         </Link>
-                                        <a href="#platform" className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                        <a href="#platform" className="w-full sm:w-auto px-4 md:px-8 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
                                             <Play className="w-5 h-5 fill-current" /> See how it works
                                         </a>
                                     </div>
@@ -1969,7 +1969,7 @@ export default function LandingPage() {
                                             <img loading="lazy" src={config.hero.imageType1 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
                                         </div>
                                     ) : (
-                                        <div className="relative mx-auto w-[340px] h-[680px] bg-slate-900 dark:bg-[#0A0A0A] rounded-[3rem] border-[8px] border-slate-800 shadow-2xl p-4 overflow-hidden flex flex-col transition-colors ml-auto mr-0 xl:mr-10">
+                                        <div className="relative mx-auto w-[340px] max-w-full h-[680px] bg-slate-900 dark:bg-[#0A0A0A] rounded-[3rem] border-[8px] border-slate-800 shadow-2xl p-4 overflow-hidden flex flex-col transition-colors ml-auto mr-0 xl:mr-10">
                                             {/* Phone Header */}
                                             <div className="flex items-center gap-3 pb-4 border-b border-white/10 px-2 mt-4">
                                                 {(publicSettings?.logoUrl || config.brand?.logo) ? (
@@ -2072,9 +2072,9 @@ export default function LandingPage() {
                 {/* 5. ADVANCED FEATURES */}
                 <section id="platform" className="py-20 bg-slate-50 dark:bg-zinc-950 transition-colors overflow-hidden relative">
                     {/* Ambient glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-400/5 dark:bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] max-w-full h-[400px] bg-indigo-400/5 dark:bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
 
-                    <div className="max-w-7xl mx-auto px-6">
+                    <div className="max-w-7xl mx-auto px-4 md:px-6">
                         {/* Premium Header */}
                         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-4">
                             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
@@ -2096,7 +2096,7 @@ export default function LandingPage() {
 
 
                 <section id="solutions" className="py-24 bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden">
-                    <div className="max-w-7xl mx-auto px-6">
+                    <div className="max-w-7xl mx-auto px-4 md:px-6">
                         <div className="text-center mb-12 md:mb-16">
                             <h2 className="text-2xl md:text-4xl lg:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight leading-tight">{config.industries?.title || 'Built for every industry'}</h2>
                             <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">{config.industries?.subtitle || 'See how leading verticals leverage WhatsApp to cut costs and drive unprecedented revenue.'}</p>
@@ -2176,7 +2176,7 @@ export default function LandingPage() {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0, y: -16 }}
                                                 transition={{ duration: 0.3 }}
-                                                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 md:p-8 shadow-xl flex flex-col"
+                                                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 md:p-4 md:p-8 shadow-xl flex flex-col"
                                             >
                                                 <div className="flex items-center gap-3 mb-4">
                                                     {(() => { const DIcon = (INDUSTRY_DEFAULTS[ind.id] || {}).icon || ind.icon || ShoppingCart; return <div className={`w-10 h-10 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} flex items-center justify-center`}><DIcon className="w-5 h-5 text-white" /></div>; })()}
@@ -2249,7 +2249,7 @@ export default function LandingPage() {
                     {/* Subtle bg texture */}
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_50%,rgba(99,102,241,0.06),transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_70%_50%,rgba(99,102,241,0.12),transparent)] pointer-events-none" />
 
-                    <div className="max-w-7xl mx-auto px-6">
+                    <div className="max-w-7xl mx-auto px-4 md:px-6">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
                             {/* LEFT: Text Content */}
@@ -2306,7 +2306,7 @@ export default function LandingPage() {
                                 {/* Glow behind grid */}
                                 <div className="absolute inset-0 bg-indigo-400/10 dark:bg-indigo-500/15 rounded-3xl blur-3xl scale-90 pointer-events-none" />
 
-                                <div className="relative grid grid-cols-3 gap-3">
+                                <div className="relative grid grid-cols-1 md:grid-cols-3 gap-3">
                                     {[
                                         { name: 'Shopify', emoji: '🛒', color: 'bg-green-50 dark:bg-green-950/40 border-green-100 dark:border-green-900/50', dot: 'bg-green-400', delay: 0 },
                                         { name: 'HubSpot', emoji: '🧲', color: 'bg-orange-50 dark:bg-orange-950/40 border-orange-100 dark:border-orange-900/50', dot: 'bg-orange-400', delay: 0.05 },
@@ -2378,7 +2378,7 @@ export default function LandingPage() {
                         {/* Subtle gradient bg */}
                         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_120%,rgba(99,102,241,0.08),transparent)] pointer-events-none" />
 
-                        <div className="max-w-6xl mx-auto px-6">
+                        <div className="max-w-6xl mx-auto px-4 md:px-6">
                             {/* Compact header */}
                             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
                                 <div>
@@ -2414,7 +2414,7 @@ export default function LandingPage() {
                                                 whileInView={{ opacity: 1, y: 0 }}
                                                 viewport={{ once: true }}
                                                 transition={{ delay: i * 0.1, duration: 0.4 }}
-                                                className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/8 rounded-2xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
+                                                className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/8 rounded-2xl p-4 md:p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
                                             >
                                                 {/* Step number + icon row */}
                                                 <div className="flex items-center gap-3 mb-4">
@@ -2452,11 +2452,11 @@ export default function LandingPage() {
                 {/* 10. SOCIAL PROOF / TESTIMONIALS */}
                 {config.testimonials && config.testimonials.length > 0 && (
                     <section className="py-24 bg-slate-50 dark:bg-[#05050A]">
-                        <div className="max-w-7xl mx-auto px-6">
+                        <div className="max-w-7xl mx-auto px-4 md:px-6">
                             <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight text-center mb-16">Loved by go-to-market teams</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {config.testimonials.map((t, i) => (
-                                    <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 p-8 rounded-3xl shadow-sm hover:shadow-xl transition-shadow">
+                                    <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 p-4 md:p-8 rounded-3xl shadow-sm hover:shadow-xl transition-shadow">
                                         <div className="flex gap-1 mb-6">
                                             {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
                                         </div>
@@ -2485,7 +2485,7 @@ export default function LandingPage() {
                 {/* 11. PRICING */}
                 {plans.length > 0 && (
                     <section id="pricing" className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
-                        <div className="max-w-7xl mx-auto px-6">
+                        <div className="max-w-7xl mx-auto px-4 md:px-6">
                             <div className="text-center mb-12">
                                 <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight">Simple, transparent pricing</h2>
                                 <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg font-medium">Choose the perfect plan to scale your customer engagement seamlessly. No hidden fees.</p>
@@ -2564,13 +2564,13 @@ export default function LandingPage() {
                                         <div className="md:hidden sticky top-[50vh] flex justify-between w-full -translate-y-1/2">
                                             <button 
                                                 onClick={() => document.getElementById('pricing-slider').scrollBy({ left: -300, behavior: 'smooth' })} 
-                                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -ml-5 active:scale-95 transition-transform"
+                                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -ml-5 active:scale-95 transition-transform"
                                             >
                                                 <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                                             </button>
                                             <button 
                                                 onClick={() => document.getElementById('pricing-slider').scrollBy({ left: 300, behavior: 'smooth' })} 
-                                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -mr-5 active:scale-95 transition-transform"
+                                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -mr-5 active:scale-95 transition-transform"
                                             >
                                                 <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
                                             </button>
@@ -2808,9 +2808,9 @@ export default function LandingPage() {
                 )}
 
                 {/* 14. CTA & PARTNER ECOSYSTEM */}
-                <section className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 relative z-10 bg-white dark:bg-[#05050A] overflow-hidden">
+                <section className="py-16 sm:py-24 md:py-32 px-4 sm:px-4 md:px-6 relative z-10 bg-white dark:bg-[#05050A] overflow-hidden">
                     {/* Background Gradients */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" style={{ transform: 'translate(-50%, -50%) translateZ(0)' }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] max-w-full h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" style={{ transform: 'translate(-50%, -50%) translateZ(0)' }} />
 
                     <div className="max-w-7xl mx-auto">
 
@@ -2820,8 +2820,8 @@ export default function LandingPage() {
                             className="rounded-[1.75rem] sm:rounded-[2.5rem] md:rounded-[3rem] overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 relative border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 mb-12"
                         >
                             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] pointer-events-none" />
-                            <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/20 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
-                            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/40 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
+                            <div className="absolute -top-24 -right-24 w-96 max-w-full h-96 bg-white/20 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
+                            <div className="absolute -bottom-24 -left-24 w-96 max-w-full h-96 bg-purple-500/40 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
 
                             <div className="relative py-12 px-4 sm:py-16 sm:px-8 md:py-20 md:px-20 text-center flex flex-col items-center">
                                 <h2 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 tracking-tight text-white max-w-4xl leading-[1.2] sm:leading-[1.1]">
@@ -2831,7 +2831,7 @@ export default function LandingPage() {
                                     Join our ecosystem as an affiliate or tech partner. Leverage our platform's infrastructure to generate new revenue streams and scale your own business.
                                 </p>
                                 <div className="flex flex-col sm:flex-row gap-4 mb-12 sm:mb-16 w-full sm:w-auto px-4 sm:px-0">
-                                    <Link to="/partner" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 sm:px-10 sm:py-4 bg-white text-indigo-700 rounded-full font-bold text-base sm:text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-900/50 w-full sm:w-auto">
+                                    <Link to="/partner" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 sm:px-4 md:px-10 sm:py-4 bg-white text-indigo-700 rounded-full font-bold text-base sm:text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-900/50 w-full sm:w-auto">
                                         View Partner Portal <ArrowRight className="w-5 h-5" />
                                     </Link>
                                 </div>
@@ -2884,7 +2884,7 @@ export default function LandingPage() {
 
                 {/* 14. EXPANDED FOOTER */}
                 <footer className="pt-20 pb-10 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-zinc-950 transition-colors">
-                    <div className="max-w-7xl mx-auto px-6">
+                    <div className="max-w-7xl mx-auto px-4 md:px-6">
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
                             <div className="col-span-2 lg:col-span-2 space-y-6">
                                 <div className="flex items-center gap-3 font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">

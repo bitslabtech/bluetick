@@ -24,7 +24,7 @@ export default function WALinksGenerator() {
                 <motion.div
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm"
+                    className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm"
                 >
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Link Details</h2>
                     
@@ -56,7 +56,7 @@ export default function WALinksGenerator() {
                     animate={{ opacity: 1, x: 0 }}
                     className="bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl p-1"
                 >
-                    <div className="bg-white dark:bg-surface-dark rounded-xl h-full p-6 flex flex-col items-center justify-center text-center">
+                    <div className="bg-white dark:bg-surface-dark rounded-xl h-full p-4 md:p-6 flex flex-col items-center justify-center text-center">
                         <div className="w-32 h-32 bg-slate-100 dark:bg-white/10 rounded-2xl p-4 flex items-center justify-center mb-6">
                             <QrCode className="w-20 h-20 text-slate-400" />
                         </div>

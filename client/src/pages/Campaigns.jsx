@@ -94,7 +94,7 @@ const Campaigns = () => {
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
                     <button className="md:hidden text-slate-900 dark:text-white">
                         <Menu className="w-6 h-6" />
@@ -120,7 +120,7 @@ const Campaigns = () => {
 
             {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <div className="p-4 md:p-8 w-full max-w-[1600px] mx-auto">
+                <div className="p-4 md:p-4 md:p-8 w-full max-w-[1600px] max-w-full mx-auto">
                     {!isConfigured ? (
                         <div className="flex flex-col items-center justify-center h-full py-20 text-center animate-in fade-in slide-in-from-bottom-4">
                             <div className="w-24 h-24 bg-white dark:bg-surface-dark rounded-full flex items-center justify-center shadow-xl mb-6 border border-slate-100 dark:border-white/5">
@@ -132,7 +132,7 @@ const Campaigns = () => {
                             </p>
                             <button
                                 onClick={() => navigate('/settings', { state: { initialTab: 'whatsapp_gateway' } })}
-                                className="px-8 py-3.5 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 hover:-translate-y-0.5"
+                                className="px-4 md:px-8 py-3.5 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 hover:-translate-y-0.5"
                             >
                                 Configure WhatsApp
                             </button>

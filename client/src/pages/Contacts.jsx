@@ -459,7 +459,7 @@ const Contacts = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
             {/* Header */}
-            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-10">
                 <div className="flex items-center gap-6 w-full">
                     {/* Search Bar relocated to Filters */}
                     <div></div>
@@ -657,7 +657,7 @@ const Contacts = () => {
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-slate-50 dark:bg-background-dark/50 text-slate-500 dark:text-text-secondary font-semibold border-b border-slate-200 dark:border-white/5">
                                         <tr>
-                                            <th className="px-6 py-4 w-12">
+                                            <th className="px-4 md:px-6 py-4 w-12">
                                                 <input
                                                     type="checkbox"
                                                     className="rounded border-slate-300 dark:border-gray-600 bg-white dark:bg-background-dark text-primary focus:ring-0 focus:ring-offset-0 size-4"
@@ -665,12 +665,12 @@ const Contacts = () => {
                                                     onChange={handleSelectAll}
                                                 />
                                             </th>
-                                            <th className="px-6 py-4">Name</th>
-                                            <th className="px-6 py-4">Phone Number</th>
-                                            <th className="px-6 py-4">Tags</th>
-                                            <th className="px-6 py-4">Group</th>
-                                            <th className="px-6 py-4">Status</th>
-                                            <th className="px-6 py-4 w-12 text-right">Actions</th>
+                                            <th className="px-4 md:px-6 py-4">Name</th>
+                                            <th className="px-4 md:px-6 py-4">Phone Number</th>
+                                            <th className="px-4 md:px-6 py-4">Tags</th>
+                                            <th className="px-4 md:px-6 py-4">Group</th>
+                                            <th className="px-4 md:px-6 py-4">Status</th>
+                                            <th className="px-4 md:px-6 py-4 w-12 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-700 dark:text-gray-200">
@@ -687,7 +687,7 @@ const Contacts = () => {
                                                     }}
                                                     className={`contact-trigger hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group ${isLocked ? 'cursor-default opacity-60 grayscale-[0.5]' : 'cursor-pointer'} ${selectedIds.includes(contact.id) ? 'bg-primary/5' : ''}`}
                                                 >
-                                                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                    <td className="px-4 md:px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                         {!isLocked && (
                                                             <input
                                                                 type="checkbox"
@@ -698,7 +698,7 @@ const Contacts = () => {
                                                         )}
                                                         {isLocked && <Lock className="w-4 h-4 text-slate-400 mx-auto" />}
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-4 md:px-6 py-4">
                                                         <div className="flex items-center gap-3">
                                                             {contact.avatarImage ? (
                                                                 <div
@@ -716,7 +716,7 @@ const Contacts = () => {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 font-mono text-slate-600 dark:text-gray-300">
+                                                    <td className="px-4 md:px-6 py-4 font-mono text-slate-600 dark:text-gray-300">
                                                         <span className={isSubMember && teamPolicy.phonePrivacy === 'blurred' ? 'blur-sm select-none' : ''}>
                                                             {isSubMember && teamPolicy.phonePrivacy === 'masked'
                                                                 ? `****${contact.phone?.slice(-4) || ''}`
@@ -724,7 +724,7 @@ const Contacts = () => {
                                                             }
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-4 md:px-6 py-4">
                                                         <div className="flex flex-wrap gap-1.5">
                                                             {(contact.labels && contact.labels.length > 0) ? contact.labels.map(l => (
                                                                 <span key={l.id} className="px-2 py-0.5 rounded text-xs font-medium border flex items-center gap-1" style={{ backgroundColor: `${l.color}15`, borderColor: `${l.color}30`, color: l.color }}>
@@ -736,7 +736,7 @@ const Contacts = () => {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-4 md:px-6 py-4">
                                                         <div className="flex flex-wrap gap-1.5">
                                                             {(contact.tags && contact.tags.length > 0) ? contact.tags.map((tag, i) => {
                                                                 const groupMeta = availableGroups.find(g => g.name === tag);
@@ -752,7 +752,7 @@ const Contacts = () => {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-4 md:px-6 py-4">
                                                         <div className="flex items-center gap-2">
                                                             {contact.status === 'Valid' && (
                                                                 <>
@@ -774,7 +774,7 @@ const Contacts = () => {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
+                                                    <td className="px-4 md:px-6 py-4 text-right">
                                                         <button className="text-slate-400 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
                                                             <MoreVertical className="w-5 h-5" />
                                                         </button>
@@ -786,7 +786,7 @@ const Contacts = () => {
                                 </table>
                             </div>
                             {/* Pagination */}
-                            <div className="bg-slate-50 dark:bg-background-dark/30 border-t border-slate-200 dark:border-white/5 px-6 py-4 flex items-center justify-between">
+                            <div className="bg-slate-50 dark:bg-background-dark/30 border-t border-slate-200 dark:border-white/5 px-4 md:px-6 py-4 flex items-center justify-between">
                                 <div className="text-sm text-slate-500 dark:text-text-secondary">
                                     Showing <span className="font-medium text-slate-900 dark:text-white">{Math.min((page - 1) * limit + 1, totalContacts)}</span> to <span className="font-medium text-slate-900 dark:text-white">{Math.min(page * limit, totalContacts)}</span> of <span className="font-medium text-slate-900 dark:text-white">{totalContacts}</span> results
                                 </div>
@@ -940,7 +940,7 @@ const Contacts = () => {
             {/* Floating Action Bar */}
             {
                 selectedIds.length > 0 && (
-                    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-primary text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 z-50 animate-in slide-in-from-bottom-5 duration-300">
+                    <div className="fixed bottom-4 md:bottom-8 left-1/2 transform -translate-x-1/2 bg-primary text-white px-4 md:px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 md:gap-6 z-50 animate-in slide-in-from-bottom-5 duration-300 w-[95%] md:w-auto justify-center max-w-full overflow-x-auto hide-scrollbar">
                         <div className="flex items-center gap-3 border-r border-white/20 pr-4">
                             <span className="bg-white text-primary font-bold rounded-full size-6 flex items-center justify-center text-xs">{selectedIds.length}</span>
                             <span className="font-medium text-sm">Selected</span>
@@ -970,7 +970,7 @@ const Contacts = () => {
             {
                 showBulkGroupPicker && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-4 md:p-6 w-full max-w-sm shadow-2xl">
                             <h3 className="text-lg font-bold text-white mb-4">Add selection to group</h3>
                             <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar mb-4">
                                 {availableGroups.map(g => (
@@ -994,7 +994,7 @@ const Contacts = () => {
             }
 
             {/* Contact Details Slide-over Redesign */}
-            <div ref={contactPanelRef} className={`fixed inset-y-0 right-0 w-96 bg-slate-50 dark:bg-[#111b21] shadow-[0_0_40px_rgba(0,0,0,0.1)] transform transition-transform duration-300 ease-in-out z-50 ${viewingContact ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div ref={contactPanelRef} className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-slate-50 dark:bg-[#111b21] shadow-[0_0_40px_rgba(0,0,0,0.1)] transform transition-transform duration-300 ease-in-out z-50 ${viewingContact ? 'translate-x-0' : 'translate-x-full'}`}>
                 {viewingContact && (
                     <div className="h-full flex flex-col items-stretch overflow-hidden">
 
@@ -1006,7 +1006,7 @@ const Contacts = () => {
                         </div>
 
                         {/* Centered Profile Section (No Banner) */}
-                        <div className="px-6 pb-6 flex flex-col items-center bg-white dark:bg-surface-dark border-b border-slate-200 dark:border-white/5 rounded-b-3xl shadow-sm z-10 shrink-0 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="px-4 md:px-6 pb-6 flex flex-col items-center bg-white dark:bg-surface-dark border-b border-slate-200 dark:border-white/5 rounded-b-3xl shadow-sm z-10 shrink-0 animate-in fade-in slide-in-from-top-4 duration-500">
                             {viewingContact.avatarImage ? (
                                 <div className="w-24 h-24 rounded-3xl bg-cover bg-center border-4 border-slate-50 dark:border-[#111b21] shadow-md mb-4" style={{ backgroundImage: `url('${viewingContact.avatarImage}')` }}></div>
                             ) : (
@@ -1060,7 +1060,7 @@ const Contacts = () => {
                         </div>
 
                         {/* Scrollable Details Flow */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 dark:bg-[#111b21]">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50 dark:bg-[#111b21]">
 
                             {/* Contact Info Card */}
                             <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 border border-slate-200 dark:border-white/5 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 fill-mode-both">
@@ -1258,7 +1258,7 @@ const Contacts = () => {
                     <div className="bg-surface-dark border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden flex flex-col max-h-[92vh]">
 
                         {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+                        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-white/10 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
                                     <UserPlus className="w-5 h-5" />
@@ -1304,7 +1304,7 @@ const Contacts = () => {
 
                             {/* ── Tab 1: Upload CSV / VCF ── */}
                             {contactModalTab === 'file' && (
-                                <div className="p-6 space-y-4">
+                                <div className="p-4 md:p-6 space-y-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <p className="text-sm text-text-secondary leading-relaxed">
                                             Upload a <span className="text-white font-semibold">.csv</span> or{' '}
@@ -1398,7 +1398,7 @@ const Contacts = () => {
                                         />
                                     </label>
 
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div className="bg-white/5 rounded-xl p-4 border border-white/5">
                                             <p className="text-xs font-bold text-white mb-1 flex items-center gap-1.5">📄 CSV Files</p>
                                             <p className="text-[10px] text-text-secondary leading-relaxed">Exported from Excel, Google Sheets. Columns: <span className="text-white">Name</span>, <span className="text-white">Phone</span>, Email.</p>
@@ -1413,7 +1413,7 @@ const Contacts = () => {
 
                             {/* ── Tab 2: Google Contacts ── */}
                             {contactModalTab === 'google' && (
-                                <div className="p-8 flex flex-col items-center text-center gap-5">
+                                <div className="p-4 md:p-8 flex flex-col items-center text-center gap-5">
                                     <div className="w-20 h-20 rounded-2xl bg-white dark:bg-white/5 border border-white/10 flex items-center justify-center shadow-lg">
                                         <svg width="42" height="42" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4"/>
@@ -1439,7 +1439,7 @@ const Contacts = () => {
                                                 });
                                             }
                                         }}
-                                        className="flex items-center gap-3 px-6 py-3 bg-white text-slate-800 font-bold rounded-xl hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
+                                        className="flex items-center gap-3 px-4 md:px-6 py-3 bg-white text-slate-800 font-bold rounded-xl hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
                                     >
                                         <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4"/>
@@ -1458,7 +1458,7 @@ const Contacts = () => {
 
                             {/* ── Tab 3: Add Manually ── */}
                             {contactModalTab === 'manual' && (
-                                <div className="p-6">
+                                <div className="p-4 md:p-6">
                                     <form onSubmit={handleAddContact} className="space-y-4">
                                         <div>
                                             <label className="block text-sm text-text-secondary mb-1">Name <span className="text-red-400">*</span></label>
@@ -1521,7 +1521,7 @@ const Contacts = () => {
                                             </button>
                                             <button
                                                 type="submit"
-                                                className="px-6 py-2.5 bg-primary rounded-lg text-white font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+                                                className="px-4 md:px-6 py-2.5 bg-primary rounded-lg text-white font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
                                             >
                                                 Save Contact
                                             </button>
@@ -1539,7 +1539,7 @@ const Contacts = () => {
             {
                 showImportModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-lg shadow-2xl">
+                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-4 md:p-6 w-full max-w-lg shadow-2xl">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-xl font-bold text-white">Import Contacts</h3>
@@ -1673,7 +1673,7 @@ const Contacts = () => {
             {
                 showAddModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
-                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-300">
+                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-4 md:p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-300">
                             <h3 className="text-xl font-bold text-white mb-4">{editingContact ? 'Edit Contact' : 'Add New Contact'}</h3>
                             <form onSubmit={handleAddContact} className="space-y-4">
                                 <div>
@@ -1734,7 +1734,7 @@ const Contacts = () => {
                                     >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="px-6 py-2 bg-primary rounded-lg text-white font-bold hover:bg-blue-600 transition-colors">
+                                    <button type="submit" className="px-4 md:px-6 py-2 bg-primary rounded-lg text-white font-bold hover:bg-blue-600 transition-colors">
                                         {editingContact ? 'Update Contact' : 'Save Contact'}
                                     </button>
                                 </div>
@@ -1748,7 +1748,7 @@ const Contacts = () => {
             {
                 showGroupsModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
+                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-4 md:p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
                             <div className="flex justify-between items-center mb-6 shrink-0">
                                 <div>
                                     <h3 className="text-xl font-bold text-white">Manage Groups</h3>
@@ -1817,7 +1817,7 @@ const Contacts = () => {
                                         <button
                                             onClick={handleSaveGroup}
                                             disabled={!groupForm.name}
-                                            className="px-6 py-2 bg-primary rounded-lg text-white font-bold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="px-4 md:px-6 py-2 bg-primary rounded-lg text-white font-bold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {editingGroup ? 'Update Group' : 'Create Group'}
                                         </button>

@@ -214,7 +214,7 @@ const Templates = () => {
                 </div>
             )}
             {/* Header */}
-            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
 
                     {/* Search Bar */}
@@ -329,7 +329,7 @@ const Templates = () => {
 
                     {/* Grid */}
                     {loading ? (
-                        <div className="flex items-center justify-center p-20 text-text-secondary">
+                        <div className="flex items-center justify-center p-4 md:p-20 text-text-secondary">
                             Loading templates...
                         </div>
                     ) : (
@@ -450,7 +450,7 @@ const Templates = () => {
                         {isDrafting && (
                             <div className="absolute inset-0 z-10 bg-white/80 dark:bg-surface-dark/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
                                 <div className="relative">
-                                    <div className="size-16 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(139,92,246,0.4)]">
+                                    <div className="size-16 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(139,92,246,0.4)] max-w-full">
                                         <Sparkles className="w-8 h-8 text-white animate-spin-slow" />
                                     </div>
                                     {/* Orbital rings */}
@@ -461,14 +461,14 @@ const Templates = () => {
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-500">
                                         Architecting your Template
                                     </h3>
-                                    <p className="text-sm text-slate-500 dark:text-text-secondary max-w-[250px] mx-auto mt-1">
+                                    <p className="text-sm text-slate-500 dark:text-text-secondary max-w-[250px] max-w-full mx-auto mt-1">
                                         Deploying Gemini to structure the perfect variables and JSON...
                                     </p>
                                 </div>
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10">
+                        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Sparkles className="w-5 h-5 text-indigo-500" /> Draft Template with AI
                             </h3>
@@ -476,7 +476,7 @@ const Templates = () => {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <form onSubmit={handleAiDraftSubmit} className="p-6">
+                        <form onSubmit={handleAiDraftSubmit} className="p-4 md:p-6">
                             <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
                                 Describe your message
                             </label>
@@ -503,7 +503,7 @@ const Templates = () => {
             {/* Config Error Modal */}
             {showConfigError && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-surface-dark border border-red-500/20 rounded-2xl w-full max-w-md shadow-2xl p-6 flex flex-col gap-4 text-center items-center">
+                    <div className="bg-surface-dark border border-red-500/20 rounded-2xl w-full max-w-md shadow-2xl p-4 md:p-6 flex flex-col gap-4 text-center items-center">
                         <div className="size-16 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 mb-2">
                             <AlertTriangle className="w-8 h-8 text-red-500" />
                         </div>

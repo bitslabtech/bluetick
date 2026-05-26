@@ -14,7 +14,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 const StatCard = ({ title, value, icon: Icon, trend, colorClass }) => (
     <motion.div
         whileHover={{ y: -4, scale: 1.01 }}
-        className="relative overflow-hidden bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none transition-all group"
+        className="relative overflow-hidden bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 p-4 md:p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-full dark:shadow-none transition-all group"
     >
         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
             <Icon className="w-24 h-24" />
@@ -74,7 +74,7 @@ const MetaAdsDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen p-6 max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto space-y-8">
 
             {/* Meta Connection Warning Banner */}
             {metaConnected === false && (
@@ -110,7 +110,7 @@ const MetaAdsDashboard = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => navigate('/meta-ads/wizard')}
-                    className="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all"
+                    className="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white px-4 md:px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all"
                 >
                     <Plus className="w-5 h-5" />
                     Create New AI Campaign
@@ -127,20 +127,20 @@ const MetaAdsDashboard = () => {
 
             {/* Campaigns List */}
             <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-md border border-white/50 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden">
-                <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <BarChart2 className="w-5 h-5 text-primary" /> Campaign History
                     </h2>
                 </div>
                 
                 {loading ? (
-                    <div className="p-6 space-y-4">
+                    <div className="p-4 md:p-6 space-y-4">
                         {[1, 2, 3].map(i => (
                             <Skeleton key={i} height={80} baseColor={isDarkMode ? '#1e293b' : '#f8fafc'} highlightColor={isDarkMode ? '#334155' : '#ffffff'} className="rounded-xl" />
                         ))}
                     </div>
                 ) : campaigns.length === 0 ? (
-                    <div className="p-16 text-center">
+                    <div className="p-4 md:p-16 text-center">
                         <div className="w-24 h-24 bg-primary/10 dark:bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Megaphone className="w-10 h-10 text-primary" />
                         </div>
@@ -177,7 +177,7 @@ const MetaAdsDashboard = () => {
                                                     <p className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-primary transition-colors cursor-pointer">
                                                         {campaign.campaignName}
                                                     </p>
-                                                    <p className="text-xs text-slate-500 line-clamp-1 max-w-[250px]">
+                                                    <p className="text-xs text-slate-500 line-clamp-1 max-w-[250px] max-w-full">
                                                         {campaign.targeting?.locations?.[0]} • Age {campaign.targeting?.age_min}-{campaign.targeting?.age_max}
                                                     </p>
                                                 </div>

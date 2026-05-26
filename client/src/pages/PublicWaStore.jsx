@@ -253,7 +253,7 @@ export default function PublicWaStore({ customSlug }) {
                                     {slide.title && <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white drop-shadow-lg">{slide.title}</h1>}
                                     {slide.subtitle && <p className="text-lg md:text-2xl text-gray-100 font-medium drop-shadow-md">{slide.subtitle}</p>}
                                     {slide.ctaText && (
-                                        <button onClick={() => document.getElementById('products').scrollIntoView({behavior: 'smooth'})} className="mt-4 px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-100 transition-colors">
+                                        <button onClick={() => document.getElementById('products').scrollIntoView({behavior: 'smooth'})} className="mt-4 px-4 md:px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-100 transition-colors">
                                             {slide.ctaText}
                                         </button>
                                     )}
@@ -460,12 +460,12 @@ export default function PublicWaStore({ customSlug }) {
                             <button onClick={() => setIsCartOpen(false)} className={`p-2 hover:opacity-70 rounded-full transition-colors ${theme.textMuted}`}><X className="w-5 h-5" /></button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6">
                             {cart.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
                                     <ShoppingBag className="w-16 h-16 opacity-20" />
                                     <p className="font-medium">Your cart is empty</p>
-                                    <button onClick={() => setIsCartOpen(false)} className="px-6 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 transition-colors">Start Shopping</button>
+                                    <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 transition-colors">Start Shopping</button>
                                 </div>
                             ) : (
                                 <div className="space-y-6">
@@ -628,7 +628,7 @@ export default function PublicWaStore({ customSlug }) {
 
             {/* ─── POLICY MODAL ─── */}
             {activePolicy && (
-                <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6" onClick={() => setActivePolicy(null)}>
+                <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-4 md:p-6" onClick={() => setActivePolicy(null)}>
                     <div className={`w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl ${theme.pageBg}`} onClick={e => e.stopPropagation()}>
                         <div className={`flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/10 ${theme.header}`}>
                             <h2 className={`text-xl font-bold ${theme.text}`}>
@@ -640,7 +640,7 @@ export default function PublicWaStore({ customSlug }) {
                                 <X className={`w-6 h-6 ${theme.text}`} />
                             </button>
                         </div>
-                        <div className="p-6 overflow-y-auto">
+                        <div className="p-4 md:p-6 overflow-y-auto">
                             <div className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none whitespace-pre-wrap ${theme.text}`}>
                                 {activePolicy === 'privacy' && store.privacyPolicy}
                                 {activePolicy === 'terms' && store.termsConditions}

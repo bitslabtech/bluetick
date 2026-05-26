@@ -53,7 +53,7 @@ export default function VcardDashboard() {
     ];
 
     if (loading) {
-        return <div className="p-8 animate-pulse text-slate-500">Loading analytics...</div>;
+        return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading analytics...</div>;
     }
 
     return (
@@ -64,7 +64,7 @@ export default function VcardDashboard() {
             </div>
 
             {/* NFC Purchase Banner */}
-            <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg border border-indigo-500/20 mb-6">
+            <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-4 md:p-8 text-white relative overflow-hidden shadow-lg border border-indigo-500/20 mb-6">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
                 <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
@@ -79,10 +79,10 @@ export default function VcardDashboard() {
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
-                        <button onClick={() => setIsLinkOpen(true)} className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 backdrop-blur-sm">
+                        <button onClick={() => setIsLinkOpen(true)} className="px-4 md:px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 backdrop-blur-sm">
                             <Nfc className="w-4 h-4" /> Link NFC Device
                         </button>
-                        <button onClick={() => setIsStoreOpen(true)} className="px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        <button onClick={() => setIsStoreOpen(true)} className="px-4 md:px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
                             Buy NFC Products
                         </button>
                     </div>
@@ -91,7 +91,7 @@ export default function VcardDashboard() {
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
+                <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
                     <div className="p-3 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 rounded-xl">
                         <Eye className="w-6 h-6" />
                     </div>
@@ -100,7 +100,7 @@ export default function VcardDashboard() {
                         <h3 className="text-2xl font-bold">{totalViews}</h3>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
+                <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
                     <div className="p-3 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 rounded-xl">
                         <Contact className="w-6 h-6" />
                     </div>
@@ -109,7 +109,7 @@ export default function VcardDashboard() {
                         <h3 className="text-2xl font-bold">{activeCards}</h3>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
+                <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
                     <div className="p-3 bg-amber-50 text-amber-600 dark:bg-amber-900/30 rounded-xl">
                         <Users className="w-6 h-6" />
                     </div>
@@ -118,7 +118,7 @@ export default function VcardDashboard() {
                         <h3 className="text-2xl font-bold">0</h3> {/* Placeholder */}
                     </div>
                 </div>
-                <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
+                <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 dark:bg-blue-900/30 rounded-xl">
                         <Nfc className="w-6 h-6" />
                     </div>
@@ -130,7 +130,7 @@ export default function VcardDashboard() {
             </div>
 
             {/* Views Chart */}
-            <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-white/10">
+            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10">
                 <h3 className="text-lg font-bold mb-6">Views Over Time (This Week)</h3>
                 <div className="h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -186,7 +186,7 @@ export default function VcardDashboard() {
                                 </tr>
                             ))}
                             {vcards.length === 0 && (
-                                <tr><td colSpan="4" className="p-8 text-center text-slate-400">No veCards available to display.</td></tr>
+                                <tr><td colSpan="4" className="p-4 md:p-8 text-center text-slate-400">No veCards available to display.</td></tr>
                             )}
                         </tbody>
                     </table>

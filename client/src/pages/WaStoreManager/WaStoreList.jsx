@@ -39,7 +39,7 @@ export default function WaStoreList() {
         }
     };
 
-    if (loading) return <div className="p-8 animate-pulse text-slate-500">Loading your stores...</div>;
+    if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading your stores...</div>;
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
@@ -61,7 +61,7 @@ export default function WaStoreList() {
             </div>
 
             {stores.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-[40vh] bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-8 text-center">
+                <div className="flex flex-col items-center justify-center min-h-[40vh] bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-8 text-center">
                     <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-4">
                         <Store className="w-8 h-8" />
                     </div>
@@ -69,7 +69,7 @@ export default function WaStoreList() {
                     <p className="text-slate-500 max-w-md mx-auto mb-6">Create your first Online store to start selling your products seamlessly with interactive themes.</p>
                     <button 
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
+                        className="flex items-center gap-2 px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
                     >
                         <Plus className="w-5 h-5" />
                         Create Your First Store
@@ -79,7 +79,7 @@ export default function WaStoreList() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {stores.map(store => (
                         <div key={store.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all group">
-                            <div className="p-6">
+                            <div className="p-4 md:p-6">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
                                         {store.name.charAt(0)}
@@ -93,7 +93,7 @@ export default function WaStoreList() {
                                     /store/{store.slug} <ExternalLink className="w-3 h-3" />
                                 </a>
                                 
-                                <div className="grid grid-cols-3 gap-2 mb-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6">
                                     <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-center">
                                         <Package className="w-4 h-4 mx-auto text-slate-400 mb-1" />
                                         <p className="text-xs text-slate-500">Products</p>
@@ -122,7 +122,7 @@ export default function WaStoreList() {
 
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-surface-dark rounded-2xl max-w-md w-full p-6 shadow-xl animate-in zoom-in-95">
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl max-w-md w-full p-4 md:p-6 shadow-xl animate-in zoom-in-95">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Create New Store</h2>
                         <form onSubmit={handleCreate} className="space-y-4">
                             <div>

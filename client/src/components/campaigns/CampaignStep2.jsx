@@ -117,7 +117,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                             </select>
                             <button
                                 onClick={() => navigate('/templates', { state: { openCreateTemplate: true } })}
-                                className="flex items-center gap-2 px-6 py-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white text-sm font-bold rounded-xl transition-all whitespace-nowrap active:scale-95"
+                                className="flex items-center gap-2 px-4 md:px-6 py-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white text-sm font-bold rounded-xl transition-all whitespace-nowrap active:scale-95"
                             >
                                 <Plus className="w-4 h-4" />
                                 New Template
@@ -215,7 +215,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                     <div className="sticky top-6 flex flex-col gap-6">
 
                         {/* Preview Box */}
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-lg transition-colors duration-300">
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-lg transition-colors duration-300">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-slate-900 dark:text-white font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-text-secondary">Selected Preview</h3>
                             </div>
@@ -223,7 +223,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                             {selectedTemplate ? (() => {
                                 const isCarousel = selectedTemplate.archetype === 'carousel' && Array.isArray(selectedTemplate.cards) && selectedTemplate.cards.length > 0;
                                 return (
-                                    <div className="bg-slate-100 dark:bg-background-dark rounded-[2.5rem] border-[8px] border-white dark:border-surface-dark p-3 relative h-[460px] overflow-hidden shadow-2xl flex flex-col mx-auto w-full max-w-[300px] ring-1 ring-slate-200 dark:ring-white/5 transition-colors duration-300">
+                                    <div className="bg-slate-100 dark:bg-background-dark rounded-[2.5rem] border-[8px] border-white dark:border-surface-dark p-3 relative h-[460px] overflow-hidden shadow-2xl flex flex-col mx-auto w-full max-w-[300px] max-w-full ring-1 ring-slate-200 dark:ring-white/5 transition-colors duration-300">
                                         {/* StatusBar */}
                                         <div className="flex justify-between items-center text-[10px] text-gray-400 mb-4 px-2 shrink-0 mt-1.5">
                                             <span>9:41</span>
@@ -307,10 +307,10 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                         </div>
 
                         {/* Actions */}
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 flex flex-col gap-4 shadow-lg transition-colors duration-300">
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 flex flex-col gap-4 shadow-lg transition-colors duration-300">
                             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-text-secondary mb-2">
                                 <span>Selected Template</span>
-                                <span className="text-slate-900 dark:text-white font-bold truncate max-w-[150px]">{selectedTemplate?.name || '-'}</span>
+                                <span className="text-slate-900 dark:text-white font-bold truncate max-w-[150px] max-w-full">{selectedTemplate?.name || '-'}</span>
                             </div>
                             <button
                                 onClick={onNext}

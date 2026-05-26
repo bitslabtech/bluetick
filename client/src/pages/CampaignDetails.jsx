@@ -302,7 +302,7 @@ export default function CampaignDetails() {
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-y-auto transition-colors duration-300">
             {/* Header */}
-            <div className="px-8 py-6 border-b border-slate-200 dark:border-surface-dark bg-white/90 dark:bg-background-dark/90 sticky top-0 z-10 backdrop-blur-md transition-colors duration-300">
+            <div className="px-4 md:px-8 py-6 border-b border-slate-200 dark:border-surface-dark bg-white/90 dark:bg-background-dark/90 sticky top-0 z-10 backdrop-blur-md transition-colors duration-300">
                 <div className="flex items-center gap-4 mb-4">
                     <Link to="/campaign-list" className="p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white transition-colors">
                         <ArrowLeft className="w-5 h-5" />
@@ -331,10 +331,10 @@ export default function CampaignDetails() {
             </div>
 
             {/* Insights Dashboard */}
-            <div className="px-8 mt-6 shrink-0">
+            <div className="px-4 md:px-8 mt-6 shrink-0">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Main Engagement Graph */}
-                    <div className="lg:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex flex-col">
+                    <div className="lg:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex flex-col">
                         <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Engagement Over Time</h3>
                         {enableCharts ? (
                             <div className="h-64 w-full mt-2">
@@ -385,7 +385,7 @@ export default function CampaignDetails() {
                     {/* Peak Read Times & Health */}
                     <div className="flex flex-col gap-6">
                         {/* Peak Time Graph */}
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm flex-1 flex flex-col">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex-1 flex flex-col">
                             <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2 flex items-center justify-between">
                                 Peak Read Times
                                 <Clock className="w-4 h-4 text-primary" />
@@ -419,7 +419,7 @@ export default function CampaignDetails() {
                         </div>
 
                         {/* Health Diagnostics - Minified */}
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 shadow-sm flex items-center justify-between relative overflow-hidden group">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl px-4 md:px-6 py-4 shadow-sm flex items-center justify-between relative overflow-hidden group">
                             {campaign.stats.failed > 0 ? (
                                 <>
                                     <div>
@@ -453,7 +453,7 @@ export default function CampaignDetails() {
             </div>
 
             {/* Content Body */}
-            <div className="p-8 flex flex-col lg:flex-row gap-8">
+            <div className="p-4 md:p-8 flex flex-col lg:flex-row gap-8">
 
                 {/* Main: Message Logs */}
                 <div className="flex-1 bg-white dark:bg-surface-dark/50 border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden flex flex-col h-[600px] shadow-sm transition-colors duration-300">
@@ -538,7 +538,7 @@ export default function CampaignDetails() {
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-slate-50 dark:bg-white/5 sticky top-0 backdrop-blur-sm z-10">
                                 <tr>
-                                    <th className="px-6 py-3 w-10">
+                                    <th className="px-4 md:px-6 py-3 w-10">
                                         {statusFilter !== 'all' && (
                                             <input
                                                 type="checkbox"
@@ -551,17 +551,17 @@ export default function CampaignDetails() {
                                             />
                                         )}
                                     </th>
-                                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Recipient</th>
-                                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Time</th>
-                                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Details</th>
+                                    <th className="px-4 md:px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Recipient</th>
+                                    <th className="px-4 md:px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Status</th>
+                                    <th className="px-4 md:px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Time</th>
+                                    <th className="px-4 md:px-6 py-3 text-xs font-semibold text-slate-500 dark:text-text-secondary uppercase tracking-wider">Details</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {filteredLogs.length > 0 ? (
                                     filteredLogs.map((log, index) => (
                                         <tr key={index} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 {statusFilter !== 'all' && (
                                                     <input
                                                         type="checkbox"
@@ -577,7 +577,7 @@ export default function CampaignDetails() {
                                                     />
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <div className="flex flex-col">
                                                     <span className="font-medium text-slate-900 dark:text-white">{renderName(log.name, log.phone)}</span>
                                                     <span className="text-xs text-slate-500 dark:text-text-secondary font-mono mt-0.5">
@@ -590,7 +590,7 @@ export default function CampaignDetails() {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     {getStatusIcon(log.status)}
                                                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${getStatusBadge(log.status)}`}>
@@ -598,14 +598,14 @@ export default function CampaignDetails() {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-slate-500 dark:text-text-secondary">
+                                            <td className="px-4 md:px-6 py-4 text-sm text-slate-500 dark:text-text-secondary">
                                                 {log.status !== 'FAILED' && log.timestamp ? (
                                                     new Date(parseInt(log.timestamp) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                                 ) : (
                                                     <span className="opacity-30 text-xs">--:--</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 md:px-6 py-4">
                                                 {log.status === 'FAILED' ? (
                                                     <span className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
                                                         <AlertCircle className="w-3 h-3" />
@@ -619,7 +619,7 @@ export default function CampaignDetails() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-slate-500 dark:text-text-secondary">
+                                        <td colSpan="5" className="px-4 md:px-6 py-12 text-center text-slate-500 dark:text-text-secondary">
                                             <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" />
                                             No messages found matching your filters.
                                         </td>
@@ -631,8 +631,8 @@ export default function CampaignDetails() {
                 </div>
 
                 {/* Sidebar: Template & Info */}
-                <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6">
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm transition-colors duration-300">
+                <div className="w-full lg:w-80 max-w-full shrink-0 flex flex-col gap-6">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm transition-colors duration-300">
                         <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <MessageSquare className="w-4 h-4 text-primary" />
                             Message Template
@@ -650,7 +650,7 @@ export default function CampaignDetails() {
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm transition-colors duration-300">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm transition-colors duration-300">
                         <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <Filter className="w-4 h-4 text-slate-500 dark:text-text-secondary" />
                             Config

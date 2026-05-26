@@ -49,9 +49,9 @@ const Marketplace = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display transition-colors duration-300">
             <TopHeader />
-            <div className="flex-1 overflow-y-auto p-6 w-full max-w-7xl mx-auto space-y-8 animate-fade-in-up custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 w-full max-w-7xl mx-auto space-y-8 animate-fade-in-up custom-scrollbar">
                 {/* Header Section */}
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 p-10 text-white shadow-xl">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 p-4 md:p-10 text-white shadow-xl">
                 <div className="relative z-10 max-w-2xl">
                     <h1 className="text-2xl md:text-3xl font-extrabold mb-2 flex items-center gap-3 tracking-tight">
                         <ShoppingCart className="w-8 h-8 text-indigo-200" />
@@ -63,7 +63,7 @@ const Marketplace = () => {
                 </div>
                 {/* Decorative background elements */}
                 <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 opacity-20">
-                    <Zap className="w-96 h-96 text-white" />
+                    <Zap className="w-96 max-w-full h-96 text-white" />
                 </div>
                 <div className="absolute bottom-0 right-1/4 translate-y-1/2 opacity-10">
                     <Star className="w-64 h-64 text-white" />

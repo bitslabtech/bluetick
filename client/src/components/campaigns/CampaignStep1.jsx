@@ -265,7 +265,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                 <div className="xl:col-span-2 flex flex-col gap-8">
                     {/* Campaign Info Card */}
                     <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
-                        <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                        <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
                             <div className="bg-primary/20 p-2 rounded-lg text-primary">
                                 <Edit2 className="w-5 h-5" />
                             </div>
@@ -274,7 +274,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                 <p className="text-xs text-slate-500 dark:text-text-secondary">Basic details for internal tracking</p>
                             </div>
                         </div>
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="col-span-1 md:col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-text-secondary mb-2">Campaign Name <span className="text-red-400">*</span></label>
                                 <input
@@ -312,7 +312,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                     {/* Recipients Card */}
                     {data.retargetCampaignId ? (
                         <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 dark:from-blue-500/5 dark:to-indigo-500/5 rounded-2xl border border-blue-200 dark:border-blue-500/20 overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
-                            <div className="px-6 py-4 border-b border-blue-200 dark:border-blue-500/20 flex items-center gap-3 bg-blue-50 dark:bg-blue-500/10">
+                            <div className="px-4 md:px-6 py-4 border-b border-blue-200 dark:border-blue-500/20 flex items-center gap-3 bg-blue-50 dark:bg-blue-500/10">
                                 <div className="bg-blue-500 p-2 rounded-lg text-white">
                                     <Tag className="w-5 h-5" />
                                 </div>
@@ -327,7 +327,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                     <p className="text-xs text-blue-600 dark:text-blue-300 mt-0.5">This campaign will automatically be sent to the {data.retargetStatus.toLowerCase()} audience from the selected original campaign.</p>
                                 </div>
                             </div>
-                            <div className="p-8 flex flex-col items-center justify-center text-center">
+                            <div className="p-4 md:p-8 flex flex-col items-center justify-center text-center">
                                 <div className="bg-blue-100 dark:bg-blue-900/30 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                                     <Users className="w-8 h-8 text-blue-500" />
                                 </div>
@@ -343,7 +343,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                         </div>
                     ) : (
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
-                        <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                        <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
                             <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
                                 <Folder className="w-5 h-5" />
                             </div>
@@ -354,22 +354,22 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                         </div>
 
                         {/* Tabs */}
-                        <div className="px-6 pt-6 pb-2">
+                        <div className="px-4 md:px-6 pt-6 pb-2">
                             <div className="flex bg-slate-100 dark:bg-background-dark p-1 rounded-xl w-full sm:w-fit border border-slate-200 dark:border-white/10">
-                                <button className="flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-surface-dark shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center gap-2 transition-all">
+                                <button className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-surface-dark shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center gap-2 transition-all">
                                     <Folder className="w-4 h-4" />
                                     Saved Groups
                                 </button>
                                 <button
                                     onClick={() => navigate('/contacts', { state: { openImportModal: true } })}
-                                    className="flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                                    className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
                                 >
                                     <UploadCloud className="w-4 h-4" />
                                     Upload CSV
                                 </button>
                                 <button
                                     onClick={() => setShowManualModal(true)}
-                                    className="flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                                    className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
                                 >
                                     <Clipboard className="w-4 h-4" />
                                     Enter Manually
@@ -378,7 +378,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                         </div>
 
                         {/* List */}
-                        <div className="p-6 space-y-4">
+                        <div className="p-4 md:p-6 space-y-4">
                             <div className="relative">
                                 <Search className="absolute left-4 top-3.5 text-slate-400 dark:text-gray-500 w-5 h-5" />
                                 <input
@@ -436,7 +436,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                 {/* Right Column: Actions */}
                 <div className="xl:col-span-1 space-y-6">
                     {/* Quick Tips */}
-                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm transition-colors duration-300">
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm transition-colors duration-300">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="bg-yellow-500/10 p-2 rounded-lg text-yellow-500">
                                 <Lightbulb className="w-5 h-5" />
@@ -578,7 +578,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                     </div>
 
                     {/* Actions Panel */}
-                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-lg transition-colors duration-300">
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-lg transition-colors duration-300">
                         <h3 className="font-bold text-xs mb-4 uppercase tracking-wider text-slate-500 dark:text-text-secondary">Actions</h3>
                         <div className="space-y-3">
                             <button
@@ -636,7 +636,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="p-6 flex flex-col gap-4">
+                        <div className="p-4 md:p-6 flex flex-col gap-4">
                             <p className="text-sm text-slate-500 dark:text-text-secondary">Enter phone numbers (with country code). Optionally separate Name and Phone with a comma.</p>
                             <div className="bg-slate-100 dark:bg-background-dark/50 p-2 rounded text-xs text-slate-600 dark:text-text-secondary font-mono border border-slate-200 dark:border-white/5">
                                 Example:<br />
@@ -684,7 +684,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
             {/* Locked Contacts Warning Modal */}
             {showLockedWarning && (
                 <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 rounded-xl">
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center animate-in zoom-in-95 duration-200">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-sm shadow-2xl p-4 md:p-6 text-center animate-in zoom-in-95 duration-200">
                         <div className="bg-amber-500/20 size-16 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500">
                             <Lock className="w-8 h-8" />
                         </div>
