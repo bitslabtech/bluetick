@@ -52,6 +52,10 @@ const Settings = sequelize.define('Settings', {
         type: DataTypes.STRING,
         defaultValue: ''
     },
+    faviconUrl: {
+        type: DataTypes.STRING,
+        defaultValue: ''
+    },
     // Preferences
     theme: {
         type: DataTypes.ENUM('light', 'dark', 'system'),

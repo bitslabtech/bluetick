@@ -59,9 +59,12 @@ const AdminLandingPage = () => {
         timezone: 'UTC',
         primaryColor: '#4f46e5',
         logoUrl: '',
+        faviconUrl: '',
     });
     const [logoUploading, setLogoUploading] = useState(false);
     const logoInputRef = useRef(null);
+    const [faviconUploading, setFaviconUploading] = useState(false);
+    const faviconInputRef = useRef(null);
 
     const handleLogoUpload = async (e) => {
         const file = e.target.files[0];
@@ -79,6 +82,25 @@ const AdminLandingPage = () => {
             showToast({ type: 'error', title: 'Upload Failed', message: err.response?.data?.error || 'Failed to upload logo.' });
         } finally {
             setLogoUploading(false);
+        }
+    };
+
+    const handleFaviconUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setFaviconUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append('favicon', file);
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/upload-favicon`, fd, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setBrandingSettings(prev => ({ ...prev, faviconUrl: res.data.faviconUrl }));
+            showToast({ type: 'success', title: 'Favicon Uploaded', message: 'Favicon uploaded successfully.' });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Upload Failed', message: err.response?.data?.error || 'Failed to upload favicon.' });
+        } finally {
+            setFaviconUploading(false);
         }
     };
 
@@ -255,6 +277,7 @@ const AdminLandingPage = () => {
                 timezone: d.timezone || 'UTC',
                 primaryColor: d.primaryColor || '#4f46e5',
                 logoUrl: d.logoUrl || '',
+                faviconUrl: d.faviconUrl || '',
             });
         } catch (err) {
             console.error('Failed to fetch branding settings:', err);
@@ -1085,6 +1108,46 @@ const AdminLandingPage = () => {
                                                     />
                                                     {brandingSettings.logoUrl && (
                                                         <button type="button" onClick={() => setBrandingSettings(prev => ({ ...prev, logoUrl: '' }))} className="text-xs text-red-500 hover:text-red-600 font-semibold">Remove Logo</button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Favicon */}
+                                        <div className="pt-4 border-t border-slate-100 dark:border-white/5 space-y-3">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Globe className="w-4 h-4 text-indigo-500" />
+                                                <span className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">Site Favicon</span>
+                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">The small icon shown in browser tabs, bookmarks, and mobile home screens. Recommended: 32×32 or 64×64 PNG/ICO.</p>
+                                            <div className="flex items-start gap-6">
+                                                <div
+                                                    onClick={() => faviconInputRef.current?.click()}
+                                                    className="w-16 h-16 rounded-xl bg-slate-50 dark:bg-white/5 border-2 border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center relative overflow-hidden group cursor-pointer shrink-0">
+                                                    {faviconUploading ? (
+                                                        <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
+                                                    ) : brandingSettings.faviconUrl ? (
+                                                        <img src={brandingSettings.faviconUrl} alt="Favicon" className="w-full h-full object-contain p-1" />
+                                                    ) : (
+                                                        <Globe className="w-5 h-5 text-slate-400" />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                                                        {faviconUploading ? '...' : 'Upload'}
+                                                    </div>
+                                                </div>
+                                                <input ref={faviconInputRef} type="file" accept="image/png,image/x-icon,image/svg+xml,image/webp,image/jpeg,image/ico" className="hidden" onChange={handleFaviconUpload} />
+                                                <div className="flex-1 space-y-2">
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">Click the preview to upload. PNG, ICO, SVG or WEBP (max 1MB).</p>
+                                                    <p className="text-xs text-slate-400">Or paste a direct URL:</p>
+                                                    <input
+                                                        type="text"
+                                                        value={brandingSettings.faviconUrl}
+                                                        onChange={e => setBrandingSettings(prev => ({ ...prev, faviconUrl: e.target.value }))}
+                                                        placeholder="https://example.com/favicon.ico"
+                                                        className="w-full px-4 py-2.5 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
+                                                    />
+                                                    {brandingSettings.faviconUrl && (
+                                                        <button type="button" onClick={() => setBrandingSettings(prev => ({ ...prev, faviconUrl: '' }))} className="text-xs text-red-500 hover:text-red-600 font-semibold">Remove Favicon</button>
                                                     )}
                                                 </div>
                                             </div>

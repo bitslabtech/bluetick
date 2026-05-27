@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import GuestRoute from './components/GuestRoute';
 import { UIProvider } from './context/UIContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Layout from './components/Layout';
@@ -254,8 +255,10 @@ function App() {
                                         <Route path="/nfc/setup/:shortCode" element={<NfcSetup />} /> {/* NEW: NFC Setup */}
                                         <Route path="/store/:slug" element={<PublicWaStore />} /> {/* NEW: Public WhatsApp Store */}
                                         <Route path="/store/:slug/product/:productId" element={<PublicWaProduct />} /> {/* NEW: Single Product */}
-                                        <Route path="/login" element={<Login />} />
-                                        <Route path="/register" element={<Register />} />
+                                        <Route element={<GuestRoute />}>
+                                            <Route path="/login" element={<Login />} />
+                                            <Route path="/register" element={<Register />} />
+                                        </Route>
                                         <Route path="/privacy" element={<PrivacyPolicy />} />
                                         <Route path="/terms" element={<TermsOfService />} />
                                         <Route path="/about" element={<AboutUs />} />

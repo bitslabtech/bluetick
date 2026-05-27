@@ -2386,7 +2386,7 @@ export default function LandingPage() {
                                             >
                                                 <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Half-Yearly</span>
                                                 {maxHalfYearlySavings > 0 && (
-                                                    <span className={`absolute -top-3 -right-2 sm:-right-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/20 shadow-sm ${billingInterval === 'half-yearly'
+                                                    <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/20 shadow-sm ${billingInterval === 'half-yearly'
                                                         ? 'bg-indigo-200 text-indigo-900'
                                                         : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800/50'
                                                         }`}>
@@ -2405,7 +2405,7 @@ export default function LandingPage() {
                                             >
                                                 <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Yearly</span>
                                                 {maxYearlySavings > 0 && (
-                                                    <span className={`absolute -top-3 -right-2 sm:-right-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-white/20 shadow-md ${billingInterval === 'yearly'
+                                                    <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-white/20 shadow-md ${billingInterval === 'yearly'
                                                         ? 'bg-indigo-200 text-indigo-900'
                                                         : 'bg-emerald-500 text-white dark:bg-emerald-600 shadow-emerald-500/30 dark:border-emerald-500/30'
                                                         }`}>
@@ -2451,12 +2451,60 @@ export default function LandingPage() {
 
                                     <div
                                         id="pricing-slider"
-                                        className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pb-6 snap-x snap-mandatory"
+                                        className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pt-8 pb-6 snap-x snap-mandatory"
                                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                     >
                                         <style>{`#pricing-slider::-webkit-scrollbar { display: none; }`}</style>
                                         {plans.map((plan, i) => {
-                                            const isPopular = plan.name === 'Pro' || plan.name === 'Business';
+                                            const isPopular = plan.isPopular;
+                                            
+                                            const themeColors = {
+                                                blue: { 
+                                                    bgPop: 'bg-blue-600 dark:bg-blue-900/40 border-blue-500 shadow-2xl shadow-blue-600/20 text-white transform md:-translate-y-4',
+                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-blue-500/30',
+                                                    badgePop: 'bg-blue-500 text-white',
+                                                    textSubtlePop: 'text-blue-200',
+                                                    lineThroughPop: 'text-blue-300/70',
+                                                    checkPop: 'bg-blue-500 text-white',
+                                                    checkSubtle: 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400',
+                                                    btnSubtlePop: 'bg-white/15 hover:bg-white/25 text-blue-100 border border-white/20',
+                                                    btnSubtleReg: 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50'
+                                                },
+                                                purple: { 
+                                                    bgPop: 'bg-purple-600 dark:bg-purple-900/40 border-purple-500 shadow-2xl shadow-purple-600/20 text-white transform md:-translate-y-4',
+                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-purple-500/30',
+                                                    badgePop: 'bg-purple-500 text-white',
+                                                    textSubtlePop: 'text-purple-200',
+                                                    lineThroughPop: 'text-purple-300/70',
+                                                    checkPop: 'bg-purple-500 text-white',
+                                                    checkSubtle: 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400',
+                                                    btnSubtlePop: 'bg-white/15 hover:bg-white/25 text-purple-100 border border-white/20',
+                                                    btnSubtleReg: 'bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50'
+                                                },
+                                                amber: { 
+                                                    bgPop: 'bg-amber-500 dark:bg-amber-900/40 border-amber-500 shadow-2xl shadow-amber-500/20 text-white transform md:-translate-y-4',
+                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-amber-500/30',
+                                                    badgePop: 'bg-amber-500 text-amber-900',
+                                                    textSubtlePop: 'text-amber-100',
+                                                    lineThroughPop: 'text-amber-200/70',
+                                                    checkPop: 'bg-amber-500 text-white',
+                                                    checkSubtle: 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400',
+                                                    btnSubtlePop: 'bg-white/15 hover:bg-white/25 text-amber-100 border border-white/20',
+                                                    btnSubtleReg: 'bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50'
+                                                },
+                                                emerald: { 
+                                                    bgPop: 'bg-emerald-600 dark:bg-emerald-900/40 border-emerald-500 shadow-2xl shadow-emerald-600/20 text-white transform md:-translate-y-4',
+                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-emerald-500/30',
+                                                    badgePop: 'bg-emerald-500 text-white',
+                                                    textSubtlePop: 'text-emerald-200',
+                                                    lineThroughPop: 'text-emerald-300/70',
+                                                    checkPop: 'bg-emerald-500 text-white',
+                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400',
+                                                    btnSubtlePop: 'bg-white/15 hover:bg-white/25 text-emerald-100 border border-white/20',
+                                                    btnSubtleReg: 'bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
+                                                }
+                                            };
+                                            const theme = themeColors[plan.color] || themeColors.blue;
 
                                             // Determine Display Price
                                             let displayPrice = parseFloat(plan.price);
@@ -2480,37 +2528,36 @@ export default function LandingPage() {
                                                 originalPrice = (parseFloat(plan.monthlyPrice) || 0) * 12;
                                             }
 
+                                            const planCurrencySymbol = plan.currency ? (CURRENCY_SYMBOLS[plan.currency] || plan.currency) : currencySymbol;
+
                                             return (
                                                 <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                                                    className={`relative w-[85vw] sm:w-[340px] shrink-0 snap-center p-8 rounded-[2.5rem] border flex flex-col h-auto min-h-full transition-all ${isPopular
-                                                        ? 'bg-indigo-600 dark:bg-indigo-900/40 border-indigo-500 text-white transform md:-translate-y-4 shadow-2xl shadow-indigo-600/20'
-                                                        : 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-indigo-500/30'
-                                                        }`}
+                                                    className={`relative w-[85vw] sm:w-[340px] shrink-0 snap-center p-8 rounded-[2.5rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
                                                 >
-                                                    {isPopular && <div className="absolute top-0 right-1/2 translate-x-1/2 px-4 py-1.5 bg-indigo-500 text-white text-[10px] uppercase tracking-widest font-bold rounded-b-xl shadow-md">MOST POPULAR</div>}
+                                                    {isPopular && <div className="absolute top-0 right-1/2 translate-x-1/2 px-4 py-1.5 ${theme.badgePop} text-[10px] uppercase tracking-widest font-bold rounded-b-xl shadow-md whitespace-nowrap">MOST POPULAR</div>}
                                                     {plan.trialDays > 0 && (
-                                                        <div className={`absolute top-4 left-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isPopular ? 'bg-white/20 text-white' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'}`}>
+                                                        <div className={`mb-3 self-start flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isPopular ? 'bg-white/20 text-white' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'}`}>
                                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
                                                             {plan.trialDays}-Day Free Trial
                                                         </div>
                                                     )}
 
-                                                    <h3 className={`text-2xl font-bold mb-2 ${plan.trialDays > 0 ? 'pt-8' : 'pt-2'}`}>{plan.name}</h3>
-                                                    <p className={`text-sm mb-8 font-medium ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>{plan.description || 'Perfect for growing businesses.'}</p>
+                                                    <h3 className="text-2xl font-bold mb-2 pt-2">{plan.name}</h3>
+                                                    <p className={`text-sm mb-8 font-medium ${isPopular ? theme.textSubtlePop : 'text-slate-500 dark:text-slate-400'}`}>{plan.description || 'Perfect for growing businesses.'}</p>
 
                                                     <div className="flex flex-col gap-1 mb-2 pb-10 border-b border-indigo-500/20 dark:border-white/10">
                                                         {originalPrice > displayPrice && (
-                                                            <span className={`text-lg font-bold line-through ${isPopular ? 'text-indigo-300/70' : 'text-slate-400 dark:text-slate-500'}`}>
-                                                                {currencySymbol}{originalPrice.toLocaleString()}
+                                                            <span className={`text-lg font-bold line-through ${isPopular ? theme.lineThroughPop : 'text-slate-400 dark:text-slate-500'}`}>
+                                                                {planCurrencySymbol}{originalPrice.toLocaleString()}
                                                             </span>
                                                         )}
                                                         <div className="flex items-baseline gap-1">
-                                                            <span className="text-5xl font-extrabold">{currencySymbol}{displayPrice.toLocaleString()}</span>
-                                                            <span className={`font-bold ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>/{displayInterval}</span>
+                                                            <span className="text-5xl font-extrabold">{planCurrencySymbol}{displayPrice.toLocaleString()}</span>
+                                                            <span className={`font-bold ${isPopular ? theme.textSubtlePop : 'text-slate-500 dark:text-slate-400'}`}>/{displayInterval}</span>
                                                         </div>
                                                     </div>
                                                     {plan.trialDays > 0 && (
-                                                        <p className={`text-xs font-semibold mb-6 -mt-7 ${isPopular ? 'text-indigo-200' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                                        <p className={`text-xs font-semibold mb-6 -mt-7 ${isPopular ? theme.textSubtlePop : 'text-emerald-600 dark:text-emerald-400'}`}>
                                                             🎉 Try free for {plan.trialDays} days — no credit card required
                                                         </p>
                                                     )}
@@ -2518,31 +2565,31 @@ export default function LandingPage() {
                                                     <div className="space-y-6 mb-10 flex-1">
                                                         {/* Core Limits */}
                                                         <div>
-                                                            <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? 'text-indigo-200' : 'text-slate-400'}`}>Core</div>
+                                                            <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? theme.textSubtlePop : 'text-slate-400'}`}>Core</div>
                                                             <ul className="space-y-3">
                                                                 <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                     <span>{plan.messageLimit.toLocaleString()} Messages/mo</span>
                                                                 </li>
                                                                 <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                     <span>{plan.contactLimit.toLocaleString()} Contacts</span>
                                                                 </li>
                                                                 {plan.templateLimit > 0 && (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                         <span>{plan.templateLimit} Message Templates</span>
                                                                     </li>
                                                                 )}
                                                                 {plan.teamMemberLimit > 0 && (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                         <span>{plan.teamMemberLimit} Team Members</span>
                                                                     </li>
                                                                 )}
                                                                 {plan.vcardLimit > 0 ? (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                         <span>{plan.vcardLimit} veCards</span>
                                                                     </li>
                                                                 ) : (
@@ -2553,7 +2600,7 @@ export default function LandingPage() {
                                                                 )}
                                                                 {plan.waStoreLimit > 0 ? (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                         <span>{plan.waStoreLimit} Online Stores</span>
                                                                     </li>
                                                                 ) : (
@@ -2574,7 +2621,7 @@ export default function LandingPage() {
                                                         {/* Capabilities */}
                                                         {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
                                                             <div>
-                                                                <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? 'text-indigo-200' : 'text-slate-400'}`}>Add-ons</div>
+                                                                <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? theme.textSubtlePop : 'text-slate-400'}`}>Add-ons</div>
                                                                 <ul className="space-y-3">
                                                                     <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowApiAccess ? 'opacity-70' : ''}`}>
                                                                         <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? (isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400') : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
@@ -2585,18 +2632,18 @@ export default function LandingPage() {
 
                                                                     {plan.aiTokensAllowance > 0 && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                             <span>{plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
                                                                         </li>
                                                                     )}
                                                                     {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
                                                                         <li className="flex items-start gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                             <div className="flex flex-col">
                                                                                 <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
                                                                                 <ul className="mt-2 space-y-1.5">
                                                                                     {plan.includedAddons.map(addonKey => (
-                                                                                        <li key={addonKey} className={`text-xs font-semibold flex items-center gap-1.5 ${isPopular ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                                        <li key={addonKey} className={`text-xs font-semibold flex items-center gap-1.5 ${isPopular ? theme.textSubtlePop : 'text-slate-500 dark:text-slate-400'}`}>
                                                                                             <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
                                                                                             {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                                                                         </li>
@@ -2612,29 +2659,29 @@ export default function LandingPage() {
                                                         {/* Custom Features list */}
                                                         {(plan.quickReplyLimit > 0 || plan.tagLimit > 0 || plan.groupLimit > 0 || (Array.isArray(plan.features) && plan.features.length > 0)) && (
                                                             <div>
-                                                                <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? 'text-indigo-200' : 'text-slate-400'}`}>Features</div>
+                                                                <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? theme.textSubtlePop : 'text-slate-400'}`}>Features</div>
                                                                 <ul className="space-y-3">
                                                                     {plan.quickReplyLimit > 0 && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                             <span>{plan.quickReplyLimit} Quick Replies</span>
                                                                         </li>
                                                                     )}
                                                                     {plan.tagLimit > 0 && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                             <span>{plan.tagLimit} Contact Tags</span>
                                                                         </li>
                                                                     )}
                                                                     {plan.groupLimit > 0 && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                             <span>{plan.groupLimit} Contact Groups</span>
                                                                         </li>
                                                                     )}
                                                                     {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
                                                                         <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                             <span className="leading-tight">{feat}</span>
                                                                         </li>
                                                                     ))}
@@ -2654,7 +2701,7 @@ export default function LandingPage() {
                                                             </Link>
                                                             <Link
                                                                 to={`/register?plan=${plan.id}&trial=true`}
-                                                                className={`w-full py-3 rounded-xl font-semibold text-center text-xs transition-all ${isPopular ? 'bg-white/15 hover:bg-white/25 text-indigo-100 border border-white/20' : 'bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50'}`}
+                                                                className={`w-full py-3 rounded-xl font-semibold text-center text-xs transition-all ${isPopular ? theme.btnSubtlePop : theme.btnSubtleReg}`}
                                                             >
                                                                 🎉 Try free for {plan.trialDays} days instead
                                                             </Link>

@@ -33,6 +33,9 @@ export const UIProvider = ({ children }) => {
             if (data?.logoUrl?.startsWith('/uploads')) {
                 data.logoUrl = `${import.meta.env.VITE_API_URL}${data.logoUrl}`;
             }
+            if (data?.faviconUrl?.startsWith('/uploads')) {
+                data.faviconUrl = `${import.meta.env.VITE_API_URL}${data.faviconUrl}`;
+            }
             setPublicSettings(data);
             applyBranding(data);
         } catch (err) {
@@ -47,6 +50,21 @@ export const UIProvider = ({ children }) => {
         const root = document.documentElement;
         if (data.primaryColor) {
             root.style.setProperty('--color-primary', data.primaryColor);
+        }
+        // Dynamically update the browser favicon
+        if (data.faviconUrl) {
+            let faviconUrl = data.faviconUrl;
+            if (faviconUrl.startsWith('/uploads')) {
+                faviconUrl = `${import.meta.env.VITE_API_URL}${faviconUrl}`;
+            }
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = 'icon';
+                document.head.appendChild(link);
+            }
+            link.type = 'image/x-icon';
+            link.href = faviconUrl;
         }
     };
 

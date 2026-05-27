@@ -86,6 +86,7 @@ router.get('/public', async (req, res) => {
             appName: settings.appName || 'Bluetick',
             appTagline: settings.appTagline || 'Business API',
             logoUrl: settings.logoUrl,
+            faviconUrl: settings.faviconUrl,
             primaryColor: settings.primaryColor,
             secondaryColor: settings.secondaryColor,
             theme: settings.theme,
@@ -197,6 +198,7 @@ router.post('/', async (req, res) => {
             settings.primaryColor = primaryColor || settings.primaryColor;
             settings.secondaryColor = secondaryColor || settings.secondaryColor;
             settings.logoUrl = logoUrl || settings.logoUrl;
+            if (req.body.faviconUrl !== undefined) settings.faviconUrl = req.body.faviconUrl;
             settings.theme = theme || settings.theme;
             settings.language = language || settings.language;
             settings.dateFormat = dateFormat || settings.dateFormat;
@@ -737,6 +739,33 @@ router.post('/upload-logo', storageProvider('logos', { fileFilter: storageProvid
         res.json({ success: true, logoUrl: publicUrl });
     } catch (err) {
         console.error('[LOGO UPLOAD] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/upload-favicon', storageProvider('favicons', { fileFilter: storageProvider.generalImageFilter }).single('favicon'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const publicUrl = req.file.publicUrl;
+
+        // Also save the faviconUrl to the user's settings immediately
+        let settings = await Settings.findOne({ where: { userId: req.user.id } });
+        if (!settings) {
+            settings = await Settings.create({ userId: req.user.id, faviconUrl: publicUrl });
+        } else {
+            settings.faviconUrl = publicUrl;
+            await settings.save();
+        }
+
+        // Invalidate public settings cache so favicon updates immediately
+        invalidatePublicSettingsCache();
+
+        res.json({ success: true, faviconUrl: publicUrl });
+    } catch (err) {
+        console.error('[FAVICON UPLOAD] Error:', err);
         res.status(500).json({ error: err.message });
     }
 });
