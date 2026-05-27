@@ -707,7 +707,7 @@ const Settings = () => {
                 override_default_response_type: true,
                 extras: { 
                     feature: 'whatsapp_embedded_signup',
-                    sessionInfoVersion: '2'
+                    sessionInfoVersion: '3'
                 },
                 scope: 'whatsapp_business_management,whatsapp_business_messaging'
             };
