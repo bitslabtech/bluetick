@@ -2534,30 +2534,30 @@ export default function LandingPage() {
                                                 <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                                                     className={`relative w-[85vw] sm:w-[340px] shrink-0 snap-center p-8 rounded-[2.5rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
                                                 >
-                                                    {isPopular && <div className="absolute top-0 right-1/2 translate-x-1/2 px-4 py-1.5 ${theme.badgePop} text-[10px] uppercase tracking-widest font-bold rounded-b-xl shadow-md whitespace-nowrap">MOST POPULAR</div>}
+                                                    {isPopular && <div className={`absolute top-0 right-1/2 translate-x-1/2 px-4 py-1.5 bg-gradient-to-r from-emerald-400 to-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-emerald-500/20 whitespace-nowrap border-b border-x border-emerald-400/50`}>MOST POPULAR</div>}
                                                     {plan.trialDays > 0 && (
-                                                        <div className={`mb-3 self-start flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isPopular ? 'bg-white/20 text-white' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'}`}>
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                                                        <div className="mb-3 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
                                                             {plan.trialDays}-Day Free Trial
                                                         </div>
                                                     )}
 
                                                     <h3 className="text-2xl font-bold mb-2 pt-2">{plan.name}</h3>
-                                                    <p className={`text-sm mb-8 font-medium ${isPopular ? theme.textSubtlePop : 'text-slate-500 dark:text-slate-400'}`}>{plan.description || 'Perfect for growing businesses.'}</p>
+                                                    <p className="text-sm mb-8 font-medium text-slate-500 dark:text-slate-400">{plan.description || 'Perfect for growing businesses.'}</p>
 
                                                     <div className="flex flex-col gap-1 mb-2 pb-10 border-b border-indigo-500/20 dark:border-white/10">
                                                         {originalPrice > displayPrice && (
-                                                            <span className={`text-lg font-bold line-through ${isPopular ? theme.lineThroughPop : 'text-slate-400 dark:text-slate-500'}`}>
+                                                            <span className="text-lg font-bold line-through text-slate-400 dark:text-slate-500">
                                                                 {planCurrencySymbol}{originalPrice.toLocaleString()}
                                                             </span>
                                                         )}
                                                         <div className="flex items-baseline gap-1">
                                                             <span className="text-5xl font-extrabold">{planCurrencySymbol}{displayPrice.toLocaleString()}</span>
-                                                            <span className={`font-bold ${isPopular ? theme.textSubtlePop : 'text-slate-500 dark:text-slate-400'}`}>/{displayInterval}</span>
+                                                            <span className="font-bold text-slate-500 dark:text-slate-400">/{displayInterval}</span>
                                                         </div>
                                                     </div>
                                                     {plan.trialDays > 0 && (
-                                                        <p className={`text-xs font-semibold mb-6 -mt-7 ${isPopular ? theme.textSubtlePop : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                                        <p className="text-xs font-semibold mb-6 -mt-7 text-slate-500 dark:text-slate-400">
                                                             🎉 Try free for {plan.trialDays} days — no credit card required
                                                         </p>
                                                     )}
@@ -2565,55 +2565,55 @@ export default function LandingPage() {
                                                     <div className="space-y-6 mb-10 flex-1">
                                                         {/* Core Limits */}
                                                         <div>
-                                                            <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? theme.textSubtlePop : 'text-slate-400'}`}>Core</div>
+                                                            <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Core</div>
                                                             <ul className="space-y-3">
                                                                 <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                     <span>{plan.messageLimit.toLocaleString()} Messages/mo</span>
                                                                 </li>
                                                                 <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                     <span>{plan.contactLimit.toLocaleString()} Contacts</span>
                                                                 </li>
                                                                 {plan.templateLimit > 0 && (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                         <span>{plan.templateLimit} Message Templates</span>
                                                                     </li>
                                                                 )}
                                                                 {plan.teamMemberLimit > 0 && (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                         <span>{plan.teamMemberLimit} Team Members</span>
                                                                     </li>
                                                                 )}
                                                                 {plan.vcardLimit > 0 ? (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                         <span>{plan.vcardLimit} veCards</span>
                                                                     </li>
                                                                 ) : (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"><X className="w-3 h-3" /></div>
-                                                                        <span className="text-slate-500 dark:text-slate-400">veCards</span>
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white"><X className="w-3 h-3" /></div>
+                                                                        <span className="text-slate-900 dark:text-white">veCards</span>
                                                                     </li>
                                                                 )}
                                                                 {plan.waStoreLimit > 0 ? (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                         <span>{plan.waStoreLimit} Online Stores</span>
                                                                     </li>
                                                                 ) : (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"><X className="w-3 h-3" /></div>
-                                                                        <span className="text-slate-500 dark:text-slate-400">Online Stores</span>
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white"><X className="w-3 h-3" /></div>
+                                                                        <span className="text-slate-900 dark:text-white">Online Stores</span>
                                                                     </li>
                                                                 )}
                                                                 <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-70' : ''}`}>
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? (isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400') : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
                                                                         {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                                                     </div>
-                                                                    <span>AI FlowBot Builder</span>
+                                                                    <span className={!plan.flowBotEnabled ? "text-slate-900 dark:text-white" : ""}>AI FlowBot Builder</span>
                                                                 </li>
                                                             </ul>
                                                         </div>
@@ -2621,29 +2621,29 @@ export default function LandingPage() {
                                                         {/* Capabilities */}
                                                         {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
                                                             <div>
-                                                                <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? theme.textSubtlePop : 'text-slate-400'}`}>Add-ons</div>
+                                                                <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Add-ons</div>
                                                                 <ul className="space-y-3">
                                                                     <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowApiAccess ? 'opacity-70' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? (isPopular ? 'bg-indigo-500 text-white' : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400') : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
                                                                             {plan.allowApiAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                                                         </div>
-                                                                        <span>Developer API Access</span>
+                                                                        <span className={!plan.allowApiAccess ? "text-slate-900 dark:text-white" : ""}>Developer API Access</span>
                                                                     </li>
 
                                                                     {plan.aiTokensAllowance > 0 && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                             <span>{plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
                                                                         </li>
                                                                     )}
                                                                     {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
                                                                         <li className="flex items-start gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                             <div className="flex flex-col">
                                                                                 <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
                                                                                 <ul className="mt-2 space-y-1.5">
                                                                                     {plan.includedAddons.map(addonKey => (
-                                                                                        <li key={addonKey} className={`text-xs font-semibold flex items-center gap-1.5 ${isPopular ? theme.textSubtlePop : 'text-slate-500 dark:text-slate-400'}`}>
+                                                                                        <li key={addonKey} className="text-xs font-semibold flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                                                                                             <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
                                                                                             {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                                                                         </li>
@@ -2659,29 +2659,29 @@ export default function LandingPage() {
                                                         {/* Custom Features list */}
                                                         {(plan.quickReplyLimit > 0 || plan.tagLimit > 0 || plan.groupLimit > 0 || (Array.isArray(plan.features) && plan.features.length > 0)) && (
                                                             <div>
-                                                                <div className={`font-bold text-[10px] tracking-widest uppercase mb-3 ${isPopular ? theme.textSubtlePop : 'text-slate-400'}`}>Features</div>
+                                                                <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Features</div>
                                                                 <ul className="space-y-3">
                                                                     {plan.quickReplyLimit > 0 && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                             <span>{plan.quickReplyLimit} Quick Replies</span>
                                                                         </li>
                                                                     )}
                                                                     {plan.tagLimit > 0 && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                             <span>{plan.tagLimit} Contact Tags</span>
                                                                         </li>
                                                                     )}
                                                                     {plan.groupLimit > 0 && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                             <span>{plan.groupLimit} Contact Groups</span>
                                                                         </li>
                                                                     )}
                                                                     {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
                                                                         <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPopular ? theme.checkPop : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
                                                                             <span className="leading-tight">{feat}</span>
                                                                         </li>
                                                                     ))}
@@ -2695,19 +2695,19 @@ export default function LandingPage() {
                                                         <div className="flex flex-col gap-2 mt-auto">
                                                             <Link
                                                                 to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`}
-                                                                className={`w-full py-4 rounded-xl font-bold text-center transition-all text-sm ${isPopular ? 'bg-emerald-400 hover:bg-emerald-300 text-white shadow-lg shadow-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'}`}
+                                                                className="w-full py-4 rounded-xl font-bold text-center transition-all text-sm bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25"
                                                             >
                                                                 Choose {plan.name} — {currencySymbol}{displayPrice.toLocaleString()}/{displayInterval}
                                                             </Link>
                                                             <Link
                                                                 to={`/register?plan=${plan.id}&trial=true`}
-                                                                className={`w-full py-3 rounded-xl font-semibold text-center text-xs transition-all ${isPopular ? theme.btnSubtlePop : theme.btnSubtleReg}`}
+                                                                className="w-full py-3 rounded-xl font-semibold text-center text-xs transition-all bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
                                                             >
                                                                 🎉 Try free for {plan.trialDays} days instead
                                                             </Link>
                                                         </div>
                                                     ) : (
-                                                        <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all ${isPopular ? 'bg-emerald-400 hover:bg-emerald-300 text-white shadow-lg shadow-emerald-500/30' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'}`}>
+                                                        <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className="w-full py-4 rounded-xl font-bold text-center transition-all bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 mt-auto">
                                                             Choose {plan.name}
                                                         </Link>
                                                     )}

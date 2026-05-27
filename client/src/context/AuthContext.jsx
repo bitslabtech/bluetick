@@ -115,12 +115,11 @@ export const AuthProvider = ({ children }) => {
             // 1. Call server API to restore cookies
             await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/exit-impersonation`);
 
-            // 2. Fetch fresh admin profile
-            await fetchUser();
-            setIsImpersonating(false); // Clear impersonation flag
+            // 2. Clear impersonated user from local storage to prevent flashing before reload
+            localStorage.removeItem('user');
             
-            // 3. Hard-navigate to dashboard to clear any user-specific state
-            window.location.href = '/dashboard';
+            // 3. Hard-navigate to superadmin users to clear any user-specific state
+            window.location.href = '/superadmin/users';
         } catch (err) {
             console.error("Failed to restore admin profile:", err);
             await logout();
