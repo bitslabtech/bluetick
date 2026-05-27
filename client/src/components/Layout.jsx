@@ -53,7 +53,7 @@ export default function Layout() {
                             <img 
                                 src={publicSettings.logoUrl} 
                                 alt="Logo" 
-                                className="w-8 h-8 object-contain rounded-lg" 
+                                className="h-8 max-w-[150px] w-auto object-contain" 
                                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                             />
                         ) : null}

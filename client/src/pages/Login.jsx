@@ -54,9 +54,7 @@ const Login = () => {
                             </div>
                         )}
                     </div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent mt-2">
-                        Welcome Back
-                    </h1>
+
                     <p className="text-slate-500">Sign in to your account</p>
                 </div>
 

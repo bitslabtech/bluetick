@@ -185,17 +185,12 @@ const Dashboard = () => {
             return;
         }
 
-        setFbLoading(true);
-
-        // Safety timeout — if the popup callback never fires, reset loading state
-        const safetyTimeout = setTimeout(() => {
-            setFbLoading(false);
-            console.warn('FB.login safety timeout reached — resetting loading state');
-        }, 120000); // 2 minutes
+        showToast({ type: 'info', title: 'Connecting...', message: 'Opening WhatsApp Setup. Please allow popups if blocked.' });
 
         try {
+            // Call FB.login synchronously before any state updates to prevent popup blockers
             window.FB.login(function (response) {
-                clearTimeout(safetyTimeout);
+                clearTimeout(window.fbSafetyTimeout);
                 if (response.authResponse && response.authResponse.code) {
                     exchangeFbCode(response.authResponse.code);
                 } else {
@@ -211,14 +206,25 @@ const Dashboard = () => {
                 config_id: import.meta.env.VITE_FB_CONFIG_ID,
                 response_type: 'code',
                 override_default_response_type: true,
-                extras: { feature: 'whatsapp_embedded_signup' },
+                extras: { 
+                    feature: 'whatsapp_embedded_signup',
+                    sessionInfoVersion: '2'
+                },
                 scope: 'whatsapp_business_management,whatsapp_business_messaging'
             });
+
+            // Set loading state after opening the popup
+            setFbLoading(true);
+
+            // Safety timeout
+            window.fbSafetyTimeout = setTimeout(() => {
+                setFbLoading(false);
+            }, 120000);
+
         } catch (err) {
-            clearTimeout(safetyTimeout);
             setFbLoading(false);
             console.error('FB.login() threw an error:', err);
-            showToast({ type: 'error', title: 'Connection Error', message: 'Failed to open WhatsApp signup. Please refresh and try again.' });
+            showToast({ type: 'error', title: 'Connection Error', message: 'Failed to open WhatsApp signup. Please check console for details.' });
         }
     };
 

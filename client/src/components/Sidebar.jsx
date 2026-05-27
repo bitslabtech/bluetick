@@ -340,7 +340,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                         <img 
                             src={publicSettings.logoUrl} 
                             alt="Logo" 
-                            className="w-10 h-10 object-contain rounded-lg" 
+                            className="h-10 max-w-[200px] object-contain" 
                             onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                         />
                     ) : null}
