@@ -9,21 +9,28 @@ const User = require('../models/User');
 router.post('/exchange-token', auth, async (req, res) => {
     try {
         const { code } = req.body;
+        console.log('[WA DEBUG] ========== /exchange-token START ==========');
+        console.log('[WA DEBUG] User ID:', req.user?.id);
+        console.log('[WA DEBUG] Received code:', code ? `${code.substring(0, 20)}... (length: ${code.length})` : '(MISSING!)');
 
         if (!code) {
+            console.error('[WA DEBUG] ❌ No code provided in request body');
             return res.status(400).json({ error: 'OAuth code is required from the frontend' });
         }
 
         const clientId = process.env.FB_CLIENT_ID;
         const clientSecret = process.env.FB_CLIENT_SECRET;
+        console.log('[WA DEBUG] FB_CLIENT_ID:', clientId ? `${clientId.substring(0, 8)}...` : '(MISSING!)');
+        console.log('[WA DEBUG] FB_CLIENT_SECRET:', clientSecret ? `${clientSecret.substring(0, 8)}...` : '(MISSING!)');
 
         if (!clientId || !clientSecret) {
-            console.error("Missing FB_CLIENT_ID or FB_CLIENT_SECRET in .env");
+            console.error("[WA DEBUG] ❌ Missing FB_CLIENT_ID or FB_CLIENT_SECRET in .env");
             return res.status(500).json({ error: 'Server configuration missing for WhatsApp integration' });
         }
 
         // 1. Exchange 'code' for 'access_token'
-        console.log("Exchanging code for token via Graph API...");
+        console.log("[WA DEBUG] Step 1: Exchanging code for token via Graph API...");
+        console.log("[WA DEBUG] GET https://graph.facebook.com/v22.0/oauth/access_token");
         const tokenResponse = await axios.get('https://graph.facebook.com/v22.0/oauth/access_token', {
             params: {
                 client_id: clientId,
@@ -31,41 +38,54 @@ router.post('/exchange-token', auth, async (req, res) => {
                 code: code
             }
         });
+        console.log('[WA DEBUG] ✅ Token exchange response status:', tokenResponse.status);
+        console.log('[WA DEBUG] Token response data keys:', Object.keys(tokenResponse.data));
 
         const accessToken = tokenResponse.data.access_token;
         if (!accessToken) {
+            console.error('[WA DEBUG] ❌ No access_token in response:', JSON.stringify(tokenResponse.data));
             return res.status(400).json({ error: 'Failed to retrieve access token from Meta' });
         }
+        console.log('[WA DEBUG] ✅ Got access_token (length:', accessToken.length, ')');
 
         // 2. Debug the token to extract 'waba_id' (WhatsApp Business Account ID)
-        // Note: The embedded signup token usually belongs to the newly shared WABA
-        console.log("Debugging token to fetch WABA ID...");
+        console.log("[WA DEBUG] Step 2: Debugging token to fetch WABA ID...");
+        console.log("[WA DEBUG] GET https://graph.facebook.com/v22.0/debug_token");
         const debugResponse = await axios.get('https://graph.facebook.com/v22.0/debug_token', {
             params: {
                 input_token: accessToken,
                 access_token: `${clientId}|${clientSecret}` // App Access Token
             }
         });
+        console.log('[WA DEBUG] ✅ Debug token response status:', debugResponse.status);
 
         const debugData = debugResponse.data.data;
+        console.log('[WA DEBUG] Debug data:', JSON.stringify(debugData, null, 2));
+
         if (!debugData || !debugData.is_valid) {
+            console.error('[WA DEBUG] ❌ Token is invalid! debugData.is_valid =', debugData?.is_valid);
             return res.status(401).json({ error: 'Generated token is invalid according to Meta Debug Tool' });
         }
+        console.log('[WA DEBUG] ✅ Token is valid');
+        console.log('[WA DEBUG] granular_scopes:', JSON.stringify(debugData.granular_scopes, null, 2));
 
-        // Specifically look for granular scopes or associated waba_id. 
-        // With Embedded Signup, the waba_id is often returned in the debug response, or we have to query client's businesses
         const wabaId = debugData.granular_scopes?.find(s => s.scope === 'whatsapp_business_management')?.target_ids?.[0]
-            || debugData.profile_id; // Fallback if scopes don't explicitly list it easily
+            || debugData.profile_id;
+        console.log('[WA DEBUG] Extracted wabaId:', wabaId || '(not found)');
 
         // 3. Save to User Model
+        console.log('[WA DEBUG] Step 3: Saving to User model...');
         const user = await User.findByPk(req.user.id);
         if (!user) {
+            console.error('[WA DEBUG] ❌ User not found for id:', req.user.id);
             return res.status(404).json({ error: 'User not found' });
         }
 
         user.fbAccessToken = accessToken;
         if (wabaId) user.wabaId = wabaId;
         await user.save();
+        console.log('[WA DEBUG] ✅ User saved. wabaId:', user.wabaId);
+        console.log('[WA DEBUG] ========== /exchange-token SUCCESS ==========');
 
         res.json({
             message: 'WhatsApp Business connected successfully',
@@ -73,7 +93,11 @@ router.post('/exchange-token', auth, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('WhatsApp Exchange Token Error:', error?.response?.data || error.message);
+        console.error('[WA DEBUG] ❌ /exchange-token FAILED');
+        console.error('[WA DEBUG] Error message:', error.message);
+        console.error('[WA DEBUG] Error response data:', error?.response?.data);
+        console.error('[WA DEBUG] Error response status:', error?.response?.status);
+        console.error('[WA DEBUG] Full error:', error);
         res.status(500).json({
             error: 'Failed to complete WhatsApp signup process. Please try again.',
             details: error?.response?.data?.error?.message || error.message

@@ -40,7 +40,6 @@ const PublicHeader = () => {
                             <MessageSquare className="w-5 h-5 text-white" />
                         </div>
                     )}
-                    {brandName}
                 </Link>
 
                 <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">

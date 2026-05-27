@@ -56,73 +56,98 @@ const Dashboard = () => {
     useEffect(() => {
         // Initialize Facebook JS SDK for Connect Button
         const initFBSDK = () => {
-            return new Promise((resolve) => {
+            console.log('[FB DEBUG] initFBSDK() called');
+            console.log('[FB DEBUG] VITE_FB_APP_ID =', import.meta.env.VITE_FB_APP_ID || '(MISSING!)');
+            console.log('[FB DEBUG] VITE_FB_CONFIG_ID =', import.meta.env.VITE_FB_CONFIG_ID || '(MISSING!)');
+            console.log('[FB DEBUG] window.FB exists?', !!window.FB);
+            console.log('[FB DEBUG] Script tag #facebook-jssdk exists?', !!document.getElementById('facebook-jssdk'));
+
+            return new Promise((resolve, reject) => {
                 if (window.FB) {
-                    // SDK already loaded — ensure it's initialized (FB.init is idempotent)
+                    console.log('[FB DEBUG] window.FB already available, re-initializing...');
                     window.FB.init({
                         appId: import.meta.env.VITE_FB_APP_ID,
                         cookie: true,
                         xfbml: true,
                         version: 'v22.0'
                     });
-                    console.log('FB SDK re-initialized (was already loaded)');
+                    console.log('[FB DEBUG] ✅ FB.init() completed (re-init)');
+                    window.__fbSDKReady = true;
                     resolve();
                     return;
                 }
 
-                console.log('Loading FB SDK...');
+                console.log('[FB DEBUG] window.FB not found, setting up fbAsyncInit...');
                 window.fbAsyncInit = function () {
+                    console.log('[FB DEBUG] fbAsyncInit fired! window.FB =', !!window.FB);
                     window.FB.init({
                         appId: import.meta.env.VITE_FB_APP_ID,
                         cookie: true,
                         xfbml: true,
                         version: 'v22.0'
                     });
-                    console.log('FB SDK Initialized');
+                    console.log('[FB DEBUG] ✅ FB.init() completed (async init)');
+                    window.__fbSDKReady = true;
                     resolve();
                 };
 
-                // Only inject the script if it hasn't been injected yet
                 if (!document.getElementById('facebook-jssdk')) {
+                    console.log('[FB DEBUG] Injecting <script> for connect.facebook.net/en_US/sdk.js ...');
                     const js = document.createElement('script');
                     js.id = 'facebook-jssdk';
                     js.src = 'https://connect.facebook.net/en_US/sdk.js';
                     js.async = true;
-                    js.defer = true;
+                    js.onload = () => {
+                        console.log('[FB DEBUG] ✅ SDK script onload fired. window.FB =', !!window.FB);
+                    };
+                    js.onerror = (e) => {
+                        console.error('[FB DEBUG] ❌ SDK script FAILED to load! This is likely an ad-blocker or network issue.', e);
+                        window.__fbSDKFailed = true;
+                        reject(new Error('FB SDK script failed to load'));
+                    };
                     document.body.appendChild(js);
+                    console.log('[FB DEBUG] <script> tag appended to body');
                 } else {
-                    // Script tag exists but FB object isn't ready yet — wait for it
+                    console.log('[FB DEBUG] Script tag already exists, polling for window.FB...');
+                    let pollCount = 0;
                     const checkFB = setInterval(() => {
+                        pollCount++;
                         if (window.FB) {
                             clearInterval(checkFB);
+                            console.log(`[FB DEBUG] ✅ window.FB became available after ${pollCount} polls`);
                             window.FB.init({
                                 appId: import.meta.env.VITE_FB_APP_ID,
                                 cookie: true,
                                 xfbml: true,
                                 version: 'v22.0'
                             });
-                            console.log('FB SDK initialized (waited for existing script)');
+                            console.log('[FB DEBUG] ✅ FB.init() completed (polled)');
+                            window.__fbSDKReady = true;
                             resolve();
                         }
                     }, 200);
-                    // Timeout after 15s
-                    setTimeout(() => clearInterval(checkFB), 15000);
+                    setTimeout(() => {
+                        clearInterval(checkFB);
+                        if (!window.FB) {
+                            console.error(`[FB DEBUG] ❌ window.FB still not available after 15s (${pollCount} polls). SDK timed out.`);
+                            window.__fbSDKFailed = true;
+                            reject(new Error('FB SDK timed out'));
+                        }
+                    }, 15000);
                 }
             });
         };
 
-        initFBSDK();
+        initFBSDK().catch(err => console.warn('[FB DEBUG] initFBSDK promise rejected:', err.message));
     }, []);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/stats?range=${dateRange}${dateRange === 'custom' ? `&startDate=${customStart.toISOString()}&endDate=${customEnd.toISOString()}` : ''}`);
-                // Handle both old and new backend response structures to prevent crash
                 setStats(prev => ({
                     ...prev,
                     ...res.data,
-                    // Map old 'campaignsCount' to 'totalMessages' if new logic isn't live yet
                     totalMessages: res.data.totalMessages ?? res.data.campaignsCount ?? 0,
                     deliveryRate: res.data.deliveryRate ?? 0,
                     readRate: res.data.readRate ?? 0,
@@ -161,17 +186,17 @@ const Dashboard = () => {
     }, [dateRange, customStart, customEnd]);
 
     const exchangeFbCode = async (code) => {
+        console.log('[FB DEBUG] exchangeFbCode() called with code length:', code?.length);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, { code }, {
-                // Authenticate request
-            });
+            console.log('[FB DEBUG] POSTing to /api/whatsapp/exchange-token ...');
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, { code });
 
+            console.log('[FB DEBUG] ✅ Exchange token response:', res.data);
             showToast({ type: 'success', title: 'WhatsApp Connected', message: res.data.message });
 
-            // Update stats to hide the banner instantly
             setStats(prev => ({ ...prev, isWhatsappConfigured: true }));
         } catch (error) {
-            console.error('FB Exchange Error', error);
+            console.error('[FB DEBUG] ❌ Exchange token FAILED:', error?.response?.status, error?.response?.data || error.message);
             const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Failed to connect WhatsApp account.';
             showModal({ type: 'error', title: 'Connection Failed', message: errorMessage, confirmText: 'Close' });
         } finally {
@@ -180,29 +205,38 @@ const Dashboard = () => {
     };
 
     const handleFacebookLogin = () => {
+        console.log('[FB DEBUG] ========== handleFacebookLogin() START ==========');
+        console.log('[FB DEBUG] window.__fbSDKFailed =', window.__fbSDKFailed);
+        console.log('[FB DEBUG] window.__fbSDKReady =', window.__fbSDKReady);
+        console.log('[FB DEBUG] window.FB =', !!window.FB);
+        console.log('[FB DEBUG] typeof window.FB?.login =', typeof window.FB?.login);
+        console.log('[FB DEBUG] VITE_FB_APP_ID =', import.meta.env.VITE_FB_APP_ID);
+        console.log('[FB DEBUG] VITE_FB_CONFIG_ID =', import.meta.env.VITE_FB_CONFIG_ID);
+
+        if (window.__fbSDKFailed) {
+            console.error('[FB DEBUG] ❌ SDK failed to load — showing blocked modal');
+            showModal({
+                type: 'error',
+                title: 'Facebook SDK Blocked',
+                message: 'The Facebook SDK could not be loaded. This is usually caused by an ad blocker or browser privacy extension. Please disable your ad blocker for this site and refresh the page, then try again.',
+                confirmText: 'OK'
+            });
+            return;
+        }
+
         if (!window.FB) {
+            console.error('[FB DEBUG] ❌ window.FB is falsy — SDK not loaded yet');
             showToast({ type: 'error', title: 'SDK Not Ready', message: 'Facebook SDK is still loading. Please wait a moment and try again.' });
             return;
         }
 
+        setFbLoading(true);
         showToast({ type: 'info', title: 'Connecting...', message: 'Opening WhatsApp Setup. Please allow popups if blocked.' });
 
         try {
-            // Call FB.login synchronously before any state updates to prevent popup blockers
-            window.FB.login(function (response) {
-                clearTimeout(window.fbSafetyTimeout);
-                if (response.authResponse && response.authResponse.code) {
-                    exchangeFbCode(response.authResponse.code);
-                } else {
-                    setFbLoading(false);
-                    console.log('User cancelled login or did not fully authorize.', response);
-                    if (response.status === 'unknown') {
-                        showToast({ type: 'warning', title: 'Popup Blocked?', message: 'The login popup may have been blocked. Please allow popups for this site and try again.' });
-                    } else {
-                        showToast({ type: 'warning', message: 'WhatsApp connection was cancelled.' });
-                    }
-                }
-            }, {
+            let callbackFired = false;
+
+            const loginOptions = {
                 config_id: import.meta.env.VITE_FB_CONFIG_ID,
                 response_type: 'code',
                 override_default_response_type: true,
@@ -211,22 +245,60 @@ const Dashboard = () => {
                     sessionInfoVersion: '2'
                 },
                 scope: 'whatsapp_business_management,whatsapp_business_messaging'
-            });
+            };
+            console.log('[FB DEBUG] Calling FB.login() with options:', JSON.stringify(loginOptions, null, 2));
 
-            // Set loading state after opening the popup
-            setFbLoading(true);
+            window.FB.login(function (response) {
+                callbackFired = true;
+                clearTimeout(window.fbSafetyTimeout);
+                console.log('[FB DEBUG] ✅ FB.login callback FIRED');
+                console.log('[FB DEBUG] response.status =', response?.status);
+                console.log('[FB DEBUG] response.authResponse =', JSON.stringify(response?.authResponse, null, 2));
 
-            // Safety timeout
+                if (response.authResponse && response.authResponse.code) {
+                    console.log('[FB DEBUG] ✅ Got auth code, calling exchangeFbCode()...');
+                    exchangeFbCode(response.authResponse.code);
+                } else {
+                    setFbLoading(false);
+                    console.warn('[FB DEBUG] ⚠️ No auth code received. User cancelled or not fully authorized.');
+                    console.log('[FB DEBUG] Full response:', JSON.stringify(response, null, 2));
+                    if (response.status === 'unknown') {
+                        showToast({ type: 'warning', title: 'Popup Blocked?', message: 'The login popup may have been blocked. Please allow popups for this site and try again.' });
+                    } else {
+                        showToast({ type: 'warning', message: 'WhatsApp connection was cancelled.' });
+                    }
+                }
+            }, loginOptions);
+
+            console.log('[FB DEBUG] FB.login() call returned (popup should be opening now)');
+
+            // Safety timeout — if callback hasn't fired in 15s, the popup was likely blocked
             window.fbSafetyTimeout = setTimeout(() => {
-                setFbLoading(false);
-            }, 120000);
+                if (!callbackFired) {
+                    console.error('[FB DEBUG] ❌ SAFETY TIMEOUT — FB.login callback never fired after 15s');
+                    console.log('[FB DEBUG] This usually means:');
+                    console.log('[FB DEBUG]   1. Popup was blocked by browser');
+                    console.log('[FB DEBUG]   2. Ad blocker blocked the Facebook iframe');
+                    console.log('[FB DEBUG]   3. config_id is invalid');
+                    console.log('[FB DEBUG]   4. FB app is not properly configured');
+                    setFbLoading(false);
+                    showModal({
+                        type: 'warning',
+                        title: 'Popup May Be Blocked',
+                        message: 'The Facebook login popup did not open or was closed. Please check:\n\n1. Allow popups for this site in your browser settings\n2. Disable any ad blocker or privacy extension\n3. Make sure third-party cookies are enabled\n\nThen try again.',
+                        confirmText: 'OK'
+                    });
+                }
+            }, 15000);
 
         } catch (err) {
             setFbLoading(false);
-            console.error('FB.login() threw an error:', err);
+            console.error('[FB DEBUG] ❌ FB.login() THREW an exception:', err);
             showToast({ type: 'error', title: 'Connection Error', message: 'Failed to open WhatsApp signup. Please check console for details.' });
         }
+        console.log('[FB DEBUG] ========== handleFacebookLogin() END ==========');
     };
+
 
 
 
