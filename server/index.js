@@ -75,6 +75,8 @@ initSocket(server);
 // Middleware
 app.use(helmet({
     crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false, // Required: FB.login() popup needs to communicate back to parent window
+    crossOriginEmbedderPolicy: false, // Required: Allow embedding cross-origin resources (FB SDK)
 })); // Add HTTP security headers
 
 // Gzip compression — reduces response sizes by ~75%
