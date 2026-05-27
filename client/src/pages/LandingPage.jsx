@@ -2460,47 +2460,47 @@ export default function LandingPage() {
                                             
                                             const themeColors = {
                                                 blue: { 
-                                                    bgPop: 'bg-blue-600 dark:bg-blue-900/40 border-blue-500 shadow-2xl shadow-blue-600/20 text-white transform md:-translate-y-4',
+                                                    bgPop: 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 shadow-xl shadow-blue-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
                                                     bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-blue-500/30',
                                                     badgePop: 'bg-blue-500 text-white',
-                                                    textSubtlePop: 'text-blue-200',
-                                                    lineThroughPop: 'text-blue-300/70',
+                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
                                                     checkPop: 'bg-blue-500 text-white',
                                                     checkSubtle: 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400',
-                                                    btnSubtlePop: 'bg-white/15 hover:bg-white/25 text-blue-100 border border-white/20',
+                                                    btnSubtlePop: 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
                                                     btnSubtleReg: 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50'
                                                 },
-                                                purple: { 
-                                                    bgPop: 'bg-purple-600 dark:bg-purple-900/40 border-purple-500 shadow-2xl shadow-purple-600/20 text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-purple-500/30',
-                                                    badgePop: 'bg-purple-500 text-white',
-                                                    textSubtlePop: 'text-purple-200',
-                                                    lineThroughPop: 'text-purple-300/70',
-                                                    checkPop: 'bg-purple-500 text-white',
-                                                    checkSubtle: 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400',
-                                                    btnSubtlePop: 'bg-white/15 hover:bg-white/25 text-purple-100 border border-white/20',
-                                                    btnSubtleReg: 'bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50'
+                                                green: { 
+                                                    bgPop: 'bg-green-50 dark:bg-green-900/20 border-green-400 shadow-xl shadow-green-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-green-500/30',
+                                                    badgePop: 'bg-green-500 text-white',
+                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
+                                                    checkPop: 'bg-green-500 text-white',
+                                                    checkSubtle: 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400',
+                                                    btnSubtlePop: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800',
+                                                    btnSubtleReg: 'bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800/50'
                                                 },
                                                 amber: { 
-                                                    bgPop: 'bg-amber-500 dark:bg-amber-900/40 border-amber-500 shadow-2xl shadow-amber-500/20 text-white transform md:-translate-y-4',
+                                                    bgPop: 'bg-amber-50 dark:bg-amber-900/20 border-amber-400 shadow-xl shadow-amber-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
                                                     bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-amber-500/30',
-                                                    badgePop: 'bg-amber-500 text-amber-900',
-                                                    textSubtlePop: 'text-amber-100',
-                                                    lineThroughPop: 'text-amber-200/70',
+                                                    badgePop: 'bg-amber-500 text-white',
+                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
                                                     checkPop: 'bg-amber-500 text-white',
                                                     checkSubtle: 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400',
-                                                    btnSubtlePop: 'bg-white/15 hover:bg-white/25 text-amber-100 border border-white/20',
+                                                    btnSubtlePop: 'bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800',
                                                     btnSubtleReg: 'bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50'
                                                 },
                                                 emerald: { 
-                                                    bgPop: 'bg-emerald-600 dark:bg-emerald-900/40 border-emerald-500 shadow-2xl shadow-emerald-600/20 text-white transform md:-translate-y-4',
+                                                    bgPop: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-400 shadow-xl shadow-emerald-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
                                                     bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-emerald-500/30',
                                                     badgePop: 'bg-emerald-500 text-white',
-                                                    textSubtlePop: 'text-emerald-200',
-                                                    lineThroughPop: 'text-emerald-300/70',
+                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
                                                     checkPop: 'bg-emerald-500 text-white',
                                                     checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400',
-                                                    btnSubtlePop: 'bg-white/15 hover:bg-white/25 text-emerald-100 border border-white/20',
+                                                    btnSubtlePop: 'bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800',
                                                     btnSubtleReg: 'bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
                                                 }
                                             };

@@ -27,60 +27,63 @@ router.get('/privacy-policy', (req, res) => {
 <body>
 <div class="container">
     <h1>Privacy Policy <span class="badge">Bluetick</span></h1>
-    <p class="subtitle">Last updated: February 2026</p>
+    <p class="subtitle">Last updated: May 2026</p>
 
-    <p>This Privacy Policy describes how we collect, use, and protect information when you use our WhatsApp messaging platform.</p>
+    <p>This Privacy Policy ("Policy") explains how our platform ("we", "us", "our") collects, uses, shares, and protects your personal data and Meta Platform Data when you use our WhatsApp Cloud messaging services.</p>
+    
+    <p>This Policy is designed to comply with applicable data protection laws and the strict requirements set forth by Meta Platforms, Inc. ("Meta") for developers and Tech Providers.</p>
 
     <h2>1. Information We Collect</h2>
-    <p>We collect the following types of information:</p>
+    <p>In order to provide our services, we collect and process the following categories of data:</p>
     <ul>
-        <li><strong>Account information:</strong> Name, email address, and business details when you register.</li>
-        <li><strong>WhatsApp data:</strong> Phone numbers, message content, and delivery status of messages sent through our platform.</li>
-        <li><strong>Usage data:</strong> Campaign statistics, contact lists, and message templates you create.</li>
-        <li><strong>Technical data:</strong> IP addresses, browser type, and device information for security purposes.</li>
+        <li><strong>Account Information:</strong> Your name, email address, billing information, and business details provided during registration.</li>
+        <li><strong>Meta Platform Data:</strong> Data obtained via Meta APIs, including WhatsApp Business Account IDs, phone number IDs, system user access tokens, messaging limits, and related profile information.</li>
+        <li><strong>End-User Messaging Data:</strong> Phone numbers, chat history, opt-in statuses, and message content sent or received through your WhatsApp Business API integration.</li>
+        <li><strong>Technical & Usage Data:</strong> IP addresses, browser types, device identifiers, and analytics regarding campaign performance and platform usage.</li>
     </ul>
 
     <h2>2. How We Use Your Information</h2>
+    <p>We strictly limit the use of your data to the following purposes:</p>
     <ul>
-        <li>To provide and operate our WhatsApp messaging services</li>
-        <li>To send WhatsApp messages on your behalf via the Meta WhatsApp Business API</li>
-        <li>To display message delivery and read status in your dashboard</li>
-        <li>To generate campaign analytics and reports</li>
-        <li>To maintain security and prevent fraud</li>
+        <li>To provide, operate, and maintain our WhatsApp messaging, broadcasting, and CRM services.</li>
+        <li>To authenticate your access and facilitate API communication with Meta's infrastructure.</li>
+        <li>To process transactions, send billing notices, and provide customer support.</li>
+        <li>To monitor system health, detect fraud, and prevent malicious activity.</li>
+    </ul>
+    <p><strong>Crucial Meta Compliance Notice:</strong> We do not use Meta Platform Data for any purpose other than providing the specific functionality you requested. We explicitly do not use Platform Data for surveillance, unauthorized profiling, or discriminatory practices.</p>
+
+    <h2>3. How We Share Your Information</h2>
+    <p><strong>We do not sell, rent, or monetize your personal data or Meta Platform Data.</strong> Your data is only shared under these specific circumstances:</p>
+    <ul>
+        <li><strong>Service Providers (Data Processors):</strong> We may share data with trusted third-party infrastructure providers (such as cloud hosting and database providers) solely for the purpose of operating our service. These providers are bound by strict confidentiality agreements.</li>
+        <li><strong>Meta Platforms, Inc.:</strong> As a WhatsApp Cloud API Tech Provider, necessary data is exchanged with Meta to facilitate message delivery and account management.</li>
+        <li><strong>Legal Requirements:</strong> We may disclose data if legally required by valid law enforcement requests, court orders, or to protect the safety and rights of our users.</li>
     </ul>
 
-    <h2>3. WhatsApp Business API</h2>
-    <p>Our platform uses the Meta WhatsApp Business API to send and receive messages. By using our service, you agree to comply with <a href="https://www.whatsapp.com/legal/business-policy" target="_blank">WhatsApp's Business Policy</a> and <a href="https://www.whatsapp.com/legal/terms-of-service" target="_blank">Terms of Service</a>.</p>
-    <p>Message content transmitted through our platform is subject to WhatsApp's own privacy practices. We do not sell message content to third parties.</p>
+    <h2>4. Data Security</h2>
+    <p>We implement robust, industry-standard technical and organizational measures to secure your data against unauthorized access, alteration, or destruction. This includes encryption in transit (HTTPS/TLS) and at rest, secure API token storage, and strict access controls based on the principle of least privilege.</p>
 
-    <h2>4. Data Sharing</h2>
-    <p>We do not sell, rent, or share your personal information with third parties except:</p>
+    <h2>5. Data Retention and Deletion</h2>
+    <p>We retain your data only for as long as your account is active or as necessary to provide our services and comply with legal obligations.</p>
     <ul>
-        <li>Meta Platforms Inc. (for WhatsApp API delivery)</li>
-        <li>When required by law or legal process</li>
-        <li>With your explicit consent</li>
+        <li>If you choose to delete your account, we will permanently delete or anonymize your personal data and Meta Platform Data within 30 days, unless legally required to retain it.</li>
+        <li>Meta Platform Data that is no longer needed for its original permitted purpose is automatically purged from our systems.</li>
     </ul>
 
-    <h2>5. Data Security</h2>
-    <p>We implement industry-standard security measures including encryption, access controls, and secure data storage to protect your information. However, no system is 100% secure and we cannot guarantee absolute security.</p>
-
-    <h2>6. Data Retention</h2>
-    <p>We retain your data for as long as your account is active or as needed to provide services. You may request deletion of your data at any time by contacting us.</p>
-
-    <h2>7. Your Rights</h2>
-    <p>You have the right to:</p>
+    <h2>6. Your Privacy Rights</h2>
+    <p>Depending on your jurisdiction, you hold several rights regarding your data:</p>
     <ul>
-        <li>Access and export your personal data</li>
-        <li>Correct inaccurate information</li>
-        <li>Delete your account and associated data</li>
-        <li>Opt-out of marketing communications</li>
+        <li><strong>Access and Portability:</strong> You may request a copy of the personal data we hold about you.</li>
+        <li><strong>Correction:</strong> You can update or correct inaccurate data via your dashboard.</li>
+        <li><strong>Deletion ("Right to be Forgotten"):</strong> You may request the complete deletion of your account and associated data.</li>
+        <li><strong>Revocation of Access:</strong> You can revoke our access to your Meta Platform Data at any time through your Meta Business Settings (Business Integrations).</li>
     </ul>
+
+    <h2>7. Compliance with Meta Terms</h2>
+    <p>We are a registered Tech Provider and strictly adhere to the <a href="https://developers.facebook.com/terms/" target="_blank">Meta Platform Terms</a> and the <a href="https://www.whatsapp.com/legal/business-policy" target="_blank">WhatsApp Business Policy</a>. We ensure that our data handling practices protect end-user privacy and prevent the unauthorized transfer of Meta Platform Data.</p>
 
     <h2>8. Contact Us</h2>
-    <p>If you have questions about this Privacy Policy, please contact us through your account dashboard or reach out to our support team.</p>
-
-    <h2>9. Changes to This Policy</h2>
-    <p>We may update this Privacy Policy from time to time. We will notify you of significant changes via email or in-app notification. Continued use of our service after changes constitutes acceptance of the updated policy.</p>
+    <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your data, please contact our Data Protection Officer / Support Team via the contact form on our website or through your dashboard.</p>
 </div>
 </body>
 </html>`);

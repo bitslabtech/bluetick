@@ -264,7 +264,7 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
     const isPopular = plan.isPopular;
     const themeColors = {
         blue: { bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200' },
-        purple: { bg: 'bg-purple-600', text: 'text-purple-600', light: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200' },
+        green: { bg: 'bg-green-600', text: 'text-green-600', light: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200' },
         amber: { bg: 'bg-amber-500', text: 'text-amber-600', light: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200' },
         emerald: { bg: 'bg-emerald-600', text: 'text-emerald-600', light: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200' },
     };
@@ -644,7 +644,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Color Theme</label>
                                             <select name="color" value={formData.color} onChange={handleChange} className="modern-input">
                                                 <option value="blue">Blue (Standard)</option>
-                                                <option value="purple">Purple (Premium)</option>
+                                                <option value="green">Green (Success)</option>
                                                 <option value="amber">Amber (Gold)</option>
                                                 <option value="emerald">Emerald (Growth)</option>
                                             </select>
@@ -1111,6 +1111,7 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                             <select name="color" value={formData.color} onChange={handleChange} className="input-field">
                                 <option value="indigo">Indigo</option>
                                 <option value="blue">Blue</option>
+                                <option value="green">Green</option>
                                 <option value="emerald">Emerald</option>
                                 <option value="amber">Amber</option>
                                 <option value="rose">Rose</option>

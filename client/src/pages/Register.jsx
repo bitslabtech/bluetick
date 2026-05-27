@@ -191,10 +191,7 @@ const Register = () => {
                             </div>
                         )}
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 min-h-[1.75rem]">
-                        {!publicSettingsLoading && (publicSettings?.appName || 'Bluetick')}
-                    </h2>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent mt-2">
                         Create Account
                     </h1>
                     <p className="text-slate-500 min-h-[1.5rem] flex items-center justify-center">

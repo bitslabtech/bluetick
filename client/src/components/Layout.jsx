@@ -60,9 +60,6 @@ export default function Layout() {
                         <div className="flex items-center justify-center rounded-lg bg-primary size-8 text-white shadow-lg shadow-blue-500/20" style={{ display: publicSettings?.logoUrl ? 'none' : 'flex' }}>
                             <span className="font-bold text-sm">Wa</span>
                         </div>
-                        <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px] max-w-full min-h-[1.5rem]">
-                            {!publicSettingsLoading && (publicSettings?.appName || 'Bluetick')}
-                        </h1>
                     </div>
                     <button
                         onClick={() => setIsSidebarOpen(true)}

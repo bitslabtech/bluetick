@@ -137,6 +137,8 @@ export const AuthProvider = ({ children }) => {
                 setUser(res.data);
                 if (res.data.origRole === 'Admin') {
                     setIsImpersonating(true);
+                } else {
+                    setIsImpersonating(false);
                 }
             }
         } catch (err) {

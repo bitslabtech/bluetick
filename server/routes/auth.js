@@ -371,6 +371,11 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
         const userData = user.toJSON();
         userData.planDetails = planDetails || null;
 
+        // Preserve impersonation flag if present
+        if (req.user.origRole === 'Admin') {
+            userData.origRole = 'Admin';
+        }
+
         res.json(userData);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -402,7 +407,14 @@ router.put('/profile', require('../middleware/auth'), async (req, res) => {
             attributes: { exclude: ['password', 'fbAccessToken', 'metaAdsToken', 'inviteToken'] }
         });
 
-        res.json(updatedUser);
+        const userData = updatedUser.toJSON();
+        
+        // Preserve impersonation flag if present
+        if (req.user.origRole === 'Admin') {
+            userData.origRole = 'Admin';
+        }
+
+        res.json(userData);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

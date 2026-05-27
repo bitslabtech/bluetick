@@ -347,12 +347,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                     <div className="flex items-center justify-center rounded-lg bg-primary size-10 text-white shadow-lg shadow-blue-500/20" style={{ display: publicSettings?.logoUrl ? 'none' : 'flex' }}>
                         <MessageSquare className="w-6 h-6" />
                     </div>
-                    <div className="flex flex-col">
-                        <h1 className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate max-w-[140px] max-w-full">
-                            {publicSettings?.appName || 'Bluetick'}
-                        </h1>
-                        <p className="text-slate-500 dark:text-text-secondary text-xs font-normal leading-normal truncate max-w-[140px] max-w-full">{publicSettings?.appTagline || 'Business API'}</p>
-                    </div>
                     {/* Mobile Close Button */}
                     <button
                         onClick={() => setIsOpen && setIsOpen(false)}
