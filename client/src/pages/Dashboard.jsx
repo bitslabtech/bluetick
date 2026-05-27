@@ -233,6 +233,28 @@ const Dashboard = () => {
         setFbLoading(true);
         showToast({ type: 'info', title: 'Connecting...', message: 'Opening WhatsApp Setup. Please allow popups if blocked.' });
 
+        // --- DEEP DEBUG: Listen for cross-origin messages from Facebook popup ---
+        const fbMessageListener = (event) => {
+            // Only log messages from facebook.com domains
+            if (event.origin && (event.origin.includes('facebook.com') || event.origin.includes('fb.com'))) {
+                console.log('[FB DEBUG] 📩 postMessage from Facebook:', event.origin);
+                console.log('[FB DEBUG] 📩 Message data:', typeof event.data === 'string' ? event.data : JSON.stringify(event.data, null, 2));
+            }
+        };
+        window.addEventListener('message', fbMessageListener);
+
+        // --- DEEP DEBUG: Check current login status before attempting login ---
+        console.log('[FB DEBUG] Checking FB.getLoginStatus before login...');
+        window.FB.getLoginStatus(function(statusResponse) {
+            console.log('[FB DEBUG] Current login status:', JSON.stringify(statusResponse, null, 2));
+        });
+
+        // --- DEEP DEBUG: Listen for global errors during the popup flow ---
+        const fbErrorListener = (errorEvent) => {
+            console.error('[FB DEBUG] 🔴 Window error during FB flow:', errorEvent.message, errorEvent.filename, errorEvent.lineno);
+        };
+        window.addEventListener('error', fbErrorListener);
+
         try {
             let callbackFired = false;
 
@@ -247,10 +269,14 @@ const Dashboard = () => {
                 scope: 'whatsapp_business_management,whatsapp_business_messaging'
             };
             console.log('[FB DEBUG] Calling FB.login() with options:', JSON.stringify(loginOptions, null, 2));
+            console.log('[FB DEBUG] Current page URL:', window.location.href);
+            console.log('[FB DEBUG] Current page origin:', window.location.origin);
 
             window.FB.login(function (response) {
                 callbackFired = true;
                 clearTimeout(window.fbSafetyTimeout);
+                window.removeEventListener('message', fbMessageListener);
+                window.removeEventListener('error', fbErrorListener);
                 console.log('[FB DEBUG] ✅ FB.login callback FIRED');
                 console.log('[FB DEBUG] response.status =', response?.status);
                 console.log('[FB DEBUG] response.authResponse =', JSON.stringify(response?.authResponse, null, 2));
@@ -272,27 +298,36 @@ const Dashboard = () => {
 
             console.log('[FB DEBUG] FB.login() call returned (popup should be opening now)');
 
-            // Safety timeout — if callback hasn't fired in 15s, the popup was likely blocked
+            // Safety timeout — if callback hasn't fired in 20s, show diagnostics
             window.fbSafetyTimeout = setTimeout(() => {
+                window.removeEventListener('message', fbMessageListener);
+                window.removeEventListener('error', fbErrorListener);
                 if (!callbackFired) {
-                    console.error('[FB DEBUG] ❌ SAFETY TIMEOUT — FB.login callback never fired after 15s');
-                    console.log('[FB DEBUG] This usually means:');
-                    console.log('[FB DEBUG]   1. Popup was blocked by browser');
-                    console.log('[FB DEBUG]   2. Ad blocker blocked the Facebook iframe');
-                    console.log('[FB DEBUG]   3. config_id is invalid');
-                    console.log('[FB DEBUG]   4. FB app is not properly configured');
+                    console.error('[FB DEBUG] ❌ SAFETY TIMEOUT — FB.login callback never fired after 20s');
+                    console.log('[FB DEBUG] ======= DIAGNOSIS =======');
+                    console.log('[FB DEBUG] The popup opened but Facebook rejected the request.');
+                    console.log('[FB DEBUG] Most likely causes:');
+                    console.log('[FB DEBUG]   1. config_id (' + import.meta.env.VITE_FB_CONFIG_ID + ') is invalid or does not exist');
+                    console.log('[FB DEBUG]   2. The FB App (ID: ' + import.meta.env.VITE_FB_APP_ID + ') is in Development mode — switch to Live');
+                    console.log('[FB DEBUG]   3. "Facebook Login for Business" product is not added to the app');
+                    console.log('[FB DEBUG]   4. Valid OAuth Redirect URIs do not include: ' + window.location.origin);
+                    console.log('[FB DEBUG]   5. The WhatsApp Embedded Signup configuration is incomplete');
+                    console.log('[FB DEBUG]   6. The app does not have "whatsapp_business_management" permission approved');
+                    console.log('[FB DEBUG] ===========================');
                     setFbLoading(false);
                     showModal({
-                        type: 'warning',
-                        title: 'Popup May Be Blocked',
-                        message: 'The Facebook login popup did not open or was closed. Please check:\n\n1. Allow popups for this site in your browser settings\n2. Disable any ad blocker or privacy extension\n3. Make sure third-party cookies are enabled\n\nThen try again.',
+                        type: 'error',
+                        title: 'Facebook App Configuration Error',
+                        message: `The Facebook login popup opened but closed without completing. This is a Facebook App configuration issue.\n\nPlease verify in developers.facebook.com:\n\n1. App ID: ${import.meta.env.VITE_FB_APP_ID} is correct\n2. Config ID: ${import.meta.env.VITE_FB_CONFIG_ID} is valid\n3. App is in "Live" mode (not Development)\n4. "Facebook Login for Business" product is added\n5. OAuth Redirect URI includes: ${window.location.origin}\n6. WhatsApp > Embedded Signup configuration is complete`,
                         confirmText: 'OK'
                     });
                 }
-            }, 15000);
+            }, 20000);
 
         } catch (err) {
             setFbLoading(false);
+            window.removeEventListener('message', fbMessageListener);
+            window.removeEventListener('error', fbErrorListener);
             console.error('[FB DEBUG] ❌ FB.login() THREW an exception:', err);
             showToast({ type: 'error', title: 'Connection Error', message: 'Failed to open WhatsApp signup. Please check console for details.' });
         }
