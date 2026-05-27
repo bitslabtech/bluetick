@@ -33,7 +33,7 @@ export default function WhatsAppSettings() {
     const [tokenCopied, setTokenCopied] = useState(false);
     // Public base URL (ngrok or production domain) — persisted in localStorage
     const [publicBaseUrl, setPublicBaseUrl] = useState(
-        () => localStorage.getItem('publicBaseUrl') || ''
+        () => localStorage.getItem('publicBaseUrl') || import.meta.env.VITE_API_URL || ''
     );
 
     const webhookPath = user?.id ? `/api/webhook/${user.id}` : '/api/webhook/...';
