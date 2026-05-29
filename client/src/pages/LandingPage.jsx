@@ -2088,8 +2088,8 @@ export default function LandingPage() {
                                                     </div>
 
                                                     {ind.image ? (
-                                                        <div className="w-full h-36 md:h-48 rounded-2xl overflow-hidden">
-                                                            <img loading="lazy" src={ind.image} alt={ind.title} className="w-full h-full object-cover" />
+                                                        <div className="w-full rounded-2xl overflow-hidden">
+                                                            <img loading="lazy" src={ind.image} alt={ind.title} className="w-full h-auto object-contain rounded-2xl" />
                                                         </div>
                                                     ) : (
                                                         <div className={`w-full h-36 md:h-48 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} opacity-15 dark:opacity-10`} />

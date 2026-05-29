@@ -46,6 +46,7 @@ const Register = () => {
     const [phone, setPhone] = useState('+91');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState('');
     const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
     const [selectedPlan, setSelectedPlan] = useState(null);
@@ -148,7 +149,9 @@ const Register = () => {
 
         // Pass selected plan ID, trial intent, and phone to backend
         const isTrial = selectedPlan?.startTrial || false;
+        setIsSubmitting(true);
         const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial, turnstileToken);
+        setIsSubmitting(false);
 
         if (res.success) {
             // Clear persisted codes so they can't be reused
@@ -322,13 +325,15 @@ const Register = () => {
 
                     <button
                         type="submit"
-                        className="w-full py-2.5 bg-primary text-white rounded-lg hover:opacity-90 font-medium transition-colors shadow-sm shadow-blue-500/20"
+                        disabled={isSubmitting}
+                        className="w-full py-2.5 bg-primary text-white rounded-lg hover:opacity-90 font-medium transition-colors shadow-sm shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                        {selectedPlan?.startTrial
+                        {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {isSubmitting ? 'Processing...' : (selectedPlan?.startTrial
                             ? `🎉 Start ${selectedPlan.trialDays}-Day Free Trial`
                             : selectedPlan && selectedPlan.price > 0
                             ? 'Continue to Payment'
-                            : 'Create Account'}
+                            : 'Create Account')}
                     </button>
                 </form>
 

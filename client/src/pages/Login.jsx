@@ -9,6 +9,7 @@ const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState('');
     const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
     const { login } = useAuth();
@@ -30,7 +31,9 @@ const Login = () => {
             return;
         }
 
+        setIsSubmitting(true);
         const res = await login(email, password, turnstileToken);
+        setIsSubmitting(false);
         if (res.success) {
             const isAdmin = res.user?.isAdmin || (res.token && JSON.parse(atob(res.token.split('.')[1])).user.isAdmin);
             const defaultDest = isAdmin ? '/superadmin' : '/dashboard';
@@ -101,9 +104,11 @@ const Login = () => {
 
                     <button
                         type="submit"
-                        className="w-full py-2.5 bg-primary text-white rounded-lg hover:opacity-90 font-medium transition-colors shadow-sm shadow-blue-500/20"
+                        disabled={isSubmitting}
+                        className="w-full py-2.5 bg-primary text-white rounded-lg hover:opacity-90 font-medium transition-colors shadow-sm shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                        Sign In
+                        {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {isSubmitting ? 'Signing In...' : 'Sign In'}
                     </button>
                 </form>
 

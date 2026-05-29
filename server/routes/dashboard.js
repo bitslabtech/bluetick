@@ -252,6 +252,15 @@ router.get('/stats', async (req, res) => {
         const readRate = totalAttempted > 0 ? ((readCount / totalAttempted) * 100).toFixed(1) : 0;
         const failedRate = totalAttempted > 0 ? ((failedCount / totalAttempted) * 100).toFixed(1) : 0;
 
+        let waMessagingThreshold = 250;
+        let parsedTier = '250 Limit';
+        if (user.metaTier) {
+            if (user.metaTier.includes('1K')) { waMessagingThreshold = 1000; parsedTier = '1K Limit'; }
+            else if (user.metaTier.includes('10K')) { waMessagingThreshold = 10000; parsedTier = '10K Limit'; }
+            else if (user.metaTier.includes('100K')) { waMessagingThreshold = 100000; parsedTier = '100K Limit'; }
+            else if (user.metaTier.includes('UNLIMITED')) { waMessagingThreshold = 9999999; parsedTier = 'Unlimited'; }
+        }
+
         res.json({
             contactsCount,
             templatesCount,
@@ -274,7 +283,20 @@ router.get('/stats', async (req, res) => {
             recentCampaigns,
             isWhatsappConfigured,
             hourlyDistribution,
-            hasActiveBots
+            hasActiveBots,
+            // WhatsApp Account Stats
+            waAccountStatus: isWhatsappConfigured ? 'CONNECTED' : 'DISCONNECTED',
+            waAccountQuality: isWhatsappConfigured ? (user.metaQualityRating || 'GREEN') : 'UNKNOWN',
+            waMessagingTier: isWhatsappConfigured ? parsedTier : 'N/A',
+            waMessagingProgress: monthlyUsageCount,
+            waMessagingThreshold: isWhatsappConfigured ? waMessagingThreshold : 0,
+            waBusinessVerified: isWhatsappConfigured ? (
+                user.metaNameStatus === 'APPROVED' || 
+                user.metaNameStatus === 'AVAILABLE' ||
+                user.metaNameStatus === 'approved' ||
+                user.metaNameStatus === 'available' ||
+                !!user.metaVerifiedName
+            ) : false
         });
     } catch (err) {
         console.error("Error fetching stats:", err);

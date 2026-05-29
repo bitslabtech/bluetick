@@ -5,7 +5,7 @@ import {
     Send, CheckCheck, Eye, MessageSquare, Users,
     UserPlus, FilePlus, CreditCard, MoreVertical, FileText,
     Calendar, ChevronDown, CheckCircle2, AlertTriangle, XCircle, Info, MessageCircle, Zap,
-    ShoppingBag
+    ShoppingBag, ShieldCheck, Activity, BarChart2, BadgeCheck, Smartphone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
@@ -38,10 +38,16 @@ const Dashboard = () => {
         readCount: 0,
         readRate: 0,
         recentCampaigns: [],
-        isWhatsappConfigured: true,
+        isWhatsappConfigured: false,
         monthlyUsageCount: 0,
         aiTokenBalance: 0,
-        aiTokensAllowance: 0
+        aiTokensAllowance: 0,
+        waAccountStatus: 'DISCONNECTED',
+        waAccountQuality: 'UNKNOWN',
+        waMessagingTier: 'N/A',
+        waMessagingProgress: 0,
+        waMessagingThreshold: 0,
+        waBusinessVerified: false
     });
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -52,6 +58,7 @@ const Dashboard = () => {
     const [dateRange, setDateRange] = useState('7d'); // 1d, 7d, 1m, 3m, custom
     const [customStart, setCustomStart] = useState(new Date(new Date().setDate(new Date().getDate() - 7)));
     const [customEnd, setCustomEnd] = useState(new Date());
+    const [refreshingStatus, setRefreshingStatus] = useState(false);
 
     useEffect(() => {
         // Initialize Facebook JS SDK for Connect Button
@@ -141,29 +148,53 @@ const Dashboard = () => {
         initFBSDK().catch(err => console.warn('[FB DEBUG] initFBSDK promise rejected:', err.message));
     }, []);
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/stats?range=${dateRange}${dateRange === 'custom' ? `&startDate=${customStart.toISOString()}&endDate=${customEnd.toISOString()}` : ''}`);
-                setStats(prev => ({
-                    ...prev,
-                    ...res.data,
-                    totalMessages: res.data.totalMessages ?? res.data.campaignsCount ?? 0,
-                    deliveryRate: res.data.deliveryRate ?? 0,
-                    readRate: res.data.readRate ?? 0,
-                    deliveredCount: res.data.deliveredCount ?? 0,
-                    readCount: res.data.readCount ?? 0,
-                    isWhatsappConfigured: res.data.isWhatsappConfigured ?? true,
-                    monthlyUsageCount: res.data.monthlyUsageCount ?? 0
-                }));
-            } catch (err) {
-                console.error("Error fetching stats:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStats();
+    const handleRefreshWaStatus = async () => {
+        try {
+            setRefreshingStatus(true);
+            const token = localStorage.getItem('token');
+            await axios.get(`${import.meta.env.VITE_API_URL}/api/whatsapp/status`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            showToast({ type: 'success', title: 'WhatsApp', message: 'Status refreshed from Meta successfully' });
+            fetchStats(); // re-fetch stats to update UI
+        } catch (err) {
+            console.error(err);
+            showToast({ type: 'error', title: 'WhatsApp', message: 'Failed to refresh status' });
+        } finally {
+            setRefreshingStatus(false);
+        }
+    };
+
+    const fetchStats = useCallback(async () => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/stats?range=${dateRange}${dateRange === 'custom' ? `&startDate=${customStart.toISOString()}&endDate=${customEnd.toISOString()}` : ''}`);
+            setStats(prev => ({
+                ...prev,
+                ...res.data,
+                totalMessages: res.data.totalMessages ?? res.data.campaignsCount ?? 0,
+                deliveryRate: res.data.deliveryRate ?? 0,
+                readRate: res.data.readRate ?? 0,
+                deliveredCount: res.data.deliveredCount ?? 0,
+                readCount: res.data.readCount ?? 0,
+                isWhatsappConfigured: res.data.isWhatsappConfigured ?? false,
+                monthlyUsageCount: res.data.monthlyUsageCount ?? 0,
+                waAccountStatus: res.data.waAccountStatus ?? 'DISCONNECTED',
+                waAccountQuality: res.data.waAccountQuality ?? 'UNKNOWN',
+                waMessagingTier: res.data.waMessagingTier ?? 'N/A',
+                waMessagingProgress: res.data.waMessagingProgress ?? 0,
+                waMessagingThreshold: res.data.waMessagingThreshold ?? 0,
+                waBusinessVerified: res.data.waBusinessVerified ?? false
+            }));
+        } catch (err) {
+            console.error("Error fetching stats:", err);
+        } finally {
+            setLoading(false);
+        }
     }, [dateRange, customStart, customEnd]);
+
+    useEffect(() => {
+        fetchStats();
+    }, [fetchStats]);
 
     useEffect(() => {
         const fetchChartData = async () => {
@@ -254,7 +285,7 @@ const Dashboard = () => {
                 window.removeEventListener('error', fbErrorListener);
                 console.log('[FB DEBUG] ✅ FB.login callback FIRED');
                 console.log('[FB DEBUG] response.status =', response?.status);
-                
+
                 if (response.authResponse && response.authResponse.code) {
                     console.log('[FB DEBUG] ✅ Got auth code, calling exchangeFbCode()...');
                     exchangeFbCode(response.authResponse.code);
@@ -379,7 +410,7 @@ const Dashboard = () => {
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
-            <TopHeader 
+            <TopHeader
                 title={`Welcome back, ${user?.name?.split(' ')[0]}`}
                 subtitle="Here is your messaging performance overview."
             />
@@ -690,66 +721,164 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                        {/* Quick Actions */}
-                        <div className="flex flex-col gap-4">
-                            <h3 className="text-slate-900 dark:text-white text-lg font-bold">Quick Actions</h3>
-                            <div className="grid grid-cols-1 gap-2 flex-1">
-                                <button
-                                    onClick={() => navigate('/contacts', { state: { openAddContact: true } })}
-                                    className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                        {/* Right Column: WA Stats & Quick Actions */}
+                        <div className="flex flex-col gap-6">
+
+                            {/* WhatsApp Account Stats (2x2) */}
+                            <div className="flex flex-col gap-3">
+                                <h3 className="text-slate-900 dark:text-white text-lg font-bold">WhatsApp Stats</h3>
+                                <div className="grid grid-cols-2 gap-3">
+
+                                    {/* 1. Account Status */}
+                                    <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
+                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/5 rounded-full blur-xl"></div>
+                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Connection</p>
+                                        <div className="flex items-center gap-2 mt-auto">
+                                            {stats.waAccountStatus === 'CONNECTED' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-md text-[11px] font-bold">
+                                                    <div className="size-1.5 rounded-full bg-green-500"></div>
+                                                    Connected
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-md text-[11px] font-bold">
+                                                    <div className="size-1.5 rounded-full bg-red-500"></div>
+                                                    Disconnected
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Account Quality */}
+                                    <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
+                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl"></div>
+                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Quality Rating</p>
+                                        <div className="flex items-center gap-2 mt-auto">
+                                            {stats.waAccountQuality === 'GREEN' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold">
+                                                    <Activity className="w-3 h-3" /> High
+                                                </div>
+                                            ) : stats.waAccountQuality === 'YELLOW' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-md text-[11px] font-bold">
+                                                    <Activity className="w-3 h-3" /> Medium
+                                                </div>
+                                            ) : stats.waAccountQuality === 'RED' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-md text-[11px] font-bold">
+                                                    <AlertTriangle className="w-3 h-3" /> Low
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-md text-[11px] font-bold">
+                                                    <Activity className="w-3 h-3" /> N/A
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Messaging Limit & Progress */}
+                                    <div className="col-span-2 flex flex-col p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider">Meta Messaging Limit (in 24 hrs)</p>
+                                            <span className="text-primary font-bold text-xs bg-primary/10 px-2 py-0.5 rounded-md">{stats.waMessagingTier}</span>
+                                        </div>
+                                        <div className="flex items-end justify-between mt-1 mb-2">
+                                            <div className="text-[11px] text-slate-500 dark:text-text-secondary">
+                                                <span className="text-slate-900 dark:text-white font-bold text-sm mr-1">{stats.waMessagingProgress.toLocaleString()}</span>
+                                                {stats.waAccountStatus === 'CONNECTED' ? `/ ${stats.waMessagingThreshold.toLocaleString()} to upgrade` : 'messages sent'}
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-slate-200 dark:bg-[#2f455a] h-1.5 rounded-full overflow-hidden">
+                                            {stats.waAccountStatus === 'CONNECTED' && (
+                                                <div
+                                                    className="bg-primary h-full rounded-full transition-all duration-1000"
+                                                    style={{ width: `${Math.min((stats.waMessagingProgress / Math.max(stats.waMessagingThreshold, 1)) * 100, 100)}%` }}
+                                                ></div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 4. Business Verification */}
+                                    <div className="col-span-2 flex items-center justify-between p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a]">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`p-1.5 rounded-lg ${stats.waAccountStatus === 'CONNECTED' && stats.waBusinessVerified ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`}>
+                                                <BadgeCheck className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-900 dark:text-white font-bold text-xs leading-tight">Meta Business Profile</p>
+                                                <p className="text-slate-500 dark:text-text-secondary text-[10px]">{stats.waAccountStatus === 'CONNECTED' ? (stats.waBusinessVerified ? 'Verified Account' : 'Unverified Account') : 'Not Connected'}</p>
+                                            </div>
+                                        </div>
+                                        {stats.waAccountStatus === 'CONNECTED' ? (
+                                            stats.waBusinessVerified ? (
+                                                <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                                            ) : (
+                                                <button 
+                                                    onClick={handleRefreshWaStatus}
+                                                    disabled={refreshingStatus}
+                                                    className="text-[10px] font-bold bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#2f455a] px-2 py-1 rounded shadow-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50"
+                                                >
+                                                    {refreshingStatus ? 'Syncing...' : 'Sync Status'}
+                                                </button>
+                                            )
+                                        ) : (
+                                            <span className="text-[10px] font-bold text-slate-400">N/A</span>
+                                        )}
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            {/* Quick Actions (2x2) */}
+                            <div className="flex flex-col gap-3">
+                                <h3 className="text-slate-900 dark:text-white text-lg font-bold">Quick Actions</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => navigate('/contacts', { state: { openAddContact: true } })}
+                                        className="flex flex-col items-start p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
+                                    >
+                                        <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors mb-2">
                                             <UserPlus className="w-5 h-5" />
                                         </div>
                                         <div className="text-left">
-                                            <p className="text-slate-900 dark:text-white font-medium text-sm leading-tight">Add Contact</p>
-                                            <p className="text-slate-500 dark:text-text-secondary text-[11px] leading-tight">Upload CSV or manual entry</p>
+                                            <p className="text-slate-900 dark:text-white font-bold text-xs leading-tight mb-1">Add Contact</p>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] leading-tight">CSV or manual</p>
                                         </div>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={() => navigate('/templates', { state: { openCreateTemplate: true } })}
-                                    className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/templates', { state: { openCreateTemplate: true } })}
+                                        className="flex flex-col items-start p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
+                                    >
+                                        <div className="p-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-colors mb-2">
                                             <FilePlus className="w-5 h-5" />
                                         </div>
                                         <div className="text-left">
-                                            <p className="text-slate-900 dark:text-white font-medium text-sm leading-tight">Create Template</p>
-                                            <p className="text-slate-500 dark:text-text-secondary text-[11px] leading-tight">Submit for Meta approval</p>
+                                            <p className="text-slate-900 dark:text-white font-bold text-xs leading-tight mb-1">Create Template</p>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] leading-tight">Submit to Meta</p>
                                         </div>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={() => navigate('/marketplace')}
-                                    className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/marketplace')}
+                                        className="flex flex-col items-start p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
+                                    >
+                                        <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg group-hover:bg-emerald-500 group-hover:text-white transition-colors mb-2">
                                             <ShoppingBag className="w-5 h-5" />
                                         </div>
                                         <div className="text-left">
-                                            <p className="text-slate-900 dark:text-white font-medium text-sm leading-tight">Addon Marketplace</p>
-                                            <p className="text-slate-500 dark:text-text-secondary text-[11px] leading-tight">Unlock powerful add-ons to supercharge your workflow</p>
+                                            <p className="text-slate-900 dark:text-white font-bold text-xs leading-tight mb-1">Addon Market</p>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] leading-tight">Unlock powerful tools</p>
                                         </div>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={() => navigate('/support')}
-                                    className="flex items-center justify-between p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg group-hover:bg-rose-500 group-hover:text-white transition-colors">
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/support')}
+                                        className="flex flex-col items-start p-3 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-[#2f455a] rounded-xl border border-slate-200 dark:border-[#2f455a] transition-all group shadow-sm"
+                                    >
+                                        <div className="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg group-hover:bg-rose-500 group-hover:text-white transition-colors mb-2">
                                             <HelpCircle className="w-5 h-5" />
                                         </div>
                                         <div className="text-left">
-                                            <p className="text-slate-900 dark:text-white font-medium text-sm leading-tight">Support</p>
-                                            <p className="text-slate-500 dark:text-text-secondary text-[11px] leading-tight">Get help & assistance</p>
+                                            <p className="text-slate-900 dark:text-white font-bold text-xs leading-tight mb-1">Support</p>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] leading-tight">Get assistance</p>
                                         </div>
-                                    </div>
-                                </button>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

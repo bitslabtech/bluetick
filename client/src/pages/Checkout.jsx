@@ -16,6 +16,7 @@ const Checkout = () => {
     const [upgradeData, setUpgradeData] = useState(null);
     const [loading, setLoading] = useState(true);
     const { initiatePayment, isProcessing } = usePayment();
+    const [processing, setProcessing] = useState(false);
 
     // Coupons
     const [couponCode, setCouponCode] = useState('');
@@ -121,7 +122,7 @@ const Checkout = () => {
                 <button
                     onClick={() => navigate(-1)}
                     className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white mb-8 transition-colors font-medium"
-                    disabled={processing}
+                    disabled={processing || isProcessing}
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Back to Plans
@@ -310,10 +311,10 @@ const Checkout = () => {
                             {/* Razorpay CTA */}
                             <button
                                 onClick={handlePayment}
-                                disabled={processing}
+                                disabled={processing || isProcessing}
                                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                {processing ? (
+                                {(processing || isProcessing) ? (
                                     <><Loader className="w-5 h-5 animate-spin" /> Opening Payment...</>
                                 ) : (
                                     <><Shield className="w-5 h-5" /> Pay {sym}{appliedCoupon ? appliedCoupon.finalPrice.toLocaleString() : (upgradeData ? upgradeData.finalPayableAmount.toLocaleString() : parseFloat(plan.price).toLocaleString())}</>
@@ -333,7 +334,7 @@ const Checkout = () => {
                                         setProcessing(false);
                                     }
                                 }}
-                                disabled={processing}
+                                disabled={processing || isProcessing}
                                 className="w-full mt-3 py-3.5 bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 rounded-xl font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors text-sm disabled:opacity-50 border border-rose-200 dark:border-rose-800/30 shadow-sm flex items-center justify-center"
                             >
                                 Downgrade to Free or Choose a Different Plan
