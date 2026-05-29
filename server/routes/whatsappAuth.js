@@ -81,6 +81,29 @@ router.post('/exchange-token', auth, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        // 4. Fetch Phone Number details (Tier, Quality Rating)
+        console.log('[WA DEBUG] Step 3: Fetching Phone Numbers for WABA...');
+        try {
+            const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}/phone_numbers`, {
+                params: {
+                    fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
+                    access_token: accessToken
+                }
+            });
+            if (phoneResponse.data?.data?.length > 0) {
+                const phoneData = phoneResponse.data.data[0];
+                console.log('[WA DEBUG] Phone Data fetched:', JSON.stringify(phoneData));
+                user.metaPhoneNumberId = phoneData.id;
+                user.metaDisplayPhoneNumber = phoneData.display_phone_number;
+                user.metaQualityRating = phoneData.quality_rating;
+                user.metaTier = phoneData.messaging_limit_tier;
+                user.metaVerifiedName = phoneData.verified_name;
+                user.metaNameStatus = phoneData.name_status;
+            }
+        } catch (phoneErr) {
+            console.error('[WA DEBUG] Error fetching phone numbers:', phoneErr.response?.data || phoneErr.message);
+        }
+
         user.fbAccessToken = accessToken;
         if (wabaId) user.wabaId = wabaId;
         await user.save();
@@ -89,7 +112,17 @@ router.post('/exchange-token', auth, async (req, res) => {
 
         res.json({
             message: 'WhatsApp Business connected successfully',
-            wabaId: user.wabaId
+            wabaId: user.wabaId,
+            user: {
+                fbAccessToken: user.fbAccessToken,
+                wabaId: user.wabaId,
+                metaPhoneNumberId: user.metaPhoneNumberId,
+                metaDisplayPhoneNumber: user.metaDisplayPhoneNumber,
+                metaQualityRating: user.metaQualityRating,
+                metaTier: user.metaTier,
+                metaVerifiedName: user.metaVerifiedName,
+                metaNameStatus: user.metaNameStatus
+            }
         });
 
     } catch (error) {
@@ -105,6 +138,51 @@ router.post('/exchange-token', auth, async (req, res) => {
     }
 });
 
+// GET /api/whatsapp/status
+// Fetches the latest tier and quality rating from Meta
+router.get('/status', auth, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        if (!user || !user.fbAccessToken || !user.wabaId) {
+            return res.status(400).json({ error: 'WhatsApp is not fully connected' });
+        }
+
+        const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${user.wabaId}/phone_numbers`, {
+            params: {
+                fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
+                access_token: user.fbAccessToken
+            }
+        });
+
+        if (phoneResponse.data?.data?.length > 0) {
+            const phoneData = phoneResponse.data.data[0];
+            user.metaPhoneNumberId = phoneData.id;
+            user.metaDisplayPhoneNumber = phoneData.display_phone_number;
+            user.metaQualityRating = phoneData.quality_rating;
+            user.metaTier = phoneData.messaging_limit_tier;
+            user.metaVerifiedName = phoneData.verified_name;
+            user.metaNameStatus = phoneData.name_status;
+            await user.save();
+        }
+
+        res.json({
+            message: 'Status refreshed successfully',
+            user: {
+                fbAccessToken: user.fbAccessToken,
+                wabaId: user.wabaId,
+                metaPhoneNumberId: user.metaPhoneNumberId,
+                metaDisplayPhoneNumber: user.metaDisplayPhoneNumber,
+                metaQualityRating: user.metaQualityRating,
+                metaTier: user.metaTier,
+                metaVerifiedName: user.metaVerifiedName,
+                metaNameStatus: user.metaNameStatus
+            }
+        });
+    } catch (error) {
+        console.error('[WA DEBUG] Error refreshing Meta status:', error.response?.data || error.message);
+        res.status(500).json({ error: 'Failed to refresh WhatsApp status' });
+    }
+});
 
 // DELETE /api/whatsapp/disconnect
 // Disconnects WhatsApp by clearing Meta tokens and WABA ID
@@ -117,6 +195,12 @@ router.delete('/disconnect', auth, async (req, res) => {
 
         user.fbAccessToken = null;
         user.wabaId = null;
+        user.metaPhoneNumberId = null;
+        user.metaDisplayPhoneNumber = null;
+        user.metaQualityRating = null;
+        user.metaTier = null;
+        user.metaVerifiedName = null;
+        user.metaNameStatus = null;
         await user.save();
 
         res.json({ message: 'WhatsApp disconnected successfully' });

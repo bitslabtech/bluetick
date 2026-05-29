@@ -27,7 +27,7 @@ const AdminAddons = () => {
     const fetchAddons = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('/api/admin/addons', { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/addons`);
             setAddons(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
             console.error(error);
@@ -46,9 +46,7 @@ const AdminAddons = () => {
 
         setUploading(true);
         try {
-            await axios.post('/api/admin/addons/upload', formData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/addons/upload`, formData);
             toast.success('Add-on deployed successfully!');
             setUploadModalOpen(false);
             setUploadFile(null);
@@ -64,7 +62,7 @@ const AdminAddons = () => {
     const handleDelete = async (id, name) => {
         if (!window.confirm(`Are you extremely sure you want to permanently delete the ${name} add-on? This may break active subscriptions!`)) return;
         try {
-            await axios.delete(`/api/admin/addons/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/admin/addons/${id}`);
             toast.success('Add-on terminated');
             fetchAddons();
         } catch (error) {

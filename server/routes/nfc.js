@@ -9,11 +9,22 @@ const auth = require('../middleware/auth');
 // All routes require user authentication
 router.use(auth);
 
+const crypto = require('crypto');
+const Settings = require('../models/Settings');
+const User = require('../models/User');
+const Transaction = require('../models/Transaction');
+const SystemNotification = require('../models/SystemNotification');
+const AdminNotification = require('../models/AdminNotification');
+const PaymentService = require('../services/PaymentService');
+
 // @route   POST /api/nfc/order
-// @desc    Submit a purchase order for NFC products
+// @desc    Submit a purchase order for NFC products and initialize checkout
 router.post('/order', async (req, res) => {
     try {
         const { productType, quantity, shippingAddress, contactNumber, amount } = req.body;
+        
+        // Find user for email prefill
+        const user = await User.findByPk(req.user.id);
         
         const order = await NfcOrder.create({
             userId: req.user.id,
@@ -23,13 +34,91 @@ router.post('/order', async (req, res) => {
             contactNumber,
             amount: amount || 0,
             status: 'pending',
-            paymentStatus: 'pending' // Usually payment integration updates this
+            paymentStatus: 'pending'
         });
 
-        res.json({ message: 'Order placed successfully', order });
+        const { successUrl, cancelUrl } = req.body;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        
+        const paymentIntent = await PaymentService.createPaymentIntent({
+            amount: amount || 0,
+            currency: 'INR',
+            description: `NFC Product - ${productType}`,
+            orderNotes: { userId: req.user.id, orderId: order.id },
+            userEmail: user.email,
+            userName: user.name,
+            successUrl: successUrl || `${frontendUrl}/dashboard?nfc_success=true&order_id=${order.id}`,
+            cancelUrl: cancelUrl || `${frontendUrl}/dashboard?nfc_canceled=true`
+        });
+
+        order.paymentGateway = paymentIntent.gateway;
+        order.paymentSessionId = paymentIntent.orderId || paymentIntent.sessionId || paymentIntent.transactionId;
+        await order.save();
+
+        return res.json({
+            ...paymentIntent,
+            nfcOrderId: order.id,
+            prefill: { name: user.name, email: user.email, contact: contactNumber }
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to create order.' });
+    }
+});
+
+// @route   POST /api/nfc/verify-payment
+// @desc    Verify payment signature / session and mark order paid
+router.post('/verify-payment', async (req, res) => {
+    try {
+        const { gateway, payload, nfcOrderId } = req.body;
+        
+        const order = await NfcOrder.findByPk(nfcOrderId);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        if (order.paymentStatus === 'paid') return res.json({ success: true, message: 'Already paid' });
+
+        try {
+            await PaymentService.verifyPayment({ gateway, payload });
+        } catch (e) {
+            order.paymentStatus = 'failed';
+            await order.save();
+            return res.status(400).json({ error: e.message || 'Payment verification failed.' });
+        }
+
+        // Signature/Session is valid, mark order paid!
+        let transactionReference = payload.razorpay_order_id || payload.session_id || payload.txn_id || payload.order_id || order.paymentSessionId || 'unknown';
+
+        order.paymentStatus = 'paid';
+        order.paymentId = transactionReference;
+        await order.save();
+
+        // Log Transaction for global analytics
+        await Transaction.create({
+            userId: order.userId,
+            amount: order.amount,
+            currency: 'INR',
+            planName: `Store: ${order.productType}`,
+            status: 'COMPLETED',
+            paymentGateway: gateway,
+            transactionReference: transactionReference
+        });
+        
+        await SystemNotification.create({
+            userId: order.userId,
+            title: 'NFC Order Confirmed',
+            message: `Your payment for ${order.productType} was successful. We will process your order soon.`,
+            type: 'info'
+        });
+
+        await AdminNotification.create({
+            title: 'New NFC Product Order',
+            message: `A new NFC order for ${order.productType} has been placed and paid successfully.`,
+            type: 'info'
+        });
+        
+        return res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Payment verification failed' });
     }
 });
 

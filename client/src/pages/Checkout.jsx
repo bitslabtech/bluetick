@@ -4,18 +4,9 @@ import axios from 'axios';
 import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 
-const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
+import { usePayment } from '../hooks/usePayment';
 
-// Dynamically load Razorpay checkout script
-const loadRazorpayScript = () =>
-    new Promise((resolve) => {
-        if (window.Razorpay) return resolve(true);
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = () => resolve(true);
-        script.onerror = () => resolve(false);
-        document.body.appendChild(script);
-    });
+const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 const currencySymbol = (c) => ({ USD: '$', INR: '₹', EUR: '€', GBP: '£' }[c] || c || '₹');
 const intervalLabel = (i) => i === 'year' ? 'per year' : i === 'lifetime' ? 'one-time' : 'per month';
@@ -24,7 +15,7 @@ const Checkout = () => {
     const [plan, setPlan] = useState(null);
     const [upgradeData, setUpgradeData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [processing, setProcessing] = useState(false);
+    const { initiatePayment, isProcessing } = usePayment();
 
     // Coupons
     const [couponCode, setCouponCode] = useState('');
@@ -85,88 +76,30 @@ const Checkout = () => {
     };
 
     const handlePayment = async () => {
-        setProcessing(true);
+        const payload = {
+            planName: plan.name,
+            isUpgrade: upgradeData?.creditAmount > 0,
+            couponCode: appliedCoupon ? appliedCoupon.code : null,
+            interval: plan.interval || 'month',
+            discountApplied: appliedCoupon ? appliedCoupon.calculatedDiscount : 0,
+            successUrl: `${window.location.origin}/dashboard`,
+            cancelUrl: window.location.href
+        };
 
-        // 1. Load Razorpay script
-        const loaded = await loadRazorpayScript();
-        if (!loaded) {
-            showToast({ type: 'error', title: 'Payment Error', message: 'Failed to load Razorpay. Please check your internet connection.' });
-            setProcessing(false);
-            return;
-        }
-
-        try {
-            // 2. Create Razorpay order on backend
-            // Pass isUpgrade flag if we have a credit, so backend recalculates securely
-            const { data: orderData } = await axios.post(`${API}/api/billing/create-order`, {
-                planName: plan.name,
-                isUpgrade: upgradeData?.creditAmount > 0,
-                couponCode: appliedCoupon ? appliedCoupon.code : null,
-                interval: plan.interval || 'month'
-            });
-
-            // 3. Open Razorpay popup
-            const rzpOptions = {
-                key: orderData.keyId,
-                amount: orderData.amount,
-                currency: orderData.currency,
-                name: 'Bluetick',
-                description: `${plan.name} Plan Subscription`,
-                order_id: orderData.orderId,
-                prefill: {
-                    name: orderData.userName || '',
-                    email: orderData.userEmail || ''
-                },
-                theme: { color: '#4f46e5' },
-                modal: {
-                    ondismiss: () => {
-                        setProcessing(false);
-                        showToast({ type: 'warning', title: 'Payment Cancelled', message: 'You cancelled the payment.' });
-                    }
-                },
-                handler: async (response) => {
-                    // 4. Payment completed — verify on backend
-                    try {
-                        await axios.post(`${API}/api/billing/verify-payment`, {
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_signature: response.razorpay_signature,
-                            planName: plan.name,
-                            couponCode: appliedCoupon ? appliedCoupon.code : null,
-                            discountApplied: appliedCoupon ? appliedCoupon.calculatedDiscount : 0
-                        });
-
-                        showToast({
-                            type: 'success',
-                            title: '🎉 Payment Successful!',
-                            message: `You're now on the ${plan.name} plan. Enjoy your new features!`
-                        });
-                        localStorage.removeItem('pendingPlan');
-                        setTimeout(() => navigate('/dashboard'), 2000);
-                    } catch (verifyErr) {
-                        const msg = verifyErr.response?.data?.error || 'Payment verification failed. Please contact support.';
-                        showToast({ type: 'error', title: 'Verification Failed', message: msg });
-                        setProcessing(false);
-                    }
-                }
-            };
-
-            const rzp = new window.Razorpay(rzpOptions);
-            rzp.on('payment.failed', (response) => {
+        await initiatePayment({
+            createOrderUrl: `${API}/api/billing/create-order`,
+            verifyUrl: `${API}/api/billing/verify-payment`,
+            payload,
+            onSuccess: (data) => {
                 showToast({
-                    type: 'error',
-                    title: 'Payment Failed',
-                    message: response.error?.description || 'Payment was declined. Please try a different payment method.'
+                    type: 'success',
+                    title: '🎉 Payment Successful!',
+                    message: `You're now on the ${plan.name} plan. Enjoy your new features!`
                 });
-                setProcessing(false);
-            });
-            rzp.open();
-
-        } catch (err) {
-            const msg = err.response?.data?.error || 'Could not initiate payment. Please try again.';
-            showToast({ type: 'error', title: 'Checkout Error', message: msg });
-            setProcessing(false);
-        }
+                localStorage.removeItem('pendingPlan');
+                setTimeout(() => navigate('/dashboard'), 2000);
+            }
+        });
     };
 
     if (loading) {

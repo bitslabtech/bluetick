@@ -64,7 +64,7 @@ export default function VcardList() {
                         <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
                             <Contact className="w-6 h-6" />
                         </div>
-                        Digital veCards
+                        Digital VeCards
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-2">
                         Create, manage, and share your advanced digital business cards.
@@ -92,7 +92,7 @@ export default function VcardList() {
             <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-4 md:p-8 text-white relative overflow-hidden shadow-lg border border-indigo-500/20">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
                 <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-                
+
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-6">
                         <div className="hidden sm:flex w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl items-center justify-center border border-white/20 shrink-0 shadow-inner">
@@ -127,7 +127,7 @@ export default function VcardList() {
                         <div className="inline-flex p-4 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-400 mb-4">
                             <Contact className="w-12 h-12" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">No veCards Yet</h3>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">No VeCards Yet</h3>
                         <p className="text-slate-500 mt-2 max-w-sm mx-auto">You haven't created any digital business cards yet. Click the button above to build your first one.</p>
                     </div>
                 ) : (
@@ -148,7 +148,7 @@ export default function VcardList() {
                                     <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${vcard.primaryColor} 0%, rgba(0,0,0,0.8) 100%)` }} />
                                 )}
                                 <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/50 to-transparent" />
-                                
+
                                 {/* Profile Picture inside header */}
                                 <div className="absolute -bottom-6 left-5 w-14 h-14 rounded-full border-2 border-white dark:border-surface-dark overflow-hidden bg-slate-200 shadow-lg">
                                     {vcard.profileImage ? (
@@ -165,7 +165,7 @@ export default function VcardList() {
                             <div className="flex-1 p-5 pt-8">
                                 <h3 className="font-bold text-lg text-slate-900 dark:text-white truncate">{vcard.name}</h3>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{vcard.designation || 'No Designation'}</p>
-                                
+
                                 <div className="flex items-center justify-between mt-6 p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/10">
                                     <div className="flex items-center gap-2">
                                         <Eye className="w-4 h-4 text-slate-400" />

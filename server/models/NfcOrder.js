@@ -43,6 +43,18 @@ const NfcOrder = sequelize.define('NfcOrder', {
     paymentStatus: { 
         type: DataTypes.ENUM('pending', 'paid', 'failed'), 
         defaultValue: 'pending' 
+    },
+    paymentGateway: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    paymentId: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    paymentSessionId: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, { 
     timestamps: true 

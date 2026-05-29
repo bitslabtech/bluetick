@@ -143,6 +143,30 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    metaPhoneNumberId: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    metaDisplayPhoneNumber: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    metaQualityRating: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    metaTier: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    metaVerifiedName: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    metaNameStatus: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     // Meta Ads Integration Fields (CTWA)
     metaAdsToken: {
         type: DataTypes.STRING(2048),

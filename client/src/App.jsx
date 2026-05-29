@@ -9,6 +9,7 @@ import GuestRoute from './components/GuestRoute';
 import { UIProvider } from './context/UIContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Layout from './components/Layout';
+import { PaymentRedirectHandler } from './components/PaymentRedirectHandler';
 
 // ── Code-Split Pages (React.lazy) ──────────────────────────────────────────
 // Each page loads as a separate JS chunk (~20-150KB) only when navigated to.
@@ -162,20 +163,45 @@ function SetupRedirect() {
 class ErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { hasError: false, error: null, errorInfo: null };
+        this.state = { hasError: false, error: null, errorInfo: null, isChunkLoadError: false };
     }
 
     static getDerivedStateFromError(error) {
-        return { hasError: true };
+        const isChunkLoadError = error?.name === 'ChunkLoadError' || 
+            (error?.message && (
+                error.message.includes('Failed to fetch dynamically imported module') ||
+                error.message.includes('Importing a module script failed')
+            ));
+        return { hasError: true, error, isChunkLoadError };
     }
 
     componentDidCatch(error, errorInfo) {
+        if (this.state.isChunkLoadError) {
+            const lastReload = parseInt(sessionStorage.getItem('last_chunk_error_reload') || '0', 10);
+            const now = Date.now();
+            if (now - lastReload > 10000) {
+                sessionStorage.setItem('last_chunk_error_reload', now.toString());
+                window.location.reload(true);
+                return;
+            }
+        }
+        
         console.error("Uncaught error:", error, errorInfo);
-        this.setState({ error, errorInfo });
+        this.setState({ errorInfo });
     }
 
     render() {
         if (this.state.hasError) {
+            if (this.state.isChunkLoadError) {
+                return (
+                    <div className="flex items-center justify-center min-h-screen">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                            <p className="text-gray-600">Updating application to the latest version...</p>
+                        </div>
+                    </div>
+                );
+            }
             return (
                 <div className="p-8 bg-red-50 text-red-900 h-screen overflow-auto">
                     <h1 className="text-2xl font-bold mb-4">Something went wrong.</h1>
@@ -242,6 +268,7 @@ function App() {
                             <Router>
                                 <ReferralCapture />
                                 <Toaster position="top-right" />
+                                <PaymentRedirectHandler />
                                 <Suspense fallback={<Loading />}>
                                     <SetupRedirect />
                                     <CustomDomainRouter>

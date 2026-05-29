@@ -104,6 +104,20 @@ const AdminLandingPage = () => {
         }
     };
 
+    const handleGenerateSitemap = async () => {
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/sitemap.xml/generate`, {}, {
+                headers: { Authorization: `Bearer ${user?.token}` }
+            });
+            if (res.data.success) {
+                showToast({ type: 'success', title: 'Sitemap Generated', message: 'Sitemap generated successfully.' });
+            }
+        } catch (err) {
+            console.error(err);
+            showToast({ type: 'error', title: 'Generation Failed', message: 'Failed to generate sitemap.' });
+        }
+    };
+
     // Coupons & Plans State
     const [coupons, setCoupons] = useState([]);
     const [plans, setPlans] = useState([]);
@@ -1486,7 +1500,13 @@ const AdminLandingPage = () => {
                                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl flex justify-between items-center border border-slate-100 dark:border-white/5">
                                     <div>
                                         <div className="font-bold text-slate-900 dark:text-white text-sm">Sitemap URL</div>
-                                        <div className="text-xs text-slate-500">Submit this to Google Search Console</div>
+                                        <div className="text-xs text-slate-500 mb-3">Submit this to Google Search Console</div>
+                                        <button 
+                                            onClick={handleGenerateSitemap}
+                                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                                        >
+                                            <RefreshCw className="w-3.5 h-3.5" /> Generate Latest Sitemap
+                                        </button>
                                     </div>
                                     <a
                                         href={`${import.meta.env.VITE_API_URL}/sitemap.xml`}

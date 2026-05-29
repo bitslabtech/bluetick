@@ -1439,6 +1439,9 @@ function AdvancedFeaturesShowcase({ config }) {
 // ──────────────────────────────────────────────────────────
 function FAQSection({ faqs }) {
     const [openIdx, setOpenIdx] = useState(null);
+    const [showAll, setShowAll] = useState(false);
+
+    const displayedFaqs = showAll ? faqs : (faqs || []).slice(0, 4);
 
     return (
         <section id="faq" className="py-24 bg-white dark:bg-[#05050A] transition-colors relative overflow-hidden">
@@ -1461,7 +1464,7 @@ function FAQSection({ faqs }) {
 
                 {/* Accordion */}
                 <div className="space-y-3">
-                    {faqs.map((faq, i) => {
+                    {displayedFaqs.map((faq, i) => {
                         const isOpen = openIdx === i;
                         return (
                             <motion.div
@@ -1500,7 +1503,7 @@ function FAQSection({ faqs }) {
                                             transition={{ duration: 0.25, ease: 'easeInOut' }}
                                             className="overflow-hidden"
                                         >
-                                            <p className="px-4 md:px-6 pb-6 text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                            <p className="px-4 md:px-6 pb-6 text-slate-600 dark:text-slate-400 font-medium leading-relaxed whitespace-pre-wrap">
                                                 {faq.answer}
                                             </p>
                                         </motion.div>
@@ -1510,6 +1513,24 @@ function FAQSection({ faqs }) {
                         );
                     })}
                 </div>
+
+                {!showAll && faqs && faqs.length > 4 && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        className="mt-10 flex justify-center"
+                    >
+                        <button
+                            onClick={() => setShowAll(true)}
+                            className="px-8 py-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full font-bold text-slate-700 dark:text-slate-300 transition-all shadow-sm flex items-center gap-2"
+                        >
+                            Load More
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    </motion.div>
+                )}
             </div>
         </section>
     );
@@ -1916,7 +1937,7 @@ export default function LandingPage() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Meta Business Tech Partner</div>
+                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Meta Business Tech Provider</div>
                                         <div className="text-sm text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ Officially Recognized by Meta</div>
                                     </div>
                                 </motion.div>
@@ -2457,9 +2478,9 @@ export default function LandingPage() {
                                         <style>{`#pricing-slider::-webkit-scrollbar { display: none; }`}</style>
                                         {plans.map((plan, i) => {
                                             const isPopular = plan.isPopular;
-                                            
+
                                             const themeColors = {
-                                                blue: { 
+                                                blue: {
                                                     bgPop: 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 shadow-xl shadow-blue-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
                                                     bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-blue-500/30',
                                                     badgePop: 'bg-blue-500 text-white',
@@ -2470,7 +2491,7 @@ export default function LandingPage() {
                                                     btnSubtlePop: 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
                                                     btnSubtleReg: 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50'
                                                 },
-                                                green: { 
+                                                green: {
                                                     bgPop: 'bg-green-50 dark:bg-green-900/20 border-green-400 shadow-xl shadow-green-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
                                                     bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-green-500/30',
                                                     badgePop: 'bg-green-500 text-white',
@@ -2481,7 +2502,7 @@ export default function LandingPage() {
                                                     btnSubtlePop: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800',
                                                     btnSubtleReg: 'bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800/50'
                                                 },
-                                                amber: { 
+                                                amber: {
                                                     bgPop: 'bg-amber-50 dark:bg-amber-900/20 border-amber-400 shadow-xl shadow-amber-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
                                                     bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-amber-500/30',
                                                     badgePop: 'bg-amber-500 text-white',
@@ -2492,7 +2513,7 @@ export default function LandingPage() {
                                                     btnSubtlePop: 'bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800',
                                                     btnSubtleReg: 'bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50'
                                                 },
-                                                emerald: { 
+                                                emerald: {
                                                     bgPop: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-400 shadow-xl shadow-emerald-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
                                                     bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-emerald-500/30',
                                                     badgePop: 'bg-emerald-500 text-white',
@@ -2590,12 +2611,12 @@ export default function LandingPage() {
                                                                 {plan.vcardLimit > 0 ? (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
                                                                         <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.vcardLimit} veCards</span>
+                                                                        <span>{plan.vcardLimit} VeCards</span>
                                                                     </li>
                                                                 ) : (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
                                                                         <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white"><X className="w-3 h-3" /></div>
-                                                                        <span className="text-slate-900 dark:text-white">veCards</span>
+                                                                        <span className="text-slate-900 dark:text-white">VeCards</span>
                                                                     </li>
                                                                 )}
                                                                 {plan.waStoreLimit > 0 ? (

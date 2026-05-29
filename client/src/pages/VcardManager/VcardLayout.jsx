@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Contact, ClipboardList, CalendarCheck, Settings, Zap, ShoppingBag, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import { useUI } from '../../context/UIContext';
 
 export default function VcardLayout() {
     const location = useLocation();
@@ -9,8 +10,31 @@ export default function VcardLayout() {
     const [showBanner, setShowBanner] = useState(false); // default hidden until fetched
     const [bannerImage, setBannerImage] = useState(null);
     const [isVerticalImage, setIsVerticalImage] = useState(false);
+    const { showToast } = useUI();
 
     useEffect(() => {
+        // Handle Stripe redirect responses
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get('nfc_success') === 'true') {
+            const sessionId = searchParams.get('session_id');
+            const orderId = searchParams.get('order_id');
+            if (sessionId && orderId) {
+                axios.post(`${import.meta.env.VITE_API_URL}/api/nfc/verify-payment`, {
+                    gateway: 'stripe',
+                    nfcOrderId: orderId,
+                    stripe_session_id: sessionId
+                }).then(() => {
+                    showToast({ type: 'success', title: 'Payment Successful', message: 'Your NFC order has been placed and payment confirmed!' });
+                    window.history.replaceState(null, '', location.pathname); // Clean URL
+                }).catch(err => {
+                    showToast({ type: 'error', title: 'Verification Failed', message: 'There was an issue verifying your payment.' });
+                });
+            }
+        } else if (searchParams.get('nfc_canceled') === 'true') {
+            showToast({ type: 'warning', title: 'Payment Canceled', message: 'Your checkout session was canceled.' });
+            window.history.replaceState(null, '', location.pathname);
+        }
+
         const headers = {  };
 
         // Fetch catalog product for image display

@@ -8,30 +8,7 @@ const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const crypto = require('crypto');
 
-// Helper: get Razorpay instance from admin Settings
-const getRazorpay = async () => {
-    const Razorpay = require('razorpay');
-    let keyId, keySecret;
-    try {
-        const adminUser = await User.findOne({ where: { isAdmin: true }, order: [['createdAt', 'ASC']] });
-        if (adminUser) {
-            const settings = await Settings.findOne({ where: { userId: adminUser.id } });
-            const gateways = settings?.paymentGateways || {};
-            keyId = gateways.razorpay?.keyId;
-            keySecret = gateways.razorpay?.keySecret;
-        }
-    } catch (e) {
-        console.error('Settings lookup error:', e.message);
-    }
-    keyId = keyId || process.env.RAZORPAY_KEY_ID;
-    keySecret = keySecret || process.env.RAZORPAY_KEY_SECRET;
-
-    if (!keyId || !keySecret) {
-        throw new Error('Razorpay keys not configured. Please contact the administrator.');
-    }
-    return { instance: new Razorpay({ key_id: keyId, key_secret: keySecret }), keyId, keySecret };
-};
-
+const PaymentService = require('../services/PaymentService');
 
 // Protect all addon routes
 router.use(auth);
@@ -181,23 +158,23 @@ router.post('/:id/create-order', async (req, res) => {
             return res.json({ instant: true, message: 'Free add-on activated instantly.' });
         }
 
-        // It is a PAID add-on -> Generate Razorpay Order
-        const { instance, keyId } = await getRazorpay();
+        // It is a PAID add-on -> Generate Order via PaymentService
         const finalPriceToCharge = parseFloat(addon.price);
-
-        const options = {
-            amount: Math.round(finalPriceToCharge * 100), // convert to smallest currency unit (paise/cents)
+        const { successUrl, cancelUrl } = req.body;
+        
+        const paymentIntent = await PaymentService.createPaymentIntent({
+            amount: finalPriceToCharge,
             currency: addon.currency || 'USD',
-            receipt: `adn_${req.user.id.substring(0, 8)}_${Date.now()}`
-        };
-
-        const order = await instance.orders.create(options);
+            description: `Add-on: ${addon.name}`,
+            orderNotes: { userId: req.user.id, addonId: addon.id },
+            userEmail: req.user.email,
+            userName: req.user.name,
+            successUrl: successUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/marketplace/${addon.id}`,
+            cancelUrl: cancelUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/marketplace/${addon.id}`
+        });
 
         res.json({
-            orderId: order.id,
-            amount: order.amount,
-            currency: order.currency,
-            keyId: keyId,
+            ...paymentIntent,
             addonName: addon.name,
             instant: false
         });
@@ -208,29 +185,22 @@ router.post('/:id/create-order', async (req, res) => {
     }
 });
 
-// POST Verify Razorpay Payment and Activate Addon
+// POST Verify Payment and Activate Addon
 router.post('/:id/verify-payment', async (req, res) => {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        const { gateway, payload } = req.body;
 
-        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        if (!gateway || !payload) {
             return res.status(400).json({ error: 'Missing payment verification fields.' });
         }
 
         const addon = await AddonModel.findByPk(req.params.id);
         if (!addon) return res.status(404).json({ error: 'Addon not found' });
 
-        const { keySecret } = await getRazorpay();
-
-        // Verify signature
-        const body = razorpay_order_id + "|" + razorpay_payment_id;
-        const expectedSignature = crypto
-            .createHmac('sha256', keySecret)
-            .update(body.toString())
-            .digest('hex');
-
-        if (expectedSignature !== razorpay_signature) {
-            return res.status(400).json({ error: 'Invalid payment signature. Payment verification failed.' });
+        try {
+            await PaymentService.verifyPayment({ gateway, payload });
+        } catch (e) {
+            return res.status(400).json({ error: e.message || 'Payment verification failed.' });
         }
 
         // Signature is valid, activate the addon!

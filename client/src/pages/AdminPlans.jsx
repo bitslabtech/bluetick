@@ -165,19 +165,17 @@ const AdminPlans = () => {
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
-                                activeTab === tab.key
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === tab.key
                                     ? 'bg-[#0088cc] text-white shadow-md shadow-blue-500/20'
                                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
-                            }`}
+                                }`}
                         >
                             <tab.icon className="w-4 h-4" />
                             {tab.label}
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                activeTab === tab.key
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === tab.key
                                     ? 'bg-white/20 text-white'
                                     : 'bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400'
-                            }`}>
+                                }`}>
                                 {tab.count}
                             </span>
                         </button>
@@ -488,7 +486,7 @@ const ModernToggle = ({ checked, onChange, name, label, description, icon: Icon,
                     <label className="text-sm font-bold text-slate-900 dark:text-white cursor-pointer select-none" onClick={() => onChange({ target: { name, checked: !checked, type: 'checkbox' } })}>
                         {label}
                     </label>
-                    <button 
+                    <button
                         type="button"
                         role="switch"
                         aria-checked={checked}
@@ -546,16 +544,16 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
-    
+
     const handleFeatureChange = (idx, value) => {
         const newFeatures = [...formData.features];
         newFeatures[idx] = value;
         setFormData({ ...formData, features: newFeatures });
     };
-    
+
     const addFeature = () => setFormData({ ...formData, features: [...formData.features, ''] });
     const removeFeature = (idx) => setFormData({ ...formData, features: formData.features.filter((_, i) => i !== idx) });
-    
+
     const handleAddonChange = (moduleKey) => {
         setFormData(prev => ({
             ...prev,
@@ -564,7 +562,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                 : [...prev.includedAddons, moduleKey]
         }));
     };
-    
+
     const handleSubmit = (e) => {
         e.preventDefault();
         const cleaned = { ...formData, features: formData.features.filter(f => f.trim() !== '') };
@@ -598,7 +596,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
             <div className="bg-white dark:bg-surface-dark rounded-[24px] shadow-2xl max-w-6xl w-full h-[85vh] min-h-[650px] max-h-[900px] flex flex-col md:flex-row overflow-hidden border border-slate-200 dark:border-white/10">
-                
+
                 {/* ────── SIDEBAR TABS ────── */}
                 <div className="w-full md:w-64 bg-slate-50 dark:bg-black/20 border-b md:border-b-0 md:border-r border-slate-200 dark:border-white/10 flex flex-col shrink-0">
                     <div className="p-4 md:p-6">
@@ -613,11 +611,10 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-                                    activeTab === tab.id 
-                                    ? 'bg-white dark:bg-white/10 text-[#0088cc] dark:text-white shadow-sm border border-slate-200 dark:border-white/5' 
-                                    : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-300 border border-transparent'
-                                }`}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === tab.id
+                                        ? 'bg-white dark:bg-white/10 text-[#0088cc] dark:text-white shadow-sm border border-slate-200 dark:border-white/5'
+                                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-300 border border-transparent'
+                                    }`}
                             >
                                 <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-[#0088cc]' : 'text-slate-400'}`} />
                                 {tab.label}
@@ -629,7 +626,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                 {/* ────── MAIN CONTENT AREA ────── */}
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 bg-white dark:bg-surface-dark">
                     <div className="flex-1 overflow-y-auto p-6 md:p-4 md:p-8">
-                        
+
                         {/* ════ GENERAL TAB ════ */}
                         {activeTab === 'general' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -659,18 +656,18 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                 <div>
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Visibility & Badges</h4>
                                     <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4">
-                                        <ModernToggle 
-                                            name="isPublic" checked={formData.isPublic} onChange={handleChange} 
+                                        <ModernToggle
+                                            name="isPublic" checked={formData.isPublic} onChange={handleChange}
                                             label="Public Visibility" description="Show this plan on the public pricing page."
                                             icon={Store} colorClass="bg-green-500"
                                         />
-                                        <ModernToggle 
-                                            name="isPopular" checked={formData.isPopular} onChange={handleChange} 
+                                        <ModernToggle
+                                            name="isPopular" checked={formData.isPopular} onChange={handleChange}
                                             label="Most Popular Badge" description="Highlight this plan visually as the recommended tier."
                                             icon={Star} colorClass="bg-indigo-500"
                                         />
-                                        <ModernToggle 
-                                            name="isDefault" checked={formData.isDefault} onChange={handleChange} 
+                                        <ModernToggle
+                                            name="isDefault" checked={formData.isDefault} onChange={handleChange}
                                             label="Default Plan" description="Auto-assigned to direct signups without a selected plan."
                                             icon={ShieldCheck} colorClass="bg-blue-500"
                                         />
@@ -685,7 +682,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                 <div>
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Multi-Interval Pricing</h4>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Leave an interval empty or at 0 to hide it. If all are 0, it acts as a Free plan.</p>
-                                    
+
                                     <div className="grid md:grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10">
                                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Monthly Price</label>
@@ -739,39 +736,39 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Usage & Quota Limits</h4>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
                                         <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-indigo-500"><MessageSquare className="w-4 h-4"/> <span className="font-bold text-xs uppercase">Messages/mo</span></div>
+                                            <div className="flex items-center gap-2 mb-3 text-indigo-500"><MessageSquare className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Messages/mo</span></div>
                                             <input type="number" name="messageLimit" value={formData.messageLimit} onChange={handleChange} required className="limit-input" />
                                         </div>
                                         <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-blue-500"><Users className="w-4 h-4"/> <span className="font-bold text-xs uppercase">Contacts</span></div>
+                                            <div className="flex items-center gap-2 mb-3 text-blue-500"><Users className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Contacts</span></div>
                                             <input type="number" name="contactLimit" value={formData.contactLimit} onChange={handleChange} required className="limit-input" />
                                         </div>
                                         <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-emerald-500"><FileText className="w-4 h-4"/> <span className="font-bold text-xs uppercase">Templates</span></div>
+                                            <div className="flex items-center gap-2 mb-3 text-emerald-500"><FileText className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Templates</span></div>
                                             <input type="number" name="templateLimit" value={formData.templateLimit} onChange={handleChange} required className="limit-input" />
                                         </div>
                                         <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-purple-500"><Users className="w-4 h-4"/> <span className="font-bold text-xs uppercase">Team Members</span></div>
+                                            <div className="flex items-center gap-2 mb-3 text-purple-500"><Users className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Team Members</span></div>
                                             <input type="number" name="teamMemberLimit" value={formData.teamMemberLimit} onChange={handleChange} required className="limit-input" />
                                         </div>
                                         <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-amber-500"><Zap className="w-4 h-4"/> <span className="font-bold text-xs uppercase">Quick Replies</span></div>
+                                            <div className="flex items-center gap-2 mb-3 text-amber-500"><Zap className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Quick Replies</span></div>
                                             <input type="number" name="quickReplyLimit" value={formData.quickReplyLimit} onChange={handleChange} required className="limit-input" />
                                         </div>
                                         <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-rose-500"><Layers className="w-4 h-4"/> <span className="font-bold text-xs uppercase">Tags</span></div>
+                                            <div className="flex items-center gap-2 mb-3 text-rose-500"><Layers className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Tags</span></div>
                                             <input type="number" name="tagLimit" value={formData.tagLimit} onChange={handleChange} required className="limit-input" />
                                         </div>
                                         <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-teal-500"><Users className="w-4 h-4"/> <span className="font-bold text-xs uppercase">Groups</span></div>
+                                            <div className="flex items-center gap-2 mb-3 text-teal-500"><Users className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Groups</span></div>
                                             <input type="number" name="groupLimit" value={formData.groupLimit} onChange={handleChange} required className="limit-input" />
                                         </div>
                                         <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-cyan-500"><CreditCard className="w-4 h-4"/> <span className="font-bold text-xs uppercase">veCards</span></div>
+                                            <div className="flex items-center gap-2 mb-3 text-cyan-500"><CreditCard className="w-4 h-4" /> <span className="font-bold text-xs uppercase">VeCards</span></div>
                                             <input type="number" name="vcardLimit" value={formData.vcardLimit} onChange={handleChange} required className="limit-input" />
                                         </div>
                                         <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-orange-500"><Store className="w-4 h-4"/> <span className="font-bold text-xs uppercase">Online Stores</span></div>
+                                            <div className="flex items-center gap-2 mb-3 text-orange-500"><Store className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Online Stores</span></div>
                                             <input type="number" name="waStoreLimit" value={formData.waStoreLimit} onChange={handleChange} required className="limit-input" />
                                         </div>
                                     </div>
@@ -785,33 +782,33 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                 <div>
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Platform Capabilities</h4>
                                     <div className="grid md:grid-cols-1 md:grid-cols-2 gap-4">
-                                        <ModernToggle 
-                                            name="flowBotEnabled" checked={formData.flowBotEnabled} onChange={handleChange} 
+                                        <ModernToggle
+                                            name="flowBotEnabled" checked={formData.flowBotEnabled} onChange={handleChange}
                                             label="FlowBot Builder" description="Drag & Drop automation flow builder."
                                             icon={Layers} colorClass="bg-purple-500"
                                         />
-                                        <ModernToggle 
-                                            name="allowApiAccess" checked={formData.allowApiAccess} onChange={handleChange} 
+                                        <ModernToggle
+                                            name="allowApiAccess" checked={formData.allowApiAccess} onChange={handleChange}
                                             label="Developer API" description="API Keys and Webhook integrations."
                                             icon={Zap} colorClass="bg-emerald-500"
                                         />
-                                        <ModernToggle 
-                                            name="allowVcard" checked={formData.allowVcard} onChange={handleChange} 
+                                        <ModernToggle
+                                            name="allowVcard" checked={formData.allowVcard} onChange={handleChange}
                                             label="veCard Builder" description="Digital business card SaaS module."
                                             icon={CreditCard} colorClass="bg-teal-500"
                                         />
-                                        <ModernToggle 
-                                            name="allowWaStore" checked={formData.allowWaStore} onChange={handleChange} 
+                                        <ModernToggle
+                                            name="allowWaStore" checked={formData.allowWaStore} onChange={handleChange}
                                             label="Online Store" description="E-commerce store builder module."
                                             icon={Store} colorClass="bg-amber-500"
                                         />
-                                        <ModernToggle 
-                                            name="allowMetaAds" checked={formData.allowMetaAds} onChange={handleChange} 
+                                        <ModernToggle
+                                            name="allowMetaAds" checked={formData.allowMetaAds} onChange={handleChange}
                                             label="Meta Ads Manager" description="Create and run Facebook/Instagram Ads."
                                             icon={Activity} colorClass="bg-blue-600"
                                         />
-                                        <ModernToggle 
-                                            name="allowCtwaAnalytics" checked={formData.allowCtwaAnalytics} onChange={handleChange} 
+                                        <ModernToggle
+                                            name="allowCtwaAnalytics" checked={formData.allowCtwaAnalytics} onChange={handleChange}
                                             label="CTWA Analytics" description="Click-to-WhatsApp Ads performance dashboard."
                                             icon={Activity} colorClass="bg-rose-500"
                                         />
@@ -828,7 +825,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                             <input type="number" name="aiTokensAllowance" value={formData.aiTokensAllowance} onChange={handleChange} className="modern-input border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. 50000" />
                                             <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-2">One-time bulk grant upon subscription.</p>
                                         </div>
-                                        
+
                                         <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10">
                                             <label className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white mb-3">
                                                 <Plus className="w-4 h-4 text-[#0088cc]" /> Included Add-ons
@@ -861,23 +858,23 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                 <div>
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Marketing Features</h4>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">These bullets will be displayed prominently on the pricing card.</p>
-                                    
+
                                     <div className="space-y-3">
                                         {formData.features.map((feature, idx) => (
                                             <div key={idx} className="flex gap-3 items-center group">
                                                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 dark:border-white/10">
                                                     {idx + 1}
                                                 </div>
-                                                <input 
-                                                    value={feature} 
-                                                    onChange={(e) => handleFeatureChange(idx, e.target.value)} 
-                                                    className="modern-input flex-1" 
-                                                    placeholder="e.g. Dedicated Account Manager" 
+                                                <input
+                                                    value={feature}
+                                                    onChange={(e) => handleFeatureChange(idx, e.target.value)}
+                                                    className="modern-input flex-1"
+                                                    placeholder="e.g. Dedicated Account Manager"
                                                 />
                                                 {formData.features.length > 1 && (
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => removeFeature(idx)} 
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFeature(idx)}
                                                         className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
                                                     >
                                                         <Trash2 className="w-5 h-5" />
@@ -885,10 +882,10 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                                 )}
                                             </div>
                                         ))}
-                                        
-                                        <button 
-                                            type="button" 
-                                            onClick={addFeature} 
+
+                                        <button
+                                            type="button"
+                                            onClick={addFeature}
                                             className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 text-[#0088cc] dark:text-[#33aadd] font-bold rounded-xl border border-dashed border-slate-300 dark:border-white/20 transition-all w-full justify-center"
                                         >
                                             <Plus className="w-5 h-5" /> Add Another Feature
@@ -912,7 +909,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                 </button>
                             )}
                         </div>
-                        
+
                         <div className="flex items-center gap-3">
                             {!isLastTab ? (
                                 <button key="btn-next" type="button" onClick={handleNext} className="flex items-center gap-2 px-4 md:px-8 py-3 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useUI } from '../context/UIContext';
 import { X, ShieldCheck, Zap, PackageOpen, Image as ImageIcon } from 'lucide-react';
+import { usePayment } from '../hooks/usePayment';
 
 export default function NfcStoreModal({ isOpen, onClose }) {
     const { showToast } = useUI();
@@ -12,7 +13,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
     const [quantity, setQuantity] = useState(1);
     const [shippingAddress, setShippingAddress] = useState('');
     const [contactNumber, setContactNumber] = useState('');
-    const [submitting, setSubmitting] = useState(false);
+    const { initiatePayment, isProcessing: submitting } = usePayment();
     
     // Dynamic catalog
     const [products, setProducts] = useState([]);
@@ -44,22 +45,28 @@ export default function NfcStoreModal({ isOpen, onClose }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setSubmitting(true);
-        try {
-            await axios.post(`${import.meta.env.VITE_API_URL}/api/nfc/order`, {
-                productType: selectedProduct.name,
-                quantity,
-                shippingAddress,
-                contactNumber,
-                amount: totalAmount
-            });
-            
-            setStep(3); // Success step
-        } catch (err) {
-            showToast({ type: 'error', message: 'Failed to place order. Try again.' });
-        } finally {
-            setSubmitting(false);
-        }
+        
+        const payload = {
+            productType: selectedProduct.name,
+            quantity,
+            shippingAddress,
+            contactNumber,
+            amount: totalAmount,
+            successUrl: `${window.location.origin}/dashboard`,
+            cancelUrl: window.location.href
+        };
+
+        await initiatePayment({
+            createOrderUrl: `${import.meta.env.VITE_API_URL}/api/nfc/order`,
+            verifyUrl: `${import.meta.env.VITE_API_URL}/api/nfc/verify-payment`,
+            payload,
+            onSuccess: (data) => {
+                setStep(3); // Success step
+            },
+            onFailure: (err) => {
+                // error handled in hook
+            }
+        });
     };
 
     if (!isOpen) return null;
@@ -166,7 +173,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                                 </button>
                                 <button type="submit" disabled={submitting} className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 px-4 md:px-8 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2">
                                     {submitting ? <div className="w-5 h-5 rounded-full border-2 border-slate-300 border-t-slate-800 animate-spin" /> : null}
-                                    Place Order (Cash on Delivery / Request Link)
+                                    Place Secure Order & Pay Now
                                 </button>
                             </div>
                         </form>

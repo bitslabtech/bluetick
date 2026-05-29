@@ -16,35 +16,7 @@ const ReferralReward = require('../models/ReferralReward');
 
 router.use(auth);
 
-// ─── Helper: get Razorpay instance from admin Settings ────────────────────────
-const getRazorpay = async () => {
-    const Razorpay = require('razorpay');
-
-    // Strategy 1: find the admin user and use their settings
-    let keyId, keySecret;
-    try {
-        const adminUser = await User.findOne({ where: { isAdmin: true }, order: [['createdAt', 'ASC']] });
-        if (adminUser) {
-            const settings = await Settings.findOne({ where: { userId: adminUser.id } });
-            const gateways = settings?.paymentGateways || {};
-            keyId = gateways.razorpay?.keyId;
-            keySecret = gateways.razorpay?.keySecret;
-        }
-    } catch (e) {
-        console.error('Settings lookup error:', e.message);
-    }
-
-    // Strategy 2: fall back to env vars
-    keyId = keyId || process.env.RAZORPAY_KEY_ID;
-    keySecret = keySecret || process.env.RAZORPAY_KEY_SECRET;
-
-    if (!keyId || !keySecret) {
-        throw new Error('Razorpay keys not configured. Please go to Settings → Payment Gateways and enter your Razorpay Key ID and Secret.');
-    }
-
-    return { instance: new Razorpay({ key_id: keyId, key_secret: keySecret }), keyId };
-};
-
+const PaymentService = require('../services/PaymentService');
 // ─── Helper: compute plan expiry Date based on interval ───────────────────────
 const computePlanExpiry = (interval, currentExpiryDate, isRenewal) => {
     let baseDate = new Date();
@@ -74,14 +46,19 @@ const computePlanExpiry = (interval, currentExpiryDate, isRenewal) => {
 
 const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
     const user = await User.findByPk(userId);
-    const amount = parseFloat(targetPlan.price);
-    
+    const fullPrice = parseFloat(targetPlan.price);
+
+    // Use actual paid amount if provided (after coupon/discount), else fall back to full price
+    const amountPaid = (extraTxnFields.amountPaid !== undefined && extraTxnFields.amountPaid !== null)
+        ? parseFloat(extraTxnFields.amountPaid)
+        : fullPrice;
+
     // Identify if this is a time-extension renewal
     const isRenewal = (user.plan === targetPlan.name && user.planStatus === 'Active');
 
     await Transaction.create({
         userId,
-        amount,
+        amount: amountPaid,
         currency: targetPlan.currency || 'INR',
         planName: targetPlan.name,
         status: 'COMPLETED',
@@ -484,12 +461,11 @@ router.get('/calculate-upgrade/:planName', async (req, res) => {
     }
 });
 
-// --- POST /create-order --- Step 1 of Razorpay checkout ---
+// --- POST /create-order --- Step 1 of checkout ---
 router.post('/create-order', async (req, res) => {
     try {
-        const { planName, isUpgrade, couponCode, itemId, interval } = req.body;
+        const { planName, isUpgrade, couponCode, itemId, interval, successUrl, cancelUrl } = req.body;
         
-        const { instance, keyId } = await getRazorpay();
         const user = await User.findByPk(req.user.id);
         
         let finalPriceToCharge = 0;
@@ -630,27 +606,25 @@ router.post('/create-order', async (req, res) => {
             }
         }
 
-        // Razorpay amount is always in smallest currency unit (paisa for INR, cents for USD)
-        const amountInSmallestUnit = Math.round(finalPriceToCharge * 100);
-
-        const order = await instance.orders.create({
-            amount: amountInSmallestUnit,
+        const paymentIntent = await PaymentService.createPaymentIntent({
+            amount: finalPriceToCharge,
             currency: targetCurrency,
-            receipt: `receipt_${Date.now()}`,
-            notes: orderNotes
+            description: planName ? `Plan: ${planName}` : `Store Item: ${orderNotes.itemName}`,
+            orderNotes,
+            userEmail: user.email,
+            userName: user.name,
+            successUrl: successUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/checkout`,
+            cancelUrl: cancelUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/checkout`
         });
 
         res.json({
-            orderId: order.id,
-            amount: order.amount,
-            currency: order.currency,
-            keyId,
+            ...paymentIntent,
             planName,
             userName: user.name,
             userEmail: user.email
         });
     } catch (err) {
-        console.error('Razorpay Create Order Error:', err);
+        console.error('Create Order Error:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -658,36 +632,21 @@ router.post('/create-order', async (req, res) => {
 // ─── POST /verify-payment ── Step 2: verify signature then upgrade ────────────
 router.post('/verify-payment', async (req, res) => {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planName, couponCode, discountApplied, itemId } = req.body;
+        const { gateway, payload, planName, couponCode, discountApplied, itemId } = req.body;
 
-        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || (!planName && !itemId)) {
+        if (!gateway || !payload || (!planName && !itemId)) {
             return res.status(400).json({ error: 'Missing payment verification fields.' });
         }
 
-        // 1. Get secret key for signature verification (from admin's Settings)
-        let keySecret;
         try {
-            const adminUser = await User.findOne({ where: { isAdmin: true }, order: [['createdAt', 'ASC']] });
-            if (adminUser) {
-                const settings = await Settings.findOne({ where: { userId: adminUser.id } });
-                keySecret = settings?.paymentGateways?.razorpay?.keySecret;
-            }
+            await PaymentService.verifyPayment({ gateway, payload });
         } catch (e) {
-            console.error('Settings lookup error:', e.message);
+            console.error('Payment verification failed:', e);
+            return res.status(400).json({ error: e.message || 'Payment verification failed.' });
         }
-        keySecret = keySecret || process.env.RAZORPAY_KEY_SECRET;
-        if (!keySecret) return res.status(500).json({ error: 'Razorpay secret key not configured.' });
 
-        // 2. Verify HMAC SHA256 signature
-        const expectedSignature = crypto
-            .createHmac('sha256', keySecret)
-            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-            .digest('hex');
-
-        if (expectedSignature !== razorpay_signature) {
-            console.error('Razorpay signature mismatch');
-            return res.status(400).json({ error: 'Payment verification failed. Invalid signature.' });
-        }
+        // Extract generic reference for transaction
+        let transactionReference = payload.razorpay_order_id || payload.session_id || payload.txn_id || payload.order_id || 'unknown';
 
         if (itemId) {
             // It's a Store Item Purchase
@@ -697,15 +656,19 @@ router.post('/verify-payment', async (req, res) => {
 
             const user = await User.findByPk(req.user.id);
             
-            // Record Transaction
+            // Record Transaction with actual amount paid (subtract discount if any)
+            const discountAppliedStore = parseFloat(discountApplied) || 0;
+            const actualAmountPaid = Math.max(0, parseFloat(targetItem.price) - discountAppliedStore);
+
             await Transaction.create({
                 userId: user.id,
-                amount: parseFloat(targetItem.price),
+                amount: actualAmountPaid,
                 currency: targetItem.currency || 'USD',
                 planName: `Store: ${targetItem.name}`,
                 status: 'COMPLETED',
-                razorpayOrderId: razorpay_order_id,
-                razorpayPaymentId: razorpay_payment_id
+                paymentGateway: gateway,
+                transactionReference: transactionReference,
+                ...(discountAppliedStore > 0 ? { discountApplied: discountAppliedStore, couponCode: couponCode || null } : {})
             });
 
             // Grant Resource
@@ -748,16 +711,17 @@ router.post('/verify-payment', async (req, res) => {
             }
 
             await applyUpgrade(req.user.id, targetPlan, {
-                razorpayOrderId: razorpay_order_id,
-                razorpayPaymentId: razorpay_payment_id,
+                paymentGateway: gateway,
+                transactionReference: transactionReference,
                 couponCode: couponCode || null,
-                discountApplied: discountApplied || 0
+                discountApplied: discountApplied || 0,
+                amountPaid: Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0)) // fallback approximation
             });
 
             return res.json({ success: true, message: `Successfully upgraded to ${planName}` });
         }
     } catch (err) {
-        console.error('Razorpay Verify Payment Error:', err);
+        console.error('Verify Payment Error:', err);
         res.status(500).json({ error: err.message });
     }
 });

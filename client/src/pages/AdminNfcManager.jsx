@@ -597,7 +597,12 @@ export default function AdminNfcManager() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Type Identifier</label>
-                                    <input type="text" value={catalogForm.type} onChange={e => setCatalogForm({...catalogForm, type: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_')})} className="w-full px-3 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-black/20 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-mono dark:text-white" required placeholder="metal_card" />
+                                    <select value={catalogForm.type} onChange={e => setCatalogForm({...catalogForm, type: e.target.value})} className="w-full px-3 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-black/20 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold dark:text-white" required>
+                                        <option value="" disabled>Select Product Type</option>
+                                        <option value="pvc_card">PVC Card</option>
+                                        <option value="metal_card">Metal Card (Premium)</option>
+                                        <option value="keychain">NFC Keychain</option>
+                                    </select>
                                     <p className="text-[10px] text-slate-400 mt-1">Links to generated batch type</p>
                                 </div>
                             </div>

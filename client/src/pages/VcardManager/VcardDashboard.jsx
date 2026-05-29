@@ -28,7 +28,7 @@ export default function VcardDashboard() {
         fetchStats();
 
         // Fetch linked NFC card count
-        axios.get(`${import.meta.env.VITE_API_URL}/api/nfc/my-cards`).then(res => setLinkedNfcCount(res.data?.length || 0)).catch(() => {});
+        axios.get(`${import.meta.env.VITE_API_URL}/api/nfc/my-cards`).then(res => setLinkedNfcCount(res.data?.length || 0)).catch(() => { });
     }, []);
 
     // Listen for sidebar banner "Shop Now" click from any vCard sub-page
@@ -157,7 +157,7 @@ export default function VcardDashboard() {
             {/* Top Performing Cards */}
             <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
                 <div className="p-5 border-b border-slate-100 dark:border-white/5">
-                    <h3 className="font-bold">Top Performing veCards</h3>
+                    <h3 className="font-bold">Top Performing VeCards</h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -186,7 +186,7 @@ export default function VcardDashboard() {
                                 </tr>
                             ))}
                             {vcards.length === 0 && (
-                                <tr><td colSpan="4" className="p-4 md:p-8 text-center text-slate-400">No veCards available to display.</td></tr>
+                                <tr><td colSpan="4" className="p-4 md:p-8 text-center text-slate-400">No VeCards available to display.</td></tr>
                             )}
                         </tbody>
                     </table>

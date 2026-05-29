@@ -53,7 +53,7 @@ export default function VcardBookings() {
                     <CalendarCheck className="w-6 h-6 text-indigo-600" />
                     Booking Requests
                 </h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">Manage native appointment requests generated from your veCards.</p>
+                <p className="text-slate-500 dark:text-slate-400 mt-1">Manage native appointment requests generated from your VeCards.</p>
             </div>
 
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">

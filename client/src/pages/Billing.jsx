@@ -187,12 +187,12 @@ const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) 
                         {plan.allowVcard ? (
                             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                                 <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                Digital veCards (Limit: {plan.vcardLimit})
+                                Digital VeCards (Limit: {plan.vcardLimit})
                             </div>
                         ) : (
                             <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
                                 <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
-                                <span>Digital veCards</span>
+                                <span>Digital VeCards</span>
                             </div>
                         )}
                     </div>
@@ -429,11 +429,10 @@ const Billing = () => {
                                         {hasMonthly && (
                                             <button
                                                 onClick={() => setBillingInterval('monthly')}
-                                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                                                    billingInterval === 'monthly'
+                                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${billingInterval === 'monthly'
                                                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
                                                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
-                                                }`}
+                                                    }`}
                                             >
                                                 Monthly
                                             </button>
@@ -441,11 +440,10 @@ const Billing = () => {
                                         {hasHalfYearly && (
                                             <button
                                                 onClick={() => setBillingInterval('half-yearly')}
-                                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${
-                                                    billingInterval === 'half-yearly'
+                                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${billingInterval === 'half-yearly'
                                                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
                                                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
-                                                }`}
+                                                    }`}
                                             >
                                                 Half-Yearly
                                             </button>
@@ -453,11 +451,10 @@ const Billing = () => {
                                         {hasYearly && (
                                             <button
                                                 onClick={() => setBillingInterval('yearly')}
-                                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${
-                                                    billingInterval === 'yearly'
+                                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${billingInterval === 'yearly'
                                                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
                                                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
-                                                }`}
+                                                    }`}
                                             >
                                                 Yearly
                                                 {maxYearlySavings > 0 && <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 text-[10px] font-black px-1.5 py-0.5 rounded-full">Save {maxYearlySavings}%</span>}

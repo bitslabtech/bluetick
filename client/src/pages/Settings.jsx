@@ -124,6 +124,32 @@ const Settings = () => {
         }
     });
 
+    const [metaStatus, setMetaStatus] = useState(null);
+    const [metaStatusLoading, setMetaStatusLoading] = useState(false);
+
+    useEffect(() => {
+        if (activeTab === 'whatsapp_gateway') {
+            const hasCreds = (user?.wabaId && user?.fbAccessToken) || (formData?.metaBusinessAccountId && formData?.metaAccessToken);
+            if (hasCreds) {
+                fetchMetaStatus();
+            }
+        }
+    }, [activeTab, user?.wabaId, formData?.metaBusinessAccountId, formData?.metaAccessToken]);
+
+    const fetchMetaStatus = async () => {
+        setMetaStatusLoading(true);
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/whatsapp/status`);
+            if (res.data?.success) {
+                setMetaStatus(res.data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch meta status:', err);
+        } finally {
+            setMetaStatusLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchSettings();
 
@@ -1508,6 +1534,90 @@ const Settings = () => {
                                         </button>
                                     </div>
 
+                                    {/* Meta Tier & Quality Dashboard */}
+                                    {(metaStatus || metaStatusLoading) && (
+                                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
+                                            <h3 className="font-bold text-slate-900 dark:text-white mb-6 uppercase text-xs tracking-wider flex items-center gap-2">
+                                                <BarChart className="w-5 h-5 text-indigo-500" />
+                                                Meta Tier & Quality Status
+                                            </h3>
+                                            {metaStatusLoading ? (
+                                                <div className="flex items-center justify-center p-8">
+                                                    <RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" />
+                                                </div>
+                                            ) : metaStatus && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {/* Tier Card */}
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm relative overflow-hidden group">
+                                                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-125 duration-500"></div>
+                                                        <div className="flex justify-between items-start mb-4 relative z-10">
+                                                            <div className="p-3 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                                                                <TrendingUp className="w-6 h-6" />
+                                                            </div>
+                                                            <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-full uppercase tracking-wider">
+                                                                Messaging Limit
+                                                            </span>
+                                                        </div>
+                                                        <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 relative z-10">Current Tier</h4>
+                                                        <p className="text-2xl font-bold text-slate-900 dark:text-white mb-2 relative z-10">{metaStatus.tier?.replace(/_/g, ' ') || 'UNKNOWN'}</p>
+                                                        <p className="text-sm text-slate-600 dark:text-slate-400 relative z-10">
+                                                            {metaStatus.tier === 'TIER_1' && '1k business-initiated conversations / 24h'}
+                                                            {metaStatus.tier === 'TIER_2' && '10k business-initiated conversations / 24h'}
+                                                            {metaStatus.tier === 'TIER_3' && '100k business-initiated conversations / 24h'}
+                                                            {metaStatus.tier === 'TIER_4' && 'Unlimited business-initiated conversations'}
+                                                            {metaStatus.tier === 'UNKNOWN' && 'Limit pending Meta review or unverified.'}
+                                                        </p>
+                                                    </div>
+                                                    {/* Quality Card */}
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm relative overflow-hidden group">
+                                                        {metaStatus.qualityRating === 'GREEN' && <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-125 duration-500"></div>}
+                                                        {metaStatus.qualityRating === 'YELLOW' && <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-125 duration-500"></div>}
+                                                        {metaStatus.qualityRating === 'RED' && <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-125 duration-500"></div>}
+                                                        {metaStatus.qualityRating === 'UNKNOWN' && <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-125 duration-500"></div>}
+                                                        <div className="flex justify-between items-start mb-4 relative z-10">
+                                                            <div className={`p-3 rounded-xl ${
+                                                                metaStatus.qualityRating === 'GREEN' ? 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400' :
+                                                                metaStatus.qualityRating === 'YELLOW' ? 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
+                                                                metaStatus.qualityRating === 'RED' ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400' :
+                                                                'bg-slate-200 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400'
+                                                            }`}>
+                                                                <Shield className="w-6 h-6" />
+                                                            </div>
+                                                            <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
+                                                                metaStatus.qualityRating === 'GREEN' ? 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400' :
+                                                                metaStatus.qualityRating === 'YELLOW' ? 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
+                                                                metaStatus.qualityRating === 'RED' ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400' :
+                                                                'bg-slate-200 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400'
+                                                            }`}>
+                                                                Account Health
+                                                            </span>
+                                                        </div>
+                                                        <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 relative z-10">Quality Rating</h4>
+                                                        <div className="flex items-center gap-2 mb-2 relative z-10">
+                                                            <div className={`w-3 h-3 rounded-full ${
+                                                                metaStatus.qualityRating === 'GREEN' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
+                                                                metaStatus.qualityRating === 'YELLOW' ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]' :
+                                                                metaStatus.qualityRating === 'RED' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                                                                'bg-slate-400'
+                                                            }`}></div>
+                                                            <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                                                                {metaStatus.qualityRating === 'GREEN' ? 'High (Green)' :
+                                                                 metaStatus.qualityRating === 'YELLOW' ? 'Medium (Yellow)' :
+                                                                 metaStatus.qualityRating === 'RED' ? 'Low (Red)' : 'Unknown'}
+                                                            </p>
+                                                        </div>
+                                                        <p className="text-sm text-slate-600 dark:text-slate-400 relative z-10">
+                                                            {metaStatus.qualityRating === 'GREEN' ? 'Excellent message quality. Low block/report rate.' :
+                                                             metaStatus.qualityRating === 'YELLOW' ? 'Warning: Recent messages had lower quality.' :
+                                                             metaStatus.qualityRating === 'RED' ? 'Critical: High block/report rate. Risk of ban.' :
+                                                             'Quality rating not yet available from Meta.'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {/* Embedded Signup Flow Section */}
                                     {waGatewayTab === 'embedded' && (
                                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1793,17 +1903,24 @@ const Settings = () => {
                                                                 <CreditCard className="w-6 h-6" />
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-bold text-slate-900 dark:text-white">{gateway.name}</h4>
-                                                                <p className="text-xs text-slate-500 mt-1">
+                                                                <h4 className="font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1">
+                                                                    {gateway.name}
+                                                                </h4>
+                                                                <p className="text-xs text-slate-500 mt-1 flex flex-col items-center justify-center gap-1">
                                                                     {formData.paymentGateways?.[gateway.id]?.enabled ? (
                                                                         <span className="text-green-500 font-bold flex items-center justify-center gap-1"><Check className="w-3 h-3" /> Enabled</span>
-                                                                    ) : 'Disabled'}
+                                                                    ) : <span>Disabled</span>}
                                                                 </p>
                                                             </div>
                                                         </div>
                                                         {activePaymentGateway === gateway.id && (
                                                             <div className={`absolute top-4 right-4 text-${gateway.color}-500`}>
                                                                 <Check className="w-5 h-5" />
+                                                            </div>
+                                                        )}
+                                                        {formData.paymentGateways?.defaultGateway === gateway.id && (
+                                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
+                                                                Default Gateway
                                                             </div>
                                                         )}
                                                     </div>
@@ -1839,27 +1956,58 @@ const Settings = () => {
                                                         <Shield className="w-6 h-6 text-indigo-500" />
                                                         Configure {activePaymentGateway.charAt(0).toUpperCase() + activePaymentGateway.slice(1)}
                                                     </h2>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Enable Gateway</span>
-                                                        <button
-                                                            onClick={() => setFormData(prev => ({
-                                                                ...prev,
-                                                                paymentGateways: {
-                                                                    ...prev.paymentGateways,
-                                                                    [activePaymentGateway]: {
-                                                                        ...prev.paymentGateways[activePaymentGateway],
-                                                                        enabled: !prev.paymentGateways[activePaymentGateway].enabled
+                                                    <div className="flex items-center gap-6">
+                                                        {/* Set as Default Button */}
+                                                        {formData.paymentGateways[activePaymentGateway].enabled && (
+                                                            <button
+                                                                onClick={() => setFormData(prev => ({
+                                                                    ...prev,
+                                                                    paymentGateways: {
+                                                                        ...prev.paymentGateways,
+                                                                        defaultGateway: activePaymentGateway
                                                                     }
-                                                                }
-                                                            }))}
-                                                            className={`w-12 h-6 rounded-full p-1 transition-colors ${formData.paymentGateways[activePaymentGateway].enabled
-                                                                ? 'bg-green-500'
-                                                                : 'bg-slate-300 dark:bg-slate-700'
+                                                                }))}
+                                                                disabled={formData.paymentGateways.defaultGateway === activePaymentGateway}
+                                                                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                                                                    formData.paymentGateways.defaultGateway === activePaymentGateway
+                                                                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                                                                        : 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-50 dark:hover:bg-indigo-500/10'
                                                                 }`}
-                                                        >
-                                                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${formData.paymentGateways[activePaymentGateway].enabled ? 'translate-x-6' : 'translate-x-0'
-                                                                }`} />
-                                                        </button>
+                                                            >
+                                                                {formData.paymentGateways.defaultGateway === activePaymentGateway ? 'Is Default' : 'Make Default'}
+                                                            </button>
+                                                        )}
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Enable Gateway</span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const isCurrentlyEnabled = formData.paymentGateways[activePaymentGateway].enabled;
+                                                                    setFormData(prev => {
+                                                                        const newPaymentGateways = {
+                                                                            ...prev.paymentGateways,
+                                                                            [activePaymentGateway]: {
+                                                                                ...prev.paymentGateways[activePaymentGateway],
+                                                                                enabled: !isCurrentlyEnabled
+                                                                            }
+                                                                        };
+                                                                        
+                                                                        // If disabling the default gateway, clear defaultGateway
+                                                                        if (isCurrentlyEnabled && newPaymentGateways.defaultGateway === activePaymentGateway) {
+                                                                            newPaymentGateways.defaultGateway = null;
+                                                                        }
+                                                                        
+                                                                        return { ...prev, paymentGateways: newPaymentGateways };
+                                                                    });
+                                                                }}
+                                                                className={`w-12 h-6 rounded-full p-1 transition-colors ${formData.paymentGateways[activePaymentGateway].enabled
+                                                                    ? 'bg-green-500'
+                                                                    : 'bg-slate-300 dark:bg-slate-700'
+                                                                    }`}
+                                                            >
+                                                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${formData.paymentGateways[activePaymentGateway].enabled ? 'translate-x-6' : 'translate-x-0'
+                                                                    }`} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
 

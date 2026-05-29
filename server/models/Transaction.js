@@ -36,6 +36,14 @@ const Transaction = sequelize.define('Transaction', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    paymentGateway: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    transactionReference: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     couponCode: {
         type: DataTypes.STRING,
         allowNull: true

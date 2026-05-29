@@ -5,19 +5,9 @@ import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 
 import ThemeToggle from '../components/ThemeToggle';
+import { usePayment } from '../hooks/usePayment';
 
 const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
-
-// Load Razorpay script
-const loadRazorpayScript = () =>
-    new Promise((resolve) => {
-        if (window.Razorpay) return resolve(true);
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = () => resolve(true);
-        script.onerror = () => resolve(false);
-        document.body.appendChild(script);
-    });
 
 const StorePage = () => {
     console.log("StorePage component initiated");
@@ -28,6 +18,7 @@ const StorePage = () => {
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
     const [renderError, setRenderError] = useState(null);
+    const { initiatePayment } = usePayment();
 
     useEffect(() => {
         console.log("StorePage mounted, fetching items...");
@@ -58,88 +49,29 @@ const StorePage = () => {
         if (processingId) return;
         setProcessingId(item.id);
 
-        const loaded = await loadRazorpayScript();
-        if (!loaded) {
-            showToast({ type: 'error', title: 'Payment Error', message: 'Failed to load Razorpay. Check your connection.' });
-            setProcessingId(null);
-            return;
-        }
+        const payload = {
+            itemId: item.id,
+            successUrl: `${window.location.origin}/store`,
+            cancelUrl: window.location.href
+        };
 
-        try {
-            // 1. Create Order
-            const { data: orderData } = await axios.post(`${API}/api/billing/create-order`, {
-                itemId: item.id
-            }, {
-                headers: { 
-                     
-                }
-            });
-
-            // 2. Open Razorpay
-            const rzpOptions = {
-                key: orderData.keyId,
-                amount: orderData.amount,
-                currency: orderData.currency,
-                name: 'Bluetick Store',
-                description: `Purchase: ${item.name}`,
-                order_id: orderData.orderId,
-                prefill: {
-                    name: user?.name || '',
-                    email: user?.email || ''
-                },
-                theme: { color: '#0088cc' },
-                modal: {
-                    ondismiss: () => {
-                        setProcessingId(null);
-                    }
-                },
-                handler: async (response) => {
-                    // 3. Verify Payment
-                    try {
-                        const verifyRes = await axios.post(`${API}/api/billing/verify-payment`, {
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_signature: response.razorpay_signature,
-                            itemId: item.id
-                        }, {
-                            headers: { 
-                                
-                            }
-                        });
-
-                        showToast({
-                            type: 'success',
-                            title: 'Purchase Successful!',
-                            message: verifyRes.data.message
-                        });
-                        
-                        // Refresh user data so balances update in the UI
-                        if (fetchUser) await fetchUser();
-                    } catch (verifyErr) {
-                        const msg = verifyErr.response?.data?.error || 'Payment verification failed.';
-                        showToast({ type: 'error', title: 'Verification Failed', message: msg });
-                    } finally {
-                        setProcessingId(null);
-                    }
-                }
-            };
-
-            const rzp = new window.Razorpay(rzpOptions);
-            rzp.on('payment.failed', (response) => {
+        await initiatePayment({
+            createOrderUrl: `${API}/api/billing/create-order`,
+            verifyUrl: `${API}/api/billing/verify-payment`,
+            payload,
+            onSuccess: async (data) => {
                 showToast({
-                    type: 'error',
-                    title: 'Payment Failed',
-                    message: response.error?.description || 'Payment was declined.'
+                    type: 'success',
+                    title: 'Purchase Successful!',
+                    message: data.message || 'Item purchased successfully.'
                 });
+                if (fetchUser) await fetchUser();
                 setProcessingId(null);
-            });
-            rzp.open();
-
-        } catch (err) {
-            const msg = err.response?.data?.error || 'Could not initiate payment.';
-            showToast({ type: 'error', title: 'Checkout Error', message: msg });
-            setProcessingId(null);
-        }
+            },
+            onFailure: () => {
+                setProcessingId(null);
+            }
+        });
     };
 
     // Ensure storeItems is always an array before reducing

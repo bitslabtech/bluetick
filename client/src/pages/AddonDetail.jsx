@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle, Zap, ShieldCheck, ArrowLeft, Settings, ShoppingCart, Tag, X, Sparkles, Loader2 } from 'lucide-react';
+import { CheckCircle, Zap, ShieldCheck, ArrowLeft, Settings, ShoppingCart, Tag, X, Sparkles, Loader2, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { usePayment } from '../hooks/usePayment';
 
 const getCurrencySymbol = (c) => ({ USD: '$', INR: '₹', EUR: '€', GBP: '£', AUD: 'A$', SGD: 'S$' }[c] || c || '$');
 
@@ -14,7 +15,7 @@ const AddonDetail = () => {
     const [addon, setAddon] = useState(null);
     const [owned, setOwned] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [purchasing, setPurchasing] = useState(false);
+    const { initiatePayment, isProcessing: purchasing } = usePayment();
     const [showPurchaseModal, setShowPurchaseModal] = useState(false);
     const [userAddon, setUserAddon] = useState(null);
 
@@ -48,46 +49,21 @@ const AddonDetail = () => {
 
     const handlePurchase = async () => {
         setShowPurchaseModal(false);
-        setPurchasing(true);
-        try {
-            const response = await axios.post(`/api/addons/${addon.id}/create-order`, {}, { headers: { Authorization: `Bearer ${token}` } });
-            if (response.data.instant) {
+        const payload = {
+            successUrl: `${window.location.origin}/marketplace/${addon.id}`,
+            cancelUrl: window.location.href
+        };
+
+        await initiatePayment({
+            createOrderUrl: `/api/addons/${addon.id}/create-order`,
+            verifyUrl: `/api/addons/${addon.id}/verify-payment`,
+            payload,
+            onSuccess: (data) => {
                 toast.success(`Successfully activated: ${addon.name}!`);
                 setOwned(true);
-                return;
+                fetchData();
             }
-            const options = {
-                key: response.data.keyId,
-                amount: response.data.amount,
-                currency: response.data.currency,
-                name: "Bluetick",
-                description: `Purchase Add-on: ${response.data.addonName}`,
-                order_id: response.data.orderId,
-                handler: async function (paymentResponse) {
-                    try {
-                        await axios.post(`/api/addons/${addon.id}/verify-payment`, {
-                            razorpay_order_id: paymentResponse.razorpay_order_id,
-                            razorpay_payment_id: paymentResponse.razorpay_payment_id,
-                            razorpay_signature: paymentResponse.razorpay_signature
-                        }, { headers: { Authorization: `Bearer ${token}` } });
-                        toast.success(`Successfully purchased ${addon.name}!`);
-                        setOwned(true);
-                    } catch (verifyError) {
-                        toast.error(verifyError.response?.data?.error || 'Payment verification failed');
-                    }
-                },
-                prefill: { name: user?.name, email: user?.email },
-                theme: { color: "#4f46e5" }
-            };
-            const rzp = new window.Razorpay(options);
-            rzp.on('payment.failed', (r) => toast.error(r.error.description || 'Payment Failed'));
-            rzp.open();
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.error || 'Purchase initiation failed');
-        } finally {
-            setPurchasing(false);
-        }
+        });
     };
 
     if (loading) {
