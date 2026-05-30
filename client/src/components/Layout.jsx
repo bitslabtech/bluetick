@@ -115,7 +115,7 @@ export default function Layout() {
                         <button
                             onClick={async () => {
                                 await exitImpersonation();
-                                window.location.href = '/superadmin/users'; // Redirect back to users list
+                                // exitImpersonation already handles navigation to /superadmin/users
                             }}
                             className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-xs font-bold transition-colors"
                         >

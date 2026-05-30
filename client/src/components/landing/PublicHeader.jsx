@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, MessageSquare } from 'lucide-react';
+import { Menu, X, MessageSquare, LayoutDashboard } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 const PublicHeader = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [config, setConfig] = useState(null);
     const [publicSettings, setPublicSettings] = useState(null);
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -48,10 +50,19 @@ const PublicHeader = () => {
                     <a href="/#pricing" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Pricing</a>
                     <a href="/#faq" className="hover:text-indigo-600 dark:hover:text-white transition-colors">FAQ</a>
                     <div className="h-4 w-[1px] max-w-full bg-slate-300 dark:bg-white/10" />
-                    <Link to="/login" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Log In</Link>
-                    <Link to="/register" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all font-bold">
-                        Get Started
-                    </Link>
+                    
+                    {user ? (
+                        <Link to="/dashboard" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all font-bold flex items-center gap-2">
+                            <LayoutDashboard className="w-4 h-4" /> Go to Dashboard
+                        </Link>
+                    ) : (
+                        <>
+                            <Link to="/login" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Log In</Link>
+                            <Link to="/register" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all font-bold">
+                                Get Started
+                            </Link>
+                        </>
+                    )}
                 </div>
 
                 <button className="md:hidden text-slate-900 dark:text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -68,8 +79,17 @@ const PublicHeader = () => {
                             <a href="/#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
                             <a href="/#faq" onClick={() => setIsMenuOpen(false)}>FAQ</a>
                             <div className="h-[1px] w-full bg-slate-200 dark:bg-white/10" />
-                            <Link to="/login" onClick={() => setIsMenuOpen(false)}>Log In</Link>
-                            <Link to="/register" onClick={() => setIsMenuOpen(false)} className="bg-indigo-600 text-white py-3 rounded-full font-bold shadow-lg">Get Started</Link>
+                            
+                            {user ? (
+                                <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="bg-indigo-600 text-white py-3 rounded-full font-bold shadow-lg flex items-center justify-center gap-2">
+                                    <LayoutDashboard className="w-4 h-4" /> Go to Dashboard
+                                </Link>
+                            ) : (
+                                <>
+                                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>Log In</Link>
+                                    <Link to="/register" onClick={() => setIsMenuOpen(false)} className="bg-indigo-600 text-white py-3 rounded-full font-bold shadow-lg">Get Started</Link>
+                                </>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -79,3 +99,4 @@ const PublicHeader = () => {
 };
 
 export default PublicHeader;
+

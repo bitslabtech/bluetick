@@ -20,7 +20,49 @@ const jwt = require('jsonwebtoken'); // Needed for impersonation
 const logActivity = require('../utils/logger'); // Import Logger
 const { setAuthCookies, clearAuthCookies } = require('../utils/cookieHelper');
 
-// 1. Auth Middleware
+// ─── EXIT IMPERSONATION ────────────────────────────────────────────────────────
+// This route MUST be placed BEFORE the global auth+admin middleware.
+// During impersonation, bt_token belongs to the impersonated (non-admin) user,
+// so the admin middleware would block with 403. This route authenticates
+// directly via the bt_admin_token backup cookie instead.
+router.post('/exit-impersonation', async (req, res) => {
+    try {
+        const adminToken = req.cookies?.bt_admin_token;
+        if (!adminToken) {
+            clearAuthCookies(res);
+            return res.status(400).json({ error: 'No admin session to restore. Please log in again.' });
+        }
+
+        // Verify the admin token is still valid
+        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+        if (!decoded.user?.isAdmin) {
+            clearAuthCookies(res);
+            return res.status(403).json({ error: 'Invalid admin session.' });
+        }
+
+        // Fetch admin user data from DB to return to the frontend
+        const adminUser = await User.findByPk(decoded.user.id, {
+            attributes: { exclude: ['password', 'fbAccessToken', 'metaAdsToken', 'inviteToken'] }
+        });
+
+        if (!adminUser) {
+            clearAuthCookies(res);
+            return res.status(404).json({ error: 'Admin user not found.' });
+        }
+
+        // Restore: set admin token as primary, clear the backup
+        setAuthCookies(res, adminToken);
+        res.clearCookie('bt_admin_token', { path: '/' });
+
+        res.json({ success: true, message: 'Admin session restored.', adminUser: adminUser.toJSON() });
+    } catch (err) {
+        console.error('[EXIT IMPERSONATION] Error:', err.message);
+        clearAuthCookies(res);
+        res.status(401).json({ error: 'Admin session expired. Please log in again.' });
+    }
+});
+
+// 1. Auth Middleware (all routes below this require admin access)
 router.use(auth, admin);
 
 // --- Impersonation History ---
@@ -509,33 +551,6 @@ router.post('/users/:id/impersonate', async (req, res) => {
     }
 });
 
-// POST Exit Impersonation — restore admin token from cookie
-router.post('/exit-impersonation', async (req, res) => {
-    try {
-        const adminToken = req.cookies?.bt_admin_token;
-        if (!adminToken) {
-            clearAuthCookies(res);
-            return res.status(400).json({ error: 'No admin session to restore. Please log in again.' });
-        }
-
-        // Verify the admin token is still valid
-        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
-        if (!decoded.user?.isAdmin) {
-            clearAuthCookies(res);
-            return res.status(403).json({ error: 'Invalid admin session.' });
-        }
-
-        // Restore: set admin token as primary, clear the backup
-        setAuthCookies(res, adminToken);
-        res.clearCookie('bt_admin_token', { path: '/' });
-
-        res.json({ success: true, message: 'Admin session restored.' });
-    } catch (err) {
-        console.error('[EXIT IMPERSONATION] Error:', err.message);
-        clearAuthCookies(res);
-        res.status(401).json({ error: 'Admin session expired. Please log in again.' });
-    }
-});
 
 // GET Full User Details (Profile, Purchases, Usage, Referrals)
 router.get('/users/:id/details', async (req, res) => {

@@ -194,11 +194,10 @@ const Checkout = () => {
                                 ))}
                             </div>
 
-                            {/* Price Breakdown */}
                             <div className="border-t border-slate-100 dark:border-white/10 pt-5 space-y-2">
                                 <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
                                     <span>Subtotal</span>
-                                    <span>{sym}{parseFloat(plan.price).toLocaleString()}</span>
+                                    <span>{sym}{upgradeData ? upgradeData.targetPlanPrice.toLocaleString() : parseFloat(plan.price).toLocaleString()}</span>
                                 </div>
 
                                 {upgradeData && upgradeData.creditAmount > 0 && (
@@ -321,23 +320,34 @@ const Checkout = () => {
                                 )}
                             </button>
 
+                            {plan.trialDays > 0 && (
+                                <button
+                                    onClick={async () => {
+                                        setProcessing(true);
+                                        try {
+                                            await axios.post(`${API}/api/billing/start-trial`, { planName: plan.name });
+                                            localStorage.removeItem('pendingPlan');
+                                            showToast({ type: 'success', title: 'Trial Started', message: `Your ${plan.trialDays}-day free trial has started.` });
+                                            setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
+                                        } catch (err) {
+                                            console.error(err);
+                                            showToast({ type: 'error', title: 'Error', message: err.response?.data?.error || 'Failed to start trial.' });
+                                            setProcessing(false);
+                                        }
+                                    }}
+                                    disabled={processing || isProcessing}
+                                    className="w-full mt-3 py-3.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-xl font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors text-sm disabled:opacity-50 border border-emerald-200 dark:border-emerald-800/30 shadow-sm flex items-center justify-center gap-2"
+                                >
+                                    <Gift className="w-4 h-4" /> Start {plan.trialDays} Days Free Trial
+                                </button>
+                            )}
+
                             <button
-                                onClick={async () => {
-                                    setProcessing(true);
-                                    try {
-                                        await axios.post(`${API}/api/billing/downgrade-to-free`, {});
-                                        localStorage.removeItem('pendingPlan');
-                                        // A hard reload is safest to reset AuthContext user data immediately
-                                        window.location.href = '/dashboard';
-                                    } catch (err) {
-                                        console.error(err);
-                                        setProcessing(false);
-                                    }
-                                }}
+                                onClick={() => navigate('/billing')}
                                 disabled={processing || isProcessing}
-                                className="w-full mt-3 py-3.5 bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 rounded-xl font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors text-sm disabled:opacity-50 border border-rose-200 dark:border-rose-800/30 shadow-sm flex items-center justify-center"
+                                className="w-full mt-3 py-3.5 bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm disabled:opacity-50 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center"
                             >
-                                Downgrade to Free or Choose a Different Plan
+                                Choose a Different Plan
                             </button>
 
                             {/* Razorpay disclaimer */}

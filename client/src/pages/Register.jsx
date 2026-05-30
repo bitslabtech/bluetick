@@ -166,16 +166,25 @@ const Register = () => {
                 }
             }
 
-            // If user selected a paid plan and didn't request a trial → redirect to checkout
-            if (selectedPlan && selectedPlan.price > 0 && !isTrial) {
-                // Store plan info for checkout
-                localStorage.setItem('pendingPlan', JSON.stringify(selectedPlan));
-                navigate('/checkout');
-            } else {
-                // Direct registration, free plan, or trial plan - go to dashboard
-                // They shouldn't get Option A forced redirect if they started a trial plan.
-                navigate('/dashboard');
+            // If user explicitly selected a plan (and didn't request a trial) OR it's a direct registration that got pushed to Pending
+            const registeredUser = res.user;
+            if (registeredUser?.planStatus === 'Pending') {
+                let targetPlanForCheckout = selectedPlan;
+                
+                // If direct registration (selectedPlan is null), we use the assigned plan details (the default plan)
+                if (!targetPlanForCheckout && registeredUser.planDetails) {
+                    targetPlanForCheckout = registeredUser.planDetails;
+                }
+
+                if (targetPlanForCheckout) {
+                    localStorage.setItem('pendingPlan', JSON.stringify({ ...targetPlanForCheckout, interval: 'month' }));
+                    navigate('/checkout');
+                    return;
+                }
             }
+            
+            // If they started a trial plan or are free, go to dashboard
+            navigate('/dashboard');
         } else {
             setError(res.error);
         }

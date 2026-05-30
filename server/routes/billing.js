@@ -796,4 +796,37 @@ router.post('/downgrade-to-free', async (req, res) => {
     }
 });
 
+// POST /start-trial - Start trial for a specific plan
+router.post('/start-trial', async (req, res) => {
+    try {
+        const { planName } = req.body;
+        const targetPlan = await Plan.findOne({ where: { name: planName } });
+        
+        if (!targetPlan) {
+            return res.status(404).json({ error: `Plan '${planName}' not found.` });
+        }
+
+        if (!targetPlan.trialDays || targetPlan.trialDays <= 0) {
+            return res.status(400).json({ error: `Plan '${planName}' does not offer a free trial.` });
+        }
+
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        
+        let planExpiry = new Date();
+        planExpiry.setDate(planExpiry.getDate() + targetPlan.trialDays);
+
+        await user.update({
+            plan: targetPlan.name,
+            planStatus: 'Trial',
+            planExpiry: planExpiry
+        });
+
+        res.json({ success: true, message: `Started ${targetPlan.trialDays}-day free trial for ${planName} plan` });
+    } catch (err) {
+        console.error('Start Trial Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

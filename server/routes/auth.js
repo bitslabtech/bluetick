@@ -116,23 +116,12 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         let planExpiry = null;
         let planStatus = 'Active';
 
-        // Fix: If direct signup AND the default plan has a trial period, enforce the trial.
+        // Fix: If direct signup AND the default plan exists, DO NOT force trial immediately.
+        // Instead, set them to Pending with the default plan so they are redirected to checkout
+        // where they can choose to Pay, Start Trial, or Change Plan.
         if (!selectedPlan && defaultPlan) {
-            let trialDaysToGive = defaultPlan.trialDays || 0;
-            if (isReferredByTechPartner) {
-                trialDaysToGive = 30; // 1-Month Extended License for Tech Partner referrals
-            }
-
-            if (trialDaysToGive > 0) {
-                planStatus = 'Trial';
-                planExpiry = new Date();
-                planExpiry.setDate(planExpiry.getDate() + trialDaysToGive);
-            } else if (defaultPlan.price > 0) {
-                // If the default plan is a paid plan with NO trial days, assign it but set expiry to NOW
-                // This forces the ProtectedRoute to redirect them to /checkout immediately
-                planStatus = 'Pending';
-                planExpiry = new Date(); 
-            }
+            planStatus = 'Pending';
+            planExpiry = new Date(); 
         }
 
         // Plan assignment: if user requested a trial and plan supports it, activate trial immediately.

@@ -24,8 +24,7 @@ const UserDropdown = () => {
     const handleLogout = async () => {
         if (isImpersonating) {
             await exitImpersonation();
-            // Typically redirect back to admin users list after exiting
-            navigate('/superadmin/users');
+            // exitImpersonation already handles navigation to /superadmin/users
         } else {
             logout();
             navigate('/login');
