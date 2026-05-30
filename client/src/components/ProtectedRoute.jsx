@@ -27,15 +27,15 @@ const ProtectedRoute = () => {
             pendingPlan = null;
         }
         
-        // 1. If they have a pending checkout from registration, lock them to /checkout
-        if (pendingPlan && location.pathname !== '/checkout') {
+        // 1. If they have a pending checkout from registration, lock them to /checkout or /billing
+        if (pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
             return <Navigate to="/checkout" replace />;
         }
 
-        // 2. If user's trial or plan is expired, lock them to /checkout
+        // 2. If user's trial or plan is expired, lock them to /checkout or /billing
         if (user.planExpiry && user.plan !== 'Free') {
             const expiryDate = new Date(user.planExpiry);
-            if (expiryDate < new Date() && location.pathname !== '/checkout') {
+            if (expiryDate < new Date() && location.pathname !== '/checkout' && location.pathname !== '/billing') {
                 // Give them a pending plan based on their current plan so they can renew
                 if (!pendingPlan) {
                      if (user.planDetails) {

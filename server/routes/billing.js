@@ -625,7 +625,8 @@ router.post('/create-order', async (req, res) => {
         });
     } catch (err) {
         console.error('Create Order Error:', err);
-        res.status(500).json({ error: err.message });
+        const statusCode = err.message && err.message.includes('No payment gateways') ? 400 : 500;
+        res.status(statusCode).json({ error: err.message });
     }
 });
 
