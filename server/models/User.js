@@ -196,6 +196,17 @@ const User = sequelize.define('User', {
         type: DataTypes.BIGINT, // in bytes
         defaultValue: 0,
         comment: 'Total storage used by the user across all modules in bytes'
+    },
+    // Notification Tracking
+    lastExpiryAlertDay: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Tracks the last reminder day (e.g. 15, 7, 3) sent for expiry alert'
+    },
+    lastQuotaAlerts: {
+        type: DataTypes.JSON,
+        defaultValue: {},
+        comment: 'Tracks the last threshold percentage sent per limit type (e.g., {messages: 80, contacts: 100})'
     }
 }, {
     timestamps: true

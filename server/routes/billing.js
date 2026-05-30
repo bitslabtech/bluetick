@@ -718,6 +718,42 @@ router.post('/verify-payment', async (req, res) => {
                 amountPaid: Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0)) // fallback approximation
             });
 
+            // ─── Trigger WhatsApp Plan Purchase Notification ───
+            try {
+                const SystemConfig = require('../models/SystemConfig');
+                const Settings = require('../models/Settings');
+                const { sendSystemMessage } = require('../services/systemMessenger');
+
+                const config = await SystemConfig.getCachedConfig();
+                const linkedAdminId = config?.settings?.linkedAdminUserId;
+                if (linkedAdminId) {
+                    const adminSettings = await Settings.findOne({ where: { userId: linkedAdminId } });
+                    const waTemplates = adminSettings?.notificationTemplates?.whatsapp || {};
+                    const planPurchaseTpl = waTemplates.planPurchase;
+
+                    if (planPurchaseTpl && planPurchaseTpl.enabled && req.user.phone) {
+                        const userPhone = req.user.phone.replace(/\D/g, '');
+                        // Available Variables: {name}, {plan_name}, {amount}, {transaction_id}, {expiry_date}
+                        await sendSystemMessage(userPhone, 'template', {
+                            templateName: planPurchaseTpl.templateName,
+                            languageCode: planPurchaseTpl.languageCode || 'en_US',
+                            components: [{
+                                type: 'body',
+                                parameters: [
+                                    { type: 'text', text: req.user.name || 'User' },
+                                    { type: 'text', text: targetPlan.name || 'Plan' },
+                                    { type: 'text', text: `${parseFloat(targetPlan.price)}` },
+                                    { type: 'text', text: transactionReference || 'N/A' },
+                                    { type: 'text', text: new Date(req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() }
+                                ]
+                            }]
+                        });
+                    }
+                }
+            } catch (notifyErr) {
+                console.error('[PLAN PURCHASE NOTIFICATION ERROR]', notifyErr);
+            }
+
             return res.json({ success: true, message: `Successfully upgraded to ${planName}` });
         }
     } catch (err) {

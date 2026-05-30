@@ -127,6 +127,11 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
                 planStatus = 'Trial';
                 planExpiry = new Date();
                 planExpiry.setDate(planExpiry.getDate() + trialDaysToGive);
+            } else if (defaultPlan.price > 0) {
+                // If the default plan is a paid plan with NO trial days, assign it but set expiry to NOW
+                // This forces the ProtectedRoute to redirect them to /checkout immediately
+                planStatus = 'Pending';
+                planExpiry = new Date(); 
             }
         }
 

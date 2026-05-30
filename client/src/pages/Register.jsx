@@ -166,8 +166,8 @@ const Register = () => {
                 }
             }
 
-            // If user selected a paid plan, AND it doesn't have a trial, AND didn't request trial → redirect to checkout
-            if (selectedPlan && selectedPlan.price > 0 && !isTrial && (!selectedPlan.trialDays || selectedPlan.trialDays <= 0)) {
+            // If user selected a paid plan and didn't request a trial → redirect to checkout
+            if (selectedPlan && selectedPlan.price > 0 && !isTrial) {
                 // Store plan info for checkout
                 localStorage.setItem('pendingPlan', JSON.stringify(selectedPlan));
                 navigate('/checkout');
@@ -237,7 +237,6 @@ const Register = () => {
                                 <li>• {selectedPlan.contactLimit?.toLocaleString()} contacts</li>
                                 {selectedPlan.templateLimit > 0 && <li>• {selectedPlan.templateLimit} templates</li>}
                                 {selectedPlan.teamMemberLimit > 0 && <li>• {selectedPlan.teamMemberLimit} team members</li>}
-                                {selectedPlan.trialDays > 0 && <li>• {selectedPlan.trialDays}-day free trial included</li>}
                             </ul>
                         </div>
                     );

@@ -1487,6 +1487,41 @@ const Settings = () => {
                                                         Ensure the template accepts <span className="font-bold">{cat.variables.length} variables</span> in the correct order.
                                                     </div>
 
+                                                    {/* Custom configurations based on category */}
+                                                    {cat.id === 'expiryAlert' && (
+                                                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                                                            <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-2">Reminder Triggers</h4>
+                                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Set up to 3 reminder triggers (in days before expiry) to send the alert. For example: 15, 7, and 3 days before expiry.</p>
+                                                            <div className="grid grid-cols-3 gap-4">
+                                                                {[0, 1, 2].map((index) => {
+                                                                    const reminderDaysArray = formData.notificationTemplates.whatsapp?.expiryAlert?.reminderDays || [15, 7, 3];
+                                                                    return (
+                                                                        <div key={index}>
+                                                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                                                                                Trigger {index + 1}
+                                                                            </label>
+                                                                            <div className="relative flex items-center">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    min="1"
+                                                                                    value={reminderDaysArray[index] || ''}
+                                                                                    onChange={(e) => {
+                                                                                        const newArray = [...reminderDaysArray];
+                                                                                        newArray[index] = parseInt(e.target.value) || '';
+                                                                                        handleTemplateChange('whatsapp', 'expiryAlert', 'reminderDays', newArray);
+                                                                                    }}
+                                                                                    className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none"
+                                                                                    placeholder="Days"
+                                                                                />
+                                                                                <span className="absolute right-3 text-xs text-slate-400">days</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     {/* Variables */}
                                                     <div>
                                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-3">Available Variables:</label>
