@@ -82,6 +82,10 @@ const Plan = sequelize.define('Plan', {
         type: DataTypes.JSON, // Stores array of feature strings
         defaultValue: []
     },
+    coreFeatures: {
+        type: DataTypes.JSON, // Stores array of objects: [{ name: '...', qty: '...' }]
+        defaultValue: []
+    },
     flowBotEnabled: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,

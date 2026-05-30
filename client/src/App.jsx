@@ -93,6 +93,7 @@ const VcardBuilder = React.lazy(() => import('./pages/VcardManager/VcardBuilder'
 const PublicVcard = React.lazy(() => import('./pages/PublicVcard'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
+const RefundPolicy = React.lazy(() => import('./pages/RefundPolicy'));
 const AboutUs = React.lazy(() => import('./pages/AboutUs'));
 const ContactUs = React.lazy(() => import('./pages/ContactUs'));
 const PartnerWithUs = React.lazy(() => import('./pages/PartnerWithUs'));
@@ -288,6 +289,7 @@ function App() {
                                         </Route>
                                         <Route path="/privacy" element={<PrivacyPolicy />} />
                                         <Route path="/terms" element={<TermsOfService />} />
+                                        <Route path="/refund-policy" element={<RefundPolicy />} />
                                         <Route path="/about" element={<AboutUs />} />
                                         <Route path="/contact" element={<ContactUs />} />
                                         <Route path="/partner" element={<PartnerWithUs />} />

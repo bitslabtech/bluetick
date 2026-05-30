@@ -115,6 +115,33 @@ const Checkout = () => {
     const sym = currencySymbol(plan.currency);
     const intLabel = intervalLabel(plan.interval);
 
+    const baseMonthly = parseFloat(plan.monthlyPrice) || 0;
+    let originalPrice = 0;
+    let savePercentage = 0;
+    let actualPrice = parseFloat(plan.price) || 0;
+
+    if (upgradeData) {
+        actualPrice = upgradeData.targetPlanPrice;
+    } else if (plan.interval === 'year' && parseFloat(plan.yearlyPrice) > 0) {
+        actualPrice = parseFloat(plan.yearlyPrice);
+    } else if (plan.interval === 'half-year' && parseFloat(plan.halfYearlyPrice) > 0) {
+        actualPrice = parseFloat(plan.halfYearlyPrice);
+    }
+
+    if (baseMonthly > 0) {
+        if (plan.interval === 'year') {
+            originalPrice = baseMonthly * 12;
+            if (originalPrice > actualPrice) {
+                savePercentage = Math.round(((originalPrice - actualPrice) / originalPrice) * 100);
+            }
+        } else if (plan.interval === 'half-year') {
+            originalPrice = baseMonthly * 6;
+            if (originalPrice > actualPrice) {
+                savePercentage = Math.round(((originalPrice - actualPrice) / originalPrice) * 100);
+            }
+        }
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-indigo-950 py-12 px-4">
             <div className="max-w-4xl mx-auto">
@@ -134,7 +161,7 @@ const Checkout = () => {
                         {/* Plan Card */}
                         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 md:p-7 border border-slate-200 dark:border-white/10 shadow-sm">
                             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-5">Order Summary</h2>
-                            
+
                             {/* Interval Switcher */}
                             <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-white/10 mb-6">
                                 {['month', 'half-year', 'year'].map(int => (
@@ -158,15 +185,32 @@ const Checkout = () => {
                                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-bold mb-2">
                                         <Tag className="w-3 h-3" /> {plan.name} Plan
                                     </div>
-                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-                                        {sym}{upgradeData ? (appliedCoupon ? upgradeData.finalPayableAmount.toLocaleString() : upgradeData.targetPlanPrice.toLocaleString()) : parseFloat(plan.price).toLocaleString()}
-                                    </h3>
+                                    <div className="flex items-end gap-2">
+                                        <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                                            {sym}{upgradeData ? (appliedCoupon ? upgradeData.finalPayableAmount.toLocaleString() : upgradeData.targetPlanPrice.toLocaleString()) : actualPrice.toLocaleString()}
+                                        </h3>
+                                        {originalPrice > actualPrice && (
+                                            <span className="text-lg text-slate-400 dark:text-slate-500 line-through mb-0.5">
+                                                {sym}{originalPrice.toLocaleString()}
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">{intLabel}</p>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right flex flex-col items-end gap-2">
                                     {plan.interval === 'year' && (
                                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-xs font-bold">
                                             <Calendar className="w-3 h-3" /> Annual billing
+                                        </span>
+                                    )}
+                                    {plan.interval === 'half-year' && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-xs font-bold">
+                                            <Calendar className="w-3 h-3" /> Half-Yearly billing
+                                        </span>
+                                    )}
+                                    {savePercentage > 0 && (
+                                        <span className="inline-flex items-center px-2 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-full text-xs font-black">
+                                            Save {savePercentage}%
                                         </span>
                                     )}
                                 </div>
@@ -197,7 +241,7 @@ const Checkout = () => {
                             <div className="border-t border-slate-100 dark:border-white/10 pt-5 space-y-2">
                                 <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
                                     <span>Subtotal</span>
-                                    <span>{sym}{upgradeData ? upgradeData.targetPlanPrice.toLocaleString() : parseFloat(plan.price).toLocaleString()}</span>
+                                    <span>{sym}{upgradeData ? upgradeData.targetPlanPrice.toLocaleString() : actualPrice.toLocaleString()}</span>
                                 </div>
 
                                 {upgradeData && upgradeData.creditAmount > 0 && (
@@ -230,7 +274,7 @@ const Checkout = () => {
                                 </div>
 
                                 <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white pt-3 border-t border-slate-100 dark:border-white/10 mt-3">
-                                    <span>Total Due Today</span>
+                                    <span>Total Payable</span>
                                     <span>{sym}{appliedCoupon ? appliedCoupon.finalPrice.toLocaleString() : (upgradeData ? upgradeData.finalPayableAmount.toLocaleString() : parseFloat(plan.price).toLocaleString())}</span>
                                 </div>
                             </div>

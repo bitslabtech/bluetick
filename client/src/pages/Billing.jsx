@@ -173,6 +173,19 @@ const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) 
                                 {f}
                             </div>
                         ))}
+                        {plan.coreFeatures?.map((feat, fi) => (
+                            <div key={`core-${fi}`} className={`flex items-center gap-2 text-sm ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500 opacity-70' : 'text-slate-600 dark:text-slate-300'}`}>
+                                {(!feat.qty || feat.qty === '0') ? (
+                                    <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                                ) : (
+                                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                )}
+                                <span>
+                                    {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                    {feat.name}
+                                </span>
+                            </div>
+                        ))}
                         {plan.allowWaStore ? (
                             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                                 <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -193,6 +206,28 @@ const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) 
                             <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
                                 <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
                                 <span>Digital VeCards</span>
+                            </div>
+                        )}
+                        {plan.allowCtwaAnalytics ? (
+                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                CTWA Analytics
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
+                                <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                                <span>CTWA Analytics</span>
+                            </div>
+                        )}
+                        {plan.allowMetaAds ? (
+                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                Meta Ads Marketing
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
+                                <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                                <span>Meta Ads Marketing</span>
                             </div>
                         )}
                     </div>

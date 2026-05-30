@@ -1642,6 +1642,95 @@ const CURRENCY_SYMBOLS = {
     SGD: 'S$', MYR: 'RM'
 };
 
+const TestimonialCard = ({ t, str }) => (
+    <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 p-4 md:p-8 rounded-3xl shadow-sm hover:shadow-xl transition-shadow h-full flex flex-col">
+        <div className="flex gap-1 mb-6">
+            {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
+        </div>
+        <p className="text-lg text-slate-700 dark:text-slate-300 font-medium mb-8">"{str(t.quote)}"</p>
+        <div className="flex items-center gap-4 mt-auto">
+            {t.avatar ? (
+                <img loading="lazy" src={str(t.avatar)} className="w-12 h-12 rounded-full object-cover bg-slate-100" alt={str(t.name)} />
+            ) : (
+                <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300 shrink-0">
+                    {str(t.name).substring(0, 1)}
+                </div>
+            )}
+            <div>
+                <div className="font-bold text-slate-900 dark:text-white">{str(t.name)}</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{str(t.role)}</div>
+            </div>
+        </div>
+    </div>
+);
+
+function TestimonialSlider({ testimonials }) {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isTransitioning, setIsTransitioning] = useState(true);
+    const [visibleCount, setVisibleCount] = useState(3);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) setVisibleCount(1);
+            else if (window.innerWidth < 1024) setVisibleCount(2);
+            else setVisibleCount(3);
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (testimonials.length <= visibleCount) return;
+        const timer = setInterval(() => {
+            setIsTransitioning(true);
+            setCurrentIndex((prev) => prev + 1);
+        }, 3000);
+        return () => clearInterval(timer);
+    }, [testimonials.length, visibleCount]);
+
+    useEffect(() => {
+        if (currentIndex === testimonials.length) {
+            const timer = setTimeout(() => {
+                setIsTransitioning(false);
+                setCurrentIndex(0);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [currentIndex, testimonials.length]);
+
+    const str = (v) => v || '';
+
+    if (testimonials.length <= visibleCount) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {testimonials.map((t, i) => <TestimonialCard key={i} t={t} str={str} />)}
+            </div>
+        );
+    }
+
+    const extendedTestimonials = [...testimonials, ...testimonials.slice(0, visibleCount)];
+
+    return (
+        <div className="overflow-hidden relative -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div 
+                className={`flex gap-6 ${isTransitioning ? 'transition-transform duration-500 ease-in-out' : ''}`}
+                style={{ transform: `translateX(calc(-${currentIndex} * (100% + 24px) / ${visibleCount}))` }}
+            >
+                {extendedTestimonials.map((t, i) => (
+                    <div 
+                        key={i} 
+                        className="flex-shrink-0" 
+                        style={{ width: `calc((100% - ${(visibleCount - 1) * 24}px) / ${visibleCount})` }}
+                    >
+                        <TestimonialCard t={t} str={str} />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function LandingPage() {
     const [config, setConfig] = useState(null);
     const [publicSettings, setPublicSettings] = useState(null);
@@ -2346,29 +2435,7 @@ export default function LandingPage() {
                         <section className="py-24 bg-slate-50 dark:bg-[#05050A]">
                             <div className="max-w-7xl mx-auto px-4 md:px-6">
                                 <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight text-center mb-16">Loved by go-to-market teams</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {config.testimonials.map((t, i) => (
-                                        <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 p-4 md:p-8 rounded-3xl shadow-sm hover:shadow-xl transition-shadow">
-                                            <div className="flex gap-1 mb-6">
-                                                {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
-                                            </div>
-                                            <p className="text-lg text-slate-700 dark:text-slate-300 font-medium mb-8">"{str(t.quote)}"</p>
-                                            <div className="flex items-center gap-4">
-                                                {t.avatar ? (
-                                                    <img loading="lazy" src={str(t.avatar)} className="w-12 h-12 rounded-full object-cover bg-slate-100" alt={str(t.name)} />
-                                                ) : (
-                                                    <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">
-                                                        {str(t.name).substring(0, 1)}
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <div className="font-bold text-slate-900 dark:text-white">{str(t.name)}</div>
-                                                    <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{str(t.role)}</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                <TestimonialSlider testimonials={config.testimonials} />
                             </div>
                         </section>
                     )}
@@ -2640,10 +2707,22 @@ export default function LandingPage() {
                                                         </div>
 
                                                         {/* Capabilities */}
-                                                        {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
+                                                        {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || plan.allowCtwaAnalytics || plan.allowMetaAds || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
                                                             <div>
                                                                 <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Add-ons</div>
                                                                 <ul className="space-y-3">
+                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-70' : ''}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
+                                                                            {plan.allowCtwaAnalytics ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                        </div>
+                                                                        <span className={!plan.allowCtwaAnalytics ? "text-slate-900 dark:text-white" : ""}>CTWA Analytics</span>
+                                                                    </li>
+                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-70' : ''}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
+                                                                            {plan.allowMetaAds ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                        </div>
+                                                                        <span className={!plan.allowMetaAds ? "text-slate-900 dark:text-white" : ""}>Meta Ads Marketing</span>
+                                                                    </li>
                                                                     <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowApiAccess ? 'opacity-70' : ''}`}>
                                                                         <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
                                                                             {plan.allowApiAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
@@ -2706,6 +2785,17 @@ export default function LandingPage() {
                                                                             <span className="leading-tight">{feat}</span>
                                                                         </li>
                                                                     ))}
+                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => (
+                                                                        <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50 grayscale' : ''}`}>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                                                                            </div>
+                                                                            <span className="leading-tight">
+                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                                                                {feat.name}
+                                                                            </span>
+                                                                        </li>
+                                                                    ))}
                                                                 </ul>
                                                             </div>
                                                         )}
@@ -2722,9 +2812,9 @@ export default function LandingPage() {
                                                             </Link>
                                                             <Link
                                                                 to={`/register?plan=${plan.id}&trial=true`}
-                                                                className="w-full py-3 rounded-xl font-semibold text-center text-xs transition-all bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                                                className="w-full py-3 rounded-xl font-bold text-center text-xs transition-all bg-sky-50 hover:bg-sky-100 dark:bg-sky-500/10 dark:hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-500/20 shadow-sm"
                                                             >
-                                                                🎉 Try free for {plan.trialDays} days instead
+                                                                🎉 Try {plan.trialDays} days free trial
                                                             </Link>
                                                         </div>
                                                     ) : (
@@ -2904,6 +2994,7 @@ export default function LandingPage() {
                                             <ul className="space-y-4 text-slate-600 dark:text-slate-400 font-medium">
                                                 <li><Link to="/privacy" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Privacy Policy</Link></li>
                                                 <li><Link to="/terms" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Terms of Service</Link></li>
+                                                <li><Link to="/refund-policy" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Cancellation & Refund Policy</Link></li>
                                             </ul>
                                         </div>
                                     </>

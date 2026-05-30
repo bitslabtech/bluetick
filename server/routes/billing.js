@@ -382,6 +382,17 @@ router.get('/', async (req, res) => {
         let templateLimit = planDetails ? planDetails.templateLimit : 2;
         let contactLimit = planDetails ? planDetails.contactLimit : 10;
         let planPrice = planDetails ? parseFloat(planDetails.price) : 0;
+        let currency = planDetails ? planDetails.currency : null;
+
+        if (!currency) {
+            const adminUser = await User.findOne({ where: { isAdmin: true }, order: [['createdAt', 'ASC']] });
+            if (adminUser) {
+                const adminSettings = await Settings.findOne({ where: { userId: adminUser.id } });
+                currency = adminSettings?.currency || 'USD';
+            } else {
+                currency = 'USD';
+            }
+        }
 
         // Count current templates and contacts
         const Template = require('../models/Template');
@@ -397,7 +408,7 @@ router.get('/', async (req, res) => {
                 status: user.planStatus || 'Active',
                 expiry: user.planExpiry,
                 price: planPrice,
-                currency: planDetails ? planDetails.currency : 'USD',
+                currency: currency,
                 interval: planDetails ? planDetails.interval : 'month'  // month | year | lifetime
             },
             usage: {

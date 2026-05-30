@@ -70,7 +70,7 @@ router.post('/', async (req, res) => {
             features, color, isPopular, isActive, isDefault, isPublic, messageLimit, contactLimit, 
             templateLimit, aiTokensAllowance, includedAddons, teamMemberLimit, allowApiAccess, trialDays,
             quickReplyLimit, tagLimit, groupLimit, allowCtwaAnalytics, allowMetaAds,
-            allowVcard, vcardLimit
+            allowVcard, vcardLimit, coreFeatures
         } = req.body;
 
         if (!name) return res.status(400).json({ error: 'Plan name is required' });
@@ -103,6 +103,7 @@ router.post('/', async (req, res) => {
             includedAddons: includedAddons || [],
             trialDays: trialDays || 0,
             features,
+            coreFeatures: coreFeatures || [],
             color,
             isPopular,
             isActive,

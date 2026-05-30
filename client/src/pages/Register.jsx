@@ -177,7 +177,7 @@ const Register = () => {
                 }
 
                 if (targetPlanForCheckout) {
-                    localStorage.setItem('pendingPlan', JSON.stringify({ ...targetPlanForCheckout, interval: 'month' }));
+                    localStorage.setItem('pendingPlan', JSON.stringify({ ...targetPlanForCheckout, interval: targetPlanForCheckout.interval || 'month' }));
                     navigate('/checkout');
                     return;
                 }

@@ -240,6 +240,7 @@ const AdminPlans = () => {
                 <PlanModal
                     plan={editingPlan}
                     availableAddons={availableAddons}
+                    masterCoreFeatures={Array.from(new Set(plans.flatMap(p => p.coreFeatures?.map(f => f.name) || [])))}
                     onClose={() => setIsPlanModalOpen(false)}
                     onSave={handleSavePlan}
                 />
@@ -505,7 +506,21 @@ const ModernToggle = ({ checked, onChange, name, label, description, icon: Icon,
 // ════════════════════════════════════════════
 //  PLAN MODAL
 // ════════════════════════════════════════════
-const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
+const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClose, onSave }) => {
+    const initializeCoreFeatures = () => {
+        const planFeatures = plan?.coreFeatures || [];
+        const merged = masterCoreFeatures.map(name => {
+            const existing = planFeatures.find(f => f.name === name);
+            return { name, qty: existing ? existing.qty : '' };
+        });
+        planFeatures.forEach(f => {
+            if (!merged.find(m => m.name === f.name)) {
+                merged.push(f);
+            }
+        });
+        return merged;
+    };
+
     const [activeTab, setActiveTab] = useState('general');
     const [formData, setFormData] = useState({
         name: plan?.name || '',
@@ -520,6 +535,7 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
         isPublic: plan?.isPublic !== undefined ? plan.isPublic : true,
         color: plan?.color || 'blue',
         features: plan?.features || [''],
+        coreFeatures: initializeCoreFeatures(),
         messageLimit: plan?.messageLimit || 30,
         contactLimit: plan?.contactLimit || 10,
         templateLimit: plan?.templateLimit || 2,
@@ -563,9 +579,22 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
         }));
     };
 
+    const handleCoreFeatureChange = (idx, field, value) => {
+        const newCore = [...formData.coreFeatures];
+        newCore[idx] = { ...newCore[idx], [field]: value };
+        setFormData({ ...formData, coreFeatures: newCore });
+    };
+
+    const addCoreFeature = () => setFormData({ ...formData, coreFeatures: [...formData.coreFeatures, { name: '', qty: '' }] });
+    const removeCoreFeature = (idx) => setFormData({ ...formData, coreFeatures: formData.coreFeatures.filter((_, i) => i !== idx) });
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        const cleaned = { ...formData, features: formData.features.filter(f => f.trim() !== '') };
+        const cleaned = { 
+            ...formData, 
+            features: formData.features.filter(f => f.trim() !== ''),
+            coreFeatures: formData.coreFeatures.filter(f => f.name && f.name.trim() !== '')
+        };
         cleaned.price = parseFloat(cleaned.monthlyPrice) || parseFloat(cleaned.halfYearlyPrice) || parseFloat(cleaned.yearlyPrice) || 0;
         cleaned.interval = cleaned.monthlyPrice > 0 ? 'month' : cleaned.halfYearlyPrice > 0 ? 'half-year' : 'year';
         onSave(cleaned);
@@ -889,6 +918,48 @@ const PlanModal = ({ plan, availableAddons = [], onClose, onSave }) => {
                                             className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 text-[#0088cc] dark:text-[#33aadd] font-bold rounded-xl border border-dashed border-slate-300 dark:border-white/20 transition-all w-full justify-center"
                                         >
                                             <Plus className="w-5 h-5" /> Add Another Feature
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 pt-8 border-t border-slate-200 dark:border-white/10">
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Core Features (Cross-Plan Sync)</h4>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Features added here will appear on all plans. Set a quantity or leave empty to show as "not included".</p>
+
+                                    <div className="space-y-3">
+                                        {formData.coreFeatures.map((feature, idx) => (
+                                            <div key={idx} className="flex gap-3 items-center group">
+                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 dark:border-white/10">
+                                                    {idx + 1}
+                                                </div>
+                                                <input
+                                                    value={feature.qty || ''}
+                                                    onChange={(e) => handleCoreFeatureChange(idx, 'qty', e.target.value)}
+                                                    className="modern-input w-24 md:w-40"
+                                                    placeholder="Qty (e.g. 2)"
+                                                />
+                                                <input
+                                                    value={feature.name || ''}
+                                                    onChange={(e) => handleCoreFeatureChange(idx, 'name', e.target.value)}
+                                                    className="modern-input flex-1"
+                                                    placeholder="Feature Name (e.g. Business Cards)"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeCoreFeature(idx)}
+                                                    className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        <button
+                                            type="button"
+                                            onClick={addCoreFeature}
+                                            className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800 transition-all w-full justify-center"
+                                        >
+                                            <Plus className="w-5 h-5" /> Add New Core Feature
                                         </button>
                                     </div>
                                 </div>
