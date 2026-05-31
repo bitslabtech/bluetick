@@ -2707,22 +2707,10 @@ export default function LandingPage() {
                                                         </div>
 
                                                         {/* Capabilities */}
-                                                        {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || plan.allowCtwaAnalytics || plan.allowMetaAds || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
+                                                        {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
                                                             <div>
                                                                 <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Add-ons</div>
                                                                 <ul className="space-y-3">
-                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-70' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
-                                                                            {plan.allowCtwaAnalytics ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                                        </div>
-                                                                        <span className={!plan.allowCtwaAnalytics ? "text-slate-900 dark:text-white" : ""}>CTWA Analytics</span>
-                                                                    </li>
-                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-70' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
-                                                                            {plan.allowMetaAds ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                                        </div>
-                                                                        <span className={!plan.allowMetaAds ? "text-slate-900 dark:text-white" : ""}>Meta Ads Marketing</span>
-                                                                    </li>
                                                                     <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowApiAccess ? 'opacity-70' : ''}`}>
                                                                         <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
                                                                             {plan.allowApiAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
@@ -2757,8 +2745,7 @@ export default function LandingPage() {
                                                         )}
 
                                                         {/* Custom Features list */}
-                                                        {(plan.quickReplyLimit > 0 || plan.tagLimit > 0 || plan.groupLimit > 0 || (Array.isArray(plan.features) && plan.features.length > 0)) && (
-                                                            <div>
+                                                        <div>
                                                                 <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Features</div>
                                                                 <ul className="space-y-3">
                                                                     {plan.quickReplyLimit > 0 && (
@@ -2796,10 +2783,21 @@ export default function LandingPage() {
                                                                             </span>
                                                                         </li>
                                                                     ))}
+                                                                    <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-50 grayscale' : ''}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowCtwaAnalytics ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                            {!plan.allowCtwaAnalytics ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                                                                        </div>
+                                                                        <span className="leading-tight">Click to WhatsApp Ads</span>
+                                                                    </li>
+                                                                    <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-50 grayscale' : ''}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowMetaAds ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                            {!plan.allowMetaAds ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                                                                        </div>
+                                                                        <span className="leading-tight">Meta Ads Marketing</span>
+                                                                    </li>
                                                                 </ul>
                                                             </div>
-                                                        )}
-                                                    </div>
+                                                        </div>
 
 
                                                     {plan.trialDays > 0 ? (

@@ -480,6 +480,7 @@ router.post('/create-order', async (req, res) => {
         const user = await User.findByPk(req.user.id);
         
         let finalPriceToCharge = 0;
+        let appliedDiscount = 0;
         let targetCurrency = 'USD';
         let orderNotes = { userId: req.user.id };
 
@@ -545,7 +546,6 @@ router.post('/create-order', async (req, res) => {
                         if (!isMatch) isValid = false;
                     }
                     if (isValid) {
-                        let appliedDiscount = 0;
                         if (coupon.discountType === 'percentage') {
                             appliedDiscount = finalPriceToCharge * (coupon.discountValue / 100);
                             if (coupon.maxDiscountCap && coupon.maxDiscountCap > 0 && appliedDiscount > coupon.maxDiscountCap) {
@@ -561,61 +561,59 @@ router.post('/create-order', async (req, res) => {
             }
         }
 
-        // If it's an upgrade, apply backend calculation to ensure exact matched amounts
-        if (isUpgrade && user.planStatus === 'Active' && user.planExpiry && user.plan !== 'Free') {
-            const math = await calculateUpgradeDiscount(user, targetPlan);
-            finalPriceToCharge = math.finalPrice;
-        }
+        // --- Handle 100% discount or Free items (Bypass Payment Gateway) ---
+        if (finalPriceToCharge <= 0) {
+            if (itemId) {
+                // Store Item Purchase (Free)
+                const StoreItem = require('../models/StoreItem');
+                const targetItem = await StoreItem.findByPk(itemId);
+                if (!targetItem) return res.status(404).json({ error: `Store item not found.` });
 
-        // Apply Coupon if provided
-        if (couponCode) {
-            const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
-            if (coupon && coupon.isActive) {
-                // Determine valid status
-                let isValid = true;
-                const now = new Date();
+                await Transaction.create({
+                    userId: user.id,
+                    amount: 0,
+                    currency: targetItem.currency || 'USD',
+                    planName: `Store: ${targetItem.name}`,
+                    status: 'COMPLETED',
+                    paymentGateway: 'system',
+                    transactionReference: `free_${Date.now()}`,
+                    ...(typeof appliedDiscount !== 'undefined' && appliedDiscount > 0 ? { discountApplied: appliedDiscount, couponCode: couponCode || null } : {})
+                });
 
-                if (isUpgrade && !coupon.isValidForUpgrades) isValid = false;
-                if (coupon.startDate && new Date(coupon.startDate) > now) isValid = false;
-                if (coupon.expiryDate && new Date(coupon.expiryDate) < now) isValid = false;
-                if (coupon.maxUses > 0 && coupon.usesCount >= coupon.maxUses) isValid = false;
-                if (coupon.applicablePlans && coupon.applicablePlans.length > 0 && !coupon.applicablePlans.includes(planName)) isValid = false;
-                if (coupon.minPurchaseAmount > 0 && parseFloat(targetPlan.price) < coupon.minPurchaseAmount) isValid = false;
-
-                // v2 Constraints
-                if (coupon.validIntervals && coupon.validIntervals.length > 0) {
-                    if (!targetPlan.interval || !coupon.validIntervals.includes(targetPlan.interval)) isValid = false;
+                if (targetItem.itemType === 'ai_tokens') {
+                    user.aiTokenBalance = (user.aiTokenBalance || 0) + targetItem.amount;
+                } else if (targetItem.itemType === 'messages') {
+                    user.extraTopupMessages = (user.extraTopupMessages || 0) + targetItem.amount;
+                } else if (targetItem.itemType === 'contacts') {
+                    user.extraTopupContacts = (user.extraTopupContacts || 0) + targetItem.amount;
+                }
+                await user.save();
+                
+            } else {
+                // Plan Upgrade (Free)
+                const targetPlan = await Plan.findOne({ where: { name: planName } });
+                if (couponCode) {
+                    const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
+                    if (coupon) await coupon.increment('usesCount', { by: 1 });
                 }
 
-                if (coupon.isFirstPurchaseOnly) {
-                    const anyPastTxn = await Transaction.count({ where: { userId: req.user.id, status: 'COMPLETED' } });
-                    if (anyPastTxn > 0) isValid = false;
-                }
-
-                if (coupon.allowedEmails && coupon.allowedEmails.length > 0) {
-                    const userEmail = user.email.toLowerCase();
-                    const isMatch = coupon.allowedEmails.some(allowed => {
-                        const term = allowed.toLowerCase().trim();
-                        return term.startsWith('@') ? userEmail.endsWith(term) : userEmail === term;
-                    });
-                    if (!isMatch) isValid = false;
-                }
-
-                // If valid, apply logic
-                if (isValid) {
-                    if (coupon.discountType === 'percentage') {
-                        appliedDiscount = finalPriceToCharge * (coupon.discountValue / 100);
-                        if (coupon.maxDiscountCap && coupon.maxDiscountCap > 0 && appliedDiscount > coupon.maxDiscountCap) {
-                            appliedDiscount = coupon.maxDiscountCap;
-                        }
-                    } else if (coupon.discountType === 'fixed') {
-                        appliedDiscount = coupon.discountValue;
-                    }
-                    if (appliedDiscount > finalPriceToCharge) appliedDiscount = finalPriceToCharge;
-                    finalPriceToCharge = finalPriceToCharge - appliedDiscount;
-                }
+                await applyUpgrade(req.user.id, targetPlan, {
+                    paymentGateway: 'system',
+                    transactionReference: `free_${Date.now()}`,
+                    couponCode: couponCode || null,
+                    discountApplied: typeof appliedDiscount !== 'undefined' ? appliedDiscount : 0,
+                    amountPaid: 0
+                });
             }
+
+            return res.json({
+                instant: true,
+                planName,
+                userName: user.name,
+                userEmail: user.email
+            });
         }
+        // -------------------------------------------------------------------
 
         const paymentIntent = await PaymentService.createPaymentIntent({
             amount: finalPriceToCharge,

@@ -211,12 +211,12 @@ const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) 
                         {plan.allowCtwaAnalytics ? (
                             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                                 <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                CTWA Analytics
+                                Click to WhatsApp Ads
                             </div>
                         ) : (
                             <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
                                 <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
-                                <span>CTWA Analytics</span>
+                                <span>Click to WhatsApp Ads</span>
                             </div>
                         )}
                         {plan.allowMetaAds ? (

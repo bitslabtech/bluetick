@@ -1297,7 +1297,8 @@ const AdminLandingPage = () => {
                                                 { key: 'about', title: 'About Us', path: '/about' },
                                                 { key: 'partner', title: 'Partner with Us', path: '/partner' },
                                                 { key: 'privacy', title: 'Privacy Policy', path: '/privacy' },
-                                                { key: 'terms', title: 'Terms of Service', path: '/terms' }
+                                                { key: 'terms', title: 'Terms of Service', path: '/terms' },
+                                                { key: 'refund-policy', title: 'Refund Policy', path: '/refund-policy' }
                                             ].map((page) => (
                                                 <div key={page.key} className="p-5 rounded-2xl bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 flex items-center justify-between hover:border-indigo-500/30 transition-colors shadow-sm">
                                                     <div>

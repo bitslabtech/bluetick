@@ -116,6 +116,27 @@ router.post('/', async (req, res) => {
             isPublic: isPublic !== undefined ? isPublic : true
         });
 
+        // Sync core features across all plans
+        if (coreFeatures && Array.isArray(coreFeatures)) {
+            const newFeatures = coreFeatures.map(f => f.name).filter(name => name && name.trim() !== '');
+            if (newFeatures.length > 0) {
+                const otherPlans = await Plan.findAll({ where: { id: { [Op.ne]: plan.id } } });
+                for (let otherPlan of otherPlans) {
+                    let otherFeatures = [...(otherPlan.coreFeatures || [])];
+                    let modified = false;
+                    for (let featureName of newFeatures) {
+                        if (!otherFeatures.find(f => f.name === featureName)) {
+                            otherFeatures.push({ name: featureName, qty: '' });
+                            modified = true;
+                        }
+                    }
+                    if (modified) {
+                        await otherPlan.update({ coreFeatures: otherFeatures });
+                    }
+                }
+            }
+        }
+
         // Invalidate public plans cache
         cacheManager.invalidate('public_plans');
 
@@ -144,6 +165,27 @@ router.put('/:id', async (req, res) => {
         }
 
         await plan.update(req.body);
+
+        // Sync core features across all plans
+        if (req.body.coreFeatures && Array.isArray(req.body.coreFeatures)) {
+            const newFeatures = req.body.coreFeatures.map(f => f.name).filter(name => name && name.trim() !== '');
+            if (newFeatures.length > 0) {
+                const otherPlans = await Plan.findAll({ where: { id: { [Op.ne]: plan.id } } });
+                for (let otherPlan of otherPlans) {
+                    let otherFeatures = [...(otherPlan.coreFeatures || [])];
+                    let modified = false;
+                    for (let featureName of newFeatures) {
+                        if (!otherFeatures.find(f => f.name === featureName)) {
+                            otherFeatures.push({ name: featureName, qty: '' });
+                            modified = true;
+                        }
+                    }
+                    if (modified) {
+                        await otherPlan.update({ coreFeatures: otherFeatures });
+                    }
+                }
+            }
+        }
 
         // Invalidate public plans cache
         cacheManager.invalidate('public_plans');
