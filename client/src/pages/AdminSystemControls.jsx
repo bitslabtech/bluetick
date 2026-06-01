@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
     Activity, Shield, Server, Zap, Terminal,
     RefreshCw, Power, AlertTriangle, Users, Database, Globe, Bell,
-    Tag, Plus, Edit2, Trash2, Check, X, Calendar, Star, Briefcase, TrendingUp, ExternalLink, Link2, KeyRound, ToggleLeft, ToggleRight, Sparkles
+    Tag, Plus, Edit2, Trash2, Check, X, Calendar, Star, Briefcase, TrendingUp, ExternalLink, Link2, KeyRound, ToggleLeft, ToggleRight, Sparkles, Lock, CreditCard
 } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -495,6 +495,36 @@ const AdminSystemControls = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Global Currency Config */}
+                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 mt-4">
+                                    <div className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                                        <CreditCard className="w-4 h-4 text-emerald-500" /> Global Currency
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                                        Set the default currency symbol used in the billing page for free plan users and system defaults.
+                                    </p>
+                                    <div>
+                                        <select
+                                            value={config.settings?.globalCurrency || 'INR'}
+                                            onChange={(e) => {
+                                                setConfig({
+                                                    ...config,
+                                                    settings: {
+                                                        ...config.settings,
+                                                        globalCurrency: e.target.value
+                                                    }
+                                                });
+                                                handleSave({ ...config, settings: { ...config.settings, globalCurrency: e.target.value } });
+                                            }}
+                                            className="w-full md:w-1/2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                        >
+                                            {TOP_CURRENCIES.map(c => (
+                                                <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -963,12 +993,13 @@ const StatusCard = ({ label, value, color, icon: Icon }) => (
 
 const Toggle = ({ enabled, onChange, danger }) => (
     <button
+        type="button"
         onClick={() => onChange(!enabled)}
-        className={`w-12 h-6 rounded-full p-1 transition-colors relative ${enabled
-            ? (danger ? 'bg-red-500' : 'bg-green-500')
+        className={`w-12 h-6 rounded-full p-1 transition-colors flex items-center shrink-0 ${enabled
+            ? (danger ? 'bg-red-500' : 'bg-emerald-500')
             : 'bg-slate-200 dark:bg-slate-700'}`}
     >
-        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${enabled ? 'translate-x-6' : 'translate-x-0'}`} />
     </button>
 );
 
@@ -1081,8 +1112,25 @@ const MenuOrderPanel = ({ config, onSave }) => {
 
     return (
         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">
-            <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-white">Sidebar Menu Order</h3>
+            <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-white">Sidebar Menu Order & Display</h3>
             <p className="text-sm text-slate-500 mb-6">Drag and drop the items below to change the order of the main navigation menu for all users. Changes are saved instantly.</p>
+            
+            <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 mb-6">
+                <div>
+                    <div className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-amber-500" />
+                        Upsell Mode (Show Locked Menus)
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">If enabled, users will see restricted features with a padlock icon, leading to an upgrade funnel. If disabled, restricted features are completely hidden (Clean Mode).</div>
+                </div>
+                <Toggle
+                    enabled={config.settings?.showLockedMenus ?? true}
+                    onChange={(val) => onSave({
+                        ...config,
+                        settings: { ...config.settings, showLockedMenus: val }
+                    })}
+                />
+            </div>
             
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={items} strategy={verticalListSortingStrategy}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Package, CheckCircle, Zap, Star, ShieldCheck, ShoppingCart, Settings, Tag, LayoutGrid, Layers } from 'lucide-react';
+import { Package, CheckCircle, Zap, Star, ShieldCheck, ShoppingCart, Settings, Tag, LayoutGrid, Layers, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import TopHeader from '../components/TopHeader';
@@ -14,6 +14,7 @@ const Marketplace = () => {
     const [myAddons, setMyAddons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('browse');
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         fetchMarketplaceData();
@@ -46,76 +47,119 @@ const Marketplace = () => {
         return !!getOwnedAddon(addonId);
     };
 
+    const filteredAddons = addons
+        .filter(addon => activeTab === 'browse' ? true : isOwned(addon.id))
+        .filter(addon => 
+            addon.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            addon.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display transition-colors duration-300">
             <TopHeader />
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 w-full max-w-7xl mx-auto space-y-8 animate-fade-in-up custom-scrollbar">
-                {/* Header Section */}
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 p-4 md:p-10 text-white shadow-xl">
-                <div className="relative z-10 max-w-2xl">
-                    <h1 className="text-2xl md:text-3xl font-extrabold mb-2 flex items-center gap-3 tracking-tight">
-                        <ShoppingCart className="w-8 h-8 text-indigo-200" />
-                        Add-on Marketplace
-                    </h1>
-                    <p className="text-base md:text-lg text-indigo-100 font-medium">
-                        Supercharge your WhatsApp experience. Browse and add powerful new capabilities to your workspace instantly.
-                    </p>
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 w-full max-w-7xl mx-auto space-y-8 animate-fade-in-up hide-scrollbar">
+                
+                {/* Renovated Premium Top Banner */}
+                <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-950 p-6 md:p-12 text-white border border-white/5 shadow-[0_20px_50px_rgba(8,112,184,0.15)] dark:shadow-[0_20px_50px_rgba(99,102,241,0.05)]">
+                    {/* Glowing Mesh Background */}
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(99,102,241,0.15),transparent_60%)] z-0" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_85%,rgba(168,85,247,0.12),transparent_50%)] z-0" />
+                    
+                    {/* Decorative pulsing blurs */}
+                    <div className="absolute top-1/2 -right-12 -translate-y-1/2 w-72 h-72 rounded-full bg-indigo-600/25 blur-[100px] z-0 animate-pulse pointer-events-none" style={{ animationDuration: '8s' }} />
+                    <div className="absolute -bottom-12 left-1/3 w-64 h-64 rounded-full bg-purple-600/15 blur-[80px] z-0 animate-pulse pointer-events-none" style={{ animationDuration: '6s' }} />
+
+                    {/* Content Container */}
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                        <div className="max-w-2xl">
+                            {/* Premium Tech Tag */}
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 uppercase mb-4 backdrop-blur-md">
+                                <Zap className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                                Plugin Store
+                            </div>
+                            
+                            <h1 className="text-3xl md:text-4xl font-black mb-3 flex items-center gap-3 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-indigo-200">
+                                Add-on Marketplace
+                            </h1>
+                            
+                            <p className="text-sm md:text-base text-indigo-200/80 font-medium leading-relaxed max-w-xl">
+                                Supercharge your WhatsApp Business workflows. Discover, install, and custom-configure modular integrations to unlock ultimate productivity.
+                            </p>
+                        </div>
+                        
+                        {/* Premium Visual Indicator */}
+                        <div className="hidden lg:flex items-center gap-4 pr-6">
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-lg relative group overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                <ShoppingCart className="w-10 h-10 text-indigo-400 group-hover:scale-110 transition-transform duration-300" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                {/* Decorative background elements */}
-                <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 opacity-20">
-                    <Zap className="w-96 max-w-full h-96 text-white" />
+
+                {/* Navigation and Search Controls */}
+                <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-6">
+                    {/* Premium Tab Navigation */}
+                    <div className="relative flex p-1.5 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 rounded-[2rem] shadow-lg shadow-indigo-500/5 dark:shadow-indigo-900/20 w-full md:max-w-md overflow-x-auto hide-scrollbar">
+                        {/* Active Background Pill */}
+                        <div
+                            className="absolute inset-y-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-full shadow-md transition-all duration-500 ease-out z-0"
+                            style={{
+                                left: activeTab === 'browse' ? '6px' : 'calc(50% + 2px)',
+                                width: 'calc(50% - 8px)'
+                            }}
+                        ></div>
+
+                        <button
+                            onClick={() => setActiveTab('browse')}
+                            className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap ${activeTab === 'browse'
+                                ? 'text-white tracking-wide'
+                                : 'text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400'
+                                }`}
+                        >
+                            <LayoutGrid className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'browse' ? 'scale-110' : 'scale-100 opacity-70'}`} />
+                            Add New Plugins
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('installed')}
+                            className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap ${activeTab === 'installed'
+                                ? 'text-white tracking-wide'
+                                : 'text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400'
+                                }`}
+                        >
+                            <Layers className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'installed' ? 'scale-110' : 'scale-100 opacity-70'}`} />
+                            Installed Plugins
+                            {myAddons.length > 0 && (
+                                <span className={`ml-1.5 flex flex-shrink-0 items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[11px] font-extrabold rounded-full transition-all duration-300 ${activeTab === 'installed' ? 'bg-white/20 text-white shadow-inner' : 'bg-indigo-100 dark:bg-gray-800 text-indigo-700 dark:text-indigo-300'}`}>
+                                    {myAddons.filter(a => a.status === 'active').length}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="relative w-full md:max-w-xs group">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors duration-200">
+                            <Search className="w-5 h-5" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search plugins..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 rounded-full border border-gray-200/80 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 shadow-sm"
+                        />
+                    </div>
                 </div>
-                <div className="absolute bottom-0 right-1/4 translate-y-1/2 opacity-10">
-                    <Star className="w-64 h-64 text-white" />
-                </div>
-            </div>
 
-            {/* Premium Tab Navigation */}
-            <div className="relative flex p-1.5 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-white/80 dark:border-gray-700/80 rounded-[2rem] shadow-xl shadow-indigo-500/5 dark:shadow-indigo-900/20 max-w-xl mx-auto mb-12 overflow-x-auto hide-scrollbar">
-
-                {/* Active Background Pill */}
-                <div
-                    className="absolute inset-y-1.5 w-[calc(50%-6px)] bg-gradient-to-r from-indigo-600 to-violet-600 rounded-full shadow-md transition-all duration-500 ease-out z-0"
-                    style={{ left: activeTab === 'browse' ? '6px' : 'calc(50%)' }}
-                ></div>
-
-                <button
-                    onClick={() => setActiveTab('browse')}
-                    className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap ${activeTab === 'browse'
-                        ? 'text-white tracking-wide'
-                        : 'text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400'
-                        }`}
-                >
-                    <LayoutGrid className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'browse' ? 'scale-110' : 'scale-100 opacity-70'}`} />
-                    Add New Plugins
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('installed')}
-                    className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap ${activeTab === 'installed'
-                        ? 'text-white tracking-wide'
-                        : 'text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400'
-                        }`}
-                >
-                    <Layers className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'installed' ? 'scale-110' : 'scale-100 opacity-70'}`} />
-                    Installed Plugins
-                    {myAddons.length > 0 && (
-                        <span className={`ml-1.5 flex flex-shrink-0 items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[11px] font-extrabold rounded-full transition-all duration-300 ${activeTab === 'installed' ? 'bg-white/20 text-white shadow-inner' : 'bg-indigo-100 dark:bg-gray-800 text-indigo-700 dark:text-indigo-300'}`}>
-                            {myAddons.filter(a => a.status === 'active').length}
-                        </span>
-                    )}
-                </button>
-            </div>
-
-            {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4].map(i => <div key={i} className="h-64 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-3xl"></div>)}
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {addons
-                        .filter(addon => activeTab === 'browse' ? true : isOwned(addon.id))
-                        .map((addon) => {
+                {loading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {[1, 2, 3, 4].map(i => <div key={i} className="h-64 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-3xl"></div>)}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredAddons.map((addon) => {
                             const ownedAddon = getOwnedAddon(addon.id);
                             const owned = !!ownedAddon;
                             
@@ -143,7 +187,7 @@ const Marketplace = () => {
                                         </div>
                                     )}
 
-                                    <Link to={`/marketplace/${addon.id}`} className="flex-grow block hover:no-underline">
+                                    <Link to={`/marketplace/${addon.slug || addon.id}`} className="flex-grow block hover:no-underline">
                                         {addon.badge && (
                                             <div className="absolute top-4 left-4 z-20">
                                                 <span className="bg-pink-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
@@ -201,7 +245,7 @@ const Marketplace = () => {
                                             </Link>
                                         ) : (
                                             <Link
-                                                to={`/marketplace/${addon.id}`}
+                                                to={`/marketplace/${addon.slug || addon.id}`}
                                                 className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl flex justify-center items-center gap-2 shadow-md shadow-indigo-600/20 transition-all hover:shadow-lg hover:-translate-y-0.5"
                                             >
                                                 <ShoppingCart className="w-4 h-4" /> View Details / Purchase
@@ -211,26 +255,38 @@ const Marketplace = () => {
                                 </div>
                             );
                         })}
-                    {addons.length === 0 && activeTab === 'browse' && (
-                        <div className="col-span-full py-24 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
-                                <Package className="w-10 h-10 text-gray-400" />
+
+                        {filteredAddons.length === 0 && searchQuery !== '' && (
+                            <div className="col-span-full py-24 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center">
+                                <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
+                                    <Search className="w-10 h-10 text-gray-400" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Matching Plugins</h3>
+                                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto text-lg">We couldn't find any plugins matching &quot;{searchQuery}&quot;. Try adjusting your keywords.</p>
                             </div>
-                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Marketplace is Empty</h3>
-                            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto text-lg">Check back later for exciting new add-ons to supercharge your workspace.</p>
-                        </div>
-                    )}
-                    {addons.filter(addon => isOwned(addon.id)).length === 0 && activeTab === 'installed' && (
-                        <div className="col-span-full py-24 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
-                                <ShieldCheck className="w-10 h-10 text-gray-400" />
+                        )}
+
+                        {addons.length === 0 && activeTab === 'browse' && searchQuery === '' && (
+                            <div className="col-span-full py-24 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center">
+                                <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
+                                    <Package className="w-10 h-10 text-gray-400" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Marketplace is Empty</h3>
+                                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto text-lg">Check back later for exciting new add-ons to supercharge your workspace.</p>
                             </div>
-                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Installed Plugins</h3>
-                            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto text-lg">You haven't purchased or installed any add-ons yet. Browse the marketplace to get started.</p>
-                        </div>
-                    )}
-                </div>
-            )}
+                        )}
+
+                        {addons.filter(addon => isOwned(addon.id)).length === 0 && activeTab === 'installed' && searchQuery === '' && (
+                            <div className="col-span-full py-24 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center">
+                                <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
+                                    <ShieldCheck className="w-10 h-10 text-gray-400" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Installed Plugins</h3>
+                                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto text-lg">You haven't purchased or installed any add-ons yet. Browse the marketplace to get started.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

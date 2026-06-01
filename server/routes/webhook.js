@@ -205,6 +205,25 @@ router.post('/:userId', (req, res, next) => {
                         } catch (err) {
                             console.error('[WEBHOOK ERROR] Failed to update ChatMessage:', err.message);
                         }
+
+                        // --- Auto Invalidate Contact if WhatsApp Number is Invalid ---
+                        if (rawStatus === 'failed' && statusUpdate.errors && statusUpdate.errors.length > 0) {
+                            const errCode = statusUpdate.errors[0].code;
+                            // 131026 = Message undeliverable - User is not using WhatsApp
+                            if (errCode === 131026) {
+                                try {
+                                    const updatedCount = await Contact.update(
+                                        { status: 'Invalid' },
+                                        { where: { phone: statusUpdate.recipient_id, userId: userId } }
+                                    );
+                                    if (updatedCount[0] > 0) {
+                                        console.log(`[WEBHOOK] Contact ${statusUpdate.recipient_id} marked as Invalid due to Meta error 131026`);
+                                    }
+                                } catch (err) {
+                                    console.error('[WEBHOOK ERROR] Failed to invalidate contact:', err.message);
+                                }
+                            }
+                        }
                     }
                 }
 

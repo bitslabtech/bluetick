@@ -248,11 +248,16 @@ const Checkout = () => {
                                     <div className="flex justify-between items-center text-sm font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/10 p-2.5 rounded-lg border border-green-100 dark:border-green-800/20">
                                         <div className="flex flex-col">
                                             <span>Unused Plan Credit</span>
-                                            <span className="text-[10px] text-green-700/70 dark:text-green-300/60 leading-none mt-0.5">
-                                                {upgradeData.remainingDays} days unused from {upgradeData.currentPlanName} plan
+                                            <span className="text-[10px] text-green-700/70 dark:text-green-300/60 leading-tight mt-0.5">
+                                                {upgradeData.remainingDays} days remaining from {upgradeData.currentPlanName} plan
                                             </span>
+                                            {upgradeData.dailyRate > 0 && (
+                                                <span className="text-[10px] text-green-700/50 dark:text-green-300/40 leading-tight">
+                                                    ({sym}{upgradeData.paidAmount?.toLocaleString()} paid ÷ {upgradeData.totalDays} days = {sym}{upgradeData.dailyRate}/day × {upgradeData.remainingDays} days)
+                                                </span>
+                                            )}
                                         </div>
-                                        <span>-{sym}{upgradeData.creditAmount.toLocaleString()}</span>
+                                        <span className="font-bold whitespace-nowrap">-{sym}{upgradeData.creditAmount.toLocaleString()}</span>
                                     </div>
                                 )}
 
@@ -364,7 +369,7 @@ const Checkout = () => {
                                 )}
                             </button>
 
-                            {plan.trialDays > 0 && (
+                            {plan.trialDays > 0 && (!upgradeData || (!upgradeData.hasUsedTrial && !upgradeData.isCurrentPlanPaid)) && (
                                 <button
                                     onClick={async () => {
                                         setProcessing(true);
@@ -382,7 +387,7 @@ const Checkout = () => {
                                     disabled={processing || isProcessing}
                                     className="w-full mt-3 py-3.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-xl font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors text-sm disabled:opacity-50 border border-emerald-200 dark:border-emerald-800/30 shadow-sm flex items-center justify-center gap-2"
                                 >
-                                    <Gift className="w-4 h-4" /> Start {plan.trialDays} Days Free Trial
+                                    <Gift className="w-4 h-4" /> Try {plan.trialDays} Days Free Trial
                                 </button>
                             )}
 

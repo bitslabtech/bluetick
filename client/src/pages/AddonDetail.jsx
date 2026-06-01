@@ -25,10 +25,10 @@ const AddonDetail = () => {
         setLoading(true);
         try {
             const [addonsRes, myAddonsRes] = await Promise.all([
-                axios.get('/api/addons', { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get('/api/addons/my', { headers: { Authorization: `Bearer ${token}` } })
+                axios.get('/api/addons'),
+                axios.get('/api/addons/my')
             ]);
-            const foundAddon = addonsRes.data.find(a => a.id === id);
+            const foundAddon = addonsRes.data.find(a => a.slug === id || a.module_key === id || a.id === id);
             if (!foundAddon) {
                 toast.error('Add-on not found.');
                 navigate('/marketplace');
@@ -50,7 +50,7 @@ const AddonDetail = () => {
     const handlePurchase = async () => {
         setShowPurchaseModal(false);
         const payload = {
-            successUrl: `${window.location.origin}/marketplace/${addon.id}`,
+            successUrl: `${window.location.origin}/marketplace/${addon.slug || addon.id}`,
             cancelUrl: window.location.href
         };
 

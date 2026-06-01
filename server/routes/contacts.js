@@ -7,6 +7,7 @@ const logActivity = require('../utils/logger');
 const { getUserPlanLimits, checkLimit, getContactCount } = require('../utils/planLimits');
 const { applyPrivacyMask } = require('../utils/privacy');
 const SystemConfig = require('../models/SystemConfig');
+const Group = require('../models/Group');
 
 // Apply auth middleware to all routes
 router.use(auth);
@@ -34,33 +35,64 @@ router.get('/groups', async (req, res) => {
 router.get('/campaign-summary', async (req, res) => {
     try {
         const totalContacts = await Contact.count({
-            where: { userId: req.user.id }
+            where: { userId: req.user.id, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } }
         });
 
         const contacts = await Contact.findAll({
             attributes: ['tags'],
-            where: { userId: req.user.id },
+            where: { userId: req.user.id, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } },
             raw: true
         });
 
+        // 1. Calculate tag counts from contacts
         const allTags = contacts.flatMap(c => c.tags || []);
         const tagCounts = {};
         for (const tag of allTags) {
             tagCounts[tag] = (tagCounts[tag] || 0) + 1;
         }
 
-        const groups = Object.keys(tagCounts).map(tag => ({
-            id: tag,
-            name: tag,
-            count: tagCounts[tag].toString(),
-            updated: 'Just now'
-        })).sort((a, b) => a.name.localeCompare(b.name));
+        // 2. Fetch all defined groups for this user
+        const ownerId = req.user.parentUserId || req.user.id;
+        const definedGroups = await Group.findAll({
+            where: { userId: ownerId },
+            raw: true
+        });
+
+        // 3. Merge them: defined groups + implicit tags (just in case they have a tag without a Group record)
+        const mergedGroupsMap = {};
+        
+        // Add defined groups first (count defaults to 0)
+        for (const g of definedGroups) {
+            mergedGroupsMap[g.name] = {
+                id: g.name, // The UI currently uses name as id for groups
+                name: g.name,
+                count: (tagCounts[g.name] || 0).toString(),
+                updated: 'Just now'
+            };
+        }
+
+        // Add any implicit tags that don't have a defined Group record
+        for (const tag of Object.keys(tagCounts)) {
+            if (!mergedGroupsMap[tag]) {
+                mergedGroupsMap[tag] = {
+                    id: tag,
+                    name: tag,
+                    count: tagCounts[tag].toString(),
+                    updated: 'Just now'
+                };
+            }
+        }
+
+        const groups = Object.values(mergedGroupsMap).sort((a, b) => a.name.localeCompare(b.name));
+
+        console.log(`[DEBUG] campaign-summary for ${ownerId}: found ${definedGroups.length} definedGroups, returning ${groups.length} groups total.`);
 
         res.json({
             totalContacts: totalContacts.toString(),
             groups
         });
     } catch (err) {
+        console.error('[DEBUG] campaign-summary error:', err);
         res.status(500).json({ error: err.message });
     }
 });

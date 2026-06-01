@@ -76,12 +76,14 @@ const SystemConfig = sequelize.define('SystemConfig', {
             allowRegistration: true,
             debugMode: false,
             linkedAdminUserId: null, // Used for official Platform-as-a-CRM communication
+            globalCurrency: 'INR', // Default global currency for billing and UI
             rateLimit: {
                 windowMs: 15 * 60 * 1000, // 15 minutes
                 maxRequests: 1000 // Limit each IP to 1000 requests per `window`
             },
             aiTokenMultipliers: { ai_chatbot: 1, ai_form_generator: 1, ai_meta_ads_builder: 5 },
             aiModel: 'gemini-2.0-flash',
+            showLockedMenus: true, // Upsell mode by default
             storage: {
                 type: 'local', // 'local' | 's3'
                 s3: {

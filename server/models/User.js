@@ -40,6 +40,11 @@ const User = sequelize.define('User', {
         type: DataTypes.DATE,
         allowNull: true
     },
+    hasUsedTrial: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Set to true once a user starts a trial to prevent multiple trials'
+    },
     // Team & Collaboration Fields
     parentUserId: {
         type: DataTypes.UUID,

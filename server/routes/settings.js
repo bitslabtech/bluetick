@@ -64,7 +64,10 @@ router.get('/public', async (req, res) => {
         if (!adminUser) {
             const result = { 
                 appName: 'Bluetick',
-                menuOrder: systemConfig.menuOrder 
+                menuOrder: systemConfig.menuOrder,
+                settings: {
+                    showLockedMenus: systemConfig.settings?.showLockedMenus !== false && systemConfig.settings?.showLockedMenus !== 'false'
+                }
             };
             _publicSettingsCache.set(result);
             return res.json(result); // No admin found, return with default name
@@ -75,7 +78,10 @@ router.get('/public', async (req, res) => {
         if (!settings) {
             const result = { 
                 appName: 'Bluetick',
-                menuOrder: systemConfig.menuOrder 
+                menuOrder: systemConfig.menuOrder,
+                settings: {
+                    showLockedMenus: systemConfig.settings?.showLockedMenus !== false && systemConfig.settings?.showLockedMenus !== 'false'
+                }
             };
             _publicSettingsCache.set(result);
             return res.json(result);
@@ -91,7 +97,10 @@ router.get('/public', async (req, res) => {
             secondaryColor: settings.secondaryColor,
             theme: settings.theme,
             currency: settings.currency,
-            menuOrder: systemConfig.menuOrder
+            menuOrder: systemConfig.menuOrder,
+            settings: {
+                showLockedMenus: systemConfig.settings?.showLockedMenus !== false && systemConfig.settings?.showLockedMenus !== 'false'
+            }
         };
         _publicSettingsCache.set(result);
         res.json(result);

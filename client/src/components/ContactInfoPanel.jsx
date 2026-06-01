@@ -15,7 +15,10 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
 
     const [availableLabels, setAvailableLabels] = useState([]);
     const [showLabelsModal, setShowLabelsModal] = useState(false);
+    const [showTagDropdown, setShowTagDropdown] = useState(false);
+    const [tagSearch, setTagSearch] = useState('');
     const [showGroupDropdown, setShowGroupDropdown] = useState(false);
+    const [groupSearch, setGroupSearch] = useState('');
 
     const [contact, setContact] = useState(null);
     const [contactGroups, setContactGroups] = useState([]);
@@ -117,8 +120,9 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
 
     const toggleLabel = async (labelOption) => {
         const exists = labels.find(l => l.id === labelOption.id);
-        // Single-select: clicking the same label removes it, clicking a different one replaces
-        const newLabels = exists ? [] : [{ id: labelOption.id, name: labelOption.name, color: labelOption.color }];
+        const newLabels = exists 
+            ? labels.filter(l => l.id !== labelOption.id) 
+            : [...labels, { id: labelOption.id, name: labelOption.name, color: labelOption.color }];
         setLabels(newLabels);
         await axios.patch(`${API_BASE}/api/whatsapp/chat/conversations/${conversation.id}/labels`, { labels: newLabels });
         // Also sync label to the contact record so Contacts page reflects it
@@ -252,35 +256,75 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
                         </button>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                        {availableLabels.length > 0 ? availableLabels.map(opt => {
-                            const active = labels.find(l => l.id === opt.id);
-                            return (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => toggleLabel(opt)}
-                                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all border ${active
-                                        ? 'text-white border-transparent shadow-sm'
-                                        : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/20 hover:border-opacity-70'
-                                        }`}
-                                    style={active ? { backgroundColor: opt.color, borderColor: opt.color } : {}}
-                                >
-                                    {active ? '✓ ' : '+ '}{opt.name}
+                    {/* Selected Tags */}
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                        {labels.map(l => (
+                            <span key={l.id} className="px-2 py-1.5 rounded-md text-[11px] font-semibold text-white flex items-center gap-1.5 shadow-sm group" style={{ backgroundColor: l.color }}>
+                                <Tag className="w-3 h-3 text-white/90" />
+                                {l.name}
+                                <button onClick={() => toggleLabel(l)} className="hover:bg-black/20 rounded-full p-0.5 ml-1 opacity-80 hover:opacity-100 transition-colors flex items-center justify-center">
+                                    <X className="w-3 h-3" />
                                 </button>
-                            );
-                        }) : (
-                            <span className="text-xs text-slate-500 dark:text-slate-400 italic">No tags available. Create one to organize conversations.</span>
+                            </span>
+                        ))}
+                        {labels.length === 0 && (
+                            <span className="text-xs text-slate-500 dark:text-slate-400 italic">No tags assigned.</span>
                         )}
                     </div>
-                    {labels.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                            {labels.map(l => (
-                                <span key={l.id} className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: l.color }}>
-                                    {l.name}
-                                </span>
-                            ))}
+
+                    {/* Add Tag Selection */}
+                    <div className="relative" tabIndex={0} onBlur={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget)) {
+                            setShowTagDropdown(false);
+                            setTagSearch('');
+                        }
+                    }}>
+                        <div className="relative flex items-center w-full">
+                            <input
+                                type="text"
+                                placeholder="+ Add Tag..."
+                                value={tagSearch}
+                                onChange={(e) => {
+                                    setTagSearch(e.target.value);
+                                    setShowTagDropdown(true);
+                                }}
+                                onFocus={() => setShowTagDropdown(true)}
+                                className="w-full text-xs bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg pl-3 pr-8 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium cursor-text shadow-sm hover:border-slate-300 dark:hover:border-white/20"
+                            />
+                            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
                         </div>
-                    )}
+
+                        {showTagDropdown && (
+                            <div className="absolute top-full left-0 right-0 pt-1.5 z-50">
+                                <div className="bg-white dark:bg-[#111b21] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-200 max-h-48 overflow-y-auto shadow-black/5 dark:shadow-black/40">
+                                    {availableLabels.filter(l => l.name.toLowerCase().includes(tagSearch.toLowerCase())).length === 0 ? (
+                                        <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">No tags found</div>
+                                    ) : (
+                                        availableLabels.filter(l => l.name.toLowerCase().includes(tagSearch.toLowerCase())).map((opt) => {
+                                            const isSelected = labels.find(l => l.id === opt.id);
+                                            return (
+                                                <button
+                                                    key={opt.id}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        toggleLabel(opt);
+                                                        setTagSearch('');
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex items-center justify-between"
+                                                >
+                                                    <span className={isSelected ? 'font-semibold' : ''} style={isSelected ? { color: opt.color } : {}}>
+                                                        {opt.name}
+                                                    </span>
+                                                    {isSelected && <Check className="w-4 h-4" style={{ color: opt.color }} />}
+                                                </button>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Groups */}
@@ -309,33 +353,40 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
                     <div className="relative" tabIndex={0} onBlur={(e) => {
                         if (!e.currentTarget.contains(e.relatedTarget)) {
                             setShowGroupDropdown(false);
+                            setGroupSearch('');
                         }
                     }}>
-                        <button
-                            onClick={() => setShowGroupDropdown(p => !p)}
-                            className="w-full text-xs bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20 flex items-center justify-between"
-                        >
-                            <span className="truncate">
-                                {contactGroups.length > 0 ? contactGroups[0] : "+ Add to group..."}
-                            </span>
-                            <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
-                        </button>
+                        <div className="relative flex items-center w-full">
+                            <input
+                                type="text"
+                                placeholder="+ Add to group..."
+                                value={groupSearch}
+                                onChange={(e) => {
+                                    setGroupSearch(e.target.value);
+                                    setShowGroupDropdown(true);
+                                }}
+                                onFocus={() => setShowGroupDropdown(true)}
+                                className="w-full text-xs bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg pl-3 pr-8 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium cursor-text shadow-sm hover:border-slate-300 dark:hover:border-white/20"
+                            />
+                            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
+                        </div>
 
                         {showGroupDropdown && (
                             <div className="absolute top-full left-0 right-0 pt-1.5 z-50">
                                 <div className="bg-white dark:bg-[#111b21] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-200 max-h-48 overflow-y-auto shadow-black/5 dark:shadow-black/40">
-                                    {availableGroups.length === 0 ? (
+                                    {availableGroups.filter(g => g.name.toLowerCase().includes(groupSearch.toLowerCase())).length === 0 ? (
                                         <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">No groups found</div>
                                     ) : (
-                                        availableGroups.map((g) => {
+                                        availableGroups.filter(g => g.name.toLowerCase().includes(groupSearch.toLowerCase())).map((g) => {
                                             const isSelected = contactGroups.includes(g.name);
                                             return (
                                                 <button
                                                     key={g.id}
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault(); // Prevent focus loss on wrapper
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
                                                         e.stopPropagation();
                                                         toggleGroup(g.name);
+                                                        setGroupSearch('');
                                                     }}
                                                     className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex items-center justify-between"
                                                 >

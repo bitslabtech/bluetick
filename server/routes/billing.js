@@ -289,30 +289,64 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
 const calculateUpgradeDiscount = async (user, targetPlan) => {
     // If no active paid plan or no expiry date, no credit
     if (!user.planExpiry || user.plan === 'Free' || user.planStatus !== 'Active') {
-        return { creditAmount: 0, finalPrice: parseFloat(targetPlan.price), remainingDays: 0, currentPlanName: user.plan };
+        return { creditAmount: 0, finalPrice: parseFloat(targetPlan.price), remainingDays: 0, currentPlanName: user.plan, totalDays: 0, dailyRate: 0, paidAmount: 0 };
     }
 
     // Renewals (SAME tier): No cash discount applied. Instead, backend will stack the time extension.
     if (user.plan === targetPlan.name) {
-        return { creditAmount: 0, finalPrice: parseFloat(targetPlan.price), remainingDays: 0, currentPlanName: user.plan };
+        return { creditAmount: 0, finalPrice: parseFloat(targetPlan.price), remainingDays: 0, currentPlanName: user.plan, totalDays: 0, dailyRate: 0, paidAmount: 0 };
     }
 
     const currentPlan = await Plan.findOne({ where: { name: user.plan } });
-    if (!currentPlan || parseFloat(currentPlan.price) <= 0) {
-        return { creditAmount: 0, finalPrice: parseFloat(targetPlan.price), remainingDays: 0, currentPlanName: user.plan };
+    if (!currentPlan) {
+        return { creditAmount: 0, finalPrice: parseFloat(targetPlan.price), remainingDays: 0, currentPlanName: user.plan, totalDays: 0, dailyRate: 0, paidAmount: 0 };
     }
 
     const now = new Date();
     const expiry = new Date(user.planExpiry);
 
     if (expiry <= now) {
-        return { creditAmount: 0, finalPrice: parseFloat(targetPlan.price), remainingDays: 0, currentPlanName: user.plan };
+        return { creditAmount: 0, finalPrice: parseFloat(targetPlan.price), remainingDays: 0, currentPlanName: user.plan, totalDays: 0, dailyRate: 0, paidAmount: 0 };
     }
 
-    // Determine total days in current billing cycle
-    let totalDays = currentPlan.interval === 'year' ? 365 : 30; // estimate
+    // ─── FIX #1: Use actual paid amount from last transaction, NOT the Plan DB default ───
+    // This accounts for coupons, discounts, and the correct interval price the user actually paid.
+    const lastTxn = await Transaction.findOne({
+        where: {
+            userId: user.id,
+            status: 'COMPLETED',
+            planName: user.plan  // Match exact plan name
+        },
+        order: [['createdAt', 'DESC']]
+    });
 
-    const dailyRate = parseFloat(currentPlan.price) / totalDays;
+    let paidAmount = 0;
+    let totalDays = 30; // fallback
+
+    if (lastTxn) {
+        // Use actual transaction amount (what user really paid, after coupons/discounts)
+        paidAmount = parseFloat(lastTxn.amount) || 0;
+
+        // ─── FIX #2: Calculate totalDays from actual transaction date to expiry ───
+        // This gives the EXACT billing cycle length, not a hardcoded estimate.
+        // Works correctly for monthly (≈30), half-yearly (≈180), yearly (≈365), and any custom duration.
+        const txnDate = new Date(lastTxn.createdAt);
+        const msDiff = expiry.getTime() - txnDate.getTime();
+        totalDays = Math.max(1, Math.round(msDiff / (1000 * 60 * 60 * 24)));
+    } else {
+        // No transaction found (e.g. admin-granted plan). Fall back to plan model estimate.
+        paidAmount = parseFloat(currentPlan.price) || 0;
+        if (currentPlan.interval === 'year') totalDays = 365;
+        else if (currentPlan.interval === 'half-year') totalDays = 180;
+        else totalDays = 30;
+    }
+
+    // If user paid ₹0 (free coupon, trial, etc.), no credit to give
+    if (paidAmount <= 0) {
+        return { creditAmount: 0, finalPrice: parseFloat(targetPlan.price), remainingDays: 0, currentPlanName: currentPlan.name, totalDays, dailyRate: 0, paidAmount: 0 };
+    }
+
+    const dailyRate = paidAmount / totalDays;
 
     // Remaining Days
     const remainingMs = expiry - now;
@@ -331,7 +365,10 @@ const calculateUpgradeDiscount = async (user, targetPlan) => {
         creditAmount: Math.round(creditAmount * 100) / 100,
         finalPrice: Math.round(finalPrice * 100) / 100,
         remainingDays,
-        currentPlanName: currentPlan.name
+        currentPlanName: currentPlan.name,
+        totalDays,
+        dailyRate: Math.round(dailyRate * 100) / 100,
+        paidAmount: Math.round(paidAmount * 100) / 100
     };
 };
 
@@ -384,14 +421,11 @@ router.get('/', async (req, res) => {
         let planPrice = planDetails ? parseFloat(planDetails.price) : 0;
         let currency = planDetails ? planDetails.currency : null;
 
-        if (!currency) {
-            const adminUser = await User.findOne({ where: { isAdmin: true }, order: [['createdAt', 'ASC']] });
-            if (adminUser) {
-                const adminSettings = await Settings.findOne({ where: { userId: adminUser.id } });
-                currency = adminSettings?.currency || 'USD';
-            } else {
-                currency = 'USD';
-            }
+        // Force global currency if plan is free or currency is missing
+        if (!currency || planPrice === 0) {
+            const SystemConfig = require('../models/SystemConfig');
+            const config = await SystemConfig.getCachedConfig();
+            currency = config?.settings?.globalCurrency || 'USD';
         }
 
         // Count current templates and contacts
@@ -402,6 +436,20 @@ router.get('/', async (req, res) => {
             Contact.count({ where: { userId: req.user.id } })
         ]);
 
+        // Find user's last transaction to deduce actual billing interval
+        const lastTxn = await Transaction.findOne({
+            where: { userId: req.user.id, status: 'COMPLETED', planName: user.plan },
+            order: [['createdAt', 'DESC']]
+        });
+        
+        let actualInterval = 'month'; // default
+        if (lastTxn && user.planExpiry) {
+            const diffDays = (new Date(user.planExpiry) - new Date(lastTxn.createdAt)) / (1000 * 60 * 60 * 24);
+            if (diffDays > 300) actualInterval = 'year';
+            else if (diffDays > 150) actualInterval = 'half-year';
+            else actualInterval = 'month';
+        }
+
         res.json({
             plan: {
                 name: planName,
@@ -409,7 +457,7 @@ router.get('/', async (req, res) => {
                 expiry: user.planExpiry,
                 price: planPrice,
                 currency: currency,
-                interval: planDetails ? planDetails.interval : 'month'  // month | year | lifetime
+                interval: actualInterval
             },
             usage: {
                 messagesSent,
@@ -456,15 +504,22 @@ router.get('/calculate-upgrade/:planName', async (req, res) => {
         else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
 
         const user = await User.findByPk(req.user.id);
-        const { creditAmount, finalPrice, remainingDays, currentPlanName } = await calculateUpgradeDiscount(user, targetPlan);
+        const upgradeCalc = await calculateUpgradeDiscount(user, targetPlan);
 
         res.json({
             targetPlanPrice: parseFloat(targetPlan.price),
-            creditAmount,
-            finalPayableAmount: finalPrice,
-            remainingDays,
-            currentPlanName,
-            targetPlanName: targetPlan.name
+            creditAmount: upgradeCalc.creditAmount,
+            finalPayableAmount: upgradeCalc.finalPrice,
+            remainingDays: upgradeCalc.remainingDays,
+            currentPlanName: upgradeCalc.currentPlanName,
+            targetPlanName: targetPlan.name,
+            // Extra transparency fields for checkout breakdown
+            totalDays: upgradeCalc.totalDays,
+            dailyRate: upgradeCalc.dailyRate,
+            paidAmount: upgradeCalc.paidAmount,
+            // New trial protection fields
+            hasUsedTrial: user.hasUsedTrial || false,
+            isCurrentPlanPaid: user.planStatus === 'Active' && user.plan !== 'Free'
         });
     } catch (err) {
         console.error('Calculate Upgrade Error:', err);
@@ -498,13 +553,45 @@ router.post('/create-order', async (req, res) => {
             // It's a Plan purchase
             let targetPlan = await Plan.findOne({ where: { name: planName } });
             if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
-            
-            // Override price and interval based on user selection
+
+            // Override price and interval based on user selection FIRST (before any comparisons)
             if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
             else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
             else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
             if (interval) targetPlan.interval = interval;
+
+            const isMidSubscription = (user.planStatus === 'Active' || user.planStatus === 'Trial') && user.plan !== 'Free' && (!user.planExpiry || new Date(user.planExpiry) > new Date());
+
+            // Use actual paid amount from last transaction for accurate downgrade comparison
+            const lastTxn = await Transaction.findOne({
+                where: { userId: req.user.id, status: 'COMPLETED', planName: user.plan },
+                order: [['createdAt', 'DESC']]
+            });
+
+            // For downgrade check: compare target interval price vs what user actually paid
+            const currentPaidAmount = lastTxn ? parseFloat(lastTxn.amount) : 0;
+            const isDowngrade = currentPaidAmount > 0 && parseFloat(targetPlan.price) < currentPaidAmount;
             
+            if (isDowngrade && isMidSubscription) {
+                return res.status(403).json({ error: 'Downgrading is not allowed during an active subscription. Please wait until your current plan expires.' });
+            }
+
+            // Interval validity downgrade check (using already-fetched lastTxn)
+            let currentInterval = 'month';
+            if (lastTxn && user.planExpiry) {
+                const diffDays = (new Date(user.planExpiry) - new Date(lastTxn.createdAt)) / (1000 * 60 * 60 * 24);
+                if (diffDays > 300) currentInterval = 'year';
+                else if (diffDays > 150) currentInterval = 'half-year';
+            }
+            
+            const intervalWeights = { month: 1, 'half-year': 6, year: 12 };
+            const targetWeight = intervalWeights[targetPlan.interval] || 1;
+            const currentWeight = intervalWeights[currentInterval] || 1;
+            
+            if (isMidSubscription && targetWeight < currentWeight) {
+                return res.status(403).json({ error: 'Downgrading billing cycle duration is not allowed during an active subscription.' });
+            }
+
             finalPriceToCharge = parseFloat(targetPlan.price);
             targetCurrency = targetPlan.currency || 'USD';
             orderNotes.planName = planName;
@@ -592,6 +679,15 @@ router.post('/create-order', async (req, res) => {
             } else {
                 // Plan Upgrade (Free)
                 const targetPlan = await Plan.findOne({ where: { name: planName } });
+                
+                // Override interval and price for free coupon upgrades too
+                if (interval) {
+                    if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
+                    else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
+                    else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
+                    targetPlan.interval = interval;
+                }
+                
                 if (couponCode) {
                     const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
                     if (coupon) await coupon.increment('usesCount', { by: 1 });
@@ -642,7 +738,7 @@ router.post('/create-order', async (req, res) => {
 // ─── POST /verify-payment ── Step 2: verify signature then upgrade ────────────
 router.post('/verify-payment', async (req, res) => {
     try {
-        const { gateway, payload, planName, couponCode, discountApplied, itemId } = req.body;
+        const { gateway, payload, planName, couponCode, discountApplied, itemId, interval } = req.body;
 
         if (!gateway || !payload || (!planName && !itemId)) {
             return res.status(400).json({ error: 'Missing payment verification fields.' });
@@ -712,6 +808,14 @@ router.post('/verify-payment', async (req, res) => {
             const targetPlan = await Plan.findOne({ where: { name: planName } });
             if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
 
+            // ─── FIX #3: Override interval and price to match what user selected at checkout ───
+            if (interval) {
+                if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
+                else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
+                else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
+                targetPlan.interval = interval;
+            }
+
             // Update coupon usage if applicable
             if (couponCode) {
                 const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
@@ -725,7 +829,7 @@ router.post('/verify-payment', async (req, res) => {
                 transactionReference: transactionReference,
                 couponCode: couponCode || null,
                 discountApplied: discountApplied || 0,
-                amountPaid: Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0)) // fallback approximation
+                amountPaid: Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0))
             });
 
             // ─── Trigger WhatsApp Plan Purchase Notification ───
@@ -776,9 +880,49 @@ router.post('/verify-payment', async (req, res) => {
 // Does NOT verify payment — use /verify-payment for real Razorpay flows
 router.post('/upgrade', async (req, res) => {
     try {
-        const { planName } = req.body;
+        const { planName, interval } = req.body;
         const targetPlan = await Plan.findOne({ where: { name: planName } });
         if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
+
+        const user = await User.findByPk(req.user.id);
+
+        // Override price and interval based on user selection FIRST (before any comparisons)
+        if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
+        else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
+        else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
+        if (interval) targetPlan.interval = interval;
+
+        const isMidSubscription = (user.planStatus === 'Active' || user.planStatus === 'Trial') && user.plan !== 'Free' && (!user.planExpiry || new Date(user.planExpiry) > new Date());
+
+        // Use actual paid amount from last transaction for accurate downgrade comparison
+        const lastTxn = await Transaction.findOne({
+            where: { userId: req.user.id, status: 'COMPLETED', planName: user.plan },
+            order: [['createdAt', 'DESC']]
+        });
+
+        const currentPaidAmount = lastTxn ? parseFloat(lastTxn.amount) : 0;
+        const isDowngrade = currentPaidAmount > 0 && parseFloat(targetPlan.price) < currentPaidAmount;
+
+        if (isDowngrade && isMidSubscription) {
+            return res.status(403).json({ error: 'Downgrading is not allowed during an active subscription. Please wait until your current plan expires.' });
+        }
+        
+        // Interval validity downgrade check (using already-fetched lastTxn)
+        let currentInterval = 'month';
+        if (lastTxn && user.planExpiry) {
+            const diffDays = (new Date(user.planExpiry) - new Date(lastTxn.createdAt)) / (1000 * 60 * 60 * 24);
+            if (diffDays > 300) currentInterval = 'year';
+            else if (diffDays > 150) currentInterval = 'half-year';
+        }
+        
+        const intervalWeights = { month: 1, 'half-year': 6, year: 12 };
+        const targetWeight = intervalWeights[targetPlan.interval || 'month'] || 1;
+        const currentWeight = intervalWeights[currentInterval] || 1;
+        
+        if (isMidSubscription && targetWeight < currentWeight) {
+            return res.status(403).json({ error: 'Downgrading billing cycle duration is not allowed during an active subscription.' });
+        }
+
         await applyUpgrade(req.user.id, targetPlan);
         res.json({ success: true, message: `Upgraded to ${planName}` });
     } catch (err) {
@@ -823,13 +967,22 @@ router.post('/start-trial', async (req, res) => {
         const user = await User.findByPk(req.user.id);
         if (!user) return res.status(404).json({ error: 'User not found' });
         
+        if (user.hasUsedTrial) {
+            return res.status(403).json({ error: 'You have already used a free trial on this account.' });
+        }
+
+        if (user.planStatus === 'Active' && user.plan !== 'Free') {
+            return res.status(403).json({ error: 'Cannot start a trial while on an active paid subscription.' });
+        }
+        
         let planExpiry = new Date();
         planExpiry.setDate(planExpiry.getDate() + targetPlan.trialDays);
 
         await user.update({
             plan: targetPlan.name,
             planStatus: 'Trial',
-            planExpiry: planExpiry
+            planExpiry: planExpiry,
+            hasUsedTrial: true
         });
 
         res.json({ success: true, message: `Started ${targetPlan.trialDays}-day free trial for ${planName} plan` });

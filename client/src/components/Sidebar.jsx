@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Send, Settings, LogOut, MessageSquare, BarChart3, ShieldCheck, CreditCard, ShoppingBag, Bell, Activity, LifeBuoy, LayoutTemplate, Settings2, Package, X, ChevronDown, ChevronRight, Layers, Tag, Sparkles, Calendar, Terminal, Briefcase, TrendingUp, Gift, Contact, Store } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Send, Settings, LogOut, MessageSquare, BarChart3, ShieldCheck, CreditCard, ShoppingBag, Bell, Activity, LifeBuoy, LayoutTemplate, Settings2, Package, X, ChevronDown, ChevronRight, Layers, Tag, Sparkles, Calendar, Terminal, Briefcase, TrendingUp, Gift, Contact, Store, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
@@ -58,7 +58,7 @@ const userNavItems = [
         icon: LayoutTemplate,
         label: 'Automation',
         subItems: [
-            { label: 'FlowBot Builder', path: '/flowbot', ownerOnly: true, requiresFlowbot: true },
+            { label: 'FlowBot Builder', path: '/flowbot', perm: 'menu_flowbot', requiresFlowbot: true },
         ]
     },
 
@@ -102,9 +102,44 @@ const adminNavItems = [
 // Sub-item Component
 function NavItem({ item, location, setIsOpen, unreadCount }) {
     const { user } = useAuth();
-    const isActive = item.path === location.pathname || (item.subItems && item.subItems.some(sub => sub.path === location.pathname));
+    
+    const { publicSettings } = useUI();
+    const showLockedMenus = publicSettings?.settings?.showLockedMenus !== false && publicSettings?.settings?.showLockedMenus !== 'false';
+
+    // Pre-calculate visible sub-items so we know if the parent should even render
+    let visibleSubItems = null;
+    if (item.subItems) {
+        visibleSubItems = item.subItems.map(sub => {
+            let locked = false;
+            const isSubUser = !!user?.parentUserId;
+            const isAdmin = user?.teamRole === 'admin';
+
+            if (sub.ownerOnly && isSubUser && !isAdmin) return null; // Always hide owner-only from sub-users
+
+            // Plan level feature restrictions
+            if (sub.requiresCtwa && !user?.planDetails?.allowCtwaAnalytics && !user?.isAdmin) locked = true;
+            if (sub.requiresMetaAds && !user?.planDetails?.allowMetaAds && !user?.isAdmin) locked = true;
+            if (sub.requiresWaLinks && !user?.planDetails?.allowWaLinks && !user?.isAdmin) locked = true;
+            if (sub.requiresFlowbot && !user?.planDetails?.flowBotEnabled && !user?.isAdmin) locked = true;
+
+            // Custom permissions check for sub-items (team member restrictions)
+            if (isSubUser && user?.teamRole === 'custom' && sub.perm) {
+                if (!user.teamPermissions?.includes(sub.perm)) return null; // Hide if they lack team permission
+            }
+
+            if (locked && !showLockedMenus) return null;
+            return { ...sub, isLocked: locked };
+        }).filter(Boolean);
+    }
+
+    // If it's supposed to be a submenu, but ALL sub-items got filtered out, hide parent completely
+    if (item.subItems && (!visibleSubItems || visibleSubItems.length === 0)) {
+        return null;
+    }
+
+    const isActive = item.path === location.pathname || (visibleSubItems && visibleSubItems.some(sub => sub.path === location.pathname));
     const [expanded, setExpanded] = useState(isActive);
-    const isSubMenu = !!item.subItems;
+    const isSubMenu = !!visibleSubItems;
 
     return (
         <div className="flex flex-col gap-1">
@@ -131,20 +166,24 @@ function NavItem({ item, location, setIsOpen, unreadCount }) {
                 </button>
             ) : (
                 <Link
-                    to={item.path}
+                    to={item.isLocked ? `/locked-feature?feature=${encodeURIComponent(item.label)}` : item.path}
                     onClick={() => setIsOpen && setIsOpen(false)}
                     className={cn(
                         "flex items-center justify-between px-3 py-3 rounded-lg transition-all duration-200",
-                        item.path === location.pathname
+                        item.path === location.pathname && !item.isLocked
                             ? "bg-primary text-white shadow-md shadow-blue-500/20"
-                            : "text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white"
+                            : "text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white",
+                        item.isLocked && "opacity-75"
                     )}
                 >
                     <div className="flex items-center gap-3">
                         <item.icon className="text-[22px]" />
-                        <p className="text-sm font-medium leading-normal">{item.label}</p>
+                        <p className="text-sm font-medium leading-normal flex items-center gap-2">
+                            {item.label}
+                            {item.isLocked && <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                        </p>
                     </div>
-                    {unreadCount > 0 && (
+                    {unreadCount > 0 && !item.isLocked && (
                         <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                             {unreadCount}
                         </div>
@@ -155,35 +194,21 @@ function NavItem({ item, location, setIsOpen, unreadCount }) {
             {/* Sub-items */}
             {isSubMenu && expanded && (
                 <div className="flex flex-col gap-1 ml-9 border-l-2 border-slate-100 dark:border-white/10 pl-2">
-                    {item.subItems.filter(sub => {
-                        const isSubUser = !!user?.parentUserId;
-                        const isAdmin = user?.teamRole === 'admin';
-                        if (sub.ownerOnly && isSubUser && !isAdmin) return false;
-
-                        // Plan level feature restrictions
-                        if (sub.requiresCtwa && !user?.planDetails?.allowCtwaAnalytics && !user?.isAdmin) return false;
-                        if (sub.requiresMetaAds && !user?.planDetails?.allowMetaAds && !user?.isAdmin) return false;
-                        if (sub.requiresWaLinks && !user?.planDetails?.allowWaLinks && !user?.isAdmin) return false;
-
-                        // Custom permissions check for sub-items
-                        if (isSubUser && user?.teamRole === 'custom' && sub.perm) {
-                            if (!user.teamPermissions?.includes(sub.perm)) return false;
-                        }
-
-                        return true;
-                    }).map((sub) => (
+                    {visibleSubItems.map((sub) => (
                         <Link
                             key={sub.path}
-                            to={sub.path}
+                            to={sub.isLocked ? `/locked-feature?feature=${encodeURIComponent(sub.label)}` : sub.path}
                             onClick={() => setIsOpen && setIsOpen(false)}
                             className={cn(
-                                "flex items-center px-3 py-2 rounded-lg transition-all text-sm font-medium",
-                                sub.path === location.pathname
+                                "flex items-center px-3 py-2 rounded-lg transition-all text-sm font-medium gap-2",
+                                sub.path === location.pathname && !sub.isLocked
                                     ? "bg-primary text-white shadow-sm"
-                                    : "text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white"
+                                    : "text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white",
+                                sub.isLocked && "opacity-75"
                             )}
                         >
                             {sub.label}
+                            {sub.isLocked && <Lock className="w-3 h-3 text-amber-500 shrink-0 ml-auto" />}
                         </Link>
                     ))}
                 </div>
@@ -258,13 +283,18 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     const baseItems = user?.isAdmin ? adminNavItems : userNavItems;
     const isSubUser = !!user?.parentUserId;
 
+    const showLockedMenus = publicSettings?.settings?.showLockedMenus !== false && publicSettings?.settings?.showLockedMenus !== 'false';
+
     // Filter nav items: hide ownerOnly items for sub-users
-    let items = baseItems.filter(item => {
-        if (item.ownerOnly && isSubUser && user?.teamRole !== 'admin') return false;
-        if (item.requiresFlowbot && !user?.planDetails?.flowBotEnabled && !user?.isAdmin) return false;
-        if (item.requiresApiAccess && !user?.planDetails?.allowApiAccess && !user?.isAdmin) return false;
-        if (item.requiresVcard && !user?.planDetails?.allowVcard && !user?.isAdmin) return false;
-        if (item.requiresWaStore && !user?.planDetails?.allowWaStore && !user?.isAdmin) return false;
+    let items = baseItems.map(item => {
+        let locked = false;
+        if (item.ownerOnly && isSubUser && user?.teamRole !== 'admin') return null;
+        
+        // Plan Restrictions
+        if (item.requiresFlowbot && !user?.planDetails?.flowBotEnabled && !user?.isAdmin) locked = true;
+        if (item.requiresApiAccess && !user?.planDetails?.allowApiAccess && !user?.isAdmin) locked = true;
+        if (item.requiresVcard && !user?.planDetails?.allowVcard && !user?.isAdmin) locked = true;
+        if (item.requiresWaStore && !user?.planDetails?.allowWaStore && !user?.isAdmin) locked = true;
 
         // Custom Permissions check for main level items
         if (isSubUser && user?.teamRole === 'custom' && !user?.isAdmin) {
@@ -275,14 +305,15 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                     if (sub.perm) return user.teamPermissions?.includes(sub.perm);
                     return true;
                 });
-                if (!hasAllowedSub) return false;
+                if (!hasAllowedSub) return null;
             } else if (item.perm) {
-                if (!user.teamPermissions?.includes(item.perm)) return false;
+                if (!user.teamPermissions?.includes(item.perm)) return null;
             }
         }
 
-        return true;
-    });
+        if (locked && !showLockedMenus) return null;
+        return { ...item, isLocked: locked };
+    }).filter(Boolean);
 
     // Reorder based on global system config menuOrder (if it exists)
     // Only apply for non-admins so superadmin retains the default structured view

@@ -976,9 +976,14 @@ const WhatsAppInbox = () => {
                                             </p>
                                             <div className="flex items-center gap-1 shrink-0 ml-1">
                                                 {/* Label dots */}
-                                                {chat.labels?.slice(0, 2).map(l => (
-                                                    <span key={l.label} className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: l.color }} title={l.label} />
-                                                ))}
+                                                <div className="flex items-center gap-0.5 mr-1">
+                                                    {chat.labels?.slice(0, 4).map(l => (
+                                                        <span key={l.id || l.label} className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: l.color }} title={l.name || l.label} />
+                                                    ))}
+                                                    {chat.labels?.length > 4 && (
+                                                        <span className="text-[9px] font-bold text-slate-400 ml-0.5">+{chat.labels.length - 4}</span>
+                                                    )}
+                                                </div>
                                                 {chat.unreadCount > 0 && (
                                                     <span className="bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.1rem] max-w-full text-center">
                                                         {chat.unreadCount}
@@ -1017,12 +1022,25 @@ const WhatsAppInbox = () => {
                                         <h2 className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">
                                             {renderName(selectedChat.contactName, selectedChat.phoneNumber)}
                                         </h2>
-                                        {/* Label indicator only */}
+                                        {/* Label indicators */}
                                         {selectedChat.labels && selectedChat.labels.length > 0 && (
-                                            <span className="px-2 py-0.5 rounded-md bg-opacity-90 text-[10px] font-bold text-white shadow-sm flex items-center max-w-[120px] max-w-full truncate" style={{ backgroundColor: selectedChat.labels[0].color }}>
-                                                <Tag className="w-3 h-3 mr-1" />
-                                                {selectedChat.labels[0].name || selectedChat.labels[0].label}
-                                            </span>
+                                            <div className="flex gap-1 overflow-hidden relative" style={{ maxWidth: '240px' }}>
+                                                <div className={`flex gap-1 shrink-0 ${selectedChat.labels.length > 3 ? 'animate-marquee' : ''}`}>
+                                                    {selectedChat.labels.map((lbl, idx) => (
+                                                        <span key={idx} className="px-2 py-0.5 rounded-md bg-opacity-90 text-[10px] font-bold text-white shadow-sm flex items-center whitespace-nowrap shrink-0" style={{ backgroundColor: lbl.color }}>
+                                                            <Tag className="w-3 h-3 mr-1 shrink-0" />
+                                                            {lbl.name || lbl.label}
+                                                        </span>
+                                                    ))}
+                                                    {/* Duplicate for seamless marquee if > 3 */}
+                                                    {selectedChat.labels.length > 3 && selectedChat.labels.map((lbl, idx) => (
+                                                        <span key={`dup-${idx}`} className="px-2 py-0.5 rounded-md bg-opacity-90 text-[10px] font-bold text-white shadow-sm flex items-center whitespace-nowrap shrink-0" style={{ backgroundColor: lbl.color }}>
+                                                            <Tag className="w-3 h-3 mr-1 shrink-0" />
+                                                            {lbl.name || lbl.label}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">

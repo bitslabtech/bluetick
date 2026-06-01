@@ -85,16 +85,19 @@ const UsageBar = ({ label, icon, used, limit, color }) => {
     );
 };
 
-const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) => {
+const PlanCard = ({ plan, currentPlan, billingInterval, usage, onUpgrade }) => {
+    const currentPlanName = currentPlan?.name || 'Free';
     const isCurrent = plan.name === currentPlanName;
-    const isDowngrade = (() => {
-        const order = { Free: 0, Starter: 1, Pro: 2, Enterprise: 3 };
-        return (order[plan.name] ?? 99) < (order[currentPlanName] ?? 0);
-    })();
+    
+    // A plan is a downgrade if its base price is strictly less than the user's current plan base price
+    const isDowngrade = parseFloat(plan.price || 0) < parseFloat(currentPlan?.price || 0);
 
-    const theme = PLAN_THEMES[plan.color] || PLAN_THEMES.blue;
-    const currencyMap = { USD: '$', INR: '₹', EUR: '€', GBP: '£', AUD: 'A$', SGD: 'S$' };
-    const currency = currencyMap[plan.currency] || plan.currency || '₹';
+    // Check if user is currently active mid-subscription
+    const isExpired = currentPlan?.expiry ? new Date(currentPlan.expiry) < new Date() : false;
+    const isMidSubscription = (currentPlan?.status === 'Active' || currentPlan?.status === 'Trial') && !isExpired && currentPlanName !== 'Free';
+
+    // Disallow downgrade if mid subscription
+    const downgradeBlocked = isDowngrade && isMidSubscription;
 
     // Determine price to display based on selected interval
     let displayPrice = parseFloat(plan.price) || 0;
@@ -110,6 +113,19 @@ const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) 
         displayPrice = parseFloat(plan.yearlyPrice);
         intervalLbl = '/yr'; intervalCode = 'year';
     }
+
+    // Interval validity downgrade check
+    const intervalWeights = { month: 1, 'half-year': 6, year: 12 };
+    const targetIntervalWeight = intervalWeights[intervalCode] || 1;
+    const currentIntervalWeight = intervalWeights[currentPlan?.interval] || 1;
+    const isIntervalDowngrade = targetIntervalWeight < currentIntervalWeight;
+    const intervalDowngradeBlocked = isIntervalDowngrade && isMidSubscription;
+
+    const theme = PLAN_THEMES[plan.color] || PLAN_THEMES.blue;
+    const currencyMap = { USD: '$', INR: '₹', EUR: '€', GBP: '£', AUD: 'A$', SGD: 'S$' };
+    const currency = currencyMap[plan.currency] || plan.currency || '₹';
+
+
 
     // Detect which limits this plan would fix
     const fixesMessages = usage && plan.messageLimit !== -1 && plan.messageLimit > usage.monthlyLimit;
@@ -249,10 +265,21 @@ const PlanCard = ({ plan, currentPlanName, billingInterval, usage, onUpgrade }) 
                         <div className="w-full py-3 rounded-xl text-sm font-bold text-center bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 cursor-default">
                             ✓ Active Plan
                         </div>
-                    ) : isDowngrade ? (
-                        <div className="w-full py-3 rounded-xl text-sm font-medium text-center text-slate-400 bg-slate-50 dark:bg-white/5 cursor-not-allowed border border-slate-100 dark:border-white/5">
-                            Lower tier
+                    ) : downgradeBlocked ? (
+                        <div className="w-full py-3 rounded-xl text-sm font-medium text-center text-slate-400 bg-slate-50 dark:bg-white/5 cursor-not-allowed border border-slate-100 dark:border-white/5" title="Downgrades are only allowed after your current subscription expires.">
+                            Unavailable (Mid-Subscription)
                         </div>
+                    ) : intervalDowngradeBlocked ? (
+                        <div className="w-full py-3 rounded-xl text-sm font-medium text-center text-slate-400 bg-slate-50 dark:bg-white/5 cursor-not-allowed border border-slate-100 dark:border-white/5" title="Downgrading billing cycle duration is not allowed mid-subscription.">
+                            Requires {currentPlan?.interval === 'year' ? 'Annual' : 'Half-Yearly'} Billing
+                        </div>
+                    ) : isDowngrade ? (
+                        <button
+                            onClick={() => onUpgrade(plan, intervalCode)}
+                            className="w-full py-3 rounded-xl text-sm font-bold text-center text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all shadow-sm active:scale-95"
+                        >
+                            Downgrade to {plan.name}
+                        </button>
                     ) : (
                         <button
                             onClick={() => onUpgrade(plan, intervalCode)}
@@ -289,16 +316,15 @@ const Billing = () => {
     const { user } = useAuth();
     const [billingInfo, setBillingInfo] = useState(null);
     const [plans, setPlans] = useState([]);
-    const [billingInterval, setBillingInterval] = useState('monthly');
+    const [billingInterval, setBillingInterval] = useState('yearly');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const headers = { 'x-auth-token': token };
                 const [billingRes, plansRes] = await Promise.all([
-                    axios.get(`${API_BASE}/api/billing`, { headers }),
-                    axios.get(`${API_BASE}/api/billing/plans`, { headers })
+                    axios.get(`${API_BASE}/api/billing`),
+                    axios.get(`${API_BASE}/api/plans/public`)
                 ]);
                 setBillingInfo(billingRes.data);
                 setPlans(plansRes.data);
@@ -453,14 +479,14 @@ const Billing = () => {
 
                         {/* Plans Grid */}
                         <div>
-                            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="mb-10 flex flex-col items-center justify-center text-center gap-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Available Plans</h2>
                                     <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Choose a plan and billing cycle that fits your needs.</p>
                                 </div>
                                 {/* Interval Switcher */}
                                 {(hasMonthly || hasHalfYearly || hasYearly) && (
-                                    <div className="flex bg-white dark:bg-surface-dark p-1.5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
+                                    <div className="inline-flex bg-white dark:bg-surface-dark p-1.5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
                                         {hasMonthly && (
                                             <button
                                                 onClick={() => setBillingInterval('monthly')}
@@ -502,16 +528,17 @@ const Billing = () => {
                             {plans.length === 0 ? (
                                 <div className="text-center py-20 text-slate-400">No plans available at the moment.</div>
                             ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                                <div className="flex flex-wrap justify-center gap-6">
                                     {plans.map(p => (
-                                        <PlanCard
-                                            key={p.id}
-                                            plan={p}
-                                            billingInterval={billingInterval}
-                                            currentPlanName={plan?.name}
-                                            usage={usage}
-                                            onUpgrade={handleUpgrade}
-                                        />
+                                        <div key={p.id} className="w-full sm:w-[calc(50%-1.5rem)] lg:w-[calc(33.333%-1.5rem)] xl:w-[calc(25%-1.5rem)] max-w-[340px] flex flex-col">
+                                            <PlanCard
+                                                plan={p}
+                                                billingInterval={billingInterval}
+                                                currentPlan={plan}
+                                                usage={usage}
+                                                onUpgrade={handleUpgrade}
+                                            />
+                                        </div>
                                     ))}
                                 </div>
                             )}

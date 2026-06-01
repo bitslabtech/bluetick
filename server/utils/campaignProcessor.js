@@ -37,13 +37,13 @@ const processCampaign = async (campaignId) => {
         let contacts = [];
         if (contactIds === 'all') {
             contacts = await Contact.findAll({
-                where: { userId },
+                where: { userId, status: { [require('sequelize').Op.or]: [{ [require('sequelize').Op.ne]: 'Invalid' }, { [require('sequelize').Op.is]: null }] } },
                 attributes: ['id', 'name', 'phone'],
                 raw: true
             });
         } else if (Array.isArray(contactIds) && contactIds.length > 0) {
             contacts = await Contact.findAll({
-                where: { id: contactIds, userId },
+                where: { id: contactIds, userId, status: { [require('sequelize').Op.or]: [{ [require('sequelize').Op.ne]: 'Invalid' }, { [require('sequelize').Op.is]: null }] } },
                 attributes: ['id', 'name', 'phone'],
                 raw: true
             });

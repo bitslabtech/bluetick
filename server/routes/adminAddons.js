@@ -166,9 +166,10 @@ router.put('/:id', async (req, res) => {
         const addon = await AddonModel.findByPk(req.params.id);
         if (!addon) return res.status(404).json({ error: 'Addon not found' });
 
-        const { name, description, shortDescription, longDescription, price, isActive, isRecurring, recurringInterval, features, bannerUrl, demoVideoUrl, badge } = req.body;
+        const { name, slug, description, shortDescription, longDescription, price, isActive, isRecurring, recurringInterval, features, bannerUrl, demoVideoUrl, badge } = req.body;
 
         if (name !== undefined) addon.name = name;
+        if (slug !== undefined) addon.slug = slug === '' ? null : slug;
         if (description !== undefined) addon.description = description;
         if (shortDescription !== undefined) addon.shortDescription = shortDescription;
         if (longDescription !== undefined) addon.longDescription = longDescription;

@@ -73,6 +73,10 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
 
             } catch (err) {
                 console.error('Failed to fetch data', err);
+                setRecipientGroups([
+                    { id: 'all', name: 'All Contacts', count: 0, updated: 'Error' },
+                    { id: 'error-msg', name: 'API ERROR: ' + (err.response?.data?.error || err.message), count: 0, updated: 'Just now' }
+                ]);
             } finally {
                 setLoadingStats(false);
             }
@@ -80,19 +84,22 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
         fetchData();
     }, []);
 
-    // --- Derived: how many recipients does the current selection represent? ---
     const selectedCount = useMemo(() => {
         if (data.retargetCampaignId) return retargetCount;
-        
+
         let count = 0;
         const recipients = data.recipients || [];
         if (recipients.includes('all')) {
             const allGroup = recipientGroups.find(g => g.id === 'all');
-            count += parseInt(allGroup?.count || '0', 10);
+            const parsed = parseInt(allGroup?.count || '0', 10);
+            count += isNaN(parsed) ? 0 : parsed;
         } else {
             for (const id of recipients) {
                 const grp = recipientGroups.find(g => g.id === id);
-                if (grp) count += parseInt(grp.count || '0', 10);
+                if (grp) {
+                    const parsed = parseInt(grp.count || '0', 10);
+                    count += isNaN(parsed) ? 0 : parsed;
+                }
             }
         }
         count += (data.manualRecipients || []).length;
@@ -270,13 +277,13 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                 <Edit2 className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-slate-900 dark:text-white font-bold text-lg">Campaign Info</h3>
+                                <h3 className="text-slate-900 dark:text-white font-bold text-lg">Broadcast Info</h3>
                                 <p className="text-xs text-slate-500 dark:text-text-secondary">Basic details for internal tracking</p>
                             </div>
                         </div>
                         <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="col-span-1 md:col-span-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-text-secondary mb-2">Campaign Name <span className="text-red-400">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-text-secondary mb-2">Broadcast Name <span className="text-red-400">*</span></label>
                                 <input
                                     autoFocus
                                     value={data.name}
@@ -343,90 +350,92 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                         </div>
                     ) : (
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
-                        <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
-                            <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
-                                <Folder className="w-5 h-5" />
+                            <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                                <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
+                                    <Folder className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-slate-900 dark:text-white font-bold text-lg">Recipients</h3>
+                                    <p className="text-xs text-slate-500 dark:text-text-secondary">Select who will receive this message</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-slate-900 dark:text-white font-bold text-lg">Recipients</h3>
-                                <p className="text-xs text-slate-500 dark:text-text-secondary">Select who will receive this message</p>
-                            </div>
-                        </div>
 
-                        {/* Tabs */}
-                        <div className="px-4 md:px-6 pt-6 pb-2">
-                            <div className="flex bg-slate-100 dark:bg-background-dark p-1 rounded-xl w-full sm:w-fit border border-slate-200 dark:border-white/10">
-                                <button className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-surface-dark shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center gap-2 transition-all">
-                                    <Folder className="w-4 h-4" />
-                                    Saved Groups
-                                </button>
-                                <button
-                                    onClick={() => navigate('/contacts', { state: { openImportModal: true } })}
-                                    className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <UploadCloud className="w-4 h-4" />
-                                    Upload CSV
-                                </button>
-                                <button
-                                    onClick={() => setShowManualModal(true)}
-                                    className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Clipboard className="w-4 h-4" />
-                                    Enter Manually
-                                </button>
+                            {/* Tabs */}
+                            <div className="px-4 md:px-6 pt-6 pb-2">
+                                <div className="flex bg-slate-100 dark:bg-background-dark p-1 rounded-xl w-full sm:w-fit border border-slate-200 dark:border-white/10">
+                                    <button className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-surface-dark shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center gap-2 transition-all">
+                                        <Folder className="w-4 h-4" />
+                                        Saved Groups
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/contacts', { state: { openImportModal: true } })}
+                                        className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <UploadCloud className="w-4 h-4" />
+                                        Upload CSV
+                                    </button>
+                                    <button
+                                        onClick={() => setShowManualModal(true)}
+                                        className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Clipboard className="w-4 h-4" />
+                                        Enter Manually
+                                    </button>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* List */}
-                        <div className="p-4 md:p-6 space-y-4">
-                            <div className="relative">
-                                <Search className="absolute left-4 top-3.5 text-slate-400 dark:text-gray-500 w-5 h-5" />
-                                <input
-                                    className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-slate-400 dark:placeholder:text-gray-600 transition-all outline-none"
-                                    placeholder="Search for contact groups..."
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                {recipientGroups.map((group) => (
-                                    <label key={group.id} className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all group relative ${data.recipients?.includes(group.id) ? 'bg-primary/10 border-primary' : 'bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-white/10 hover:border-primary/50'}`}>
-                                        <div className="pt-1">
-                                            <input
-                                                type="checkbox"
-                                                className="w-5 h-5 rounded border-gray-600 text-primary focus:ring-0 cursor-pointer accent-primary"
-                                                checked={data.recipients?.includes(group.id)}
-                                                onChange={(e) => handleGroupSelection(group.id, e.target.checked)}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col w-full">
-                                            <div className="flex justify-between items-start">
-                                                <span className={`font-bold text-sm transition-colors ${data.recipients?.includes(group.id) ? 'text-primary' : 'text-slate-900 dark:text-white group-hover:text-primary'}`}>{group.name}</span>
-                                                <span className="text-[10px] font-bold bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary px-2 py-1 rounded-md border border-slate-200 dark:border-white/5">{group.count}</span>
+                            {/* List */}
+                            <div className="p-4 md:p-6 space-y-4">
+                                <div className="relative">
+                                    <Search className="absolute left-4 top-3.5 text-slate-400 dark:text-gray-500 w-5 h-5" />
+                                    <input
+                                        className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl pl-12 pr-4 py-3 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-slate-400 dark:placeholder:text-gray-600 transition-all outline-none"
+                                        placeholder="Search for contact groups..."
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {recipientGroups
+                                        .filter(group => group.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                        .map((group) => (
+                                        <label key={group.id} className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all group relative ${data.recipients?.includes(group.id) ? 'bg-primary/10 border-primary' : 'bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-white/10 hover:border-primary/50'}`}>
+                                            <div className="pt-1">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 rounded border-gray-600 text-primary focus:ring-0 cursor-pointer accent-primary"
+                                                    checked={data.recipients?.includes(group.id)}
+                                                    onChange={(e) => handleGroupSelection(group.id, e.target.checked)}
+                                                />
                                             </div>
-                                            <span className="text-xs text-slate-500 dark:text-text-secondary mt-1">Updated: {group.updated}</span>
+                                            <div className="flex flex-col w-full">
+                                                <div className="flex justify-between items-start">
+                                                    <span className={`font-bold text-sm transition-colors ${data.recipients?.includes(group.id) ? 'text-primary' : 'text-slate-900 dark:text-white group-hover:text-primary'}`}>{group.name}</span>
+                                                    <span className="text-[10px] font-bold bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary px-2 py-1 rounded-md border border-slate-200 dark:border-white/5">{group.count}</span>
+                                                </div>
+                                                <span className="text-xs text-slate-500 dark:text-text-secondary mt-1">Updated: {group.updated}</span>
+                                            </div>
+                                        </label>
+                                    ))}
+                                    {/* Manual Recipients Display */}
+                                    {data.manualRecipients?.length > 0 && (
+                                        <div className="p-4 rounded-xl border border-primary/50 bg-primary/5">
+                                            <div className="flex justify-between items-start">
+                                                <span className="font-bold text-sm text-primary">Manually Added</span>
+                                                <span className="text-[10px] font-bold bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary px-2 py-1 rounded-md border border-slate-200 dark:border-white/5">{data.manualRecipients.length}</span>
+                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-text-secondary mt-1">Temporary list for this campaign</p>
                                         </div>
-                                    </label>
-                                ))}
-                                {/* Manual Recipients Display */}
-                                {data.manualRecipients?.length > 0 && (
-                                    <div className="p-4 rounded-xl border border-primary/50 bg-primary/5">
-                                        <div className="flex justify-between items-start">
-                                            <span className="font-bold text-sm text-primary">Manually Added</span>
-                                            <span className="text-[10px] font-bold bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary px-2 py-1 rounded-md border border-slate-200 dark:border-white/5">{data.manualRecipients.length}</span>
-                                        </div>
-                                        <p className="text-xs text-slate-500 dark:text-text-secondary mt-1">Temporary list for this campaign</p>
-                                    </div>
-                                )}
-                                <button
-                                    onClick={() => navigate('/contacts', { state: { openGroupManager: true } })}
-                                    className="flex items-center justify-center gap-2 p-4 rounded-xl border border-dashed border-slate-300 dark:border-white/20 bg-transparent cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white text-slate-500 dark:text-text-secondary transition-colors h-full min-h-[80px]"
-                                >
-                                    <Plus className="w-5 h-5" />
-                                    <span className="font-medium text-sm">Create New Group</span>
-                                </button>
-                            </div>
+                                    )}
+                                    <button
+                                        onClick={() => navigate('/contacts', { state: { openGroupManager: true } })}
+                                        className="flex items-center justify-center gap-2 p-4 rounded-xl border border-dashed border-slate-300 dark:border-white/20 bg-transparent cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white text-slate-500 dark:text-text-secondary transition-colors h-full min-h-[80px]"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                        <span className="font-medium text-sm">Create New Group</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

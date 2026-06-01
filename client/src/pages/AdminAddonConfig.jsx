@@ -25,6 +25,7 @@ const AdminAddonConfig = () => {
 
     const [addon, setAddon] = useState({
         name: '',
+        slug: '',
         description: '',
         shortDescription: '',
         longDescription: '',
@@ -187,6 +188,11 @@ const AdminAddonConfig = () => {
                             <div>
                                 <label className={labelClass}>Display Name</label>
                                 <input type="text" value={addon.name || ''} onChange={e => setAddon({ ...addon, name: e.target.value })} className={inputClass} placeholder="e.g. AI Support Bot" />
+                            </div>
+                            <div>
+                                <label className={labelClass}>URL Path Slug <span className="text-gray-400 font-normal">(optional)</span></label>
+                                <input type="text" value={addon.slug || ''} onChange={e => setAddon({ ...addon, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} className={inputClass} placeholder="e.g. ai-support-bot" />
+                                <p className="text-[10px] text-gray-400 mt-1">If set, users will access the addon via /marketplace/your-slug instead of its ID.</p>
                             </div>
                             <div>
                                 <label className={labelClass}>Short Description <span className="text-gray-400 font-normal">(shown below the title on the detail page)</span></label>

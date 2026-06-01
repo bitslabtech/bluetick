@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
     Plus, Megaphone, TrendingUp, DollarSign, MessageCircle, BarChart2,
     Calendar, MoreVertical, CreditCard, Play, Pause, Zap, ArrowRight, Loader2, AlertTriangle, ExternalLink
 } from 'lucide-react';
@@ -129,10 +129,10 @@ const MetaAdsDashboard = () => {
             <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-md border border-white/50 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden">
                 <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <BarChart2 className="w-5 h-5 text-primary" /> Campaign History
+                        <BarChart2 className="w-5 h-5 text-primary" /> Broadcast History
                     </h2>
                 </div>
-                
+
                 {loading ? (
                     <div className="p-4 md:p-6 space-y-4">
                         {[1, 2, 3].map(i => (

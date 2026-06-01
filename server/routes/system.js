@@ -128,6 +128,9 @@ router.put('/settings', superAdmin, async (req, res) => {
                 }
             }
             config.settings = { ...existingSettings, ...safeSettings };
+            config.changed('settings', true);
+            const cacheManager = require('../utils/cacheManager');
+            cacheManager.invalidate('public_settings');
         }
 
         await config.save();

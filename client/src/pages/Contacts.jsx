@@ -1255,22 +1255,22 @@ const Contacts = () => {
             {/* ── Unified Contact Modal (3 tabs) ─────────────────────────── */}
             {showContactModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-                    <div className="bg-surface-dark border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden flex flex-col max-h-[92vh]">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden flex flex-col max-h-[92vh]">
 
                         {/* Header */}
-                        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-white/10 shrink-0">
+                        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                                <div className="p-2 rounded-xl bg-indigo-50 dark:bg-primary/10 text-primary">
                                     <UserPlus className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-white">Add Contacts</h3>
-                                    <p className="text-xs text-text-secondary">Upload a file, sync Google, or add manually</p>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add Contacts</h3>
+                                    <p className="text-xs text-slate-500 dark:text-text-secondary">Upload a file, sync Google, or add manually</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => { setShowContactModal(false); setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' }); }}
-                                className="p-2 rounded-lg text-text-secondary hover:text-white hover:bg-white/10 transition-colors"
+                                className="p-2 rounded-lg text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -1288,8 +1288,8 @@ const Contacts = () => {
                                     onClick={() => setContactModalTab(tab.id)}
                                     className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 text-xs font-bold transition-all border-b-2 ${
                                         contactModalTab === tab.id
-                                            ? 'text-white border-white bg-white/10'
-                                            : 'text-text-secondary border-transparent hover:text-white hover:bg-white/5'
+                                            ? 'text-indigo-600 dark:text-white border-indigo-600 dark:border-white bg-indigo-50 dark:bg-white/10'
+                                            : 'text-slate-500 dark:text-text-secondary border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
                                     }`}
                                 >
                                     <tab.icon className="w-3.5 h-3.5" />
@@ -1306,9 +1306,9 @@ const Contacts = () => {
                             {contactModalTab === 'file' && (
                                 <div className="p-4 md:p-6 space-y-4">
                                     <div className="flex items-start justify-between gap-3">
-                                        <p className="text-sm text-text-secondary leading-relaxed">
-                                            Upload a <span className="text-white font-semibold">.csv</span> or{' '}
-                                            <span className="text-white font-semibold">.vcf</span> (vCard) file to bulk-import contacts.
+                                        <p className="text-sm text-slate-600 dark:text-text-secondary leading-relaxed">
+                                            Upload a <span className="text-slate-900 dark:text-white font-semibold">.csv</span> or{' '}
+                                            <span className="text-slate-900 dark:text-white font-semibold">.vcf</span> (vCard) file to bulk-import contacts.
                                         </p>
                                         <button
                                             onClick={() => {
@@ -1319,18 +1319,18 @@ const Contacts = () => {
                                                 a.href = url; a.download = 'contacts_template.csv';
                                                 document.body.appendChild(a); a.click(); document.body.removeChild(a);
                                             }}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-white transition-colors border border-white/10 shrink-0"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg text-xs font-medium text-slate-700 dark:text-white transition-colors border border-slate-200 dark:border-white/10 shrink-0"
                                         >
                                             <Download className="w-3.5 h-3.5" /> CSV Template
                                         </button>
                                     </div>
 
-                                    <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-white/10 rounded-xl cursor-pointer bg-background-dark/40 hover:bg-background-dark hover:border-primary/50 transition-all group">
-                                        <UploadCloud className="w-9 h-9 text-text-secondary group-hover:text-primary mb-2 transition-colors" />
-                                        <p className="text-sm text-text-secondary">
+                                    <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl cursor-pointer bg-slate-50 dark:bg-background-dark/40 hover:bg-slate-100 dark:hover:bg-background-dark hover:border-primary/50 transition-all group">
+                                        <UploadCloud className="w-9 h-9 text-slate-400 dark:text-text-secondary group-hover:text-primary mb-2 transition-colors" />
+                                        <p className="text-sm text-slate-500 dark:text-text-secondary">
                                             <span className="font-bold text-primary">Click to upload</span> or drag and drop
                                         </p>
-                                        <p className="text-xs text-text-secondary mt-1">.csv or .vcf — max 5MB</p>
+                                        <p className="text-xs text-slate-400 dark:text-text-secondary mt-1">.csv or .vcf — max 5MB</p>
                                         <input
                                             type="file"
                                             className="hidden"
@@ -1399,13 +1399,13 @@ const Contacts = () => {
                                     </label>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                                            <p className="text-xs font-bold text-white mb-1 flex items-center gap-1.5">📄 CSV Files</p>
-                                            <p className="text-[10px] text-text-secondary leading-relaxed">Exported from Excel, Google Sheets. Columns: <span className="text-white">Name</span>, <span className="text-white">Phone</span>, Email.</p>
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4 border border-slate-200 dark:border-white/5">
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-1.5">📄 CSV Files</p>
+                                            <p className="text-[10px] text-slate-500 dark:text-text-secondary leading-relaxed">Exported from Excel, Google Sheets. Columns: <span className="text-slate-800 dark:text-white font-medium">Name</span>, <span className="text-slate-800 dark:text-white font-medium">Phone</span>, Email.</p>
                                         </div>
-                                        <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                                            <p className="text-xs font-bold text-white mb-1 flex items-center gap-1.5">📱 VCF / vCard</p>
-                                            <p className="text-[10px] text-text-secondary leading-relaxed">From iPhone, Android, iCloud, Mac Address Book, or Google Takeout.</p>
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4 border border-slate-200 dark:border-white/5">
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-1.5">📱 VCF / vCard</p>
+                                            <p className="text-[10px] text-slate-500 dark:text-text-secondary leading-relaxed">From iPhone, Android, iCloud, Mac Address Book, or Google Takeout.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1423,8 +1423,8 @@ const Contacts = () => {
                                         </svg>
                                     </div>
                                     <div>
-                                        <h4 className="text-lg font-bold text-white mb-2">Import from Google Contacts</h4>
-                                        <p className="text-sm text-text-secondary max-w-xs leading-relaxed">Connect your Google account to import contacts directly into your list. Read-only access — nothing is stored without your confirmation.</p>
+                                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Import from Google Contacts</h4>
+                                        <p className="text-sm text-slate-500 dark:text-text-secondary max-w-xs leading-relaxed">Connect your Google account to import contacts directly into your list. Read-only access — nothing is stored without your confirmation.</p>
                                     </div>
                                     <button
                                         onClick={async () => {
@@ -1449,9 +1449,9 @@ const Contacts = () => {
                                         </svg>
                                         Continue with Google
                                     </button>
-                                    <div className="flex items-start gap-2 bg-white/5 rounded-xl p-4 border border-white/5 text-left max-w-xs">
-                                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                                        <p className="text-[10px] text-text-secondary leading-relaxed">This requires Google OAuth to be configured by your admin in <span className="text-white">Superadmin → System Controls → Integrations</span>.</p>
+                                    <div className="flex items-start gap-2 bg-amber-50 dark:bg-white/5 rounded-xl p-4 border border-amber-200 dark:border-white/5 text-left max-w-xs">
+                                        <AlertCircle className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+                                        <p className="text-[10px] text-slate-600 dark:text-text-secondary leading-relaxed">This requires Google OAuth to be configured by your admin in <span className="text-slate-800 dark:text-white font-medium">Superadmin → System Controls → Integrations</span>.</p>
                                     </div>
                                 </div>
                             )}
@@ -1461,51 +1461,51 @@ const Contacts = () => {
                                 <div className="p-4 md:p-6">
                                     <form onSubmit={handleAddContact} className="space-y-4">
                                         <div>
-                                            <label className="block text-sm text-text-secondary mb-1">Name <span className="text-red-400">*</span></label>
+                                            <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Name <span className="text-red-500 dark:text-red-400">*</span></label>
                                             <input
                                                 required
                                                 value={newContact.name}
                                                 onChange={e => setNewContact({ ...newContact, name: e.target.value })}
-                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
+                                                className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary outline-none transition-colors"
                                                 placeholder="John Doe"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm text-text-secondary mb-1">Phone — with country code <span className="text-red-400">*</span></label>
+                                            <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Phone — with country code <span className="text-red-500 dark:text-red-400">*</span></label>
                                             <input
                                                 required
                                                 value={newContact.phone}
                                                 onChange={e => setNewContact({ ...newContact, phone: e.target.value })}
-                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
+                                                className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary outline-none transition-colors"
                                                 placeholder="+91 9876543210"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm text-text-secondary mb-1">Email <span className="text-text-secondary text-xs">(optional)</span></label>
+                                            <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Email <span className="text-slate-400 dark:text-text-secondary text-xs">(optional)</span></label>
                                             <input
                                                 value={newContact.email}
                                                 onChange={e => setNewContact({ ...newContact, email: e.target.value })}
-                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
+                                                className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary outline-none transition-colors"
                                                 placeholder="john@example.com"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm text-text-secondary mb-1">Group <span className="text-text-secondary text-xs">(optional)</span></label>
+                                            <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Group <span className="text-slate-400 dark:text-text-secondary text-xs">(optional)</span></label>
                                             <select
                                                 value={newContact.tags}
                                                 onChange={e => setNewContact({ ...newContact, tags: e.target.value })}
-                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
+                                                className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
                                             >
                                                 <option value="">No Group</option>
                                                 {availableGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-sm text-text-secondary mb-1">Tag <span className="text-text-secondary text-xs">(optional)</span></label>
+                                            <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Tag <span className="text-slate-400 dark:text-text-secondary text-xs">(optional)</span></label>
                                             <select
                                                 value={newContact.labelId}
                                                 onChange={e => setNewContact({ ...newContact, labelId: e.target.value })}
-                                                className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
+                                                className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
                                             >
                                                 <option value="">No Tag</option>
                                                 {availableLabels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -1515,7 +1515,7 @@ const Contacts = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => { setShowContactModal(false); setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' }); }}
-                                                className="px-4 py-2 rounded-lg text-text-secondary hover:text-white transition-colors"
+                                                className="px-4 py-2 rounded-lg text-slate-600 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                                             >
                                                 Cancel
                                             </button>
@@ -1748,11 +1748,11 @@ const Contacts = () => {
             {
                 showGroupsModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-4 md:p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
                             <div className="flex justify-between items-center mb-6 shrink-0">
                                 <div>
-                                    <h3 className="text-xl font-bold text-white">Manage Groups</h3>
-                                    <p className="text-sm text-text-secondary mt-1">Organize contacts into segments.</p>
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Manage Groups</h3>
+                                    <p className="text-sm text-slate-500 dark:text-text-secondary mt-1">Organize contacts into segments.</p>
                                 </div>
                                 {!isCreatingGroup && !editingGroup && (
                                     <button
@@ -1768,26 +1768,26 @@ const Contacts = () => {
                             {(isCreatingGroup || editingGroup) ? (
                                 <div className="space-y-4 animate-in fade-in zoom-in duration-200">
                                     <div>
-                                        <label className="block text-sm text-text-secondary mb-1">Group Name</label>
+                                        <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Group Name</label>
                                         <input
                                             autoFocus
                                             value={groupForm.name}
                                             onChange={e => setGroupForm({ ...groupForm, name: e.target.value })}
-                                            className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none"
+                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:border-primary outline-none transition-colors"
                                             placeholder="e.g. Early Adopters"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-text-secondary mb-1">Description (Optional)</label>
+                                        <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Description (Optional)</label>
                                         <input
                                             value={groupForm.description}
                                             onChange={e => setGroupForm({ ...groupForm, description: e.target.value })}
-                                            className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none"
+                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:border-primary outline-none transition-colors"
                                             placeholder="VIP customers from 2024"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-text-secondary mb-3">Group Color</label>
+                                        <label className="block text-sm text-slate-600 dark:text-text-secondary mb-3">Group Color</label>
                                         <div className="flex flex-wrap gap-2">
                                             {groupColors.map((color) => (
                                                 <button
@@ -1810,7 +1810,7 @@ const Contacts = () => {
                                     <div className="flex justify-end gap-3 pt-2">
                                         <button
                                             onClick={() => { setIsCreatingGroup(false); setEditingGroup(null); }}
-                                            className="px-4 py-2 rounded-lg text-text-secondary hover:text-white transition-colors"
+                                            className="px-4 py-2 rounded-lg text-slate-600 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white transition-colors"
                                         >
                                             Cancel
                                         </button>
@@ -1827,37 +1827,37 @@ const Contacts = () => {
                                 <div className="flex flex-col gap-4 overflow-hidden">
                                     {/* Search Bar */}
                                     <div className="relative shrink-0">
-                                        <Search className="absolute left-3 top-2.5 text-text-secondary w-4 h-4" />
+                                        <Search className="absolute left-3 top-2.5 text-slate-400 dark:text-text-secondary w-4 h-4" />
                                         <input
                                             type="text"
                                             placeholder="Search groups..."
                                             value={groupSearchTerm}
                                             onChange={(e) => setGroupSearchTerm(e.target.value)}
-                                            className="w-full bg-background-dark border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-primary outline-none"
+                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-900 dark:text-white focus:border-primary outline-none transition-colors"
                                         />
                                     </div>
 
-                                    <div className="flex-1 overflow-y-auto border border-white/5 rounded-lg bg-background-dark/50 custom-scrollbar min-h-[300px]">
+                                    <div className="flex-1 overflow-y-auto border border-slate-200 dark:border-white/5 rounded-lg bg-slate-50 dark:bg-background-dark/50 custom-scrollbar min-h-[300px]">
                                         {availableGroups.filter(g => g.name.toLowerCase().includes(groupSearchTerm.toLowerCase())).length > 0 ? (
-                                            <ul className="divide-y divide-white/5">
+                                            <ul className="divide-y divide-slate-200 dark:divide-white/5">
                                                 {availableGroups
                                                     .filter(g => g.name.toLowerCase().includes(groupSearchTerm.toLowerCase()))
                                                     .map(group => {
                                                         const memberCount = contacts.filter(c => c.tags && c.tags.includes(group.name)).length;
                                                         return (
-                                                            <li key={group.id} className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors group">
+                                                            <li key={group.id} className="flex items-center justify-between p-3 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group">
                                                                 <div className="flex items-start gap-3">
                                                                     <div className="p-2 rounded-lg text-white border border-white/5 mt-0.5" style={{ backgroundColor: `${group.color || '#3B82F6'}20`, color: group.color || '#3B82F6', borderColor: `${group.color || '#3B82F6'}40` }}>
                                                                         <Users className="w-4 h-4" />
                                                                     </div>
                                                                     <div>
                                                                         <div className="flex items-center gap-2">
-                                                                            <p className="text-white font-bold text-sm">{group.name}</p>
-                                                                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white/5 text-text-secondary border border-white/5">
+                                                                            <p className="text-slate-900 dark:text-white font-bold text-sm">{group.name}</p>
+                                                                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-text-secondary border border-slate-300 dark:border-white/5">
                                                                                 {memberCount} members
                                                                             </span>
                                                                         </div>
-                                                                        <p className="text-text-secondary text-xs mt-0.5 line-clamp-1">{group.description || 'No description'}</p>
+                                                                        <p className="text-slate-500 dark:text-text-secondary text-xs mt-0.5 line-clamp-1">{group.description || 'No description'}</p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex gap-2">
@@ -1870,14 +1870,14 @@ const Contacts = () => {
                                                                                 color: group.color || '#3B82F6' 
                                                                             }); 
                                                                         }}
-                                                                        className="p-1.5 text-text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                                                        className="p-1.5 text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors"
                                                                         title="Edit"
                                                                     >
                                                                         <FolderCog className="w-4 h-4" />
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleDeleteGroup(group.id)}
-                                                                        className="p-1.5 text-text-secondary hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                                                                        className="p-1.5 text-slate-500 dark:text-text-secondary hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-400/10 rounded-lg transition-colors"
                                                                         title="Delete"
                                                                     >
                                                                         <Trash2 className="w-4 h-4" />
@@ -1888,17 +1888,16 @@ const Contacts = () => {
                                                     })}
                                             </ul>
                                         ) : (
-                                            <div className="flex flex-col items-center justify-center h-full py-12 text-center px-4">
-                                                <div className="p-3 rounded-full bg-surface-dark mb-3">
-                                                    <Search className="w-6 h-6 text-text-secondary" />
+                                            <div className="p-8 text-center flex flex-col items-center justify-center">
+                                                <div className="p-3 bg-slate-100 dark:bg-white/5 rounded-full mb-3">
+                                                    <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
                                                 </div>
-                                                <p className="text-white font-medium text-sm">No groups found</p>
-                                                <p className="text-text-secondary text-xs mt-1">Try adjusting your search or create a new group.</p>
+                                                <p className="text-slate-500 dark:text-text-secondary text-sm">No groups found.</p>
                                             </div>
                                         )}
                                     </div>
                                     <div className="flex justify-end pt-2 shrink-0">
-                                        <button onClick={() => { setShowGroupsModal(false); setGroupSearchTerm(''); }} className="px-4 py-2 rounded-lg bg-surface-dark text-white text-sm font-medium hover:bg-white/5 transition-colors border border-white/10">Close</button>
+                                        <button onClick={() => { setShowGroupsModal(false); setGroupSearchTerm(''); }} className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-surface-dark text-slate-700 dark:text-white text-sm font-medium hover:bg-slate-200 dark:hover:bg-white/5 transition-colors border border-slate-200 dark:border-white/10">Close</button>
                                     </div>
                                 </div>
                             )}

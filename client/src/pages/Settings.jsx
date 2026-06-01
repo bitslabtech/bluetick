@@ -22,9 +22,18 @@ const Settings = () => {
     const { user, logout } = useAuth();
     const { showModal, showToast } = useUI();
     const location = useLocation();
+    const searchParams = new URLSearchParams(location.search);
+    const queryTab = searchParams.get('tab');
+
     const [activeTab, setActiveTab] = useState(() => {
-        return location.state?.initialTab || 'profile';
+        return queryTab || location.state?.initialTab || sessionStorage.getItem('settingsActiveTab') || 'profile';
     });
+
+    useEffect(() => {
+        if (queryTab && queryTab !== activeTab) {
+            setActiveTab(queryTab);
+        }
+    }, [queryTab]);
 
     useEffect(() => {
         sessionStorage.setItem('settingsActiveTab', activeTab);

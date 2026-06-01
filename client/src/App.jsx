@@ -61,6 +61,7 @@ const BlogList = React.lazy(() => import('./pages/BlogList'));
 const BlogPost = React.lazy(() => import('./pages/BlogPost'));
 const Checkout = React.lazy(() => import('./pages/Checkout'));
 const Billing = React.lazy(() => import('./pages/Billing'));
+const UpgradeFunnel = React.lazy(() => import('./pages/UpgradeFunnel'));
 const AiTokenHistory = React.lazy(() => import('./pages/AiTokenHistory'));
 const Referrals = React.lazy(() => import('./pages/Referrals'));
 const TechPartner = React.lazy(() => import('./pages/TechPartner'));
@@ -296,6 +297,7 @@ function App() {
 
                                         <Route element={<ProtectedRoute />}>
                                             <Route element={<Layout />}>
+                                                <Route path="/locked-feature" element={<UpgradeFunnel />} />
                                                 <Route path="/dashboard" element={<Dashboard />} /> {/* Changed default dashboard path */}
                                                 <Route path="/contacts" element={<Contacts />} />
                                                 <Route path="/templates" element={<Templates />} />

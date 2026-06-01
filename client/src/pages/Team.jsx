@@ -43,7 +43,9 @@ export default function Team() {
                 { id: 'menu_contacts', label: 'Contacts' },
                 { id: 'menu_reports', label: 'Reports' },
                 { id: 'menu_support', label: 'Support' },
-                { id: 'menu_settings', label: 'Settings' }
+                { id: 'menu_settings', label: 'Settings' },
+                { id: 'menu_referrals', label: 'Refer & Earn' },
+                { id: 'menu_integrations', label: 'Integrations & API' }
             ]
         },
         {
@@ -57,9 +59,24 @@ export default function Team() {
             ]
         },
         {
-            title: 'E-Commerce',
+            title: 'Growth & Marketing',
             options: [
+                { id: 'menu_ctwa', label: 'Click To WhatsApp Ads' },
+                { id: 'menu_meta_ads', label: 'Meta Ads Manager' }
+            ]
+        },
+        {
+            title: 'Commerce & Networking',
+            options: [
+                { id: 'menu_vcard', label: 'Digital veCard' },
+                { id: 'menu_wastore', label: 'Online Store' },
                 { id: 'menu_addons', label: 'Add-ons Market' }
+            ]
+        },
+        {
+            title: 'Automation',
+            options: [
+                { id: 'menu_flowbot', label: 'FlowBot Builder' }
             ]
         }
     ];
@@ -74,7 +91,7 @@ export default function Team() {
         const checkUserStatus = async () => {
             try {
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-                    headers: { }
+                    headers: {}
                 });
                 const liveUser = res.data;
                 if (liveUser.parentUserId) {
@@ -127,7 +144,7 @@ export default function Team() {
 
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/team`, {
-                headers: { }
+                headers: {}
             });
             setTeam(res.data.members || []);
             setMemberLimit(res.data.limit || 0);
@@ -179,7 +196,7 @@ export default function Team() {
                     phonePrivacy: formPhonePrivacy
                 }
             }, {
-                headers: { }
+                headers: {}
             });
             setInviteLink(res.data.inviteLink);
             showToast({ type: 'success', title: 'Invite Generated', message: 'You can now copy the link.' });
@@ -202,7 +219,7 @@ export default function Team() {
                     phonePrivacy: formPhonePrivacy
                 }
             }, {
-                headers: { }
+                headers: {}
             });
             showToast({ type: 'success', message: 'Team member updated successfully.' });
             handleCloseForm();
@@ -234,7 +251,7 @@ export default function Team() {
             onConfirm: async () => {
                 try {
                     await axios.delete(`${import.meta.env.VITE_API_URL}/api/team/${memberId}`, {
-                        headers: { }
+                        headers: {}
                     });
                     showToast({ type: 'success', message: 'Member removed successfully.' });
                     fetchTeam();
@@ -254,17 +271,17 @@ export default function Team() {
                 <TopHeader />
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-32 max-w-5xl mx-auto space-y-6 w-full custom-scrollbar">
                     <div className={`bg-${roleColor}-50 dark:bg-${roleColor}-900/20 border border-${roleColor}-200 dark:border-${roleColor}-800 p-8 rounded-2xl flex items-center gap-6 shadow-sm`}>
-                    <Shield className={`w-12 h-12 text-${roleColor}-500 shrink-0`} />
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Workspace Member</h2>
-                        <p className="text-slate-600 dark:text-slate-300 mt-2">
-                            You are a member of this workspace. Your role is: <strong className={`uppercase px-2 py-0.5 rounded bg-${roleColor}-100 dark:bg-${roleColor}-900/30 text-${roleColor}-700 dark:text-${roleColor}-300`}>{liveTeamRole || 'Member'}</strong>
-                        </p>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-3">
-                            Only the workspace owner can manage team members and invite new people.
-                        </p>
+                        <Shield className={`w-12 h-12 text-${roleColor}-500 shrink-0`} />
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Workspace Member</h2>
+                            <p className="text-slate-600 dark:text-slate-300 mt-2">
+                                You are a member of this workspace. Your role is: <strong className={`uppercase px-2 py-0.5 rounded bg-${roleColor}-100 dark:bg-${roleColor}-900/30 text-${roleColor}-700 dark:text-${roleColor}-300`}>{liveTeamRole || 'Member'}</strong>
+                            </p>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-3">
+                                Only the workspace owner can manage team members and invite new people.
+                            </p>
+                        </div>
                     </div>
-                </div>
                 </div>
             </div>
         );
@@ -303,7 +320,7 @@ export default function Team() {
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {[
-                                { id: 'admin', title: 'Admin', desc: 'Full unfettered access to all features except billing.', icon: <Zap className="w-5 h-5" /> },
+                                { id: 'admin', title: 'Admin', desc: 'Full access to all features except billing, team, account deletion.', icon: <Zap className="w-5 h-5" /> },
                                 { id: 'custom', title: 'Custom Access', desc: 'Granular control over specific menus and tools.', icon: <Settings className="w-5 h-5" /> }
                             ].map(role => (
                                 <div
@@ -371,18 +388,18 @@ export default function Team() {
 
                 {/* Right Column: WhatsApp Policies */}
                 <div className="lg:col-span-5 space-y-6">
-                    <div className="bg-slate-900 dark:bg-black border border-slate-800 rounded-3xl p-6 md:p-4 md:p-8 shadow-2xl relative overflow-hidden">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-4 md:p-8 shadow-xl shadow-slate-200/20 dark:shadow-black/40 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
 
-                        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-3">
-                            <MessageSquare className="w-6 h-6 text-orange-400" /> Inbox Policy bounds
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-3">
+                            <MessageSquare className="w-6 h-6 text-orange-500" /> Inbox Policy bounds
                         </h3>
-                        <p className="text-sm text-slate-400 mb-8">Dictate what conversations and customer details this user is exposed to.</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Dictate what conversations and customer details this user is exposed to.</p>
 
                         <div className="space-y-8">
                             {/* Visibility Stack */}
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Conversation Visibility</label>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Conversation Visibility</label>
                                 <div className="space-y-3">
                                     {[
                                         { id: 'see_all', title: 'Global Omniscience', desc: 'Can view and reply to any inbox conversation across the workspace.' },
@@ -393,15 +410,15 @@ export default function Team() {
                                             key={opt.id}
                                             onClick={() => setFormInboxVisibility(opt.id)}
                                             className={`p-4 rounded-2xl cursor-pointer border transition-all duration-300 ${formInboxVisibility === opt.id
-                                                ? 'bg-orange-500/20 border-orange-500/50'
-                                                : 'bg-white/5 border-white/5 hover:bg-white/10'
+                                                ? 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/30'
+                                                : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10'
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className={`text-sm font-bold ${formInboxVisibility === opt.id ? 'text-orange-400' : 'text-slate-200'}`}>{opt.title}</span>
+                                                <span className={`text-sm font-bold ${formInboxVisibility === opt.id ? 'text-orange-600 dark:text-orange-400' : 'text-slate-700 dark:text-slate-300'}`}>{opt.title}</span>
                                                 {formInboxVisibility === opt.id && <CheckCircle2 className="w-5 h-5 text-orange-500" />}
                                             </div>
-                                            <p className="text-xs text-slate-400">{opt.desc}</p>
+                                            <p className={`text-xs ${formInboxVisibility === opt.id ? 'text-orange-700/70 dark:text-orange-300/70' : 'text-slate-500 dark:text-slate-400'}`}>{opt.desc}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -409,8 +426,8 @@ export default function Team() {
 
                             {/* Privacy Controls */}
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Privacy - Customer Phone Number</label>
-                                <div className="bg-white/5 border border-white/10 rounded-2xl p-2 flex">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Privacy - Customer Phone Number</label>
+                                <div className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-2 flex">
                                     {[
                                         { id: 'visible', label: 'Visible' },
                                         { id: 'blurred', label: 'Blurred' },
@@ -420,14 +437,22 @@ export default function Team() {
                                             key={opt.id}
                                             onClick={() => setFormPhonePrivacy(opt.id)}
                                             className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${formPhonePrivacy === opt.id
-                                                ? 'bg-white text-slate-900 shadow-md'
-                                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm border border-slate-200/50 dark:border-slate-700/50'
+                                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
                                                 }`}
                                         >
                                             {opt.label}
                                         </button>
                                     ))}
                                 </div>
+
+                                <div className="mt-4 p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex flex-col items-center justify-center gap-1 shadow-inner">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1 flex items-center gap-1.5"><Activity className="w-3 h-3" /> Live Preview </span>
+                                    <div className={`font-mono text-lg font-medium tracking-wider text-slate-800 dark:text-slate-200 transition-all duration-300 ${formPhonePrivacy === 'blurred' ? 'blur-sm select-none opacity-80' : ''}`}>
+                                        {formPhonePrivacy === 'visible' || formPhonePrivacy === 'blurred' ? '+1 (555) 123-4567' : '+1 (555) ***-**67'}
+                                    </div>
+                                </div>
+
                                 <p className="text-xs text-slate-500 mt-3 flex items-center gap-1.5 px-1">
                                     <AlertCircle className="w-3.5 h-3.5" /> Affects display of raw phone numbers.
                                 </p>
@@ -465,8 +490,8 @@ export default function Team() {
                                 {generating ? <Activity className="w-6 h-6 animate-spin" /> : <><Zap className="w-6 h-6 fill-white/20" /> Generate Magic Invite Link</>}
                             </button>
                         ) : (
-                            <div className="p-4 md:p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl animate-in zoom-in-95 duration-300 shadow-inner">
-                                <p className="text-sm flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold mb-4">
+                            <div className="p-4 md:p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl animate-in zoom-in-95 duration-300 shadow-inner space-y-4">
+                                <p className="text-sm flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
                                     <CheckCircle2 className="w-5 h-5 fill-emerald-500 text-white dark:text-slate-900" /> Link Ready to Dispatch (Valid 24h)
                                 </p>
                                 <div className="flex flex-col sm:flex-row gap-3">
@@ -482,6 +507,15 @@ export default function Team() {
                                     >
                                         {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />} {copied ? 'Copied!' : 'Copy to Clipboard'}
                                     </button>
+                                </div>
+                                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-sm text-emerald-800 dark:text-emerald-200 mt-2">
+                                    <h4 className="font-bold mb-2 flex items-center gap-1.5"><Info className="w-4 h-4" /> Quick Guide</h4>
+                                    <ul className="list-disc list-inside space-y-1.5 opacity-90 text-xs leading-relaxed">
+                                        <li>Share this link securely with your colleague via email or a direct message.</li>
+                                        <li>The link contains a cryptographic token that strictly expires <strong>24 hours</strong> from creation.</li>
+                                        <li>Once they click the link, they will be prompted to create their account and will automatically be placed into your workspace with the permissions you configured above.</li>
+                                        <li>If the link expires before they use it, you must discard this and generate a new one.</li>
+                                    </ul>
                                 </div>
                             </div>
                         )}
@@ -501,190 +535,190 @@ export default function Team() {
             <TopHeader />
             <div className="flex-1 overflow-y-auto p-4 sm:p-4 md:p-8 pb-32 max-w-[1400px] max-w-full w-full mx-auto custom-scrollbar">
 
-            {currentView === 'invite' && <PolicyFormContent title="Deploy New Member" isEdit={false} />}
-            {currentView === 'edit' && <PolicyFormContent title={`Configuring ${editingMember?.name}`} isEdit={true} />}
+                {currentView === 'invite' && <PolicyFormContent title="Deploy New Member" isEdit={false} />}
+                {currentView === 'edit' && <PolicyFormContent title={`Configuring ${editingMember?.name}`} isEdit={true} />}
 
-            {currentView === 'list' && (
-                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                {currentView === 'list' && (
+                    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
-                    {/* Advanced Metrics Dashboard Header */}
-                    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 dark:from-black dark:via-surface-dark dark:to-indigo-950/20 rounded-[2rem] p-8 md:p-4 md:p-12 shadow-2xl relative overflow-hidden text-white border border-slate-700 dark:border-white/5">
-                        {/* Abstract Background Elements */}
-                        <div className="absolute top-0 right-0 w-[800px] max-w-full h-[800px] bg-indigo-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-                        <div className="absolute bottom-0 left-0 w-[400px] max-w-full h-[400px] bg-emerald-500/10 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
+                        {/* Advanced Metrics Dashboard Header */}
+                        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 dark:from-black dark:via-surface-dark dark:to-indigo-950/20 rounded-[2rem] p-8 md:p-4 md:p-12 shadow-2xl relative overflow-hidden text-white border border-slate-700 dark:border-white/5">
+                            {/* Abstract Background Elements */}
+                            <div className="absolute top-0 right-0 w-[800px] max-w-full h-[800px] bg-indigo-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+                            <div className="absolute bottom-0 left-0 w-[400px] max-w-full h-[400px] bg-emerald-500/10 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
 
-                        <div className="relative z-10 flex flex-col xl:flex-row gap-10 justify-between items-start xl:items-center">
+                            <div className="relative z-10 flex flex-col xl:flex-row gap-10 justify-between items-start xl:items-center">
 
-                            {/* Copy & Titles */}
-                            <div className="max-w-xl">
-                                <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-black uppercase tracking-widest text-indigo-300 mb-6 inline-block">
-                                    Workspace Hub
-                                </span>
-                                <h1 className="text-4xl sm:text-5xl font-black mb-4 tracking-tight leading-tight">
-                                    Team Assembly
-                                </h1>
-                                <p className="text-slate-300 text-lg sm:text-xl font-medium leading-relaxed">
-                                    Scale your operations. Govern custom roles, allocate inbox bounds, and monitor member analytics from a single command center.
-                                </p>
-
-                                <button
-                                    onClick={handleOpenInvite}
-                                    disabled={isLimitReached}
-                                    className={`mt-8 px-8 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-3 whitespace-nowrap ${isLimitReached
-                                        ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
-                                        : 'bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-white/10'
-                                        }`}
-                                >
-                                    <UserPlus className="w-5 h-5" />
-                                    {isLimitReached ? 'Capacity Reached' : 'Invite New Colleague'}
-                                </button>
-                                {isLimitReached && (
-                                    <p className="mt-3 text-sm text-red-400 font-semibold flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4" /> Please upgrade your plan to unlock more seats.
+                                {/* Copy & Titles */}
+                                <div className="max-w-xl">
+                                    <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-black uppercase tracking-widest text-indigo-300 mb-6 inline-block">
+                                        Workspace Hub
+                                    </span>
+                                    <h1 className="text-4xl sm:text-5xl font-black mb-4 tracking-tight leading-tight">
+                                        Team Assembly
+                                    </h1>
+                                    <p className="text-slate-300 text-lg sm:text-xl font-medium leading-relaxed">
+                                        Scale your operations. Govern custom roles, allocate inbox bounds, and monitor member analytics from a single command center.
                                     </p>
-                                )}
-                            </div>
 
-                            {/* Metrics Glass Cards */}
-                            <div className="w-full xl:w-auto grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
-                                {/* Total Capacity */}
-                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center">
-                                    <div className="w-12 h-12 bg-indigo-500/20 text-indigo-300 rounded-full flex items-center justify-center mb-3">
-                                        <Box className="w-6 h-6" />
-                                    </div>
-                                    <div className="text-3xl font-black text-white">{memberLimit > 0 ? memberLimit : '∞'}</div>
-                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Seats</div>
-                                </div>
-
-                                {/* Active */}
-                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent"></div>
-                                    <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-3 relative z-10">
-                                        <Activity className="w-6 h-6" />
-                                    </div>
-                                    <div className="text-3xl font-black text-white relative z-10">{occupiedSlots}</div>
-                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Joined</div>
-                                </div>
-
-                                {/* Available */}
-                                <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center">
-                                    <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mb-3">
-                                        <PieChart className="w-6 h-6" />
-                                    </div>
-                                    <div className="text-3xl font-black text-white">{availableSlots}</div>
-                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Available</div>
-                                </div>
-
-                                {/* Unified Progress Bar Spanning across cards */}
-                                <div className="col-span-1 sm:col-span-3 mt-2">
-                                    <div className="w-full bg-black/40 rounded-full h-2 overflow-hidden flex border border-white/5">
-                                        <div
-                                            className={`h-full rounded-full transition-all duration-1000 ${isLimitReached ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]'}`}
-                                            style={{ width: `${limitPercentage}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Premium List Design */}
-                    <div className="space-y-4">
-                        <div className="px-4 md:px-6 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                Active Personnel Roster
-                            </h2>
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                {team.length} Total Users
-                            </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4">
-                            {team.map(member => (
-                                <div key={member.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-3xl p-5 md:p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-black/50 hover:border-indigo-500/30 transition-all duration-300 group">
-
-                                    {/* Identity Block */}
-                                    <div className="flex gap-5 items-center w-full md:w-auto">
-                                        <div className="relative shrink-0">
-                                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner
-                                                ${member.id === user.id
-                                                    ? 'bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none'
-                                                    : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
-                                            >
-                                                {member.name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white dark:border-surface-dark transition-colors duration-300
-                                                ${member.isOnline ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]' : 'bg-slate-300 dark:bg-slate-600'}`}
-                                            />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-slate-900 dark:text-white text-xl flex items-center gap-2">
-                                                {member.name}
-                                                {member.id === user.id && <span className="text-[10px] bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 px-2.5 py-0.5 rounded-full uppercase tracking-widest font-black">Owner</span>}
-                                            </h3>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">{member.email}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Badges Container */}
-                                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-2 md:mt-0 p-4 md:p-0 bg-slate-50 md:bg-transparent dark:bg-slate-900/40 md:dark:bg-transparent rounded-2xl md:rounded-none">
-
-                                        {/* Status Badges */}
-                                        <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2
-                                            ${member.teamRole === 'owner' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' :
-                                                member.teamRole === 'admin' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20' :
-                                                    'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}
-                                        >
-                                            <Shield className="w-4 h-4" />
-                                            {member.teamRole}
-                                        </span>
-
-                                        {member.teamPolicy && (
-                                            <span className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20" title="Inbox Visibility">
-                                                <MessageSquare className="w-4 h-4" />
-                                                {member.teamPolicy.inboxVisibility === 'see_all' ? 'All Chats' :
-                                                    member.teamPolicy.inboxVisibility === 'see_all_reply_assigned' ? 'View/Lock' : 'Assigned Only'}
-
-                                                {member.teamPolicy.phonePrivacy === 'masked' ? ' (***)' : member.teamPolicy.phonePrivacy === 'blurred' ? ' (Blur)' : ''}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Actions */}
-                                    {member.id !== user.id && (
-                                        <div className="flex w-full md:w-auto justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 md:-translate-x-4 md:group-hover:translate-x-0">
-                                            <button
-                                                onClick={() => handleViewStats(member)}
-                                                className="flex-1 md:flex-none p-3 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-sm"
-                                                title="View Member Analytics"
-                                            >
-                                                <BarChart2 className="w-5 h-5" />
-                                                <span className="md:hidden">Stats</span>
-                                            </button>
-                                            <button
-                                                onClick={() => handleOpenEdit(member)}
-                                                className="flex-1 md:flex-none p-3 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-sm"
-                                                title="Config"
-                                            >
-                                                <Edit3 className="w-5 h-5" />
-                                                <span className="md:hidden">Edit</span>
-                                            </button>
-                                            <button
-                                                onClick={() => removeMember(member.id)}
-                                                className="flex-1 md:flex-none p-3 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-sm"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                                <span className="md:hidden">Remove</span>
-                                            </button>
-                                        </div>
+                                    <button
+                                        onClick={handleOpenInvite}
+                                        disabled={isLimitReached}
+                                        className={`mt-8 px-8 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-3 whitespace-nowrap ${isLimitReached
+                                            ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
+                                            : 'bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-white/10'
+                                            }`}
+                                    >
+                                        <UserPlus className="w-5 h-5" />
+                                        {isLimitReached ? 'Capacity Reached' : 'Invite New Colleague'}
+                                    </button>
+                                    {isLimitReached && (
+                                        <p className="mt-3 text-sm text-red-400 font-semibold flex items-center gap-2">
+                                            <AlertCircle className="w-4 h-4" /> Please upgrade your plan to unlock more seats.
+                                        </p>
                                     )}
                                 </div>
-                            ))}
+
+                                {/* Metrics Glass Cards */}
+                                <div className="w-full xl:w-auto grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
+                                    {/* Total Capacity */}
+                                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center">
+                                        <div className="w-12 h-12 bg-indigo-500/20 text-indigo-300 rounded-full flex items-center justify-center mb-3">
+                                            <Box className="w-6 h-6" />
+                                        </div>
+                                        <div className="text-3xl font-black text-white">{memberLimit > 0 ? memberLimit : '∞'}</div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Seats</div>
+                                    </div>
+
+                                    {/* Active */}
+                                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent"></div>
+                                        <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-3 relative z-10">
+                                            <Activity className="w-6 h-6" />
+                                        </div>
+                                        <div className="text-3xl font-black text-white relative z-10">{occupiedSlots}</div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Joined</div>
+                                    </div>
+
+                                    {/* Available */}
+                                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center">
+                                        <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mb-3">
+                                            <PieChart className="w-6 h-6" />
+                                        </div>
+                                        <div className="text-3xl font-black text-white">{availableSlots}</div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Available</div>
+                                    </div>
+
+                                    {/* Unified Progress Bar Spanning across cards */}
+                                    <div className="col-span-1 sm:col-span-3 mt-2">
+                                        <div className="w-full bg-black/40 rounded-full h-2 overflow-hidden flex border border-white/5">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-1000 ${isLimitReached ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]'}`}
+                                                style={{ width: `${limitPercentage}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Premium List Design */}
+                        <div className="space-y-4">
+                            <div className="px-4 md:px-6 flex items-center justify-between">
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    Active Personnel Roster
+                                </h2>
+                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                    {team.length} Total Users
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                                {team.map(member => (
+                                    <div key={member.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-3xl p-5 md:p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-black/50 hover:border-indigo-500/30 transition-all duration-300 group">
+
+                                        {/* Identity Block */}
+                                        <div className="flex gap-5 items-center w-full md:w-auto">
+                                            <div className="relative shrink-0">
+                                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner
+                                                ${member.id === user.id
+                                                        ? 'bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none'
+                                                        : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
+                                                >
+                                                    {member.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white dark:border-surface-dark transition-colors duration-300
+                                                ${member.isOnline ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                                />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-900 dark:text-white text-xl flex items-center gap-2">
+                                                    {member.name}
+                                                    {member.id === user.id && <span className="text-[10px] bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 px-2.5 py-0.5 rounded-full uppercase tracking-widest font-black">Owner</span>}
+                                                </h3>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">{member.email}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Badges Container */}
+                                        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-2 md:mt-0 p-4 md:p-0 bg-slate-50 md:bg-transparent dark:bg-slate-900/40 md:dark:bg-transparent rounded-2xl md:rounded-none">
+
+                                            {/* Status Badges */}
+                                            <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2
+                                            ${member.teamRole === 'owner' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' :
+                                                    member.teamRole === 'admin' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20' :
+                                                        'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}
+                                            >
+                                                <Shield className="w-4 h-4" />
+                                                {member.teamRole}
+                                            </span>
+
+                                            {member.teamPolicy && (
+                                                <span className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20" title="Inbox Visibility">
+                                                    <MessageSquare className="w-4 h-4" />
+                                                    {member.teamPolicy.inboxVisibility === 'see_all' ? 'All Chats' :
+                                                        member.teamPolicy.inboxVisibility === 'see_all_reply_assigned' ? 'View/Lock' : 'Assigned Only'}
+
+                                                    {member.teamPolicy.phonePrivacy === 'masked' ? ' (***)' : member.teamPolicy.phonePrivacy === 'blurred' ? ' (Blur)' : ''}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Actions */}
+                                        {member.id !== user.id && (
+                                            <div className="flex w-full md:w-auto justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 md:-translate-x-4 md:group-hover:translate-x-0">
+                                                <button
+                                                    onClick={() => handleViewStats(member)}
+                                                    className="flex-1 md:flex-none p-3 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-sm"
+                                                    title="View Member Analytics"
+                                                >
+                                                    <BarChart2 className="w-5 h-5" />
+                                                    <span className="md:hidden">Stats</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleOpenEdit(member)}
+                                                    className="flex-1 md:flex-none p-3 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-sm"
+                                                    title="Config"
+                                                >
+                                                    <Edit3 className="w-5 h-5" />
+                                                    <span className="md:hidden">Edit</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => removeMember(member.id)}
+                                                    className="flex-1 md:flex-none p-3 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-sm"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                    <span className="md:hidden">Remove</span>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
             </div>
         </div>
     );

@@ -11,6 +11,11 @@ const Addon = sequelize.define('Addon', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    slug: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true
+    },
     description: {
         type: DataTypes.TEXT,
         allowNull: true
