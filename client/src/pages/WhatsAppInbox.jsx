@@ -15,6 +15,7 @@ import EmojiPicker from '../components/EmojiPicker';
 import QuickReplySuggestions from '../components/QuickReplySuggestions';
 import ContactInfoPanel from '../components/ContactInfoPanel';
 import AssignAgentPopover from '../components/AssignAgentPopover';
+import TopHeader from '../components/TopHeader';
 
 const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
@@ -49,6 +50,7 @@ const WhatsAppInbox = () => {
     const [conversations, setConversations] = useState([]);
     const [selectedChat, setSelectedChat] = useState(null);
     const [messages, setMessages] = useState([]);
+    const [loadingMessages, setLoadingMessages] = useState(false);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
     const [sendError, setSendError] = useState('');
@@ -395,6 +397,7 @@ const WhatsAppInbox = () => {
     }, [searchQuery, activeFilter]);
 
     const fetchMessages = async (chatId) => {
+        setLoadingMessages(true);
         try {
             const res = await axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${chatId}/messages`);
             setMessages(res.data);
@@ -404,6 +407,7 @@ const WhatsAppInbox = () => {
                 setConversations(prev => prev.map(c => c.id === chatId ? { ...c, unreadCount: 0 } : c));
             }
         } catch (err) { console.error('Failed to fetch messages:', err); }
+        finally { setLoadingMessages(false); }
     };
 
     const fetchQuickReplies = async () => {
@@ -820,15 +824,17 @@ const WhatsAppInbox = () => {
         }
     };
 
-    // â”€â”€â”€ Total unread
+    // ——— Total unread ———
     const totalUnread = conversations.reduce((s, c) => s + (c.unreadCount || 0), 0);
 
     return (
-        <div className="absolute inset-0 flex bg-white dark:bg-background-dark overflow-hidden"
+        <div className="flex flex-col h-full bg-white dark:bg-background-dark overflow-hidden"
             onClick={() => { setShowEmojiPicker(false); }}>
-
-            {/* â•â•â• LEFT SIDEBAR â•â•â• */}
-            <div className="w-[360px] max-w-full border-r border-slate-200 dark:border-white/5 flex flex-col bg-white dark:bg-[#111b21] shrink-0">
+            <TopHeader title="Live Chat" subtitle="Manage your WhatsApp conversations." />
+            
+            <div className="flex-1 flex overflow-hidden relative">
+                {/* ═══ LEFT SIDEBAR ═══ */}
+                <div className="w-[360px] max-w-full border-r border-slate-200 dark:border-white/5 flex flex-col bg-white dark:bg-[#111b21] shrink-0">
 
                 {/* Sidebar Header */}
                 <div className="px-4 py-3 bg-slate-50 dark:bg-[#202c33] flex justify-between items-center border-b border-slate-100 dark:border-white/5 shrink-0">
@@ -999,7 +1005,7 @@ const WhatsAppInbox = () => {
                 </div>
             </div>
 
-            {/* â•â•â• CHAT WINDOW â•â•â• */}
+            {/* ═══ CHAT WINDOW ═══ */}
             {selectedChat ? (
                 <div className="flex-1 flex overflow-hidden">
                     <div className="flex-1 flex flex-col bg-[#efeae2] dark:bg-[#0b141a] relative min-w-0">
@@ -1118,7 +1124,25 @@ const WhatsAppInbox = () => {
                             onScroll={handleScroll}
                             className="flex-1 overflow-y-auto px-4 py-4 z-10 space-y-1"
                         >
-                            {messagesWithDateSeparators.map((item, i) => {
+                            {loadingMessages ? (
+                                <div className="flex flex-col gap-4 animate-pulse pt-4">
+                                    <div className="flex justify-start">
+                                        <div className="w-48 h-12 bg-white dark:bg-[#202c33] rounded-2xl rounded-tl-sm shadow-sm" />
+                                    </div>
+                                    <div className="flex justify-start">
+                                        <div className="w-64 h-16 bg-white dark:bg-[#202c33] rounded-2xl rounded-tl-sm shadow-sm" />
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <div className="w-56 h-12 bg-[#d9fdd3] dark:bg-[#005c4b] rounded-2xl rounded-tr-sm shadow-sm" />
+                                    </div>
+                                    <div className="flex justify-start">
+                                        <div className="w-40 h-10 bg-white dark:bg-[#202c33] rounded-2xl rounded-tl-sm shadow-sm" />
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <div className="w-72 h-20 bg-[#d9fdd3] dark:bg-[#005c4b] rounded-2xl rounded-tr-sm shadow-sm" />
+                                    </div>
+                                </div>
+                            ) : messagesWithDateSeparators.map((item, i) => {
                                 // Date separator
                                 if (item.type === 'date') return (
                                     <div key={`date-${i}`} className="flex justify-center my-3">
@@ -1728,6 +1752,7 @@ const WhatsAppInbox = () => {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 };

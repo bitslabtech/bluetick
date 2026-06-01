@@ -114,6 +114,9 @@ const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, on
 // ─── Main CampaignStep3 ────────────────────────────────────────────────────────
 const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     const { showModal, settings, publicSettings } = useUI();
+    const businessName = settings?.appName || "Business Name";
+    const profilePicUrl = settings?.whatsappProfile?.profilePictureUrl || null;
+    const initial = businessName.charAt(0).toUpperCase();
     const [sending, setSending] = useState(false);
 
     const [scheduleType, setScheduleType] = useState('now');
@@ -135,35 +138,35 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     const [calculatingCost, setCalculatingCost] = useState(false);
     const manualCount = (data.manualRecipients || []).length;
 
-    // Meta WhatsApp Business API Approximate Pricing (Per Message, by Currency)
+    // Meta WhatsApp Business API Approximate Pricing (Per Message, by Currency - Updated for 2025/2026)
     const PRICING_RATES = {
         INR: {
-            MARKETING: 0.7265,
-            UTILITY: 0.3082,
-            AUTHENTICATION: 0.1106,
-            SERVICE: 0.2906,
-            DEFAULT: 0.30
+            MARKETING: 0.88,
+            UTILITY: 0.11,
+            AUTHENTICATION: 0.11,
+            SERVICE: 0.00,
+            DEFAULT: 0.88
         },
         USD: {
             MARKETING: 0.025,
             UTILITY: 0.015,
             AUTHENTICATION: 0.0135,
-            SERVICE: 0.0088,
-            DEFAULT: 0.02
+            SERVICE: 0.00,
+            DEFAULT: 0.025
         },
         EUR: {
-            MARKETING: 0.05,
-            UTILITY: 0.03,
-            AUTHENTICATION: 0.02,
-            SERVICE: 0.015,
-            DEFAULT: 0.03
+            MARKETING: 0.06,
+            UTILITY: 0.01,
+            AUTHENTICATION: 0.01,
+            SERVICE: 0.00,
+            DEFAULT: 0.06
         },
         GBP: {
-            MARKETING: 0.05,
-            UTILITY: 0.03,
-            AUTHENTICATION: 0.02,
-            SERVICE: 0.015,
-            DEFAULT: 0.03
+            MARKETING: 0.038,
+            UTILITY: 0.01,
+            AUTHENTICATION: 0.01,
+            SERVICE: 0.00,
+            DEFAULT: 0.038
         }
     };
 
@@ -539,11 +542,14 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                             <h3 className="text-slate-900 dark:text-white font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-text-secondary">Message Preview</h3>
                         </div>
 
-                        <div className="bg-slate-100 dark:bg-background-dark rounded-[2.5rem] border-[8px] border-white dark:border-surface-dark p-3 relative h-[520px] overflow-hidden shadow-2xl flex flex-col mx-auto w-full max-w-[300px] max-w-full ring-1 ring-slate-200 dark:ring-white/5 transition-colors duration-300">
+                        <div className="bg-slate-50 dark:bg-[#0b141a] rounded-[2.5rem] border-[8px] border-slate-800 dark:border-[#1f2c34] p-0 relative h-[500px] overflow-hidden shadow-2xl flex flex-col mx-auto w-[260px] shrink-0 ring-1 ring-slate-900/10 dark:ring-white/10 transition-colors duration-300">
+                            {/* Dynamic Island */}
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-800 dark:bg-[#1f2c34] rounded-b-2xl z-20"></div>
+                            
                             {/* StatusBar */}
-                            <div className="flex justify-between items-center text-[10px] text-gray-400 mb-4 px-2 shrink-0 mt-1.5">
-                                <span>9:41</span>
-                                <div className="flex gap-1.5">
+                            <div className="flex justify-between items-center text-[10px] text-slate-800 dark:text-gray-400 mb-2 px-4 shrink-0 pt-3 z-10 bg-[#f0f2f5] dark:bg-[#202c33]">
+                                <span className="font-semibold">9:41</span>
+                                <div className="flex gap-1.5 items-center">
                                     <Signal className="w-3 h-3" />
                                     <Wifi className="w-3 h-3" />
                                     <Battery className="w-3 h-3" />
@@ -551,41 +557,49 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                             </div>
 
                             {/* Chat Header */}
-                            <div className="bg-white dark:bg-surface-dark p-2.5 rounded-xl flex items-center gap-2.5 mb-2 shrink-0 mx-[-4px] shadow-sm">
-                                <ArrowLeft className="w-4 h-4 text-primary" />
-                                <div className="size-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">B</div>
+                            <div className="bg-[#f0f2f5] dark:bg-[#202c33] p-2 flex items-center gap-2.5 mb-0 shrink-0 shadow-sm z-10">
+                                <ArrowLeft className="w-4 h-4 text-[#00a884]" />
+                                <div className="size-8 rounded-full bg-[#00a884] flex items-center justify-center text-white text-xs font-bold shadow-sm overflow-hidden">
+                                    {profilePicUrl ? <img src={profilePicUrl} alt="Profile" className="w-full h-full object-cover" /> : initial}
+                                </div>
                                 <div className="flex flex-col">
-                                    <p className="text-slate-900 dark:text-white text-xs font-bold leading-none">Business Name</p>
-                                    <p className="text-[9px] text-slate-500 dark:text-text-secondary leading-none mt-0.5">Official Business</p>
+                                    <p className="text-slate-900 dark:text-white text-[13px] font-semibold leading-none">{businessName}</p>
+                                    <p className="text-[10px] text-slate-500 dark:text-text-secondary leading-none mt-1">Official Business</p>
                                 </div>
                             </div>
 
                             {/* Body */}
-                            <div className="space-y-3 px-1 overflow-y-auto flex-1 custom-scrollbar relative">
-                                <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000000 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-                                <div className="flex justify-center mt-2 relative z-10">
-                                    <span className="bg-white dark:bg-surface-dark text-gray-400 text-[9px] px-2 py-1 rounded shadow-sm border border-slate-200 dark:border-white/5">Today</span>
+                            <div className="space-y-3 px-3 py-4 overflow-y-auto flex-1 custom-scrollbar relative bg-[#efeae2] dark:bg-[#0b141a]">
+                                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000000 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                                
+                                <div className="flex justify-center relative z-10">
+                                    <span className="bg-white/90 dark:bg-[#182229]/90 backdrop-blur-sm text-slate-500 dark:text-gray-400 text-[10px] px-3 py-1 rounded-lg shadow-sm">Today</span>
                                 </div>
 
                                 {isCarousel ? (
-                                    <div className="relative z-10 mt-2 ml-1">
+                                    <div className="relative z-10 mt-3">
                                         {/* Carousel preview card */}
-                                        <div className="bg-white dark:bg-[#2f455a] rounded-xl rounded-tl-none p-2 max-w-[90%] shadow-sm mb-2">
-                                            <p className="text-slate-800 dark:text-white text-[11px] leading-snug">{selectedTemplate.content}</p>
-                                            <span className="text-[9px] text-gray-400 block text-right mt-1">10:30 AM</span>
+                                        <div className="bg-white dark:bg-[#202c33] rounded-2xl rounded-tl-none p-2 w-[90%] shadow-sm mb-3 relative">
+                                            <svg viewBox="0 0 8 13" width="8" height="13" className="absolute top-0 -left-2 text-white dark:text-[#202c33] fill-current">
+                                                <path d="M1.533,3.568L8,12.193V1H2.812C1.042,1,0.474,2.156,1.533,3.568z"></path>
+                                            </svg>
+                                            <p className="text-slate-800 dark:text-[#e9edef] text-[12px] leading-snug">{selectedTemplate.content}</p>
+                                            <span className="text-[9px] text-slate-400 dark:text-gray-400 block text-right mt-1 font-medium">10:30 AM</span>
                                         </div>
                                         {/* Carousel cards strip */}
-                                        <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                                        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
                                             {selectedTemplate.cards.map((card, idx) => (
-                                                <div key={idx} className="flex-shrink-0 w-28 bg-white dark:bg-[#2f455a] rounded-xl shadow-sm border border-slate-100 dark:border-white/10 overflow-hidden">
-                                                    <div className="h-14 bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                                                        <ImageIcon className="w-5 h-5 text-white/60" />
+                                                <div key={idx} className="flex-shrink-0 w-36 bg-white dark:bg-[#202c33] rounded-2xl shadow-sm border border-slate-100 dark:border-white/5 overflow-hidden flex flex-col">
+                                                    <div className="h-20 bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center relative">
+                                                        <ImageIcon className="w-6 h-6 text-white/50" />
                                                     </div>
-                                                    <div className="p-1.5">
-                                                        <p className="text-[9px] text-slate-700 dark:text-white leading-tight line-clamp-2">{card.content}</p>
+                                                    <div className="p-2 flex flex-col flex-1">
+                                                        <p className="text-[11px] font-medium text-slate-800 dark:text-[#e9edef] leading-snug line-clamp-2">{card.content}</p>
                                                         {card.buttons?.[0] && (
-                                                            <div className="mt-1 bg-blue-500/10 text-blue-600 dark:text-blue-300 text-[8px] font-bold text-center px-1 py-0.5 rounded">
-                                                                {card.buttons[0].text}
+                                                            <div className="mt-auto pt-2">
+                                                                <div className="bg-[#f0f2f5] dark:bg-[#2a3942] text-[#00a884] dark:text-[#53bdeb] text-[10px] font-bold text-center px-2 py-1.5 rounded-lg">
+                                                                    {card.buttons[0].text}
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
@@ -594,31 +608,35 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="bg-white dark:bg-[#2f455a] rounded-xl rounded-tl-none p-1 max-w-[90%] relative shadow-sm mt-2 ml-1">
+                                    <div className="bg-white dark:bg-[#202c33] rounded-2xl rounded-tl-none p-1.5 w-[90%] relative shadow-sm mt-3">
+                                        <svg viewBox="0 0 8 13" width="8" height="13" className="absolute top-0 -left-2 text-white dark:text-[#202c33] fill-current">
+                                            <path d="M1.533,3.568L8,12.193V1H2.812C1.042,1,0.474,2.156,1.533,3.568z"></path>
+                                        </svg>
                                         {(selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE') && (
-                                            <div className="w-full aspect-video bg-black rounded-lg overflow-hidden mb-1.5">
-                                                <img className="w-full h-full object-cover opacity-90" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400" alt="Header" />
+                                            <div className="w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2">
+                                                <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400" alt="Header" />
                                             </div>
                                         )}
-                                        <div className="px-2 pb-2 pt-1">
-                                            <p className="text-slate-800 dark:text-white text-[13px] leading-snug whitespace-pre-wrap">
+                                        <div className="px-1.5 pb-1 pt-0.5">
+                                            <p className="text-slate-800 dark:text-[#e9edef] text-[13px] leading-snug whitespace-pre-wrap">
                                                 {getPreviewText() || 'No content'}
                                             </p>
                                             <div className="flex justify-end items-center gap-1 mt-1">
-                                                <span className="text-[9px] text-gray-400">10:30 AM</span>
-                                                <CheckCheck className="w-3 h-3 text-blue-400" />
+                                                <span className="text-[9px] text-slate-400 dark:text-[#8696a0] font-medium">10:30 AM</span>
+                                                <CheckCheck className="w-3 h-3 text-[#53bdeb]" />
                                             </div>
                                         </div>
+                                        
                                         {/* Standard Buttons Preview */}
                                         {selectedTemplate.buttons && selectedTemplate.buttons.length > 0 && (
-                                            <div className="border-t border-slate-100 dark:border-white/10 mt-1 flex flex-col">
+                                            <div className="border-t border-slate-100 dark:border-white/5 mt-1.5 mx-1.5">
                                                 {selectedTemplate.buttons.map((btn, idx) => (
-                                                    <div key={idx} className="text-center py-2 border-b border-slate-100 dark:border-white/10 last:border-0 text-[#00a884] dark:text-[#00a884] font-medium text-[12px] hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex justify-center items-center gap-1.5">
+                                                    <div key={idx} className="py-2 text-[#00a884] dark:text-[#53bdeb] font-semibold text-[12px] flex justify-center items-center gap-1.5 border-b last:border-0 border-slate-100 dark:border-white/5">
                                                         {btn.type === 'URL' ? <Link2 className="w-3.5 h-3.5 opacity-70" /> 
                                                         : btn.type === 'PHONE_NUMBER' ? <Phone className="w-3.5 h-3.5 opacity-70" /> 
                                                         : btn.type === 'COPY_CODE' ? <Zap className="w-3.5 h-3.5 opacity-70 text-amber-500" />
                                                         : <span className="opacity-70 font-bold scale-[1.2]">↲</span>}
-                                                        {btn.text}
+                                                        {btn.text || btn.type}
                                                     </div>
                                                 ))}
                                             </div>

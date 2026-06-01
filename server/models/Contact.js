@@ -27,6 +27,12 @@ const Contact = sequelize.define('Contact', {
         type: DataTypes.JSON, // Storing full label objects {id, name, color}
         defaultValue: []
     },
+    status: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Set to "Invalid" automatically when Meta returns error 131026 (not a WhatsApp number)'
+    },
     userId: {
         type: DataTypes.UUID,
         allowNull: false

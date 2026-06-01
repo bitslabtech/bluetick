@@ -73,10 +73,6 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
 
             } catch (err) {
                 console.error('Failed to fetch data', err);
-                setRecipientGroups([
-                    { id: 'all', name: 'All Contacts', count: 0, updated: 'Error' },
-                    { id: 'error-msg', name: 'API ERROR: ' + (err.response?.data?.error || err.message), count: 0, updated: 'Just now' }
-                ]);
             } finally {
                 setLoadingStats(false);
             }

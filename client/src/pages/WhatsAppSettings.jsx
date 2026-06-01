@@ -60,7 +60,7 @@ export default function WhatsAppSettings() {
 
     // Config State
     const [profile, setProfile] = useState({
-        description: '', address: '', email: '', websites: [''], vertical: 'OTHER'
+        description: '', about: '', address: '', email: '', websites: [''], vertical: 'OTHER'
     });
     const [automations, setAutomations] = useState({
         welcomeMessage: { enabled: false, text: '' },
@@ -325,6 +325,20 @@ export default function WhatsAppSettings() {
                                         placeholder="Welcome to our official business channel..."
                                     />
                                     <div className="text-right text-[10px] text-slate-400 mt-1">{profile.description.length}/256</div>
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2">
+                                        <Info className="w-4 h-4 text-slate-400" /> About (Status) (Max 139)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={profile.about}
+                                        onChange={e => setProfile({ ...profile, about: e.target.value.substring(0, 139) })}
+                                        className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        placeholder="Hey there! I am using WhatsApp."
+                                    />
+                                    <div className="text-right text-[10px] text-slate-400 mt-1">{(profile.about || '').length}/139</div>
                                 </div>
 
                                 <div>

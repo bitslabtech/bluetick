@@ -190,7 +190,7 @@ router.post('/', async (req, res) => {
                 paymentGateways,
                 smtpConfig,
                 securityConfig,
-                whatsappProfile: whatsappProfile || { description: '', address: '', email: '', websites: [], vertical: '' },
+                whatsappProfile: whatsappProfile || { description: '', about: '', address: '', email: '', websites: [], vertical: '' },
                 whatsappAutomations: whatsappAutomations || { welcomeMessage: { enabled: false, text: '' }, offHoursMessage: { enabled: false, text: '', timezone: 'UTC', schedule: [] } },
                 userId: req.user.id
             });
@@ -263,6 +263,7 @@ router.post('/', async (req, res) => {
                             messaging_product: "whatsapp",
                             address: whatsappProfile.address || "",
                             description: whatsappProfile.description || "",
+                            about: whatsappProfile.about || "",
                             vertical: whatsappProfile.vertical || "OTHER",
                             email: whatsappProfile.email || "",
                             websites: websites
@@ -527,7 +528,8 @@ router.get('/sync-whatsapp-profile', auth, async (req, res) => {
 
         // Map Meta fields to our internal whatsappProfile structure
         const updatedProfile = {
-            description: profileData.description || profileData.about || '',
+            description: profileData.description || '',
+            about: profileData.about || '',
             address: profileData.address || '',
             email: profileData.email || '',
             websites: profileData.websites || [''],

@@ -2,8 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Search, Plus, Check, Globe, Image as ImageIcon, FileText, Lock, ArrowRight, ArrowLeft, AlertTriangle, Signal, Wifi, Battery, CheckCheck } from 'lucide-react';
+import { useUI } from '../../context/UIContext';
 
 const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
+    const { settings } = useUI();
+    const businessName = settings?.appName || "Business Name";
+    const profilePicUrl = settings?.whatsappProfile?.profilePictureUrl || null;
+    const initial = businessName.charAt(0).toUpperCase();
     const navigate = useNavigate();
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -223,11 +228,14 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                             {selectedTemplate ? (() => {
                                 const isCarousel = selectedTemplate.archetype === 'carousel' && Array.isArray(selectedTemplate.cards) && selectedTemplate.cards.length > 0;
                                 return (
-                                    <div className="bg-slate-100 dark:bg-background-dark rounded-[2.5rem] border-[8px] border-white dark:border-surface-dark p-3 relative h-[460px] overflow-hidden shadow-2xl flex flex-col mx-auto w-full max-w-[300px] max-w-full ring-1 ring-slate-200 dark:ring-white/5 transition-colors duration-300">
+                                    <div className="bg-slate-50 dark:bg-[#0b141a] rounded-[2.5rem] border-[8px] border-slate-800 dark:border-[#1f2c34] p-0 relative h-[500px] overflow-hidden shadow-2xl flex flex-col mx-auto w-[260px] shrink-0 ring-1 ring-slate-900/10 dark:ring-white/10 transition-colors duration-300">
+                                        {/* Dynamic Island */}
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-800 dark:bg-[#1f2c34] rounded-b-2xl z-20"></div>
+                                        
                                         {/* StatusBar */}
-                                        <div className="flex justify-between items-center text-[10px] text-gray-400 mb-4 px-2 shrink-0 mt-1.5">
-                                            <span>9:41</span>
-                                            <div className="flex gap-1.5">
+                                        <div className="flex justify-between items-center text-[10px] text-slate-800 dark:text-gray-400 mb-2 px-4 shrink-0 pt-3 z-10 bg-[#f0f2f5] dark:bg-[#202c33]">
+                                            <span className="font-semibold">9:41</span>
+                                            <div className="flex gap-1.5 items-center">
                                                 <Signal className="w-3 h-3" />
                                                 <Wifi className="w-3 h-3" />
                                                 <Battery className="w-3 h-3" />
@@ -235,41 +243,49 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                         </div>
 
                                         {/* Chat Header */}
-                                        <div className="bg-white dark:bg-surface-dark p-2.5 rounded-xl flex items-center gap-2.5 mb-2 shrink-0 mx-[-4px] shadow-sm">
-                                            <ArrowLeft className="w-4 h-4 text-primary" />
-                                            <div className="size-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">B</div>
+                                        <div className="bg-[#f0f2f5] dark:bg-[#202c33] p-2 flex items-center gap-2.5 mb-0 shrink-0 shadow-sm z-10">
+                                            <ArrowLeft className="w-4 h-4 text-[#00a884]" />
+                                            <div className="size-8 rounded-full bg-[#00a884] flex items-center justify-center text-white text-xs font-bold shadow-sm overflow-hidden">
+                                                {profilePicUrl ? <img src={profilePicUrl} alt="Profile" className="w-full h-full object-cover" /> : initial}
+                                            </div>
                                             <div className="flex flex-col">
-                                                <p className="text-slate-900 dark:text-white text-xs font-bold leading-none">Business Name</p>
-                                                <p className="text-[9px] text-slate-500 dark:text-text-secondary leading-none mt-0.5">Official Business</p>
+                                                <p className="text-slate-900 dark:text-white text-[13px] font-semibold leading-none">{businessName}</p>
+                                                <p className="text-[10px] text-slate-500 dark:text-text-secondary leading-none mt-1">Official Business</p>
                                             </div>
                                         </div>
 
                                         {/* Body */}
-                                        <div className="space-y-3 px-1 overflow-y-auto flex-1 custom-scrollbar relative">
-                                            <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000000 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-                                            <div className="flex justify-center mt-2 relative z-10">
-                                                <span className="bg-white dark:bg-surface-dark text-gray-400 text-[9px] px-2 py-1 rounded shadow-sm border border-slate-200 dark:border-white/5">Today</span>
+                                        <div className="space-y-3 px-3 py-4 overflow-y-auto flex-1 custom-scrollbar relative bg-[#efeae2] dark:bg-[#0b141a]">
+                                            <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000000 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                                            
+                                            <div className="flex justify-center relative z-10">
+                                                <span className="bg-white/90 dark:bg-[#182229]/90 backdrop-blur-sm text-slate-500 dark:text-gray-400 text-[10px] px-3 py-1 rounded-lg shadow-sm">Today</span>
                                             </div>
 
                                             {isCarousel ? (
-                                                <div className="relative z-10 mt-2 ml-1">
+                                                <div className="relative z-10 mt-3">
                                                     {/* Carousel preview card */}
-                                                    <div className="bg-white dark:bg-[#2f455a] rounded-xl rounded-tl-none p-2 max-w-[90%] shadow-sm mb-2">
-                                                        <p className="text-slate-800 dark:text-white text-[11px] leading-snug">{selectedTemplate.content}</p>
-                                                        <span className="text-[9px] text-gray-400 block text-right mt-1">10:30 AM</span>
+                                                    <div className="bg-white dark:bg-[#202c33] rounded-2xl rounded-tl-none p-2 w-[90%] shadow-sm mb-3 relative">
+                                                        <svg viewBox="0 0 8 13" width="8" height="13" className="absolute top-0 -left-2 text-white dark:text-[#202c33] fill-current">
+                                                            <path d="M1.533,3.568L8,12.193V1H2.812C1.042,1,0.474,2.156,1.533,3.568z"></path>
+                                                        </svg>
+                                                        <p className="text-slate-800 dark:text-[#e9edef] text-[12px] leading-snug">{selectedTemplate.content}</p>
+                                                        <span className="text-[9px] text-slate-400 dark:text-gray-400 block text-right mt-1 font-medium">10:30 AM</span>
                                                     </div>
                                                     {/* Carousel cards strip */}
-                                                    <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                                                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
                                                         {selectedTemplate.cards.map((card, idx) => (
-                                                            <div key={idx} className="flex-shrink-0 w-28 bg-white dark:bg-[#2f455a] rounded-xl shadow-sm border border-slate-100 dark:border-white/10 overflow-hidden">
-                                                                <div className="h-14 bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                                                                    <ImageIcon className="w-5 h-5 text-white/60" />
+                                                            <div key={idx} className="flex-shrink-0 w-36 bg-white dark:bg-[#202c33] rounded-2xl shadow-sm border border-slate-100 dark:border-white/5 overflow-hidden flex flex-col">
+                                                                <div className="h-20 bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center relative">
+                                                                    <ImageIcon className="w-6 h-6 text-white/50" />
                                                                 </div>
-                                                                <div className="p-1.5">
-                                                                    <p className="text-[9px] text-slate-700 dark:text-white leading-tight line-clamp-2">{card.content}</p>
+                                                                <div className="p-2 flex flex-col flex-1">
+                                                                    <p className="text-[11px] font-medium text-slate-800 dark:text-[#e9edef] leading-snug line-clamp-2">{card.content}</p>
                                                                     {card.buttons?.[0] && (
-                                                                        <div className="mt-1 bg-blue-500/10 text-blue-600 dark:text-blue-300 text-[8px] font-bold text-center px-1 py-0.5 rounded">
-                                                                            {card.buttons[0].text}
+                                                                        <div className="mt-auto pt-2">
+                                                                            <div className="bg-[#f0f2f5] dark:bg-[#2a3942] text-[#00a884] dark:text-[#53bdeb] text-[10px] font-bold text-center px-2 py-1.5 rounded-lg">
+                                                                                {card.buttons[0].text}
+                                                                            </div>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -278,21 +294,35 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="bg-white dark:bg-[#2f455a] rounded-xl rounded-tl-none p-1 max-w-[90%] relative shadow-sm mt-2 ml-1">
+                                                <div className="bg-white dark:bg-[#202c33] rounded-2xl rounded-tl-none p-1.5 w-[90%] relative shadow-sm mt-3">
+                                                    <svg viewBox="0 0 8 13" width="8" height="13" className="absolute top-0 -left-2 text-white dark:text-[#202c33] fill-current">
+                                                        <path d="M1.533,3.568L8,12.193V1H2.812C1.042,1,0.474,2.156,1.533,3.568z"></path>
+                                                    </svg>
                                                     {selectedTemplate.type === 'IMAGE' && (
-                                                        <div className="w-full aspect-video bg-black rounded-lg overflow-hidden mb-1.5">
-                                                            <img className="w-full h-full object-cover opacity-90" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400" alt="Header" />
+                                                        <div className="w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2">
+                                                            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400" alt="Header" />
                                                         </div>
                                                     )}
-                                                    <div className="px-2 pb-2 pt-1">
-                                                        <p className="text-slate-800 dark:text-white text-[13px] leading-snug whitespace-pre-wrap">
+                                                    <div className="px-1.5 pb-1 pt-0.5">
+                                                        <p className="text-slate-800 dark:text-[#e9edef] text-[13px] leading-snug whitespace-pre-wrap">
                                                             {selectedTemplate.content || 'No content'}
                                                         </p>
                                                         <div className="flex justify-end items-center gap-1 mt-1">
-                                                            <span className="text-[9px] text-gray-400">10:30 AM</span>
-                                                            <CheckCheck className="w-3 h-3 text-blue-400" />
+                                                            <span className="text-[9px] text-slate-400 dark:text-[#8696a0] font-medium">10:30 AM</span>
+                                                            <CheckCheck className="w-3 h-3 text-[#53bdeb]" />
                                                         </div>
                                                     </div>
+                                                    
+                                                    {/* Template Buttons Preview if exist */}
+                                                    {selectedTemplate.components?.some(c => c.type === 'BUTTONS') && (
+                                                        <div className="mt-1.5 border-t border-slate-100 dark:border-white/5 mx-1.5">
+                                                            {selectedTemplate.components.find(c => c.type === 'BUTTONS').buttons?.map((btn, idx) => (
+                                                                <div key={idx} className="py-2.5 text-[#00a884] dark:text-[#53bdeb] text-[12px] font-semibold text-center border-b last:border-0 border-slate-100 dark:border-white/5">
+                                                                    {btn.text || btn.type}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -312,21 +342,23 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                 <span>Selected Template</span>
                                 <span className="text-slate-900 dark:text-white font-bold truncate max-w-[150px] max-w-full">{selectedTemplate?.name || '-'}</span>
                             </div>
-                            <button
-                                onClick={onNext}
-                                disabled={!selectedTemplate}
-                                className={`w-full py-4 text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 group ${!selectedTemplate ? 'bg-slate-300 dark:bg-gray-700/50 cursor-not-allowed text-slate-500 dark:text-gray-400' : 'bg-primary hover:bg-blue-600 shadow-blue-500/20 active:scale-95'}`}
-                            >
-                                Next Step
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                            <button
-                                onClick={onBack}
-                                className="w-full py-3 bg-transparent border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                Back to Setup
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={onBack}
+                                    className="flex-1 py-3.5 bg-transparent border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                    Back
+                                </button>
+                                <button
+                                    onClick={onNext}
+                                    disabled={!selectedTemplate}
+                                    className={`flex-[1.5] py-3.5 text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 group ${!selectedTemplate ? 'bg-slate-300 dark:bg-gray-700/50 cursor-not-allowed text-slate-500 dark:text-gray-400' : 'bg-primary hover:bg-blue-600 shadow-blue-500/20 active:scale-95'}`}
+                                >
+                                    Next Step
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

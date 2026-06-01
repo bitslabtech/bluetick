@@ -34,13 +34,15 @@ router.get('/groups', async (req, res) => {
 // GET campaign selection summary (groups with counts + total contacts)
 router.get('/campaign-summary', async (req, res) => {
     try {
+        const ownerId = req.user.parentUserId || req.user.id;
+
         const totalContacts = await Contact.count({
-            where: { userId: req.user.id, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } }
+            where: { userId: ownerId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } }
         });
 
         const contacts = await Contact.findAll({
             attributes: ['tags'],
-            where: { userId: req.user.id, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } },
+            where: { userId: ownerId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } },
             raw: true
         });
 
@@ -52,7 +54,6 @@ router.get('/campaign-summary', async (req, res) => {
         }
 
         // 2. Fetch all defined groups for this user
-        const ownerId = req.user.parentUserId || req.user.id;
         const definedGroups = await Group.findAll({
             where: { userId: ownerId },
             raw: true

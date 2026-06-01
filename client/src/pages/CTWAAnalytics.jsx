@@ -90,8 +90,8 @@ const StepConnectFacebook = ({ onConnected }) => {
     const exchangeToken = async (token) => {
         try {
             setLoading(true);
-                        await axios.post('/api/ctwa/auth', { accessToken: token }, {
-                headers: { Authorization: `Bearer ${authToken}` }
+            await axios.post('/api/ctwa/auth', { accessToken: token }, {
+                withCredentials: true
             });
             onConnected();
         } catch (err) {
@@ -154,7 +154,7 @@ const StepSelectAccount = ({ onSelected }) => {
         const fetchAccounts = async () => {
             try {
                 const res = await axios.get('/api/ctwa/ad-accounts', {
-                    headers: { Authorization: `Bearer ${token}` }
+                    withCredentials: true
                 });
                 setAccounts(res.data.accounts || []);
             } catch (err) {
@@ -171,7 +171,7 @@ const StepSelectAccount = ({ onSelected }) => {
         try {
             setSaving(true);
             await axios.post('/api/ctwa/select-account', { adAccountId: selected }, {
-                headers: { Authorization: `Bearer ${token}` }
+                withCredentials: true
             });
             onSelected();
         } catch (err) {
@@ -264,7 +264,7 @@ const CTWADashboard = ({ onDisconnect }) => {
         try {
             setLoading(true);
             const res = await axios.get(`/api/ctwa/dashboard?dateRange=${dateRange}`, {
-                headers: { Authorization: `Bearer ${token}` }
+                withCredentials: true
             });
             setData(res.data);
         } catch (err) {
@@ -278,7 +278,7 @@ const CTWADashboard = ({ onDisconnect }) => {
 
     const handleDisconnect = async () => {
         if (!window.confirm('Disconnect your Facebook Ads account?')) return;
-        await axios.delete('/api/ctwa/disconnect', { headers: { Authorization: `Bearer ${token}` } });
+        await axios.delete('/api/ctwa/disconnect', { withCredentials: true });
         onDisconnect();
     };
 
@@ -428,7 +428,7 @@ export default function CTWAAnalytics() {
         const checkStatus = async () => {
             try {
                 const res = await axios.get('/api/ctwa/status', {
-                    headers: { Authorization: `Bearer ${token}` }
+                    withCredentials: true
                 });
                 if (res.data.connected && res.data.adAccountId) {
                     setStep('dashboard');
