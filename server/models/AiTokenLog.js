@@ -14,7 +14,7 @@ const AiTokenLog = sequelize.define('AiTokenLog', {
         onDelete: 'CASCADE'
     },
     feature: {
-        type: DataTypes.ENUM('ai_chatbot', 'ai_form_generator', 'ai_template_enhancer', 'ai_chat_drafter', 'ai_chat_enhancer', 'ai_template_draft', 'ai_meta_ads_research', 'ai_meta_ads_copy', 'ai_meta_ads_image'),
+        type: DataTypes.ENUM('ai_chatbot', 'ai_form_generator', 'ai_template_enhancer', 'ai_chat_drafter', 'ai_chat_enhancer', 'ai_template_draft', 'ai_meta_ads_research', 'ai_meta_ads_copy', 'ai_meta_ads_image', 'ai_store_copilot'),
         allowNull: false
     },
     tokensUsed: {

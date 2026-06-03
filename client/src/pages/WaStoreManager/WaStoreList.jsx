@@ -33,7 +33,7 @@ export default function WaStoreList() {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore`, newStore);
             toast.success("Store created successfully!");
             setShowCreateModal(false);
-            navigate(`/wastore/${res.data.slug}/analytics`);
+            navigate(`/online-store/${res.data.slug}/analytics`);
         } catch (error) {
             toast.error(error.response?.data?.error || "Failed to create store");
         }
@@ -42,7 +42,7 @@ export default function WaStoreList() {
     if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading your stores...</div>;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6">
+        <div className="w-full lg:w-[70%] max-w-[1600px] mx-auto px-4 lg:px-0 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
@@ -109,7 +109,7 @@ export default function WaStoreList() {
                                 </div>
 
                                 <button 
-                                    onClick={() => navigate(`/wastore/${store.slug}/analytics`)}
+                                    onClick={() => navigate(`/online-store/${store.slug}/analytics`)}
                                     className="w-full flex items-center justify-center gap-2 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-lg transition-colors font-medium text-sm"
                                 >
                                     Manage Store <ArrowRight className="w-4 h-4" />

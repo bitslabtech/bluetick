@@ -40,6 +40,28 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
     const [status, setStatus] = useState(order.status);
     const [notes, setNotes]   = useState(order.notes || '');
     const [saving, setSaving] = useState(false);
+    
+    // Fulfillment state
+    const [trackingProvider, setTrackingProvider] = useState(order.trackingProvider || '');
+    const [trackingUrl, setTrackingUrl] = useState(order.trackingUrl || '');
+    const [fulfilling, setFulfilling] = useState(false);
+
+    const handleFulfill = async () => {
+        setFulfilling(true);
+        try {
+            const res = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/orders/${order.id}/fulfill`,
+                { trackingProvider, trackingUrl }
+            );
+            onUpdate(res.data);
+            setStatus('shipped');
+            toast.success('Order fulfilled and customer notified via WhatsApp!');
+        } catch {
+            toast.error('Failed to fulfill order');
+        } finally {
+            setFulfilling(false);
+        }
+    };
 
     const handleSave = async () => {
         setSaving(true);
@@ -187,6 +209,57 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
                                 </div>
                             )}
                         </div>
+                    </div>
+
+                    {/* Logistics / Fulfillment */}
+                    <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
+                        <h3 className="font-bold text-sm text-blue-800 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <Truck className="w-4 h-4" /> Logistics & Tracking
+                        </h3>
+                        {order.status === 'shipped' || order.status === 'delivered' ? (
+                            <div className="space-y-2 text-sm text-blue-900 dark:text-blue-200">
+                                <p><strong>Provider:</strong> {order.trackingProvider || 'Not specified'}</p>
+                                {order.trackingUrl && (
+                                    <p><strong>Tracking URL:</strong> <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline hover:text-blue-800">{order.trackingUrl}</a></p>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <label className="block font-semibold text-blue-800 dark:text-blue-300 mb-1">Shipping Provider</label>
+                                        <input 
+                                            type="text" 
+                                            value={trackingProvider} 
+                                            onChange={e => setTrackingProvider(e.target.value)} 
+                                            placeholder="e.g. Delhivery, Shiprocket"
+                                            className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-blue-800 dark:text-blue-300 mb-1">Tracking URL (Optional)</label>
+                                        <input 
+                                            type="url" 
+                                            value={trackingUrl} 
+                                            onChange={e => setTrackingUrl(e.target.value)} 
+                                            placeholder="https://..."
+                                            className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={handleFulfill} 
+                                    disabled={fulfilling}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg font-semibold transition-colors flex items-center gap-2 text-sm"
+                                >
+                                    <Truck className="w-4 h-4" /> 
+                                    {fulfilling ? 'Fulfilling...' : 'Fulfill Order & Notify Customer'}
+                                </button>
+                                <p className="text-xs text-blue-700 dark:text-blue-400">
+                                    This will mark the order as Shipped and automatically send a WhatsApp message to the customer with the tracking details.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Order Items */}

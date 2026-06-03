@@ -197,7 +197,7 @@ export default function WaProductList() {
         return symbols[code] || code;
     };
 
-    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', imageUrls: [], category: '', inStock: true, options: [] };
+    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [] };
     const [form, setForm] = useState(defaultForm);
 
     useEffect(() => {
@@ -227,6 +227,12 @@ export default function WaProductList() {
         try {
             const payload = { ...form };
             payload.imageUrls = payload.imageUrls.filter(url => url.trim() !== '');
+            payload.options = payload.options.map(opt => ({
+                ...opt,
+                values: Array.isArray(opt.values) 
+                    ? opt.values 
+                    : opt.values.split(',').map(v => v.trim()).filter(Boolean)
+            }));
             
             if (editingProduct) {
                 await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/products/${editingProduct.id}`, payload);
@@ -260,6 +266,8 @@ export default function WaProductList() {
             description: product.description || '',
             price: product.price,
             compareAtPrice: product.compareAtPrice || '',
+            wholesalePrice: product.wholesalePrice || '',
+            minWholesaleQty: product.minWholesaleQty || '',
             imageUrls: product.imageUrls?.length > 0 ? product.imageUrls : [''],
             category: product.category || '',
             inStock: product.inStock,
@@ -405,7 +413,7 @@ export default function WaProductList() {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-surface-dark sm:rounded-2xl max-w-2xl w-full min-h-screen sm:min-h-0 p-4 md:p-6 shadow-xl sm:my-8 flex flex-col">
+                    <div className="bg-white dark:bg-surface-dark sm:rounded-2xl max-w-2xl w-full max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto p-4 md:p-6 shadow-xl flex flex-col">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
                             {editingProduct ? 'Edit Product' : 'Add New Product'}
                         </h2>
@@ -426,7 +434,21 @@ export default function WaProductList() {
                                     <input type="number" step="0.01" value={form.compareAtPrice} onChange={e => setForm({...form, compareAtPrice: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                                 </div>
 
-                                <div className="space-y-1">
+                                <div className="md:col-span-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">B2B / Wholesale Pricing (Optional)</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="space-y-1">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Wholesale Price</label>
+                                            <input type="number" step="0.01" value={form.wholesalePrice} onChange={e => setForm({...form, wholesalePrice: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. 15.00" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Min Wholesale Qty</label>
+                                            <input type="number" value={form.minWholesaleQty} onChange={e => setForm({...form, minWholesaleQty: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. 10" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1 pt-4 border-t border-slate-200 dark:border-slate-700">
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
                                     {!isAddingNewCategory ? (
                                         <select 
@@ -550,10 +572,10 @@ export default function WaProductList() {
                                                 <input 
                                                     type="text" 
                                                     placeholder="Values (comma separated, e.g. S, M, L)" 
-                                                    value={option.values.join(', ')}
+                                                    value={Array.isArray(option.values) ? option.values.join(', ') : option.values}
                                                     onChange={(e) => {
                                                         const newOpts = [...form.options];
-                                                        newOpts[optIdx].values = e.target.value.split(',').map(v => v.trim()).filter(Boolean);
+                                                        newOpts[optIdx].values = e.target.value;
                                                         setForm({...form, options: newOpts});
                                                     }}
                                                     className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500"

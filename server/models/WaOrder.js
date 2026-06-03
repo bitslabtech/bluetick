@@ -59,6 +59,35 @@ const WaOrder = sequelize.define('WaOrder', {
         type: DataTypes.STRING,
         defaultValue: 'USD'
     },
+    taxAmount: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0
+    },
+    taxRate: {
+        type: DataTypes.DECIMAL(5, 2),
+        defaultValue: 0
+    },
+    taxName: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    total: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: 0
+    },
+    source: {
+        type: DataTypes.ENUM('online', 'pos'),
+        defaultValue: 'online'
+    },
+    trackingProvider: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    trackingUrl: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     status: {
         type: DataTypes.ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'),
         defaultValue: 'pending'
@@ -70,6 +99,11 @@ const WaOrder = sequelize.define('WaOrder', {
     customerNote: {
         type: DataTypes.TEXT,
         comment: 'Note from the customer'
+    },
+    abandonedReminderSent: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Flag indicating if an abandoned checkout reminder was sent via WhatsApp'
     }
 }, {
     timestamps: true

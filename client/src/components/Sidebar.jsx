@@ -49,7 +49,7 @@ const userNavItems = [
     {
         icon: Store,
         label: 'Online Store',
-        path: '/wastore',
+        path: '/online-store',
         perm: 'menu_wastore',
         requiresWaStore: true
     },

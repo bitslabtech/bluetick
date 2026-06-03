@@ -25,6 +25,17 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
         return symbols[code] || code;
     };
 
+    const loadRazorpay = () => {
+        return new Promise((resolve) => {
+            if (window.Razorpay) return resolve(true);
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
     const handleInputChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -65,6 +76,15 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
         return cartTotal - calculateFinalTotal();
     };
 
+    const taxEnabled = store?.taxConfig?.enabled || false;
+    const taxRate = parseFloat(store?.taxConfig?.rate) || 0;
+    const taxName = store?.taxConfig?.name || 'Tax';
+    
+    const calculateTaxAmount = () => {
+        if (!taxEnabled) return 0;
+        return (calculateFinalTotal() * taxRate) / 100;
+    };
+
     const handleCheckout = async (e) => {
         e.preventDefault();
         if (!formData.name || !formData.phone || !formData.address) {
@@ -78,7 +98,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
 
         try {
             // Record Order in Backend
-            await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/orders`, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/orders`, {
                 storeId: store.id,
                 customerName: formData.name,
                 customerPhone: formData.phone,
@@ -91,11 +111,69 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
                 subtotal: finalTotal,
                 originalTotal: appliedCoupon ? cartTotal : null,
                 discountAmount: appliedCoupon ? calculateDiscountAmount() : 0,
+                taxAmount: calculateTaxAmount(),
+                taxRate: taxEnabled ? taxRate : 0,
+                taxName: taxEnabled ? taxName : null,
+                total: finalTotal + calculateTaxAmount(),
                 couponCode: appliedCoupon ? appliedCoupon.code : null,
                 currency: store.currency
             });
 
-            // Prepare WhatsApp Message
+            const { order, orderNumber, gatewayOptions } = res.data;
+
+            if (store.checkoutMode === 'gateway' && gatewayOptions) {
+                if (gatewayOptions.provider === 'razorpay') {
+                    const loaded = await loadRazorpay();
+                    if (!loaded) {
+                        toast.error("Failed to load payment gateway.");
+                        setIsSubmitting(false);
+                        return;
+                    }
+                    const options = {
+                        key: gatewayOptions.keyId,
+                        amount: gatewayOptions.amount,
+                        currency: gatewayOptions.currency,
+                        name: store.name,
+                        description: `Order ${orderNumber}`,
+                        order_id: gatewayOptions.orderId,
+                        prefill: {
+                            name: formData.name,
+                            email: formData.email,
+                            contact: formData.phone
+                        },
+                        handler: async function (response) {
+                            try {
+                                await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/public/${store.slug}/verify-payment`, {
+                                    orderNumber,
+                                    paymentData: response,
+                                    provider: 'razorpay'
+                                });
+                                toast.success('Payment successful! Order placed.');
+                                if (onCheckoutSuccess) onCheckoutSuccess();
+                                onClose();
+                            } catch (err) {
+                                toast.error('Payment verification failed.');
+                            }
+                        },
+                        modal: {
+                            ondismiss: function() {
+                                setIsSubmitting(false);
+                            }
+                        }
+                    };
+                    const rzp = new window.Razorpay(options);
+                    rzp.on('payment.failed', function (response) {
+                        toast.error(response.error.description || 'Payment failed');
+                    });
+                    rzp.open();
+                    return; // Wait for Razorpay flow to complete
+                } else if (gatewayOptions.provider === 'phonepe') {
+                    window.location.href = gatewayOptions.redirectUrl;
+                    return; // Will redirect away
+                }
+            }
+
+            // WhatsApp Flow
             let message = `🛒 *New Order from ${store.name}*\n\n`;
             message += `👤 *Customer Details:*\n`;
             message += `Name: ${formData.name}\n`;
@@ -254,9 +332,15 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
                                 <span>-{getCurrencySymbol(store.currency)}{calculateDiscountAmount().toFixed(2)}</span>
                             </div>
                         )}
+                        {taxEnabled && (
+                            <div className="flex justify-between text-gray-500">
+                                <span>{taxName} ({taxRate}%)</span>
+                                <span>{getCurrencySymbol(store.currency)}{calculateTaxAmount().toFixed(2)}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between text-xl font-bold text-gray-900 border-t border-gray-200 pt-3">
                             <span>Total</span>
-                            <span>{getCurrencySymbol(store.currency)}{calculateFinalTotal().toFixed(2)}</span>
+                            <span>{getCurrencySymbol(store.currency)}{(calculateFinalTotal() + calculateTaxAmount()).toFixed(2)}</span>
                         </div>
                     </div>
                     
@@ -268,11 +352,14 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
                         {isSubmitting ? (
                             <><Loader2 className="w-6 h-6 animate-spin" /> Processing...</>
                         ) : (
-                            <>Confirm & Send to WhatsApp <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>
+                            <>
+                                {store.checkoutMode === 'gateway' ? 'Pay & Place Order' : 'Confirm & Send to WhatsApp'} 
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            </>
                         )}
                     </button>
                     <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
-                        Your order details will be sent directly to the seller via WhatsApp.
+                        {store.checkoutMode === 'gateway' ? 'You will be redirected to secure payment gateway.' : 'Your order details will be sent directly to the seller via WhatsApp.'}
                     </p>
                 </div>
 

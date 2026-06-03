@@ -79,13 +79,16 @@ const WaStoreThemes = React.lazy(() => import('./pages/WaStoreManager/WaStoreThe
 const WaStoreSettings = React.lazy(() => import('./pages/WaStoreManager/WaStoreSettings'));
 const WaStoreBasicDetails = React.lazy(() => import('./pages/WaStoreManager/WaStoreBasicDetails'));
 const WaStoreOrders = React.lazy(() => import('./pages/WaStoreManager/WaStoreOrders'));
+const WaStorePOS = React.lazy(() => import('./pages/WaStoreManager/WaStorePOS'));
 const WaStoreCategories = React.lazy(() => import('./pages/WaStoreManager/WaStoreCategories'));
 const WaStoreCoupons = React.lazy(() => import('./pages/WaStoreManager/WaStoreCoupons'));
 const WaStoreSEO = React.lazy(() => import('./pages/WaStoreManager/WaStoreSEO'));
 const WaStorePolicies = React.lazy(() => import('./pages/WaStoreManager/WaStorePolicies'));
 const WaStoreAnalytics = React.lazy(() => import('./pages/WaStoreManager/WaStoreAnalytics'));
+const WaStoreNotifications = React.lazy(() => import('./pages/WaStoreManager/WaStoreNotifications'));
 const PublicWaStore = React.lazy(() => import('./pages/PublicWaStore'));
 const PublicWaProduct = React.lazy(() => import('./pages/PublicWaProduct'));
+const PublicWaStoreVerify = React.lazy(() => import('./pages/PublicWaStoreVerify'));
 const VcardLayout = React.lazy(() => import('./pages/VcardManager/VcardLayout'));
 const VcardDashboard = React.lazy(() => import('./pages/VcardManager/VcardDashboard'));
 const VcardList = React.lazy(() => import('./pages/VcardManager/VcardList'));
@@ -253,6 +256,7 @@ function CustomDomainRouter({ children }) {
         // Render custom domain store routing
         return (
             <Routes>
+                <Route path="/verify" element={<PublicWaStoreVerify />} />
                 <Route path="/product/:productId" element={<PublicWaProduct customSlug={storeSlug} />} />
                 <Route path="*" element={<PublicWaStore customSlug={storeSlug} />} />
             </Routes>
@@ -285,6 +289,7 @@ function App() {
                                         <Route path="/vcard/:slug" element={<PublicVcard />} /> {/* NEW: Public Digital Business Card */}
                                         <Route path="/nfc/setup/:shortCode" element={<NfcSetup />} /> {/* NEW: NFC Setup */}
                                         <Route path="/store/:slug" element={<PublicWaStore />} /> {/* NEW: Public WhatsApp Store */}
+                                        <Route path="/store/:slug/verify" element={<PublicWaStoreVerify />} />
                                         <Route path="/store/:slug/product/:productId" element={<PublicWaProduct />} /> {/* NEW: Single Product */}
                                         <Route element={<GuestRoute />}>
                                             <Route path="/login" element={<Login />} />
@@ -319,14 +324,16 @@ function App() {
                                                 </Route>
                                                 <Route path="/vcards/builder" element={<VcardBuilder />} />
                                                 <Route path="/vcards/builder/:id" element={<VcardBuilder />} />
-                                                <Route path="/wastore" element={<WaStoreList />} />
-                                                <Route path="/wastore/:slug" element={<WaStoreLayout />}>
+                                                <Route path="/online-store" element={<WaStoreList />} />
+                                                <Route path="/online-store/:slug" element={<WaStoreLayout />}>
                                                     <Route index element={<Navigate to="analytics" replace />} />
                                                     <Route path="analytics" element={<WaStoreAnalytics />} />
                                                     <Route path="details" element={<WaStoreBasicDetails />} />
                                                     <Route path="products" element={<WaProductList />} />
                                                     <Route path="categories" element={<WaStoreCategories />} />
                                                     <Route path="orders" element={<WaStoreOrders />} />
+                                                    <Route path="pos" element={<WaStorePOS />} />
+                                                    <Route path="notifications" element={<WaStoreNotifications />} />
                                                     <Route path="coupons" element={<WaStoreCoupons />} />
                                                     <Route path="seo" element={<WaStoreSEO />} />
                                                     <Route path="themes" element={<WaStoreThemes />} />

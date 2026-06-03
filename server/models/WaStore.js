@@ -115,6 +115,36 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: {},
         comment: 'Stores meta title, description, keywords, GA/Pixel IDs'
     },
+    checkoutMode: {
+        type: DataTypes.ENUM('whatsapp', 'gateway'),
+        defaultValue: 'whatsapp',
+        comment: 'Determines if checkout redirects to WhatsApp or uses Direct Payment Gateway'
+    },
+    paymentProvider: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'e.g. razorpay, phonepe'
+    },
+    paymentConfig: {
+        type: DataTypes.JSON,
+        defaultValue: {},
+        comment: 'Stores API keys/secrets securely'
+    },
+    taxConfig: {
+        type: DataTypes.JSON,
+        defaultValue: { enabled: false, type: 'gst', rate: 0, autoGenerateBill: false, autoSendWhatsApp: false },
+        comment: 'Stores global tax / GST configuration'
+    },
+    shippingConfig: {
+        type: DataTypes.JSON,
+        defaultValue: { enabled: false, provider: null },
+        comment: 'Stores Shiprocket / Delhivery config'
+    },
+    notificationTemplates: {
+        type: DataTypes.JSON,
+        defaultValue: {},
+        comment: 'Per-trigger notification config: { order_placed: { enabled, mode, templateId, customMessage }, ... }'
+    },
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true

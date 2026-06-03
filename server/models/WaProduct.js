@@ -50,6 +50,16 @@ const WaProduct = sequelize.define('WaProduct', {
         type: DataTypes.JSON,
         defaultValue: [],
         comment: 'Array of { name: "Size", values: ["S", "M", "L"] }'
+    },
+    wholesalePrice: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        comment: 'Special B2B wholesale price'
+    },
+    minWholesaleQty: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Minimum quantity to qualify for wholesale price'
     }
 }, {
     timestamps: true

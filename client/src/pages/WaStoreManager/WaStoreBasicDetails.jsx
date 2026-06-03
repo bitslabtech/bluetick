@@ -235,7 +235,7 @@ const SectionCard = ({ title, description, children }) => (
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function WaStoreBasicDetails() {
-    const { storeId } = useOutletContext();
+    const { storeId, setParentStore } = useOutletContext();
     const [store, setStore]   = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving]   = useState(false);
@@ -260,6 +260,7 @@ export default function WaStoreBasicDetails() {
         setSaving(true);
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, store);
+            if (setParentStore) setParentStore(store);
             toast.success('Basic details saved successfully!');
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to save details');

@@ -11,6 +11,7 @@ const auth = require('../middleware/auth');
 const axios = require('axios');
 const storageProvider = require('../utils/storageProvider');
 const { Op, fn, col, literal } = require('sequelize');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // ==========================================
 // PUBLIC ROUTES
@@ -120,7 +121,7 @@ router.get('/public/domain/:domain', async (req, res) => {
 // POST /api/wastore/orders  — Public: record a new order (called from storefront before WhatsApp redirect)
 router.post('/orders', async (req, res) => {
     try {
-        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, items, subtotal, originalTotal, discountAmount, couponCode, currency } = req.body;
+        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total } = req.body;
 
         if (!storeId || !items || !subtotal) {
             return res.status(400).json({ error: 'Missing required order fields' });
@@ -140,8 +141,80 @@ router.post('/orders', async (req, res) => {
             originalTotal: originalTotal || null,
             discountAmount: parseFloat(discountAmount) || 0,
             couponCode: couponCode || null,
+            taxAmount: parseFloat(taxAmount) || 0,
+            total: parseFloat(total) || subtotal,
             status: 'pending'
         });
+
+        // If checkout mode is gateway, initialize payment
+        if (store.checkoutMode === 'gateway') {
+            if (store.paymentProvider === 'razorpay') {
+                const Razorpay = require('razorpay');
+                const rzp = new Razorpay({
+                    key_id: store.paymentConfig?.razorpayKeyId,
+                    key_secret: store.paymentConfig?.razorpayKeySecret
+                });
+
+                const amountPaise = Math.round(order.subtotal * 100);
+                const rzpOrder = await rzp.orders.create({
+                    amount: amountPaise,
+                    currency: order.currency || 'INR',
+                    receipt: order.orderNumber
+                });
+
+                return res.json({
+                    order,
+                    orderNumber,
+                    gatewayOptions: {
+                        provider: 'razorpay',
+                        keyId: store.paymentConfig?.razorpayKeyId,
+                        amount: rzpOrder.amount,
+                        currency: rzpOrder.currency,
+                        orderId: rzpOrder.id
+                    }
+                });
+            } else if (store.paymentProvider === 'phonepe') {
+                const crypto = require('crypto');
+                const merchantId = store.paymentConfig?.phonepeMerchantId;
+                const saltKey = store.paymentConfig?.phonepeSaltKey;
+                const saltIndex = store.paymentConfig?.phonepeSaltIndex || '1';
+
+                const payload = {
+                    merchantId: merchantId,
+                    merchantTransactionId: order.orderNumber,
+                    merchantUserId: customerPhone.replace(/\D/g, '') || 'USER123',
+                    amount: Math.round(order.subtotal * 100),
+                    // Redirect back to the store
+                    redirectUrl: `${process.env.APP_URL || 'http://localhost:5173'}/store/${store.slug}/verify?order=${order.orderNumber}`,
+                    redirectMode: "POST",
+                    callbackUrl: `${process.env.APP_URL || 'http://localhost:5000'}/api/wastore/public/${store.slug}/phonepe-callback`,
+                    mobileNumber: customerPhone.replace(/\D/g, ''),
+                    paymentInstrument: {
+                        type: "PAY_PAGE"
+                    }
+                };
+
+                const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
+                const checksum = crypto.createHash('sha256').update(base64Payload + "/pg/v1/pay" + saltKey).digest('hex') + "###" + saltIndex;
+
+                const phonePeEndpoint = (process.env.NODE_ENV === 'production') 
+                    ? "https://api.phonepe.com/apis/hermes/pg/v1/pay" 
+                    : "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay";
+
+                const response = await axios.post(phonePeEndpoint, { request: base64Payload }, {
+                    headers: { 'Content-Type': 'application/json', 'X-VERIFY': checksum }
+                });
+
+                return res.json({
+                    order,
+                    orderNumber,
+                    gatewayOptions: {
+                        provider: 'phonepe',
+                        redirectUrl: response.data?.data?.instrumentResponse?.redirectInfo?.url
+                    }
+                });
+            }
+        }
 
         res.json({ order, orderNumber });
     } catch (error) {
@@ -150,11 +223,321 @@ router.post('/orders', async (req, res) => {
     }
 });
 
+async function sendWhatsAppInvoiceHelper(store, user, order, customerName, customerPhone) {
+    if (!user.fbAccessToken || !user.metaPhoneNumberId) return;
+    try {
+        const { generateInvoicePdf } = require('../utils/invoiceGenerator');
+        const fs = require('fs');
+        const path = require('path');
+        const axios = require('axios');
+        const FormData = require('form-data');
+        
+        const invoicesDir = path.join(__dirname, '..', 'public', 'uploads', 'invoices');
+        if (!fs.existsSync(invoicesDir)) fs.mkdirSync(invoicesDir, { recursive: true });
+        
+        const fileName = `invoice_${order.orderNumber}.pdf`;
+        const filePath = path.join(invoicesDir, fileName);
+        
+        // Format WhatsApp number (strip + or anything non-numeric)
+        let phone = customerPhone.replace(/\D/g, '');
+        
+        await generateInvoicePdf(
+            { orderNumber: order.orderNumber, items: order.items, subtotal: order.subtotal, taxAmount: order.taxAmount, total: order.total, taxName: order.taxName, taxRate: order.taxRate },
+            { name: store.name, currency: store.currency || 'USD', contactEmail: user.email, contactPhone: user.phone },
+            { name: customerName, phone: customerPhone },
+            filePath
+        );
+
+        const form = new FormData();
+        form.append('file', fs.createReadStream(filePath));
+        form.append('type', 'document');
+        form.append('messaging_product', 'whatsapp');
+
+        const uploadRes = await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/media`, form, {
+            headers: {
+                ...form.getHeaders(),
+                'Authorization': `Bearer ${user.fbAccessToken}`
+            }
+        });
+
+        const mediaId = uploadRes.data.id;
+
+        await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: phone,
+            type: 'document',
+            document: {
+                id: mediaId,
+                filename: `Invoice_${order.orderNumber}.pdf`,
+                caption: `Hi ${customerName},\n\nThank you for your purchase at ${store.name}! Attached is your invoice for Order ${order.orderNumber}.`
+            }
+        }, {
+            headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
+        });
+    } catch (err) {
+        console.error("Failed to generate/send invoice:", err.response?.data || err.message);
+    }
+}
+
+// ── Order Notification Helper ─────────────────────────────────────────────────
+// Fires the configured notification template/text for a given trigger key.
+async function sendOrderNotification(triggerKey, store, user, order, extras = {}) {
+    try {
+        const notifConfig = store.notificationTemplates?.[triggerKey];
+        if (!notifConfig?.enabled) return;
+        if (!order.customerPhone) return;
+        if (!user?.fbAccessToken || !user?.metaPhoneNumberId) return;
+
+        const phone = order.customerPhone.replace(/\D/g, '');
+        const customerName = order.customerName || 'Customer';
+        const storeName = store.name || 'Our Store';
+        const orderNumber = order.orderNumber;
+        const orderTotal = order.subtotal ? `${order.currency || ''} ${Number(order.subtotal).toFixed(2)}` : '';
+        const trackingProvider = extras.trackingProvider || order.trackingProvider || '';
+        const trackingUrl = extras.trackingUrl || order.trackingUrl || '';
+
+        const interpolate = (str) => (str || '')
+            .replace(/{{customer_name}}/g, customerName)
+            .replace(/{{order_number}}/g, orderNumber)
+            .replace(/{{store_name}}/g, storeName)
+            .replace(/{{order_total}}/g, orderTotal)
+            .replace(/{{tracking_provider}}/g, trackingProvider)
+            .replace(/{{tracking_url}}/g, trackingUrl);
+
+        const mode = notifConfig.mode || 'template';
+
+        if (mode === 'template' && notifConfig.templateId) {
+            const Template = require('../models/Template');
+            const tmpl = await Template.findByPk(notifConfig.templateId);
+            if (!tmpl || tmpl.status !== 'APPROVED') return;
+
+            await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: phone,
+                type: 'template',
+                template: {
+                    name: tmpl.name,
+                    language: { code: tmpl.language || 'en_US' },
+                    components: []
+                }
+            }, {
+                headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
+            });
+        } else if (mode === 'text' && notifConfig.customMessage) {
+            const body = interpolate(notifConfig.customMessage);
+            await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: phone,
+                type: 'text',
+                text: { preview_url: false, body }
+            }, {
+                headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
+            });
+        }
+    } catch (err) {
+        console.error(`[OrderNotif] Failed to send ${triggerKey} notification:`, err.response?.data || err.message);
+    }
+}
+
+// POST /api/wastore/:storeId/orders/pos — Create Offline POS Order & Send Invoice
+router.post('/:storeId/orders/pos', async (req, res) => {
+    try {
+        const { customerName, customerPhone, items, subtotal, taxAmount, total, taxRate, taxName, sendInvoice } = req.body;
+        
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+        
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        
+        const generateOrderNumber = () => 'POS-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+        const orderNumber = generateOrderNumber();
+
+        const order = await WaOrder.create({
+            storeId: store.id,
+            orderNumber,
+            customerName,
+            customerPhone,
+            items,
+            subtotal,
+            taxAmount,
+            taxRate,
+            taxName,
+            total,
+            currency: store.currency || 'USD',
+            status: 'delivered', // POS is instantly delivered
+            source: 'pos'
+        });
+
+        if (sendInvoice && user.fbAccessToken && user.metaPhoneNumberId) {
+            await sendWhatsAppInvoiceHelper(store, user, order, customerName, customerPhone);
+        }
+
+        res.json({ order, orderNumber });
+    } catch (error) {
+        console.error('POS order error:', error);
+        res.status(500).json({ error: 'Failed to process POS order' });
+    }
+});
+
+// POST /api/wastore/public/:slug/verify-payment  — Public: verify gateway payment
+router.post('/public/:slug/verify-payment', async (req, res) => {
+    try {
+        const { orderNumber, paymentData, provider } = req.body;
+        const store = await WaStore.findOne({ where: { slug: req.params.slug, isActive: true } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const order = await WaOrder.findOne({ where: { orderNumber, storeId: store.id } });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        if (provider === 'razorpay') {
+            const crypto = require('crypto');
+            const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = paymentData;
+            
+            const body = razorpay_order_id + "|" + razorpay_payment_id;
+            const expectedSignature = crypto
+                .createHmac('sha256', store.paymentConfig?.razorpayKeySecret || '')
+                .update(body.toString())
+                .digest('hex');
+                
+            if (expectedSignature === razorpay_signature) {
+                order.status = 'confirmed';
+                order.notes = (order.notes ? order.notes + '\n' : '') + `Payment ID: ${razorpay_payment_id}`;
+                await order.save();
+
+                if (store.taxConfig?.autoSendInvoice) {
+                    const user = await User.findByPk(store.userId);
+                    if (user) await sendWhatsAppInvoiceHelper(store, user, order, order.customerName, order.customerPhone);
+                }
+                
+                return res.json({ success: true, order });
+            } else {
+                return res.status(400).json({ error: 'Invalid payment signature' });
+            }
+        }
+        
+        // Handle PhonePe callback if needed, but phonepe-callback endpoint handles S2S
+        if (provider === 'phonepe-check') {
+             // For PhonePe we can check the status API
+             const crypto = require('crypto');
+             const merchantId = store.paymentConfig?.phonepeMerchantId;
+             const saltKey = store.paymentConfig?.phonepeSaltKey;
+             const saltIndex = store.paymentConfig?.phonepeSaltIndex || '1';
+
+             const checksum = crypto.createHash('sha256').update(`/pg/v1/status/${merchantId}/${orderNumber}` + saltKey).digest('hex') + "###" + saltIndex;
+             
+             const statusEndpoint = (process.env.NODE_ENV === 'production')
+                ? `https://api.phonepe.com/apis/hermes/pg/v1/status/${merchantId}/${orderNumber}`
+                : `https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/status/${merchantId}/${orderNumber}`;
+                
+             const response = await axios.get(statusEndpoint, {
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'X-VERIFY': checksum,
+                     'X-MERCHANT-ID': merchantId
+                 }
+             });
+             
+             if (response.data.code === 'PAYMENT_SUCCESS') {
+                 order.status = 'confirmed';
+                 order.notes = (order.notes ? order.notes + '\n' : '') + `PhonePe Txn: ${response.data.data.transactionId}`;
+                 await order.save();
+
+                 if (store.taxConfig?.autoSendInvoice) {
+                     const user = await User.findByPk(store.userId);
+                     if (user) await sendWhatsAppInvoiceHelper(store, user, order, order.customerName, order.customerPhone);
+                 }
+
+                 return res.json({ success: true, order });
+             } else {
+                 return res.json({ success: false, status: response.data.code });
+             }
+        }
+
+        res.status(400).json({ error: 'Unknown provider' });
+    } catch (error) {
+        console.error('Verify payment error:', error);
+        res.status(500).json({ error: 'Failed to verify payment' });
+    }
+});
+
+// POST /api/wastore/public/:slug/phonepe-callback
+router.post('/public/:slug/phonepe-callback', async (req, res) => {
+    try {
+        const { response } = req.body;
+        if (!response) return res.status(400).send('No response');
+        
+        const decoded = JSON.parse(Buffer.from(response, 'base64').toString('utf-8'));
+        const orderNumber = decoded.data.merchantTransactionId;
+        
+        const store = await WaStore.findOne({ where: { slug: req.params.slug, isActive: true } });
+        if (!store) return res.status(404).send('Store not found');
+        
+        const order = await WaOrder.findOne({ where: { orderNumber, storeId: store.id } });
+        if (order && decoded.code === 'PAYMENT_SUCCESS') {
+            order.status = 'confirmed';
+            await order.save();
+        }
+        res.send('OK');
+    } catch (error) {
+        console.error('PhonePe callback error:', error);
+        res.status(500).send('Error');
+    }
+});
+
+
 
 // ==========================================
 // PROTECTED USER ROUTES
 // ==========================================
 router.use(auth);
+
+// POST /api/wastore/ai-description — Generate AI product description
+router.post('/ai-description', async (req, res) => {
+    try {
+        const { productName, keywords } = req.body;
+        if (!productName) return res.status(400).json({ error: 'Product name is required' });
+
+        const user = await User.findByPk(req.user.id);
+        const tokensNeeded = 100; // Arbitrary cost for product description
+
+        if (user.aiTokenBalance < tokensNeeded) {
+            return res.status(403).json({ error: 'Insufficient AI tokens. Please upgrade or top up.' });
+        }
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        let prompt = `Write an engaging, SEO-friendly product description for an online store product named "${productName}".\n`;
+        if (keywords) {
+            prompt += `Please include these keywords naturally: ${keywords}.\n`;
+        }
+        prompt += `Keep it professional, compelling, and around 2-3 paragraphs. Emphasize benefits. Don't add markdown formatting like asterisks.`;
+
+        const result = await model.generateContent(prompt);
+        const description = result.response.text().trim();
+
+        // Deduct Tokens
+        user.aiTokenBalance -= tokensNeeded;
+        await user.save();
+
+        await AiTokenLog.create({
+            userId: req.user.id,
+            tokensUsed: tokensNeeded,
+            feature: 'ai_store_copilot',
+            description: `Generated product description for "${productName}"`
+        });
+
+        res.json({ description, tokensDeducted: tokensNeeded });
+
+    } catch (error) {
+        console.error('AI Gen error:', error);
+        res.status(500).json({ error: 'Failed to generate AI description' });
+    }
+});
 
 // POST /api/wastore/upload/logo  — Upload store logo image
 router.post('/upload/logo', storageProvider('wastore-logos', { fileFilter: storageProvider.generalImageFilter }).single('logo'), async (req, res) => {
@@ -338,12 +721,15 @@ router.post('/:storeId/products', async (req, res) => {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id }});
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
-        const product = await WaProduct.create({
-            ...req.body,
-            storeId: req.params.storeId
-        });
+        const payload = { ...req.body, storeId: req.params.storeId };
+        if (payload.compareAtPrice === '') payload.compareAtPrice = null;
+        if (payload.wholesalePrice === '') payload.wholesalePrice = null;
+        if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
+
+        const product = await WaProduct.create(payload);
         res.status(201).json(product);
     } catch (error) {
+        console.error('Create product error:', error);
         res.status(500).json({ error: 'Failed to create product' });
     }
 });
@@ -357,9 +743,15 @@ router.put('/products/:productId', async (req, res) => {
         const store = await WaStore.findOne({ where: { id: product.storeId, userId: req.user.id } });
         if (!store) return res.status(403).json({ error: 'Unauthorized' });
 
-        await product.update(req.body);
+        const payload = { ...req.body };
+        if (payload.compareAtPrice === '') payload.compareAtPrice = null;
+        if (payload.wholesalePrice === '') payload.wholesalePrice = null;
+        if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
+
+        await product.update(payload);
         res.json(product);
     } catch (error) {
+        console.error('Update product error:', error);
         res.status(500).json({ error: 'Failed to update product' });
     }
 });
@@ -492,13 +884,78 @@ router.patch('/:storeId/orders/:orderId', async (req, res) => {
         if (!order) return res.status(404).json({ error: 'Order not found' });
 
         const { status, notes } = req.body;
+        const prevStatus = order.status;
         if (status) order.status = status;
         if (notes !== undefined) order.notes = notes;
         await order.save();
 
+        // Fire notification for status change
+        if (status && status !== prevStatus) {
+            const triggerMap = {
+                confirmed: 'order_confirmed',
+                processing: 'order_processing',
+                shipped: 'order_shipped',
+                delivered: 'order_delivered',
+                cancelled: 'order_cancelled',
+            };
+            const triggerKey = triggerMap[status];
+            if (triggerKey) {
+                const user = await User.findByPk(req.user.id);
+                if (user) await sendOrderNotification(triggerKey, store, user, order);
+            }
+        }
+
         res.json(order);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update order' });
+    }
+});
+
+// POST /api/wastore/:storeId/orders/:orderId/fulfill — Fulfill order and send tracking WhatsApp
+router.post('/:storeId/orders/:orderId/fulfill', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const order = await WaOrder.findOne({ where: { id: req.params.orderId, storeId: req.params.storeId } });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        const { trackingProvider, trackingUrl } = req.body;
+        order.trackingProvider = trackingProvider;
+        order.trackingUrl = trackingUrl;
+        order.status = 'shipped';
+        await order.save();
+
+        const user = await User.findByPk(req.user.id);
+        if (user && user.fbAccessToken && user.metaPhoneNumberId && order.customerPhone) {
+            const axios = require('axios');
+            let phone = order.customerPhone.replace(/\D/g, '');
+            const messageText = `Hi ${order.customerName},\n\nGreat news! Your order *${order.orderNumber}* from ${store.name} has been shipped.\n\n`
+                + `*Carrier:* ${trackingProvider || 'Our Delivery Partner'}\n`
+                + (trackingUrl ? `*Track your order here:* ${trackingUrl}\n\n` : '\n')
+                + `Thank you for shopping with us!`;
+
+            try {
+                await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
+                    messaging_product: 'whatsapp',
+                    recipient_type: 'individual',
+                    to: phone,
+                    type: 'text',
+                    text: { preview_url: true, body: messageText }
+                }, {
+                    headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
+                });
+            } catch (err) {
+                console.error("Failed to send tracking whatsapp:", err.response?.data || err.message);
+            }
+        }
+        
+        if (user) await sendOrderNotification('order_shipped', store, user, order);
+
+        res.json(order);
+    } catch (error) {
+        console.error('Fulfill order error:', error);
+        res.status(500).json({ error: 'Failed to fulfill order' });
     }
 });
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight } from 'lucide-react';
+import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreLayout() {
@@ -80,16 +80,18 @@ export default function WaStoreLayout() {
     };
 
     const navItems = [
-        { path: `/wastore/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
-        { path: `/wastore/${slug}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
-        { path: `/wastore/${slug}/products`, icon: <Package className="w-5 h-5" />, label: 'Products' },
-        { path: `/wastore/${slug}/categories`, icon: <Tag className="w-5 h-5" />, label: 'Categories' },
-        { path: `/wastore/${slug}/orders`, icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
-        { path: `/wastore/${slug}/coupons`, icon: <Tag className="w-5 h-5" />, label: 'Promo Codes' },
-        { path: `/wastore/${slug}/seo`, icon: <Search className="w-5 h-5" />, label: 'SEO & Tracking' },
-        { path: `/wastore/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
-        { path: `/wastore/${slug}/policies`, icon: <FileText className="w-5 h-5" />, label: 'Policies' },
-        { path: `/wastore/${slug}/settings`, icon: <Settings className="w-5 h-5" />, label: 'Settings' },
+        { path: `/online-store/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
+        { path: `/online-store/${slug}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
+        { path: `/online-store/${slug}/products`, icon: <Package className="w-5 h-5" />, label: 'Products' },
+        { path: `/online-store/${slug}/categories`, icon: <Tag className="w-5 h-5" />, label: 'Categories' },
+        { path: `/online-store/${slug}/orders`, icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
+        { path: `/online-store/${slug}/pos`, icon: <ShoppingBag className="w-5 h-5" />, label: 'POS' },
+        { path: `/online-store/${slug}/notifications`, icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
+        { path: `/online-store/${slug}/coupons`, icon: <Tag className="w-5 h-5" />, label: 'Promo Codes' },
+        { path: `/online-store/${slug}/seo`, icon: <Search className="w-5 h-5" />, label: 'SEO & Tracking' },
+        { path: `/online-store/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
+        { path: `/online-store/${slug}/policies`, icon: <FileText className="w-5 h-5" />, label: 'Policies' },
+        { path: `/online-store/${slug}/settings`, icon: <Settings className="w-5 h-5" />, label: 'Settings' },
     ];
 
     if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading store manager...</div>;
@@ -98,7 +100,7 @@ export default function WaStoreLayout() {
     const storeUrl = `${window.location.origin}/store/${store.slug}`;
 
     return (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-7 sm:pb-20">
+        <div className="flex flex-col gap-6 w-full lg:w-[70%] max-w-[1600px] mx-auto px-4 lg:px-0 pb-7 sm:pb-20">
             {/* Animated Gradient CSS */}
             <style>{`
                 @keyframes coverGradientShift {
@@ -187,7 +189,7 @@ export default function WaStoreLayout() {
                 <div className="relative px-6 pb-6 sm:px-4 md:px-8">
                     <div className="flex flex-col sm:flex-row sm:items-end gap-6 -mt-12 sm:-mt-16 mb-4">
                         {store.logo ? (
-                            <img src={store.logo} alt="Logo" className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-white dark:border-surface-dark shadow-md bg-white" />
+                            <img src={store.logo} alt="Logo" className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl object-contain p-1 border-4 border-white dark:border-surface-dark shadow-md bg-white" />
                         ) : (
                             <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-white dark:border-surface-dark shadow-md bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-500 font-bold text-3xl">
                                 {store.name.charAt(0)}
@@ -257,7 +259,7 @@ export default function WaStoreLayout() {
                 {/* Sidebar */}
                 <div className="w-full md:w-64 flex-shrink-0">
                     <button 
-                        onClick={() => navigate('/wastore')}
+                        onClick={() => navigate('/online-store')}
                         className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white mb-6 transition-colors font-medium px-2"
                     >
                         <ArrowLeft className="w-4 h-4" /> Back to Stores
@@ -318,7 +320,7 @@ export default function WaStoreLayout() {
 
                 {/* Main Content Area */}
                 <div className="flex-1 min-w-0">
-                    <Outlet context={{ storeId: store.id }} />
+                    <Outlet context={{ storeId: store.id, store: store, setParentStore: setStore }} />
                 </div>
             </div>
         </div>

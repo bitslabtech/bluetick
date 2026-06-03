@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Settings, Trash2, AlertTriangle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreSettings() {
@@ -17,6 +17,14 @@ export default function WaStoreSettings() {
     const [gridColumns, setGridColumns] = useState({ desktop: 4, mobile: 2 });
     const [savingGrid, setSavingGrid] = useState(false);
 
+    const [checkoutMode, setCheckoutMode] = useState('whatsapp');
+    const [paymentProvider, setPaymentProvider] = useState('');
+    const [paymentConfig, setPaymentConfig] = useState({ razorpayKeyId: '', razorpayKeySecret: '', phonepeMerchantId: '', phonepeSaltKey: '', phonepeSaltIndex: '1' });
+    const [savingCheckout, setSavingCheckout] = useState(false);
+
+    const [taxConfig, setTaxConfig] = useState({ enabled: false, type: 'gst', rate: 0, autoGenerateBill: false, autoSendWhatsApp: false });
+    const [savingTax, setSavingTax] = useState(false);
+
     useEffect(() => {
         const fetchStore = async () => {
             try {
@@ -25,6 +33,10 @@ export default function WaStoreSettings() {
                 setStore(myStore);
                 if (myStore?.customDomain) setCustomDomain(myStore.customDomain);
                 if (myStore?.gridColumns) setGridColumns(myStore.gridColumns);
+                if (myStore?.checkoutMode) setCheckoutMode(myStore.checkoutMode);
+                if (myStore?.paymentProvider) setPaymentProvider(myStore.paymentProvider);
+                if (myStore?.paymentConfig) setPaymentConfig(prev => ({ ...prev, ...myStore.paymentConfig }));
+                if (myStore?.taxConfig) setTaxConfig(prev => ({ ...prev, ...myStore.taxConfig }));
             } catch (error) {
                 toast.error('Failed to load store settings');
             } finally {
@@ -76,6 +88,34 @@ export default function WaStoreSettings() {
             toast.error('Failed to save grid layout');
         } finally {
             setSavingGrid(false);
+        }
+    };
+
+    const handleSaveCheckout = async () => {
+        setSavingCheckout(true);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
+                checkoutMode, paymentProvider, paymentConfig
+            });
+            toast.success('Checkout settings saved!');
+        } catch (error) {
+            toast.error('Failed to save checkout settings');
+        } finally {
+            setSavingCheckout(false);
+        }
+    };
+
+    const handleSaveTax = async () => {
+        setSavingTax(true);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
+                taxConfig
+            });
+            toast.success('Tax settings saved!');
+        } catch (error) {
+            toast.error('Failed to save tax settings');
+        } finally {
+            setSavingTax(false);
         }
     };
 
@@ -293,6 +333,165 @@ export default function WaStoreSettings() {
                         className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
                     >
                         {savingGrid ? 'Saving...' : 'Save Grid Layout'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Checkout & Payment Configuration */}
+            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4 text-indigo-400" /> Checkout & Payment
+                    </h3>
+                </div>
+                <div className="p-4 md:p-6 space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Checkout Mode</label>
+                        <select 
+                            value={checkoutMode} 
+                            onChange={e => setCheckoutMode(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
+                        >
+                            <option value="whatsapp">WhatsApp Conversational Checkout</option>
+                            <option value="gateway">Direct Payment Gateway (Express Checkout)</option>
+                        </select>
+                        <p className="text-xs text-slate-500 mt-1">
+                            {checkoutMode === 'whatsapp' ? 'Customers will complete their order by sending a WhatsApp message to your number.' : 'Customers will pay directly on your website using a payment gateway.'}
+                        </p>
+                    </div>
+
+                    {checkoutMode === 'gateway' && (
+                        <div className="space-y-4 p-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/30">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Select Payment Provider</label>
+                                <select 
+                                    value={paymentProvider} 
+                                    onChange={e => setPaymentProvider(e.target.value)}
+                                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
+                                >
+                                    <option value="">-- Select Provider --</option>
+                                    <option value="razorpay">Razorpay</option>
+                                    <option value="phonepe">PhonePe</option>
+                                </select>
+                            </div>
+
+                            {paymentProvider === 'razorpay' && (
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Razorpay Key ID</label>
+                                        <input type="text" value={paymentConfig.razorpayKeyId || ''} onChange={e => setPaymentConfig(p => ({...p, razorpayKeyId: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Razorpay Key Secret</label>
+                                        <input type="password" value={paymentConfig.razorpayKeySecret || ''} onChange={e => setPaymentConfig(p => ({...p, razorpayKeySecret: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {paymentProvider === 'phonepe' && (
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Merchant ID</label>
+                                        <input type="text" value={paymentConfig.phonepeMerchantId || ''} onChange={e => setPaymentConfig(p => ({...p, phonepeMerchantId: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Salt Key</label>
+                                        <input type="password" value={paymentConfig.phonepeSaltKey || ''} onChange={e => setPaymentConfig(p => ({...p, phonepeSaltKey: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Salt Index</label>
+                                        <input type="text" value={paymentConfig.phonepeSaltIndex || '1'} onChange={e => setPaymentConfig(p => ({...p, phonepeSaltIndex: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={handleSaveCheckout}
+                        disabled={savingCheckout}
+                        className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
+                    >
+                        {savingCheckout ? 'Saving...' : 'Save Checkout Settings'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Tax & GST Configuration */}
+            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-indigo-400" /> Tax & GST Configuration
+                    </h3>
+                </div>
+                <div className="p-4 md:p-6 space-y-5">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            checked={taxConfig.enabled} 
+                            onChange={e => setTaxConfig({...taxConfig, enabled: e.target.checked})}
+                            className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm font-medium text-slate-900 dark:text-white">Enable Taxes / GST</span>
+                    </label>
+
+                    {taxConfig.enabled && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-8 border-l-2 border-indigo-100 dark:border-indigo-900/50 mt-2">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Tax System</label>
+                                <select 
+                                    value={taxConfig.type} 
+                                    onChange={e => setTaxConfig({...taxConfig, type: e.target.value})}
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+                                >
+                                    <option value="gst">Indian GST (CGST/SGST/IGST)</option>
+                                    <option value="vat">Global VAT / Fixed Tax</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Default Tax Rate (%)</label>
+                                <input 
+                                    type="number" 
+                                    value={taxConfig.rate} 
+                                    onChange={e => setTaxConfig({...taxConfig, rate: parseFloat(e.target.value) || 0})}
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+                                />
+                            </div>
+
+                            <div className="col-span-1 md:col-span-2 space-y-3 mt-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={taxConfig.autoGenerateBill} 
+                                        onChange={e => setTaxConfig({...taxConfig, autoGenerateBill: e.target.checked})}
+                                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                    />
+                                    <span className="text-sm text-slate-700 dark:text-slate-300">Auto-generate Tax Invoice PDF when order is placed</span>
+                                </label>
+
+                                {taxConfig.autoGenerateBill && (
+                                    <label className="flex items-center gap-3 cursor-pointer pl-6">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={taxConfig.autoSendWhatsApp} 
+                                            onChange={e => setTaxConfig({...taxConfig, autoSendWhatsApp: e.target.checked})}
+                                            className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                        />
+                                        <span className="text-sm text-slate-700 dark:text-slate-300">Auto-send Invoice PDF to customer via WhatsApp</span>
+                                    </label>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={handleSaveTax}
+                        disabled={savingTax}
+                        className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
+                    >
+                        {savingTax ? 'Saving...' : 'Save Tax Settings'}
                     </button>
                 </div>
             </div>

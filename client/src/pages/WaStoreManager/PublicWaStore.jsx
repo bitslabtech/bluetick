@@ -105,7 +105,14 @@ export default function PublicWaStore() {
         }));
     };
 
-    const cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.qty), 0);
+    const getItemPrice = (item) => {
+        if (item.minWholesaleQty && item.wholesalePrice && item.qty >= parseInt(item.minWholesaleQty)) {
+            return parseFloat(item.wholesalePrice);
+        }
+        return parseFloat(item.price);
+    };
+
+    const cartTotal = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.qty), 0);
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
     const getCurrencySymbol = (code) => {
@@ -122,7 +129,7 @@ export default function PublicWaStore() {
                 customerPhone: customerDetails.phone || '',
                 customerNote: customerDetails.note || '',
                 items: cart.map(item => ({
-                    id: item.id, name: item.name, price: item.price, qty: item.qty, imageUrls: item.imageUrls
+                    id: item.id, name: item.name, price: getItemPrice(item), qty: item.qty, imageUrls: item.imageUrls
                 })),
                 subtotal: cartTotal,
                 currency: store.currency
@@ -134,7 +141,8 @@ export default function PublicWaStore() {
         if (customerDetails.phone) message += `📱 *Phone:* ${customerDetails.phone}\n`;
         message += '\n';
         cart.forEach((item, i) => {
-            message += `${i+1}. ${item.name}\n   ${item.qty} x ${getCurrencySymbol(store.currency)} ${item.price}\n`;
+            const finalPrice = getItemPrice(item);
+            message += `${i+1}. ${item.name}\n   ${item.qty} x ${getCurrencySymbol(store.currency)} ${finalPrice.toFixed(2)}\n`;
         });
         message += `\n*Total:* ${getCurrencySymbol(store.currency)} ${cartTotal.toFixed(2)}\n\n`;
         if (customerDetails.note) message += `📝 *Note:* ${customerDetails.note}\n\n`;
@@ -329,10 +337,17 @@ export default function PublicWaStore() {
                                 {/* Info */}
                                 <div>
                                     <h3 className="text-sm font-semibold text-gray-900 mb-1">{product.name}</h3>
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium text-black">{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
-                                        {product.oldPrice && (
-                                            <span className="text-xs text-gray-400 line-through">{getCurrencySymbol(store.currency)}{parseFloat(product.oldPrice).toFixed(2)}</span>
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-black">{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
+                                            {product.oldPrice && (
+                                                <span className="text-xs text-gray-400 line-through">{getCurrencySymbol(store.currency)}{parseFloat(product.oldPrice).toFixed(2)}</span>
+                                            )}
+                                        </div>
+                                        {product.wholesalePrice && product.minWholesaleQty && (
+                                            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 w-max px-2 py-0.5 rounded">
+                                                Buy {product.minWholesaleQty}+ for {getCurrencySymbol(store.currency)}{parseFloat(product.wholesalePrice).toFixed(2)}
+                                            </span>
                                         )}
                                     </div>
                                 </div>
@@ -369,10 +384,20 @@ export default function PublicWaStore() {
                         <div className="md:w-1/2 p-8 md:p-4 md:p-10 flex flex-col overflow-y-auto">
                             {selectedProduct.category && <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">{selectedProduct.category}</span>}
                             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 leading-tight">{selectedProduct.name}</h2>
-                            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
+                            <div className="flex items-center gap-3 mb-2">
                                 <span className="text-2xl font-semibold text-black">{getCurrencySymbol(store.currency)}{parseFloat(selectedProduct.price).toFixed(2)}</span>
                                 {selectedProduct.oldPrice && <span className="text-lg text-gray-400 line-through">{getCurrencySymbol(store.currency)}{parseFloat(selectedProduct.oldPrice).toFixed(2)}</span>}
                             </div>
+                            {selectedProduct.wholesalePrice && selectedProduct.minWholesaleQty && (
+                                <div className="mb-6 pb-6 border-b border-gray-100">
+                                    <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-bold rounded-full">
+                                        Wholesale: {getCurrencySymbol(store.currency)}{parseFloat(selectedProduct.wholesalePrice).toFixed(2)} (Min Qty: {selectedProduct.minWholesaleQty})
+                                    </span>
+                                </div>
+                            )}
+                            {(!selectedProduct.wholesalePrice || !selectedProduct.minWholesaleQty) && (
+                                <div className="mb-6 pb-6 border-b border-gray-100" />
+                            )}
                             
                             <div className="prose prose-sm text-gray-500 mb-8 flex-1">
                                 <p>{selectedProduct.description || 'No description available.'}</p>
@@ -417,7 +442,12 @@ export default function PublicWaStore() {
                                             </div>
                                             <div className="flex-1 min-w-0 pt-1">
                                                 <h4 className="font-semibold text-sm text-gray-900 truncate">{item.name}</h4>
-                                                <div className="font-medium text-sm text-gray-500 mt-1">{getCurrencySymbol(store.currency)}{parseFloat(item.price).toFixed(2)}</div>
+                                                <div className="font-medium text-sm text-gray-500 mt-1 flex items-center gap-2">
+                                                    {getCurrencySymbol(store.currency)}{getItemPrice(item).toFixed(2)}
+                                                    {item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty) && (
+                                                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Wholesale Applied</span>
+                                                    )}
+                                                </div>
                                                 
                                                 <div className="flex items-center gap-3 mt-3">
                                                     <div className="flex items-center bg-gray-100 rounded-lg p-1">
