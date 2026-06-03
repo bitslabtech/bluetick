@@ -90,7 +90,8 @@ const Support = () => {
 
     const filteredArticles = kbArticles.filter(a =>
         a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.category.toLowerCase().includes(searchTerm.toLowerCase())
+        a.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.content.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -117,35 +118,35 @@ const Support = () => {
             </header>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 scroll-smooth">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 scroll-smooth hide-scrollbar">
                 <div className="max-w-6xl mx-auto">
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Hello, {user?.name} 👋</h1>
                     <p className="text-slate-500 dark:text-text-secondary mb-8">How can we help you today?</p>
 
                     {/* Navigation Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                        <button onClick={() => setActiveTab('home')} className={`p-6 rounded-2xl border transition-all text-left group ${activeTab === 'home' ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/5 hover:border-indigo-500/50'}`}>
-                            <div className={`p-3 rounded-xl w-fit mb-4 ${activeTab === 'home' ? 'bg-white/20' : 'bg-indigo-50 dark:bg-white/5 text-indigo-600 dark:text-indigo-400'}`}>
-                                <Book className="w-6 h-6" />
+                    <div className="grid grid-cols-3 gap-2 md:gap-6 mb-8 md:mb-12">
+                        <button onClick={() => setActiveTab('home')} className={`p-2 md:p-6 rounded-xl md:rounded-2xl border transition-all flex flex-col md:items-start items-center text-center md:text-left group ${activeTab === 'home' ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/5 hover:border-indigo-500/50'}`}>
+                            <div className={`p-2 md:p-3 rounded-lg md:rounded-xl w-fit mb-1 md:mb-4 ${activeTab === 'home' ? 'bg-white/20' : 'bg-indigo-50 dark:bg-white/5 text-indigo-600 dark:text-indigo-400'}`}>
+                                <Book className="w-4 h-4 md:w-6 md:h-6" />
                             </div>
-                            <h3 className={`text-lg font-bold mb-1 ${activeTab === 'home' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Knowledge Base</h3>
-                            <p className={`text-sm ${activeTab === 'home' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>Browse guides & tutorials</p>
+                            <h3 className={`text-[10px] sm:text-xs md:text-lg font-bold md:mb-1 leading-tight ${activeTab === 'home' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Knowledge Base</h3>
+                            <p className={`hidden md:block text-sm ${activeTab === 'home' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>Browse guides & tutorials</p>
                         </button>
 
-                        <button onClick={() => setActiveTab('tickets')} className={`p-6 rounded-2xl border transition-all text-left group ${activeTab === 'tickets' ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/5 hover:border-indigo-500/50'}`}>
-                            <div className={`p-3 rounded-xl w-fit mb-4 ${activeTab === 'tickets' ? 'bg-white/20' : 'bg-emerald-50 dark:bg-white/5 text-emerald-600 dark:text-emerald-400'}`}>
-                                <Ticket className="w-6 h-6" />
+                        <button onClick={() => setActiveTab('tickets')} className={`p-2 md:p-6 rounded-xl md:rounded-2xl border transition-all flex flex-col md:items-start items-center text-center md:text-left group ${activeTab === 'tickets' ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/5 hover:border-indigo-500/50'}`}>
+                            <div className={`p-2 md:p-3 rounded-lg md:rounded-xl w-fit mb-1 md:mb-4 ${activeTab === 'tickets' ? 'bg-white/20' : 'bg-emerald-50 dark:bg-white/5 text-emerald-600 dark:text-emerald-400'}`}>
+                                <Ticket className="w-4 h-4 md:w-6 md:h-6" />
                             </div>
-                            <h3 className={`text-lg font-bold mb-1 ${activeTab === 'tickets' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>My Tickets</h3>
-                            <p className={`text-sm ${activeTab === 'tickets' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>Track your support requests</p>
+                            <h3 className={`text-[10px] sm:text-xs md:text-lg font-bold md:mb-1 leading-tight ${activeTab === 'tickets' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>My Tickets</h3>
+                            <p className={`hidden md:block text-sm ${activeTab === 'tickets' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>Track your support requests</p>
                         </button>
 
-                        <button onClick={() => setActiveTab('roadmap')} className={`p-6 rounded-2xl border transition-all text-left group ${activeTab === 'roadmap' ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/5 hover:border-indigo-500/50'}`}>
-                            <div className={`p-3 rounded-xl w-fit mb-4 ${activeTab === 'roadmap' ? 'bg-white/20' : 'bg-amber-50 dark:bg-white/5 text-amber-600 dark:text-amber-400'}`}>
-                                <Map className="w-6 h-6" />
+                        <button onClick={() => setActiveTab('roadmap')} className={`p-2 md:p-6 rounded-xl md:rounded-2xl border transition-all flex flex-col md:items-start items-center text-center md:text-left group ${activeTab === 'roadmap' ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/5 hover:border-indigo-500/50'}`}>
+                            <div className={`p-2 md:p-3 rounded-lg md:rounded-xl w-fit mb-1 md:mb-4 ${activeTab === 'roadmap' ? 'bg-white/20' : 'bg-amber-50 dark:bg-white/5 text-amber-600 dark:text-amber-400'}`}>
+                                <Map className="w-4 h-4 md:w-6 md:h-6" />
                             </div>
-                            <h3 className={`text-lg font-bold mb-1 ${activeTab === 'roadmap' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Product Roadmap</h3>
-                            <p className={`text-sm ${activeTab === 'roadmap' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>Vote on new features</p>
+                            <h3 className={`text-[10px] sm:text-xs md:text-lg font-bold md:mb-1 leading-tight ${activeTab === 'roadmap' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Product Roadmap</h3>
+                            <p className={`hidden md:block text-sm ${activeTab === 'roadmap' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>Vote on new features</p>
                         </button>
                     </div>
 
@@ -253,12 +254,14 @@ const Support = () => {
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                             {/* Suggest Feature Section */}
-                            <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-white/10 dark:to-white/5 p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 text-white shadow-lg">
-                                <div className="flex-1">
+                            <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-white/10 dark:to-white/5 p-6 md:p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 text-white shadow-lg">
+                                <div className="flex-1 text-center md:text-left w-full">
                                     <h3 className="text-xl font-bold mb-1">Have an idea?</h3>
                                     <p className="text-slate-300 text-sm">Suggest a new feature and help us improve the product.</p>
                                 </div>
-                                <RoadmapSuggestionForm refresh={fetchRoadmap} initiallyOpen={action === 'suggest'} />
+                                <div className="w-full md:w-auto">
+                                    <RoadmapSuggestionForm refresh={fetchRoadmap} initiallyOpen={action === 'suggest'} />
+                                </div>
                             </div>
 
                             <div className="space-y-6">
@@ -402,7 +405,7 @@ const Support = () => {
                             </div>
 
                             {/* Modal Content */}
-                            <div className="flex-1 overflow-y-auto p-8 md:p-4 md:p-12">
+                            <div className="flex-1 overflow-y-auto p-8 md:p-4 md:p-12 hide-scrollbar">
                                 <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300">
                                     {selectedArticle.content.split('\n').map((line, i) => {
                                         if (line.startsWith('# ')) return <h1 key={i} className="text-3xl font-bold mb-6 text-slate-900 dark:text-white">{line.replace('# ', '')}</h1>;
@@ -506,7 +509,7 @@ const RoadmapSuggestionForm = ({ refresh, initiallyOpen }) => {
 
     return (
         <>
-            <button onClick={() => setIsModalOpen(true)} className="bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-4 md:px-6 rounded-xl text-sm transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2">
+            <button onClick={() => setIsModalOpen(true)} className="w-full md:w-auto justify-center bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-4 md:px-6 rounded-xl text-sm transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2">
                 <Plus className="w-5 h-5" /> Suggest a Feature
             </button>
             <AnimatePresence>
@@ -527,9 +530,9 @@ const RoadmapSuggestionForm = ({ refresh, initiallyOpen }) => {
                                 <input autoFocus className="w-full px-4 py-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900 dark:text-white" placeholder="e.g. Native iOS Mobile App" value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
                                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Your suggestion will be added to the roadmap as "Requested".</p>
                             </div>
-                            <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] flex justify-end gap-3">
-                                <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">Cancel</button>
-                                <button onClick={handleSubmit} disabled={!title.trim()} className="px-4 md:px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 shadow-none min-w-[120px] max-w-full">Submit</button>
+                            <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] flex flex-col-reverse sm:flex-row justify-end gap-3">
+                                <button onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">Cancel</button>
+                                <button onClick={handleSubmit} disabled={!title.trim()} className="w-full sm:w-auto px-4 md:px-6 py-3 sm:py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 shadow-none">Submit</button>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -561,10 +564,20 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
 
     const handleReply = async () => {
         if (!replyMessage.trim()) return;
+        const tempMessage = replyMessage;
+        setReplyMessage('');
+
+        // Optimistic UI update
+        const optimisticMsg = { sender: 'User', text: tempMessage, timestamp: new Date().toISOString() };
+        setSelectedTicket(prev => ({ ...prev, messages: [...prev.messages, optimisticMsg] }));
+
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}/reply`, { text: replyMessage });
-            setSelectedTicket(res.data); setReplyMessage(''); refresh();
-        } catch (e) { alert("Failed to send reply"); }
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}/reply`, { text: tempMessage });
+            setSelectedTicket(res.data); refresh();
+        } catch (e) {
+            alert("Failed to send reply");
+            refresh(); // Refresh to revert state if failed
+        }
     };
 
     const handleResolve = async () => {
@@ -619,9 +632,9 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                 </motion.div>
             ) : (
                 <>
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                         <div><h2 className="text-2xl font-bold text-slate-900 dark:text-white">Your Tickets</h2><p className="text-slate-500 dark:text-slate-400 text-sm">Manage and track your active support requests.</p></div>
-                        <button onClick={() => setView('create')} className="px-4 md:px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-transform active:scale-95">
+                        <button onClick={() => setView('create')} className="w-full sm:w-auto px-4 md:px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-transform active:scale-95">
                             <Plus className="w-5 h-5" /> New Ticket
                         </button>
                     </div>
@@ -636,19 +649,19 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                         <div className="grid gap-4">
                             {tickets.map(t => (
                                 <div key={t.id} onClick={() => setSelectedTicket(t)} className="group bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-indigo-500/50 hover:shadow-md transition-all cursor-pointer">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="flex items-center gap-3">
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                                             <h3 className="font-bold text-slate-900 dark:text-white text-lg group-hover:text-indigo-600 transition-colors">{t.subject}</h3>
-                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300 border border-slate-200 dark:border-white/5">{t.category}</span>
+                                            <span className="w-fit px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300 border border-slate-200 dark:border-white/5">{t.category}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-xs font-bold px-2 py-1 rounded ${t.priority === 'High' || t.priority === 'Critical' ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'}`}>{t.priority} Priority</span>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${t.status === 'Open' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>{t.status}</span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className={`text-[10px] sm:text-xs font-bold px-2 py-1 rounded ${t.priority === 'High' || t.priority === 'Critical' ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'}`}>{t.priority} Priority</span>
+                                            <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold border ${t.status === 'Open' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>{t.status}</span>
                                         </div>
                                     </div>
                                     <p className="text-slate-500 dark:text-slate-400 text-sm mb-5 line-clamp-2 leading-relaxed">{t.messages[0]?.text}</p>
-                                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-4">
-                                        <div className="flex items-center gap-4 text-xs font-medium text-slate-400"><span>#{t.id.split('-')[0]}</span><span>Updated {formatDistanceToNow(new Date(t.lastReplyAt), { addSuffix: true })}</span></div>
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-100 dark:border-white/5 pt-4 gap-3">
+                                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-medium text-slate-400"><span>#{t.id.split('-')[0]}</span><span>Updated {formatDistanceToNow(new Date(t.lastReplyAt), { addSuffix: true })}</span></div>
                                         <button className="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition-colors">View Ticket</button>
                                     </div>
                                 </div>
@@ -661,44 +674,46 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
             <AnimatePresence>
                 {selectedTicket && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedTicket(null)}>
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-surface-dark w-full max-w-4xl h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10">
-                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-1"><h2 className="text-xl font-bold text-slate-900 dark:text-white">{selectedTicket.subject}</h2><span className={`px-2 py-0.5 rounded text-xs font-bold ${selectedTicket.status === 'Open' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>{selectedTicket.status}</span></div>
-                                    <div className="flex items-center gap-4 text-xs text-slate-500"><span>#{selectedTicket.id}</span><span>{selectedTicket.category}</span><span>{selectedTicket.priority} Priority</span></div>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-surface-dark w-full max-w-4xl h-[90dvh] md:h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex items-start sm:items-center justify-between bg-slate-50 dark:bg-white/[0.02] gap-4 shrink-0">
+                                <div className="min-w-0">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1"><h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">{selectedTicket.subject}</h2><span className={`w-fit px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold ${selectedTicket.status === 'Open' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>{selectedTicket.status}</span></div>
+                                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-slate-500"><span>#{selectedTicket.id}</span><span>{selectedTicket.category}</span><span>{selectedTicket.priority} Priority</span></div>
                                 </div>
-                                <button onClick={() => setSelectedTicket(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full text-slate-500"><X className="w-6 h-6" /></button>
+                                <button onClick={() => setSelectedTicket(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full text-slate-500 shrink-0"><X className="w-5 h-5 sm:w-6 sm:h-6" /></button>
                             </div>
-                            <div className="flex-1 flex overflow-hidden">
-                                <div className="flex-1 flex flex-col border-r border-slate-100 dark:border-white/5">
-                                    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/30 dark:bg-black/20">
+                            <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+                                <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-slate-100 dark:border-white/5 order-2 md:order-1 min-h-0">
+                                    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/30 dark:bg-black/20 hide-scrollbar">
                                         {selectedTicket.messages.map((msg, i) => (
                                             <div key={i} className={`flex ${msg.sender === 'User' ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${msg.sender === 'User' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 text-slate-900 dark:text-white rounded-tl-none'}`}>
+                                                <div className={`max-w-[85%] md:max-w-[80%] rounded-2xl p-4 shadow-sm ${msg.sender === 'User' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 text-slate-900 dark:text-white rounded-tl-none'}`}>
                                                     <p className="text-sm leading-relaxed">{msg.text}</p>
                                                     <p className={`text-[10px] mt-2 opacity-70 ${msg.sender === 'User' ? 'text-indigo-100' : 'text-slate-400'}`}>{formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}</p>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark flex gap-4">
-                                        <input className="flex-1 bg-slate-50 dark:bg-background-dark border border-slate-200 rounded-xl px-4 py-3 outline-none" placeholder="Type your reply..." value={replyMessage} onChange={e => setReplyMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleReply()} />
-                                        <button onClick={handleReply} className="p-3 bg-indigo-600 text-white rounded-xl"><Send className="w-5 h-5" /></button>
+                                    <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark flex gap-3 md:gap-4 shrink-0">
+                                        <input className="flex-1 bg-slate-50 dark:bg-background-dark border border-slate-200 rounded-xl px-4 py-3 outline-none text-sm" placeholder="Type your reply..." value={replyMessage} onChange={e => setReplyMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleReply()} />
+                                        <button onClick={handleReply} className="p-3 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white rounded-xl shrink-0"><Send className="w-5 h-5" /></button>
                                     </div>
                                 </div>
-                                <div className="w-80 max-w-full bg-slate-50 dark:bg-black/20 p-4 md:p-6 overflow-y-auto space-y-6">
-                                    <div className="bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 shadow-sm">
-                                        <h4 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Actions</h4>
-                                        {selectedTicket.status !== 'Resolved' ? (
-                                            <button onClick={handleResolve} className="w-full py-2 bg-slate-900 text-white rounded-lg text-xs font-bold">Mark Resolved</button>
-                                        ) : (
-                                            <button onClick={handleReopen} className="w-full py-2 border border-indigo-600 text-indigo-600 rounded-lg text-xs font-bold">Reopen</button>
-                                        )}
-                                    </div>
-                                    <div className="bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 shadow-sm text-sm">
-                                        <h4 className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wider">Details</h4>
-                                        <div className="flex justify-between mb-2"><span className="text-slate-500">Created</span><span className="text-slate-900 dark:text-white">{new Date(selectedTicket.createdAt).toLocaleDateString()}</span></div>
-                                        <div className="flex justify-between"><span className="text-slate-500">Priority</span><span className="font-bold text-blue-500">{selectedTicket.priority}</span></div>
+                                <div className="w-full md:w-80 shrink-0 bg-slate-50 dark:bg-black/20 p-4 md:p-6 overflow-y-auto hide-scrollbar space-y-4 md:space-y-6 order-1 md:order-2 border-b md:border-b-0 md:border-l border-slate-100 dark:border-white/5 md:max-h-full min-h-0">
+                                    <div className="flex flex-row md:flex-col gap-4">
+                                        <div className="flex-1 bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 shadow-sm text-sm">
+                                            <h4 className="text-[10px] font-bold uppercase text-slate-400 mb-2 md:mb-3 tracking-wider">Details</h4>
+                                            <div className="flex justify-between mb-2"><span className="text-slate-500 text-xs">Created</span><span className="text-slate-900 dark:text-white text-xs">{new Date(selectedTicket.createdAt).toLocaleDateString()}</span></div>
+                                            <div className="flex justify-between"><span className="text-slate-500 text-xs">Priority</span><span className="font-bold text-blue-500 text-xs">{selectedTicket.priority}</span></div>
+                                        </div>
+                                        <div className="flex-1 bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 shadow-sm">
+                                            <h4 className="text-[10px] font-bold uppercase text-slate-400 mb-2 md:mb-3 tracking-wider">Actions</h4>
+                                            {selectedTicket.status !== 'Resolved' ? (
+                                                <button onClick={handleResolve} className="w-full py-2 bg-slate-900 hover:bg-slate-800 transition-colors text-white rounded-lg text-xs font-bold">Mark Resolved</button>
+                                            ) : (
+                                                <button onClick={handleReopen} className="w-full py-2 border border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors rounded-lg text-xs font-bold">Reopen</button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

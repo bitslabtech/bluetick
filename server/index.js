@@ -46,6 +46,7 @@ require('./models/WaProduct');      // WhatsApp Store Products
 require('./models/WaOrder');        // WhatsApp Store Orders
 require('./models/NfcCard');        // Physical NFC Products
 require('./models/NfcOrder');       // Physical NFC Orders
+require('./models/FlowExecutionLog'); // FlowBot execution analytics
 
 // Import Routes
 const contactsRoute = require('./routes/contacts');

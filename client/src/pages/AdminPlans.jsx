@@ -140,7 +140,7 @@ const AdminPlans = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20">
+            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
                     <div>

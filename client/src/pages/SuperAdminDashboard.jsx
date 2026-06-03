@@ -221,7 +221,7 @@ const SuperAdminDashboard = () => {
                 </div>
             </div>
 
-            <main className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 lg:gap-8 max-w-7xl mx-auto w-full pb-20">
+            <main className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 lg:gap-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
 
                 {loading ? (
                     <div className="text-center py-20 text-slate-500">Loading admin analytics...</div>

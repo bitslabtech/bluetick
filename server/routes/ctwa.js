@@ -288,4 +288,307 @@ router.get('/dashboard', auth, async (req, res) => {
     }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/ctwa/leads
+// Returns all CTWA-originated contacts (leads) with source ad info.
+// Supports ?ad_id= filter and ?search= text search on name/phone.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/leads', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { ad_id, search, page = 1, limit = 50 } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const { Op } = require('sequelize');
+        const where = {
+            userId,
+            ctwaSource: { [Op.ne]: null }
+        };
+
+        // Filter by specific ad
+        if (ad_id) {
+            where.ctwaSource = {
+                ...where.ctwaSource,
+                source_id: ad_id
+            };
+            // Use raw query approach for JSONB filtering
+        }
+
+        // Search by name or phone
+        if (search) {
+            where[Op.or] = [
+                { name: { [Op.iLike]: `%${search}%` } },
+                { phone: { [Op.iLike]: `%${search}%` } }
+            ];
+        }
+
+        let queryWhere = `"userId" = :userId AND ctwa_source IS NOT NULL`;
+        const replacements = { userId, limit: parseInt(limit), offset };
+
+        if (ad_id) {
+            queryWhere += ` AND ctwa_source->>'source_id' = :ad_id`;
+            replacements.ad_id = ad_id;
+        }
+        if (search) {
+            queryWhere += ` AND (name ILIKE :search OR phone ILIKE :search)`;
+            replacements.search = `%${search}%`;
+        }
+
+        const { sequelize } = require('../config/database');
+
+        // Get total count
+        const [[{ count: totalCount }]] = await sequelize.query(
+            `SELECT COUNT(*) as count FROM "Contacts" WHERE ${queryWhere}`,
+            { replacements }
+        );
+
+        // Get paginated leads
+        const [leads] = await sequelize.query(`
+            SELECT 
+                id, name, phone, email, tags, labels, status,
+                ctwa_source AS "ctwaSource",
+                "createdAt", "updatedAt"
+            FROM "Contacts"
+            WHERE ${queryWhere}
+            ORDER BY "createdAt" DESC
+            LIMIT :limit OFFSET :offset
+        `, { replacements });
+
+        // Calculate 72-hour window status for each lead
+        const now = new Date();
+        const enrichedLeads = leads.map(lead => {
+            const createdAt = new Date(lead.createdAt);
+            const hoursSinceCreation = (now - createdAt) / (1000 * 60 * 60);
+            const windowHoursLeft = Math.max(0, 72 - hoursSinceCreation);
+            
+            return {
+                ...lead,
+                windowStatus: windowHoursLeft > 0 ? 'active' : 'expired',
+                windowHoursLeft: Math.round(windowHoursLeft * 10) / 10,
+                adName: lead.ctwaSource?.headline || 'Unknown Ad',
+                adId: lead.ctwaSource?.source_id || null,
+            };
+        });
+
+        res.json({
+            leads: enrichedLeads,
+            total: parseInt(totalCount),
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(parseInt(totalCount) / parseInt(limit))
+        });
+
+    } catch (err) {
+        console.error('[CTWA LEADS ERROR]', err.message);
+        res.status(500).json({ error: 'Failed to fetch CTWA leads.' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/ctwa/retarget
+// Phase 4: Send a template message to all leads from a specific ad.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/retarget', auth, async (req, res) => {
+    try {
+        const { adId, templateName } = req.body;
+        if (!adId || !templateName) {
+            return res.status(400).json({ error: 'adId and templateName are required' });
+        }
+
+        const user = await User.findByPk(req.user.id);
+        if (!user.whatsappPhoneNumberId || !user.whatsappToken) {
+            return res.status(403).json({ error: 'WhatsApp not configured' });
+        }
+
+        const { sequelize } = require('../config/database');
+        const [leads] = await sequelize.query(`
+            SELECT phone, name FROM "Contacts"
+            WHERE "userId" = :userId
+              AND ctwa_source IS NOT NULL
+              AND ctwa_source->>'source_id' = :adId
+        `, { replacements: { userId: req.user.id, adId } });
+
+        if (!leads || leads.length === 0) {
+            return res.json({ sentCount: 0, message: 'No leads found for this ad' });
+        }
+
+        let sentCount = 0;
+        let failCount = 0;
+
+        for (const lead of leads) {
+            try {
+                await axios.post(
+                    `https://graph.facebook.com/v22.0/${user.whatsappPhoneNumberId}/messages`,
+                    {
+                        messaging_product: 'whatsapp',
+                        to: lead.phone,
+                        type: 'template',
+                        template: {
+                            name: templateName,
+                            language: { code: 'en' }
+                        }
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${user.whatsappToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                sentCount++;
+            } catch (err) {
+                failCount++;
+                console.error(`[RETARGET] Failed to send to ${lead.phone}:`, err?.response?.data?.error?.message || err.message);
+            }
+
+            // Rate limit: 50ms between messages
+            await new Promise(r => setTimeout(r, 50));
+        }
+
+        console.log(`[RETARGET] Ad ${adId}: Sent ${sentCount}/${leads.length}, Failed: ${failCount}`);
+        res.json({ sentCount, failCount, total: leads.length });
+
+    } catch (err) {
+        console.error('[RETARGET ERROR]', err.message);
+        res.status(500).json({ error: 'Failed to send retarget campaign' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET/POST /api/ctwa/capi-config
+// Phase 5: Save and load CAPI (Conversions API) configuration.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/capi-config', auth, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        const capiConfig = user.capiConfig || {};
+        res.json({
+            pixelId: capiConfig.pixelId || '',
+            accessToken: capiConfig.accessToken ? '••••••••' : '',
+            testEventCode: capiConfig.testEventCode || '',
+            configured: !!(capiConfig.pixelId && capiConfig.accessToken)
+        });
+    } catch (err) {
+        console.error('[CAPI CONFIG GET ERROR]', err.message);
+        res.status(500).json({ error: 'Failed to load CAPI config' });
+    }
+});
+
+router.post('/capi-config', auth, async (req, res) => {
+    try {
+        const { pixelId, accessToken, testEventCode } = req.body;
+        if (!pixelId || !accessToken) {
+            return res.status(400).json({ error: 'Pixel ID and Access Token are required' });
+        }
+
+        const user = await User.findByPk(req.user.id);
+        
+        // Only update accessToken if it's not the masked placeholder
+        const existingConfig = user.capiConfig || {};
+        const newConfig = {
+            pixelId,
+            accessToken: accessToken === '••••••••' ? existingConfig.accessToken : accessToken,
+            testEventCode: testEventCode || ''
+        };
+
+        user.capiConfig = newConfig;
+        await user.save();
+
+        console.log(`[CAPI] Config saved for user ${req.user.id}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[CAPI CONFIG POST ERROR]', err.message);
+        res.status(500).json({ error: 'Failed to save CAPI config' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/ctwa/capi-test
+// Fire a test Lead event to Meta Conversions API.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/capi-test', auth, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        const capiConfig = user.capiConfig || {};
+
+        if (!capiConfig.pixelId || !capiConfig.accessToken) {
+            return res.status(400).json({ error: 'CAPI not configured. Save your Pixel ID and Access Token first.' });
+        }
+
+        const eventData = {
+            data: [{
+                event_name: 'Lead',
+                event_time: Math.floor(Date.now() / 1000),
+                action_source: 'system_generated',
+                user_data: {
+                    client_user_agent: 'BlueTick-CAPI-Test/1.0'
+                }
+            }]
+        };
+
+        if (capiConfig.testEventCode) {
+            eventData.test_event_code = capiConfig.testEventCode;
+        }
+
+        const capiRes = await axios.post(
+            `https://graph.facebook.com/v22.0/${capiConfig.pixelId}/events`,
+            eventData,
+            {
+                params: { access_token: capiConfig.accessToken },
+                headers: { 'Content-Type': 'application/json' }
+            }
+        );
+
+        console.log(`[CAPI TEST] Event sent successfully:`, capiRes.data);
+        res.json({ success: true, response: capiRes.data });
+    } catch (err) {
+        console.error('[CAPI TEST ERROR]', err?.response?.data || err.message);
+        res.status(500).json({ 
+            error: err?.response?.data?.error?.message || 'Failed to send test event',
+            details: err?.response?.data 
+        });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Fire CAPI event (used by webhook when CTWA leads arrive)
+// ─────────────────────────────────────────────────────────────────────────────
+const fireCapiEvent = async (userId, eventName, userData = {}) => {
+    try {
+        const user = await User.findByPk(userId);
+        const capiConfig = user?.capiConfig;
+        if (!capiConfig?.pixelId || !capiConfig?.accessToken) return;
+
+        const eventData = {
+            data: [{
+                event_name: eventName,
+                event_time: Math.floor(Date.now() / 1000),
+                action_source: 'system_generated',
+                user_data: {
+                    ...userData,
+                    client_user_agent: 'BlueTick-CAPI/1.0'
+                }
+            }]
+        };
+
+        if (capiConfig.testEventCode) {
+            eventData.test_event_code = capiConfig.testEventCode;
+        }
+
+        await axios.post(
+            `https://graph.facebook.com/v22.0/${capiConfig.pixelId}/events`,
+            eventData,
+            {
+                params: { access_token: capiConfig.accessToken },
+                headers: { 'Content-Type': 'application/json' }
+            }
+        );
+
+        console.log(`[CAPI] ${eventName} event fired for user ${userId}`);
+    } catch (err) {
+        console.error(`[CAPI] Failed to fire ${eventName}:`, err?.response?.data?.error?.message || err.message);
+    }
+};
+
 module.exports = router;
+module.exports.fireCapiEvent = fireCapiEvent;

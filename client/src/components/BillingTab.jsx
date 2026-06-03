@@ -72,7 +72,7 @@ const BillingTab = () => {
                     <div className="absolute top-0 right-0 p-4 md:p-40 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
                     <div className="relative z-10 flex flex-col h-full justify-between">
-                        <div className="flex justify-between items-start">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
                             <div>
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider mb-4 shadow-sm">
                                     <Sparkles className="w-3 h-3 text-yellow-300" /> Current Plan
@@ -82,8 +82,8 @@ const BillingTab = () => {
                                     {isEnterprise ? 'Unlimited power for your business.' : 'Supercharge your messaging.'}
                                 </p>
                             </div>
-                            <div className="text-right">
-                                <div className="flex items-baseline justify-end gap-1">
+                            <div className="text-left sm:text-right">
+                                <div className="flex items-baseline justify-start sm:justify-end gap-1">
                                     <span className="text-5xl font-bold tracking-tighter">{currencySymbol(plan?.currency)}{plan?.price}</span>
                                     <span className="text-white/60 font-medium">{intervalLabel(plan?.interval)}</span>
                                 </div>
@@ -104,8 +104,8 @@ const BillingTab = () => {
                             </div>
                         )}
 
-                        <div className="mt-8 pt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-6">
-                            <div className="flex items-center gap-6">
+                        <div className="mt-8 pt-8 border-t border-white/10 flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-6">
+                            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                                 <div className="flex items-center gap-2">
                                     <div className="p-2 bg-white/10 rounded-lg">
                                         <CheckCircle2 className="w-5 h-5 text-green-300" />
@@ -200,7 +200,8 @@ const BillingTab = () => {
                         <FileText className="w-5 h-5 text-indigo-500" /> Billing History
                     </h3>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold">
                             <tr>
@@ -239,6 +240,37 @@ const BillingTab = () => {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden divide-y divide-slate-100 dark:divide-white/5">
+                    {invoices.length === 0 ? (
+                        <div className="p-8 text-center text-slate-500">No invoices found.</div>
+                    ) : (
+                        invoices.map((inv) => (
+                            <div key={inv.id} className="p-4 space-y-3 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="font-bold text-slate-900 dark:text-white">{inv.planName}</div>
+                                        <div className="text-xs text-slate-500 font-mono mt-1">#{inv.id.slice(0, 8)}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-bold text-slate-900 dark:text-white">{currencySymbol(inv.currency || plan?.currency)}{inv.amount}</div>
+                                        <div className="text-xs text-slate-500 mt-1">{new Date(inv.createdAt).toLocaleDateString()}</div>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center pt-2">
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                        <CheckCircle2 className="w-3 h-3" /> {inv.status}
+                                    </span>
+                                    <button className="p-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white flex items-center gap-2 text-xs font-bold">
+                                        <Download className="w-4 h-4" />
+                                        Download
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>

@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Workflow, Clock, Zap, Search } from 'lucide-react';
 import TopHeader from '../../components/TopHeader';
+import { useAuth } from '../../context/AuthContext';
 
 const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
-const FlowList = ({ onEditFlow, onCreateNew }) => {
+const FlowList = () => {
+    const navigate = useNavigate();
+    const { token } = useAuth();
     const [flows, setFlows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -69,22 +73,33 @@ const FlowList = ({ onEditFlow, onCreateNew }) => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 font-sans transition-colors duration-300">
             <TopHeader />
-            <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative">
+            <div className="flex-1 overflow-y-auto w-full hide-scrollbar relative pb-7 sm:pb-20">
                 {/* Header */}
                 <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm sticky top-0 z-10">
-                    <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                            <Workflow className="w-5 h-5" />
+                    <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 sm:py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                                <Workflow className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h1 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">FlowBot Builder</h1>
+                                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Build visual WhatsApp automation flows</p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-slate-800 dark:text-white">FlowBot Builder</h1>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Build visual WhatsApp automation flows</p>
-                        </div>
+                        {/* Mobile Only Quick Create Button */}
+                        <button
+                            onClick={() => navigate('/flowbot/create')}
+                            className="sm:hidden px-3.5 py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all whitespace-nowrap"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Create
+                        </button>
                     </div>
+                    {/* Desktop Create Button */}
                     <button
-                        onClick={onCreateNew}
-                        className="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30 flex items-center gap-2"
+                        onClick={() => navigate('/flowbot/create')}
+                        className="hidden sm:flex px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30 items-center gap-2"
                     >
                         <Plus className="w-4 h-4" />
                         Create New Flow
@@ -128,7 +143,7 @@ const FlowList = ({ onEditFlow, onCreateNew }) => {
                             </p>
                             {!search && (
                                 <button
-                                    onClick={onCreateNew}
+                                    onClick={() => navigate('/flowbot/create')}
                                     className="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all flex items-center gap-2"
                                 >
                                     <Plus className="w-4 h-4" />
@@ -160,16 +175,22 @@ const FlowList = ({ onEditFlow, onCreateNew }) => {
                                                     </span>
                                                 </div>
                                             </div>
-                                            {/* Toggle */}
+                                            {/* Premium CSS Toggle */}
                                             <button
                                                 onClick={() => toggleFlowStatus(flow)}
-                                                className="p-1 text-slate-400 hover:text-indigo-500 transition-colors"
-                                                title={flow.isActive ? 'Deactivate' : 'Activate'}
+                                                className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:focus:ring-offset-slate-900 ${
+                                                    flow.isActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                                                }`}
+                                                role="switch"
+                                                aria-checked={flow.isActive}
+                                                title={flow.isActive ? 'Deactivate Flow' : 'Activate Flow'}
                                             >
-                                                {flow.isActive 
-                                                    ? <ToggleRight className="w-6 h-6 text-emerald-500" /> 
-                                                    : <ToggleLeft className="w-6 h-6" />
-                                                }
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={`pointer-events-none inline-block h-4 w-4 sm:h-5 sm:w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-300 ease-in-out ${
+                                                        flow.isActive ? 'translate-x-4 sm:translate-x-5' : 'translate-x-0'
+                                                    }`}
+                                                />
                                             </button>
                                         </div>
 
@@ -196,25 +217,25 @@ const FlowList = ({ onEditFlow, onCreateNew }) => {
                                     </div>
 
                                     {/* Card Actions */}
-                                    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-2">
+                                    <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap sm:flex-nowrap items-center gap-2">
                                         <button
-                                            onClick={() => onEditFlow(flow.id)}
-                                            className="flex-1 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                                            onClick={() => navigate(`/flowbot/edit/${flow.id}`)}
+                                            className="flex-1 min-w-[120px] py-2 text-xs sm:text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors flex items-center justify-center gap-1.5"
                                         >
                                             <Pencil className="w-3.5 h-3.5" />
                                             Edit Flow
                                         </button>
                                         {deleteConfirm === flow.id ? (
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-1 ml-auto">
                                                 <button
                                                     onClick={() => deleteFlow(flow.id)}
-                                                    className="px-3 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                                                    className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
                                                 >
                                                     Confirm
                                                 </button>
                                                 <button
                                                     onClick={() => setDeleteConfirm(null)}
-                                                    className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                                    className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                                                 >
                                                     Cancel
                                                 </button>
@@ -222,7 +243,7 @@ const FlowList = ({ onEditFlow, onCreateNew }) => {
                                         ) : (
                                             <button
                                                 onClick={() => setDeleteConfirm(flow.id)}
-                                                className="py-2 px-3 text-sm text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                className="py-1.5 sm:py-2 px-2 sm:px-3 text-sm text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors ml-auto"
                                                 title="Delete Flow"
                                             >
                                                 <Trash2 className="w-4 h-4" />

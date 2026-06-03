@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import {
     ShoppingBag, X, Search, Filter, RefreshCw, ChevronRight,
@@ -65,12 +65,12 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-4 md:p-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-8">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl text-slate-900 dark:text-white">
+            <div className="relative w-full h-full sm:h-auto max-w-3xl max-h-screen sm:max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 sm:rounded-3xl shadow-2xl text-slate-900 dark:text-white flex flex-col">
                 
                 {/* Header */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/10 bg-white dark:bg-zinc-900 rounded-t-3xl">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/10 bg-white dark:bg-zinc-900 sm:rounded-t-3xl shadow-sm">
                     <div>
                         <h2 className="text-xl font-black">{order.orderNumber}</h2>
                         <p className="text-xs text-slate-500 mt-0.5">{formatDate(order.createdAt)}</p>
@@ -95,15 +95,15 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
                                 ))}
                             </select>
                         </div>
-                        <div className="flex gap-2 mt-4 sm:mt-6">
+                        <div className="flex gap-2 mt-4 sm:mt-6 w-full sm:w-auto">
                             {order.customerPhone && (
                                 <button onClick={openWhatsApp} title="Message on WhatsApp"
-                                    className="p-2.5 bg-[#25D366] text-white rounded-xl hover:bg-[#1DA851] transition-colors">
+                                    className="p-2.5 bg-[#25D366] text-white rounded-xl hover:bg-[#1DA851] transition-colors flex items-center justify-center shrink-0">
                                     <MessageCircle className="w-5 h-5" />
                                 </button>
                             )}
                             <button onClick={handleSave} disabled={saving}
-                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl font-semibold text-sm transition-colors">
+                                className="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl font-semibold text-sm transition-colors">
                                 {saving ? 'Saving…' : 'Save Changes'}
                             </button>
                         </div>
@@ -246,7 +246,7 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function WaStoreOrders() {
-    const { id: storeId } = useParams();
+    const { storeId } = useOutletContext();
     const [orders, setOrders]       = useState([]);
     const [store, setStore]         = useState(null);
     const [loading, setLoading]     = useState(true);
@@ -297,7 +297,7 @@ export default function WaStoreOrders() {
     const currency = store?.currency || orders[0]?.currency || 'USD';
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="space-y-6 pb-7 sm:pb-20">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -339,12 +339,12 @@ export default function WaStoreOrders() {
                         className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-400"
                     />
                 </div>
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                     <Filter className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <select
                         value={statusFilter}
                         onChange={e => setStatusFilter(e.target.value)}
-                        className="pl-11 pr-8 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white appearance-none cursor-pointer min-w-[160px] max-w-full"
+                        className="w-full sm:w-auto pl-11 pr-8 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white appearance-none cursor-pointer min-w-[160px] max-w-full"
                     >
                         <option value="all">All Status</option>
                         {Object.entries(STATUS_CONFIG).map(([k, { label }]) => (
@@ -376,41 +376,54 @@ export default function WaStoreOrders() {
                             <div
                                 key={order.id}
                                 onClick={() => setSelected(order)}
-                                className="flex items-center gap-4 px-4 md:px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] cursor-pointer transition-colors group"
+                                className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 px-4 md:px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] cursor-pointer transition-colors group relative"
                             >
-                                {/* Order # */}
-                                <div className="min-w-[100px] max-w-full">
-                                    <p className="font-black text-sm text-indigo-600 dark:text-indigo-400">{order.orderNumber}</p>
-                                    <p className="text-xs text-slate-400 mt-0.5">{formatDate(order.createdAt)}</p>
+                                <div className="flex justify-between items-start md:w-auto w-full">
+                                    {/* Order # and Date */}
+                                    <div className="min-w-[100px]">
+                                        <p className="font-black text-sm text-indigo-600 dark:text-indigo-400">{order.orderNumber}</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">{formatDate(order.createdAt)}</p>
+                                    </div>
+                                    {/* Status Mobile */}
+                                    <div className="md:hidden">
+                                        <StatusBadge status={order.status} />
+                                    </div>
                                 </div>
 
-                                {/* Customer */}
-                                <div className="flex-1 min-w-0">
+                                {/* Customer Info */}
+                                <div className="flex-1 min-w-0 flex flex-col mt-1 md:mt-0">
                                     <p className="font-semibold text-sm truncate text-slate-900 dark:text-white">
                                         {order.customerName || <span className="italic text-slate-400">Anonymous</span>}
                                     </p>
                                     <p className="text-xs text-slate-400 truncate">{order.customerPhone || 'No phone'}</p>
                                 </div>
 
-                                {/* Items count */}
-                                <div className="hidden md:block text-center min-w-[60px] max-w-full">
-                                    <p className="font-bold text-sm">{order.items?.length || 0}</p>
-                                    <p className="text-xs text-slate-400">items</p>
-                                </div>
+                                {/* Bottom row on mobile: Items & Amount */}
+                                <div className="flex justify-between items-center w-full md:w-auto mt-2 md:mt-0 border-t border-slate-100 dark:border-white/5 md:border-none pt-2 md:pt-0">
+                                    <div className="md:hidden text-slate-500 text-xs font-semibold">
+                                        {order.items?.length || 0} items
+                                    </div>
 
-                                {/* Amount */}
-                                <div className="text-right min-w-[90px] max-w-full">
-                                    <p className="font-black text-base text-slate-900 dark:text-white">
-                                        {sym(order.currency)} {Number(order.subtotal).toFixed(2)}
-                                    </p>
-                                </div>
+                                    {/* Items count Desktop */}
+                                    <div className="hidden md:block text-center min-w-[60px] max-w-full">
+                                        <p className="font-bold text-sm">{order.items?.length || 0}</p>
+                                        <p className="text-xs text-slate-400">items</p>
+                                    </div>
 
-                                {/* Status */}
-                                <div className="hidden sm:block min-w-[110px] max-w-full text-right">
-                                    <StatusBadge status={order.status} />
-                                </div>
+                                    {/* Amount */}
+                                    <div className="text-right min-w-[90px] max-w-full">
+                                        <p className="font-black text-base text-slate-900 dark:text-white">
+                                            {sym(order.currency)} {Number(order.subtotal).toFixed(2)}
+                                        </p>
+                                    </div>
 
-                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition-colors flex-shrink-0" />
+                                    {/* Status Desktop */}
+                                    <div className="hidden md:block min-w-[110px] max-w-full text-right">
+                                        <StatusBadge status={order.status} />
+                                    </div>
+
+                                    <ChevronRight className="hidden md:block w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition-colors flex-shrink-0 ml-2" />
+                                </div>
                             </div>
                         ))}
                     </div>

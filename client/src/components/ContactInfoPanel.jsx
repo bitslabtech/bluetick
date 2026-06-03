@@ -176,7 +176,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
         : conversation.phoneNumber?.slice(-2);
 
     return (
-        <div ref={panelRef} className="w-80 max-w-full bg-white dark:bg-[#111b21] border-l border-slate-200 dark:border-white/5 flex flex-col h-full overflow-y-auto animate-in slide-in-from-right duration-300 relative z-30">
+        <div ref={panelRef} className="w-full md:w-80 absolute right-0 inset-y-0 md:relative max-w-full bg-white dark:bg-[#111b21] border-l border-slate-200 dark:border-white/5 flex flex-col h-full overflow-y-auto animate-in slide-in-from-right duration-300 z-50 md:z-30 shadow-2xl md:shadow-none">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-[#202c33] border-b border-slate-200 dark:border-white/10 shrink-0">
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">Contact Info</span>

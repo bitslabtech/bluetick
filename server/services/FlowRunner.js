@@ -1,12 +1,16 @@
 const ChatMessage = require('../models/ChatMessage');
 const ContactFlowState = require('../models/ContactFlowState');
+const FlowExecutionLog = require('../models/FlowExecutionLog');
 const { getIo } = require('../socket');
 
 class FlowRunner {
-    constructor(settings, conversation, userId) {
+    constructor(settings, conversation, userId, triggerType = 'keyword') {
         this.settings = settings;
         this.conversation = conversation;
         this.userId = userId;
+        this.triggerType = triggerType;
+        this.nodesExecuted = 0;
+        this.currentLogId = null;
     }
 
     async executeFlow(flow, contactId, startingNodeId = null) {
@@ -23,11 +27,29 @@ class FlowRunner {
             return;
         }
 
+        // Log execution start for fresh triggers (not resumes)
+        if (!startingNodeId && !this.currentLogId) {
+            try {
+                const log = await FlowExecutionLog.create({
+                    flowId: flow.id,
+                    userId: this.userId,
+                    contactId: contactId || null,
+                    status: 'triggered',
+                    triggerType: this.triggerType
+                });
+                this.currentLogId = log.id;
+                console.log(`[FLOW RUNNER] Execution logged: ${log.id} (trigger: ${this.triggerType})`);
+            } catch (logErr) {
+                console.error('[FLOW RUNNER] Failed to log execution:', logErr.message);
+            }
+        }
+
         await this.traverseNode(currentNode, flow, contactId);
     }
 
     async traverseNode(node, flow, contactId) {
         console.log(`[FLOW RUNNER] Executing Node: ${node.type} (${node.id})`);
+        this.nodesExecuted++;
         
         // 1. Execute current node logic
         let pauseHere = false;
@@ -393,6 +415,8 @@ class FlowRunner {
                 
                 // Clear the state so the bot fully detaches until manually triggered again
                 await this.clearContactState(contactId);
+                // Mark execution as completed (handoff = successful conclusion)
+                await this._finalizeLog('completed');
                 break;
             }
 
@@ -714,6 +738,8 @@ class FlowRunner {
             } else {
                 console.log('[FLOW RUNNER] End of flow reached.');
                 await this.clearContactState(contactId); // Clean up if flow naturally ends
+                // Mark execution as completed
+                await this._finalizeLog('completed');
             }
         } else {
             console.log('[FLOW RUNNER] Flow paused, waiting for user input.');
@@ -915,6 +941,26 @@ class FlowRunner {
             }
         } catch (err) {
             console.error('[FLOW RUNNER] Network dispatch failed:', err);
+        }
+    }
+    /**
+     * Finalize the execution log with status and node count.
+     * @param {'completed'|'dropped'} status
+     */
+    async _finalizeLog(status) {
+        if (!this.currentLogId) return;
+        try {
+            await FlowExecutionLog.update(
+                {
+                    status,
+                    nodesExecuted: this.nodesExecuted,
+                    completedAt: new Date()
+                },
+                { where: { id: this.currentLogId } }
+            );
+            console.log(`[FLOW RUNNER] Execution ${this.currentLogId} finalized as ${status} (${this.nodesExecuted} nodes)`);
+        } catch (err) {
+            console.error('[FLOW RUNNER] Failed to finalize execution log:', err.message);
         }
     }
 }

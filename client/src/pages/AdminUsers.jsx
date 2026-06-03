@@ -228,7 +228,7 @@ const AdminUsers = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20">
+            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
 
                 {/* Page Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">

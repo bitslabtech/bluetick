@@ -1508,11 +1508,20 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     };
 
     return (
-        <aside className="w-80 max-w-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col shadow-xl z-20 absolute right-0 h-full">
-            <div className="h-14 flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800/50">
-                <h3 className="font-semibold text-slate-800 dark:text-white capitalize">
-                    {node.type.replace('Node', '')} Settings
-                </h3>
+        <>
+            {/* Mobile Backdrop */}
+            <div className="md:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity" onClick={onClose} />
+            
+            <aside className="fixed md:absolute bottom-0 md:bottom-auto left-0 md:left-auto md:right-0 w-full md:w-80 h-[85vh] md:h-full bg-white dark:bg-slate-900 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-xl z-50 rounded-t-3xl md:rounded-none animate-in slide-in-from-bottom-full md:slide-in-from-right-full duration-300">
+                {/* Mobile Drag Handle Indicator */}
+                <div className="md:hidden w-full flex justify-center pt-3 pb-1 flex-shrink-0" onClick={onClose}>
+                    <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full cursor-pointer hover:bg-slate-300 transition-colors" />
+                </div>
+                
+                <div className="h-14 flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800/50 flex-shrink-0">
+                    <h3 className="font-semibold text-slate-800 dark:text-white capitalize">
+                        {node.type.replace('Node', '')} Settings
+                    </h3>
                 <button
                     onClick={onClose}
                     className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -1536,6 +1545,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                 </div>
             )}
         </aside>
+        </>
     );
 };
 

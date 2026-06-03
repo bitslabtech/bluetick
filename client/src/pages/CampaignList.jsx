@@ -115,8 +115,8 @@ export default function CampaignList() {
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300 overflow-hidden fade-in">
-            {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            {/* Desktop Header */}
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center w-full max-w-md">
                     {/* Search Bar */}
                     <div className="flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full px-3 border border-transparent focus-within:border-primary transition-colors">
@@ -138,10 +138,26 @@ export default function CampaignList() {
                 </div>
             </header>
 
+            {/* Mobile Header / Search */}
+            <div className="md:hidden px-4 pt-4 pb-2 bg-white dark:bg-background-dark shrink-0">
+                <div className="flex items-center gap-3 w-full">
+                    <div className="flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full px-3 border border-transparent focus-within:border-primary transition-colors">
+                        <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
+                        <input
+                            type="text"
+                            placeholder="Search campaigns..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary text-sm focus:outline-none ml-2"
+                        />
+                    </div>
+                </div>
+            </div>
+
             {/* Filters & Actions */}
-            <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-surface-dark flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0 bg-white/95 dark:bg-background-dark/95 backdrop-blur-sm z-10 transition-colors duration-300">
-                <div className="flex items-center gap-6 overflow-x-auto w-full sm:w-auto">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white shrink-0">Campaigns</h2>
+            <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-surface-dark flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-white/95 dark:bg-background-dark/95 backdrop-blur-sm z-10 transition-colors duration-300">
+                <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto w-full sm:w-auto custom-scrollbar pb-2 sm:pb-0">
+                    <h2 className="hidden sm:block text-xl font-bold text-slate-900 dark:text-white shrink-0">Campaigns</h2>
                     <div className="flex bg-slate-100 dark:bg-surface-dark rounded-lg p-1 border border-slate-200 dark:border-white/5 transition-colors duration-300 shrink-0">
                         {['all', 'active', 'scheduled', 'completed', 'failed'].map((status) => (
                             <button
@@ -157,10 +173,10 @@ export default function CampaignList() {
                         ))}
                     </div>
                 </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="w-full sm:w-auto">
                     <Link
                         to="/campaigns"
-                        className="px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-colors flex items-center gap-2 shrink-0"
+                        className="w-full justify-center sm:w-auto px-4 py-2.5 sm:py-2 text-sm font-bold text-white bg-primary rounded-lg shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-colors flex items-center gap-2 shrink-0"
                     >
                         <Plus className="w-4 h-4" />
                         New Campaign
@@ -195,43 +211,43 @@ export default function CampaignList() {
                                     {/* Campaign Info */}
                                     <div className="flex-1 w-full text-center md:text-left">
                                         <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1 group-hover:text-primary transition-colors cursor-pointer">{campaign.name}</h3>
-                                        <div className="flex items-center justify-center md:justify-start gap-4 text-xs text-slate-500 dark:text-text-secondary">
-                                            <span className="flex items-center gap-1.5">
+                                        <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-4 text-xs text-slate-500 dark:text-text-secondary mt-1">
+                                            <span className="hidden md:flex items-center gap-1.5">
                                                 <Clock className="w-3.5 h-3.5" />
                                                 {formatDate(campaign.date)}
                                             </span>
-                                            <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-white/20"></span>
-                                            <span className="flex items-center gap-1.5">
-                                                <MessageSquare className="w-3.5 h-3.5" />
-                                                Template: <span className="text-slate-700 dark:text-white font-medium">{campaign.template}</span>
+                                            <span className="hidden md:block w-1 h-1 rounded-full bg-slate-300 dark:bg-white/20"></span>
+                                            <span className="flex items-center gap-1.5 w-full md:w-auto justify-center md:justify-start">
+                                                <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                                                <span className="truncate max-w-[200px] md:max-w-none">Template: <span className="text-slate-700 dark:text-white font-medium">{campaign.template}</span></span>
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Stats */}
-                                    <div className="flex items-center gap-6 w-full md:w-auto justify-center border-t md:border-t-0 md:border-l border-slate-200 dark:border-white/5 pt-4 md:pt-0 md:pl-6">
-                                        <div className="flex flex-col items-center gap-0.5">
+                                    <div className="flex items-center justify-between sm:justify-around md:justify-center gap-2 sm:gap-6 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-200 dark:border-white/5 pt-4 md:pt-0 md:pl-6">
+                                        <div className="flex flex-col items-center gap-0.5 min-w-[60px]">
                                             <div className="flex items-center gap-1.5" title="Sent">
                                                 <Check className="w-4 h-4 text-gray-500 dark:text-gray-500" />
                                                 <span className="text-lg font-bold text-slate-900 dark:text-white">{campaign.sent}</span>
                                             </div>
                                             <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-text-secondary font-medium">Sent</span>
                                         </div>
-                                        <div className="flex flex-col items-center gap-0.5">
+                                        <div className="flex flex-col items-center gap-0.5 min-w-[60px]">
                                             <div className="flex items-center gap-1.5" title="Delivered">
                                                 <CheckCheck className="w-4 h-4 text-gray-500 dark:text-gray-500" />
                                                 <span className="text-lg font-bold text-slate-900 dark:text-white">{campaign.delivered}</span>
                                             </div>
                                             <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-text-secondary font-medium">Delivered</span>
                                         </div>
-                                        <div className="flex flex-col items-center gap-0.5">
+                                        <div className="flex flex-col items-center gap-0.5 min-w-[60px]">
                                             <div className="flex items-center gap-1.5" title="Failed">
                                                 <X className="w-4 h-4 text-red-500" />
                                                 <span className="text-lg font-bold text-red-500">{campaign.failed || 0}</span>
                                             </div>
                                             <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-text-secondary font-medium">Failed</span>
                                         </div>
-                                        <div className="flex flex-col items-center gap-0.5">
+                                        <div className="flex flex-col items-center gap-0.5 min-w-[60px]">
                                             <div className="flex items-center gap-1.5" title="Read">
                                                 <CheckCheck className="w-4 h-4 text-blue-500" />
                                                 <span className="text-lg font-bold text-blue-500 dark:text-blue-400">{campaign.read}</span>

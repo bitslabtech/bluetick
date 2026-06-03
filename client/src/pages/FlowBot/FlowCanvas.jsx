@@ -1,8 +1,7 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import {
     ReactFlow,
     Background,
-    Controls,
     MiniMap,
     addEdge,
     applyNodeChanges,
@@ -309,6 +308,14 @@ const HandoffNode = ({ data }) => (
 
 // ── CANVAS COMPONENT ──
 const FlowCanvas = ({ nodes, edges, setNodes, setEdges, onInit, onDrop, onDragOver, setSelectedNode, isLocked }) => {
+    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const nodeTypes = useMemo(() => ({
         triggerNode: TriggerNode,
         messageNode: MessageNode,
@@ -391,22 +398,17 @@ const FlowCanvas = ({ nodes, edges, setNodes, setEdges, onInit, onDrop, onDragOv
             onPaneClick={onPaneClick}
             nodeTypes={nodeTypes}
             fitViewOptions={{ maxZoom: 0.7, padding: 0.2 }}
+            minZoom={isMobile ? 0.1 : 0.5}
             className="bg-slate-50 dark:bg-slate-900"
             defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
-            showAttribution={false}
             nodesDraggable={!isLocked}
             nodesConnectable={!isLocked}
             elementsSelectable={!isLocked}
         >
             <Background color="#94a3b8" gap={20} size={1.5} />
-            <Controls 
-                position="bottom-left"
-                style={{ bottom: 40, left: 20, margin: 0 }}
-                className="fill-slate-500 dark:fill-slate-400 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-md !m-0" 
-            />
             <MiniMap 
                 position="bottom-right"
-                style={{ bottom: 40, right: 20, margin: 0 }}
+                style={{ bottom: 0, right: 0, margin: 0 }}
                 nodeStrokeColor="#cbd5e1"
                 nodeColor={(node) => {
                     if (node.type === 'triggerNode') return '#818cf8';

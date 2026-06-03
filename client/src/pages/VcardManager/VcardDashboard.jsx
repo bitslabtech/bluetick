@@ -90,7 +90,7 @@ export default function VcardDashboard() {
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
                     <div className="p-3 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 rounded-xl">
                         <Eye className="w-6 h-6" />
@@ -159,7 +159,8 @@ export default function VcardDashboard() {
                 <div className="p-5 border-b border-slate-100 dark:border-white/5">
                     <h3 className="font-bold">Top Performing VeCards</h3>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500">
                             <tr>
@@ -190,6 +191,30 @@ export default function VcardDashboard() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden flex flex-col divide-y divide-slate-100 dark:divide-white/5">
+                    {vcards.length === 0 && (
+                        <p className="p-4 text-center text-slate-400 text-sm">No VeCards available to display.</p>
+                    )}
+                    {vcards.sort((a, b) => b.views - a.views).slice(0, 5).map(v => (
+                        <div key={v.id} className="flex items-center gap-3 p-4">
+                            {v.profileImage ? (
+                                <img src={v.profileImage} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm shrink-0">{v.name.charAt(0)}</div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{v.name}</p>
+                                <p className="text-xs text-slate-400 truncate">{v.slug}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                                <p className="font-bold text-slate-900 dark:text-white text-sm">{v.views}</p>
+                                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] text-slate-500">{v.themeId}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 

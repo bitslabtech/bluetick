@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Settings, Trash2, AlertTriangle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreSettings() {
-    const { id: storeId } = useParams();
+    const { storeId } = useOutletContext();
     const navigate = useNavigate();
     const [store, setStore] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -87,7 +87,7 @@ export default function WaStoreSettings() {
     );
 
     return (
-        <div className="max-w-2xl space-y-6 pb-20">
+        <div className="max-w-2xl space-y-6 pb-7 sm:pb-20">
             <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Settings className="w-5 h-5 text-indigo-500" />
@@ -151,18 +151,18 @@ export default function WaStoreSettings() {
                     </p>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Domain Name</label>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <input
                                 type="text"
                                 placeholder="shop.example.com"
                                 value={customDomain}
                                 onChange={e => setCustomDomain(e.target.value.toLowerCase())}
-                                className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
+                                className="w-full sm:flex-1 px-4 py-3 sm:py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
                             />
                             <button
                                 onClick={handleSaveDomain}
                                 disabled={savingDomain}
-                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-medium transition-all text-sm shadow-sm"
+                                className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
                             >
                                 {savingDomain ? 'Saving...' : 'Save Domain'}
                             </button>
@@ -290,7 +290,7 @@ export default function WaStoreSettings() {
                         type="button"
                         onClick={handleSaveGrid}
                         disabled={savingGrid}
-                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-medium transition-all text-sm shadow-sm"
+                        className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
                     >
                         {savingGrid ? 'Saving...' : 'Save Grid Layout'}
                     </button>
@@ -330,7 +330,7 @@ export default function WaStoreSettings() {
                         type="button"
                         onClick={handleDelete}
                         disabled={deleting || confirmText !== store.name}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all text-sm shadow-sm"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 sm:py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold sm:font-semibold transition-all text-sm shadow-sm"
                     >
                         <Trash2 className="w-4 h-4" />
                         {deleting ? 'Deleting Store…' : 'Permanently Delete Store'}

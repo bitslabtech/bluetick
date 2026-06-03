@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import {
     Store, Globe, Phone, Mail, MapPin, Image as ImageIcon,
@@ -235,7 +235,7 @@ const SectionCard = ({ title, description, children }) => (
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function WaStoreBasicDetails() {
-    const { id: storeId } = useParams();
+    const { storeId } = useOutletContext();
     const [store, setStore]   = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving]   = useState(false);
@@ -280,7 +280,7 @@ export default function WaStoreBasicDetails() {
     );
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="space-y-6 pb-7 sm:pb-20">
             <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Store className="w-5 h-5 text-indigo-500" />

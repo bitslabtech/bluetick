@@ -40,7 +40,7 @@ const BlogList = () => {
         <PublicLayout pageKey="blog" fullWidth={true}>
             <div className="bg-[#F5F5F7] dark:bg-black text-slate-900 dark:text-white font-display selection:bg-indigo-500/30 selection:text-indigo-900 dark:selection:text-indigo-200">
             {/* Hero Section */}
-            <header className="pt-40 pb-20 px-4 md:px-6 text-center max-w-4xl mx-auto">
+            <header className="pt-40 pb-7 sm:pb-20 px-4 md:px-6 text-center max-w-4xl mx-auto">
                 <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-tight mb-6">
                     Insights from the <br/>
                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">cutting edge.</span>

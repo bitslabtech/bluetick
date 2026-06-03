@@ -102,7 +102,7 @@ const StorePage = () => {
                 </div>
             </header>
 
-            <main className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full pb-20">
+            <main className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full pb-7 sm:pb-20">
                 <div className="mb-10 text-center max-w-2xl mx-auto">
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-3">Power Up Your Account</h1>
                     <p className="text-slate-500 dark:text-text-secondary text-lg">Need more capacity? Purchase one-time top-ups to instantly increase your limits without changing your base plan.</p>
@@ -126,7 +126,7 @@ const StorePage = () => {
                                     <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-lg"><Zap className="w-6 h-6" /></div>
                                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">AI Tokens</h2>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                                     {groupedItems['ai_tokens'].map(item => (
                                         <StoreCard key={item.id} item={item} processingId={processingId} onPurchase={() => handlePurchase(item)} />
                                     ))}
@@ -141,7 +141,7 @@ const StorePage = () => {
                                     <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg"><MessageSquare className="w-6 h-6" /></div>
                                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Extra Messages</h2>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                                     {groupedItems['messages'].map(item => (
                                         <StoreCard key={item.id} item={item} processingId={processingId} onPurchase={() => handlePurchase(item)} />
                                     ))}
@@ -156,7 +156,7 @@ const StorePage = () => {
                                     <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg"><Users className="w-6 h-6" /></div>
                                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Extra Contacts</h2>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                                     {groupedItems['contacts'].map(item => (
                                         <StoreCard key={item.id} item={item} processingId={processingId} onPurchase={() => handlePurchase(item)} />
                                     ))}
@@ -194,24 +194,24 @@ const StoreCard = ({ item, processingId, onPurchase }) => {
     const theme = themeColors[item.color] || themeColors.indigo;
 
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col hover:-translate-y-1 relative overflow-hidden group">
+        <div className="bg-white dark:bg-surface-dark rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col hover:-translate-y-1 relative overflow-hidden group">
             {/* Background accent */}
             <div className={`absolute top-0 right-0 w-32 h-32 ${theme.light} rounded-full blur-3xl -mr-16 -mt-16 opacity-50 transition-opacity group-hover:opacity-100`}></div>
             
             <div className="relative z-10 flex-1 flex flex-col">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white capitalize mb-1">{item.name}</h3>
-                {item.description && <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{item.description}</p>}
+                <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white capitalize mb-1 truncate">{item.name}</h3>
+                {item.description && <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-2 sm:mb-4 line-clamp-2">{item.description}</p>}
                 
-                <div className={`mt-auto inline-flex items-center self-start gap-1.5 px-3 py-1 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 rounded-lg font-semibold text-sm mb-6`}>
-                    +{item.amount.toLocaleString()} Units
+                <div className={`mt-auto inline-flex items-center self-start gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 rounded-lg font-semibold text-[10px] sm:text-sm mb-4 sm:mb-6`}>
+                    +{item.amount.toLocaleString()} <span className="hidden sm:inline">Units</span>
                 </div>
 
-                <div className="flex items-end justify-between mb-4 mt-auto pt-4 border-t border-slate-100 dark:border-white/10">
+                <div className="flex items-end justify-between mb-3 sm:mb-4 mt-auto pt-3 sm:pt-4 border-t border-slate-100 dark:border-white/10">
                     <div>
-                        <span className="text-sm font-medium text-slate-500 line-through mr-2">
+                        <span className="text-xs sm:text-sm font-medium text-slate-500 line-through mr-1 sm:mr-2">
                             {item.currency === 'USD' ? '$' : '₹'}{(item.price * 1.2).toFixed(2)}
                         </span>
-                        <div className="text-3xl font-black text-slate-900 dark:text-white">
+                        <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white">
                             {item.currency === 'USD' ? '$' : '₹'}{item.price}
                         </div>
                     </div>
@@ -220,14 +220,14 @@ const StoreCard = ({ item, processingId, onPurchase }) => {
                 <button
                     onClick={onPurchase}
                     disabled={isAnyProcessing}
-                    className={`w-full py-3 px-4 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 
+                    className={`w-full py-2 sm:py-3 px-2 sm:px-4 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-base
                         ${theme.bg} ${theme.btnText} 
                         disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0`}
                 >
                     {isProcessing ? (
-                        <><Loader className="w-5 h-5 animate-spin" /> Processing...</>
+                        <><Loader className="w-3.5 h-3.5 sm:w-5 sm:h-5 animate-spin" /> <span className="hidden sm:inline">Processing...</span></>
                     ) : (
-                        <><Shield className="w-4 h-4 opacity-70" /> Buy Now</>
+                        <><Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-70" /> Buy<span className="hidden sm:inline"> Now</span></>
                     )}
                 </button>
             </div>

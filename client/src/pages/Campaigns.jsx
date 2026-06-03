@@ -62,8 +62,14 @@ const Campaigns = () => {
         setCampaignData(prev => ({ ...prev, ...newData }));
     };
 
-    const handleNext = () => setStep(prev => prev + 1);
-    const handleBack = () => setStep(prev => prev - 1);
+    const handleNext = () => {
+        setStep(prev => prev + 1);
+        document.getElementById('campaign-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    const handleBack = () => {
+        setStep(prev => prev - 1);
+        document.getElementById('campaign-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     const handleSubmit = async (payload) => {
         try {
@@ -94,7 +100,7 @@ const Campaigns = () => {
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
                     <button className="md:hidden text-slate-900 dark:text-white">
                         <Menu className="w-6 h-6" />
@@ -119,8 +125,8 @@ const Campaigns = () => {
             </header>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <div className="p-4 md:p-4 md:p-8 w-full max-w-[1600px] max-w-full mx-auto">
+            <div id="campaign-scroll-container" className="flex-1 overflow-y-auto custom-scrollbar">
+                <div className="p-4 md:p-4 md:p-8 w-full max-w-[1600px] mx-auto">
                     {!isConfigured ? (
                         <div className="flex flex-col items-center justify-center h-full py-20 text-center animate-in fade-in slide-in-from-bottom-4">
                             <div className="w-24 h-24 bg-white dark:bg-surface-dark rounded-full flex items-center justify-center shadow-xl mb-6 border border-slate-100 dark:border-white/5">

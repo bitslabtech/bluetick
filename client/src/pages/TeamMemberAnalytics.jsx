@@ -29,14 +29,14 @@ const STATUS_STYLE = {
 
 function KpiCard({ icon: Icon, label, value, color, sub }) {
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm flex items-center gap-5 group hover:shadow-md transition-all duration-300">
-            <div className={`p-3.5 rounded-2xl ${color} flex-shrink-0`}>
-                <Icon className="w-6 h-6" />
+        <div className="bg-white dark:bg-surface-dark rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 group hover:shadow-md transition-all duration-300">
+            <div className={`p-2.5 sm:p-3.5 rounded-lg sm:rounded-2xl ${color} flex-shrink-0`}>
+                <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">{label}</p>
-                <p className="text-3xl font-black text-slate-900 dark:text-white">{value}</p>
-                {sub && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
+                <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-0.5 sm:mb-1">{label}</p>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-none">{value}</p>
+                {sub && <p className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 mt-1">{sub}</p>}
             </div>
         </div>
     );
@@ -115,7 +115,7 @@ export default function TeamMemberAnalytics() {
         <div className="bg-slate-50 dark:bg-background-dark min-h-screen">
 
             {/* ── Header ───────────────────────────────────── */}
-            <div className="bg-white dark:bg-background-dark border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-5 sticky top-0 z-20 backdrop-blur-sm bg-white/90 dark:bg-background-dark/90">
+            <div className="bg-white dark:bg-background-dark border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-5">
                 <div className="max-w-6xl mx-auto flex items-center gap-4">
                     <button
                         onClick={() => navigate(-1)}
@@ -138,7 +138,7 @@ export default function TeamMemberAnalytics() {
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto px-4 sm:px-4 md:px-6 py-8 space-y-8">
+            <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-8 space-y-4 sm:space-y-8">
 
                 {/* ── Member Profile Card ─────────────────────── */}
                 <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 p-4 md:p-6 shadow-sm">
@@ -304,21 +304,27 @@ export default function TeamMemberAnalytics() {
                         </div>
 
                         {/* Permissions Summary */}
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm p-4 md:p-6">
+                        <div className="bg-white dark:bg-surface-dark rounded-xl sm:rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm p-4 md:p-6">
                             <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                                <Shield className="w-4 h-4 text-slate-400" /> Permissions
+                                <Shield className="w-4 h-4 text-slate-400" /> Granted Permissions
                             </h3>
-                            {['send_campaigns', 'manage_contacts', 'manage_templates', 'view_reports'].map(p => {
-                                const has = member?.teamPermissions?.includes(p);
-                                return (
-                                    <div key={p} className="flex items-center justify-between py-2.5 border-b border-slate-100 dark:border-white/5 last:border-0">
-                                        <span className="text-sm text-slate-600 dark:text-slate-300 capitalize">{p.replace(/_/g, ' ')}</span>
-                                        {has
-                                            ? <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                            : <XCircle className="w-4 h-4 text-slate-300 dark:text-slate-600" />}
-                                    </div>
-                                );
-                            })}
+                            {member?.teamPermissions?.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                    {member.teamPermissions.map(p => (
+                                        <div key={p} className="flex items-center gap-2 py-1.5 px-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
+                                            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                                            <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium truncate">
+                                                {p.replace(/^menu_/, '').replace(/_/g, ' ').toUpperCase()}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-6">
+                                    <Shield className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto mb-2" />
+                                    <p className="text-sm text-slate-500">No explicit permissions granted.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 

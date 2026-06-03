@@ -8,7 +8,7 @@ import UserDropdown from '../components/UserDropdown';
 import {
     Menu, Plus, Info, Search,
     Globe, LayoutTemplate, Image as ImageIcon, AlertTriangle, X, RefreshCw,
-    Lock, Trash2, Zap, Sparkles, Send
+    Lock, Trash2, Zap, Sparkles, Send, ChevronDown
 } from 'lucide-react';
 import CreateTemplateModal from '../components/CreateTemplateModal';
 
@@ -25,6 +25,7 @@ const Templates = () => {
     const [showConfigError, setShowConfigError] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [showGuidelines, setShowGuidelines] = useState(false);
 
     // AI Draft States
     const [showAiDraftModal, setShowAiDraftModal] = useState(false);
@@ -246,45 +247,58 @@ const Templates = () => {
                             <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Message Templates</h1>
                             <p className="text-slate-500 dark:text-text-secondary mt-1">Manage and organize your message templates for WhatsApp Business API.</p>
                         </div>
-                        <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
                             <button
                                 onClick={handleSyncTemplates}
                                 disabled={syncing}
-                                className="flex-1 md:flex-none justify-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50 shadow-sm"
+                                className="flex-1 sm:flex-none justify-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50 shadow-sm"
+                                title="Sync Templates"
                             >
-                                <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
-                                Sync
+                                <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${syncing ? 'animate-spin' : ''}`} />
+                                <span className="sm:hidden">Sync</span>
+                                <span className="hidden sm:inline">Sync</span>
                             </button>
                             <button
                                 onClick={() => setShowAiDraftModal(true)}
-                                className="flex-1 md:flex-none justify-center bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-purple-500/20 active:scale-95 relative overflow-hidden group"
+                                className="flex-1 sm:flex-none justify-center bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md shadow-indigo-500/20 active:scale-95 relative overflow-hidden group"
                             >
                                 <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                                <Sparkles className="w-4 h-4 text-amber-300" />
-                                <span className="hidden sm:inline">Create With Ai</span>
-                                <span className="sm:hidden">Draft AI</span>
+                                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-100" />
+                                <span className="hidden sm:inline">Create with AI</span>
+                                <span className="sm:hidden">Create with AI</span>
                             </button>
                             <button
                                 onClick={() => checkSettingsAndOpenModal(null)}
-                                className="flex-1 md:flex-none justify-center bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                                className="flex-1 sm:flex-none justify-center bg-primary hover:bg-blue-600 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md shadow-primary/20 active:scale-95"
                             >
-                                <Plus className="w-5 h-5" />
-                                <span className="hidden sm:inline">Create New Template</span>
+                                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span className="hidden sm:inline">New Template</span>
                                 <span className="sm:hidden">Create</span>
                             </button>
                         </div>
                     </div>
 
                     {/* Info Banner */}
-                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex gap-4 items-start">
-                        <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-                        <div>
-                            <h3 className="text-blue-400 font-bold text-sm mb-1">Meta Approval Process Guidelines</h3>
-                            <p className="text-text-secondary text-sm leading-relaxed">
-                                All templates must be submitted to Meta for approval before they can be sent to customers. This process helps prevent spam and ensures high-quality messages. Approvals typically take a few minutes to 24 hours. {' '}
-                                <a className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors" href="#">Read formatting guidelines</a>.
-                            </p>
-                        </div>
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl overflow-hidden transition-all duration-300">
+                        <button 
+                            onClick={() => setShowGuidelines(!showGuidelines)}
+                            className="w-full flex items-center justify-between p-4 text-left hover:bg-blue-500/5 transition-colors focus:outline-none"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Info className="w-5 h-5 text-blue-400 shrink-0" />
+                                <h3 className="text-blue-400 font-bold text-sm">Meta Approval Process Guidelines</h3>
+                            </div>
+                            <ChevronDown className={`w-4 h-4 text-blue-400 transition-transform duration-300 ${showGuidelines ? 'rotate-180' : ''}`} />
+                        </button>
+                        
+                        {showGuidelines && (
+                            <div className="px-4 pb-4 pt-0 pl-12 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <p className="text-slate-600 dark:text-text-secondary text-sm leading-relaxed">
+                                    All templates must be submitted to Meta for approval before they can be sent to customers. This process helps prevent spam and ensures high-quality messages. Approvals typically take a few minutes to 24 hours. {' '}
+                                    <a className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 underline underline-offset-2 transition-colors" href="#">Read formatting guidelines</a>.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Filter & Search Bar */}

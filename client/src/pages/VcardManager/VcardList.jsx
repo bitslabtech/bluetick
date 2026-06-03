@@ -70,17 +70,17 @@ export default function VcardList() {
                         Create, manage, and share your advanced digital business cards.
                     </p>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                    <div className="text-sm font-medium text-slate-500">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="text-sm font-medium text-slate-500 text-center sm:text-right">
                         Usage: <span className="text-slate-900 dark:text-white font-bold">{vcards.length} / {vcardLimit === 0 ? 'Unlimited' : vcardLimit}</span>
                     </div>
                     {(vcardLimit === 0 || vcards.length < vcardLimit) ? (
-                        <Link to="/vcards/builder" className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-600/20">
+                        <Link to="/vcards/builder" className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-600/20 w-full sm:w-auto">
                             <Plus className="w-5 h-5" />
                             Create New veCard
                         </Link>
                     ) : (
-                        <button disabled className="flex items-center gap-2 px-5 py-2.5 bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-medium rounded-xl cursor-not-allowed">
+                        <button disabled className="flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-medium rounded-xl cursor-not-allowed w-full sm:w-auto">
                             <Plus className="w-5 h-5" />
                             Limit Reached
                         </button>
@@ -178,7 +178,7 @@ export default function VcardList() {
                             </div>
 
                             {/* Action Footer */}
-                            <div className="p-3 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800/20 grid grid-cols-1 md:grid-cols-4 gap-2">
+                            <div className="p-3 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800/20 flex items-center justify-around gap-1">
                                 <a href={`/vcard/${vcard.slug}`} target="_blank" rel="noreferrer" title="View Public Card" className="flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
                                     <ExternalLink className="w-4 h-4" />
                                 </a>

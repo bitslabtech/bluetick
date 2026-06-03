@@ -7,7 +7,7 @@ import {
     Layout, Type, Palette, Image as ImageIcon, Check, RefreshCw,
     Bell, Mail, MessageCircle, UserPlus, CreditCard, AlertTriangle, BarChart, Zap,
     Server, Smartphone, Send, Terminal, Shield, Key, Search, User, Sparkles,
-    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2
+    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2, ArrowRight
 } from 'lucide-react';
 import BillingTab from '../components/BillingTab';
 import { useAuth } from '../context/AuthContext';
@@ -968,38 +968,39 @@ const Settings = () => {
                         </h1>
                         <p className="text-slate-500 dark:text-slate-400 mt-1">Manage global configuration.</p>
                     </div>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={saving}
-                        className="w-full sm:w-auto px-4 md:px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70"
-                    >
-                        {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        {saving ? 'Saving...' : 'Save Settings'}
-                    </button>
                 </div>
 
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col md:flex-row bg-white dark:bg-background-dark rounded-2xl border border-slate-200 dark:border-white/5 text-sm">
-                    {/* Mobile Tabs */}
-                    <div className="md:hidden w-full overflow-x-auto border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-surface-dark/50 p-2 shrink-0 custom-scrollbar">
-                        <div className="flex gap-2">
-                            {tabs.map(tab => {
-                                const Icon = tab.icon;
-                                const isActive = activeTab === tab.id;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${isActive
-                                            ? 'bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                            : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-white/5'
+                    {/* Mobile: Horizontal Swipe Menu */}
+                    <div className="md:hidden w-full flex flex-col gap-1.5 p-3 shrink-0 bg-slate-50 dark:bg-surface-dark/20 border-b border-slate-200 dark:border-white/5">
+                        <div className="flex items-center justify-end px-2">
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1 opacity-80">
+                                Swipe Menu <ArrowRight className="w-3 h-3 animate-pulse" />
+                            </span>
+                        </div>
+                        <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-1.5 shadow-sm">
+                            <div className="absolute right-1 top-1 bottom-1 w-8 bg-gradient-to-l from-white dark:from-surface-dark pointer-events-none rounded-r-xl z-10" />
+                            <nav className="flex overflow-x-auto hide-scrollbar custom-scrollbar gap-1 snap-x px-0.5">
+                                {tabs.map(tab => {
+                                    const Icon = tab.icon;
+                                    const isActive = activeTab === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 snap-start ${
+                                                isActive 
+                                                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-500/20' 
+                                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
                                             }`}
-                                    >
-                                        <Icon className="w-4 h-4 shrink-0" />
-                                        {tab.label}
-                                    </button>
-                                );
-                            })}
+                                        >
+                                            <Icon className="w-4 h-4 shrink-0" />
+                                            {tab.label}
+                                        </button>
+                                    );
+                                })}
+                            </nav>
                         </div>
                     </div>
 
@@ -1220,7 +1221,7 @@ const Settings = () => {
 
                                     {/* Danger Zone */}
                                     <section className="bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/20 p-4 md:p-6">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div>
                                                 <h3 className="text-lg font-bold text-red-700 dark:text-red-400">Delete Account</h3>
                                                 <p className="text-sm text-red-600 dark:text-red-300/80 mt-1">
@@ -1555,7 +1556,7 @@ const Settings = () => {
                             {activeTab === 'whatsapp_gateway' && (
                                 <div className="space-y-6">
                                     {/* Sub-tabs Header for WhatsApp Config */}
-                                    <div className="bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-2 flex gap-2 shadow-inner">
+                                    <div className="bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-2 flex flex-col sm:flex-row gap-2 shadow-inner">
                                         <button
                                             onClick={() => setWaGatewayTab('embedded')}
                                             className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 rounded-xl transition-all shadow-sm ${waGatewayTab === 'embedded'
@@ -1926,50 +1927,57 @@ const Settings = () => {
                                         {/* Gateway Selection Grid */}
                                         <section>
                                             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Select Payment Provider</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                                {[
+                                            {(() => {
+                                                const paymentProvidersList = [
                                                     { id: 'razorpay', name: 'Razorpay', color: 'blue' },
                                                     { id: 'stripe', name: 'Stripe', color: 'indigo' },
                                                     { id: 'phonepe', name: 'PhonePe', color: 'purple' },
                                                     { id: 'cashfree', name: 'Cashfree', color: 'orange' }
-                                                ].map((gateway) => (
-                                                    <div
-                                                        key={gateway.id}
-                                                        onClick={() => setActivePaymentGateway(gateway.id)}
-                                                        className={`relative p-6 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${activePaymentGateway === gateway.id
-                                                            ? `border-${gateway.color}-500 bg-${gateway.color}-50 dark:bg-slate-900`
-                                                            : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
-                                                            }`}
-                                                    >
-                                                        <div className="flex flex-col items-center gap-4 text-center">
-                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activePaymentGateway === gateway.id ? `bg-${gateway.color}-500 text-white` : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 shadow-sm border border-slate-200 dark:border-slate-600'
-                                                                }`}>
-                                                                <CreditCard className="w-6 h-6" />
+                                                ];
+                                                const mobileCols = paymentProvidersList.length > 4 ? 'grid-cols-3' : 'grid-cols-2';
+                                                
+                                                return (
+                                                    <div className={`grid ${mobileCols} md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6`}>
+                                                        {paymentProvidersList.map((gateway) => (
+                                                            <div
+                                                                key={gateway.id}
+                                                                onClick={() => setActivePaymentGateway(gateway.id)}
+                                                                className={`relative p-3 md:p-6 rounded-xl md:rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${activePaymentGateway === gateway.id
+                                                                    ? `border-${gateway.color}-500 bg-${gateway.color}-50 dark:bg-slate-900`
+                                                                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex flex-col items-center gap-2 md:gap-4 text-center">
+                                                                    <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center ${activePaymentGateway === gateway.id ? `bg-${gateway.color}-500 text-white` : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 shadow-sm border border-slate-200 dark:border-slate-600'
+                                                                        }`}>
+                                                                        <CreditCard className="w-4 h-4 md:w-6 h-6" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <h4 className="font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1 text-[11px] md:text-base leading-tight md:leading-normal">
+                                                                            {gateway.name}
+                                                                        </h4>
+                                                                        <p className="text-[9px] md:text-xs text-slate-500 mt-1 flex flex-col items-center justify-center gap-0 md:gap-1">
+                                                                            {formData.paymentGateways?.[gateway.id]?.enabled ? (
+                                                                                <span className="text-green-500 font-bold flex items-center justify-center gap-1"><Check className="w-3 h-3" /> Enabled</span>
+                                                                            ) : <span>Disabled</span>}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                {activePaymentGateway === gateway.id && (
+                                                                    <div className={`absolute top-2 right-2 md:top-4 md:right-4 text-${gateway.color}-500`}>
+                                                                        <Check className="w-3 h-3 md:w-5 md:h-5" />
+                                                                    </div>
+                                                                )}
+                                                                {formData.paymentGateways?.defaultGateway === gateway.id && (
+                                                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-0.5 md:py-1 rounded-full shadow-sm whitespace-nowrap">
+                                                                        Default Gateway
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <div>
-                                                                <h4 className="font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1">
-                                                                    {gateway.name}
-                                                                </h4>
-                                                                <p className="text-xs text-slate-500 mt-1 flex flex-col items-center justify-center gap-1">
-                                                                    {formData.paymentGateways?.[gateway.id]?.enabled ? (
-                                                                        <span className="text-green-500 font-bold flex items-center justify-center gap-1"><Check className="w-3 h-3" /> Enabled</span>
-                                                                    ) : <span>Disabled</span>}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        {activePaymentGateway === gateway.id && (
-                                                            <div className={`absolute top-4 right-4 text-${gateway.color}-500`}>
-                                                                <Check className="w-5 h-5" />
-                                                            </div>
-                                                        )}
-                                                        {formData.paymentGateways?.defaultGateway === gateway.id && (
-                                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
-                                                                Default Gateway
-                                                            </div>
-                                                        )}
+                                                        ))}
                                                     </div>
-                                                ))}
-                                            </div>
+                                                );
+                                            })()}
                                         </section>
 
                                         {/* Global Payment Settings */}
@@ -1995,12 +2003,12 @@ const Settings = () => {
                                         {/* Configuration Form */}
                                         {activePaymentGateway && formData.paymentGateways && (
                                             <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
-                                                <div className="flex items-center justify-between mb-8">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                                                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                                        <Shield className="w-6 h-6 text-indigo-500" />
-                                                        Configure {activePaymentGateway.charAt(0).toUpperCase() + activePaymentGateway.slice(1)}
+                                                        <Shield className="w-6 h-6 text-indigo-500 shrink-0" />
+                                                        <span className="truncate">Configure {activePaymentGateway.charAt(0).toUpperCase() + activePaymentGateway.slice(1)}</span>
                                                     </h2>
-                                                    <div className="flex items-center gap-6">
+                                                    <div className="flex flex-wrap items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-0 border-slate-100 dark:border-white/5 pt-4 md:pt-0">
                                                         {/* Set as Default Button */}
                                                         {formData.paymentGateways[activePaymentGateway].enabled && (
                                                             <button
@@ -2238,9 +2246,9 @@ const Settings = () => {
                                 activeTab === 'smtp' && (
                                     <div className="space-y-8">
                                         <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
-                                            <div className="flex items-center justify-between mb-8">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
                                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                                    <Mail className="w-6 h-6 text-indigo-500" />
+                                                    <Mail className="w-6 h-6 text-indigo-500 shrink-0" />
                                                     SMTP Configuration
                                                 </h2>
                                                 <button
@@ -2266,7 +2274,7 @@ const Settings = () => {
                                                         }
                                                     }}
                                                     disabled={testLoading}
-                                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+                                                    className="w-full sm:w-auto justify-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 shadow-sm"
                                                 >
                                                     {testLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                                     Test Connection
@@ -2897,8 +2905,20 @@ const Settings = () => {
                         </div>
                     </div>
                 </div >
-            </main >
-        </div >
+            </main>
+
+            {/* Sticky Bottom Save Button */}
+            <div className="sticky bottom-0 left-0 right-0 p-4 md:p-6 bg-white/90 dark:bg-background-dark/90 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 z-40 flex justify-center md:justify-end shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] dark:shadow-none transition-all mt-auto w-full">
+                <button
+                    onClick={handleSubmit}
+                    disabled={saving}
+                    className="w-full sm:w-auto min-w-[200px] px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl shadow-xl shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
+                >
+                    {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    {saving ? 'Saving Changes...' : 'Save Settings'}
+                </button>
+            </div>
+        </div>
     );
 };
 

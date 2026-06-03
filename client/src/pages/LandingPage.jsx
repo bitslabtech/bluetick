@@ -1884,7 +1884,7 @@ export default function LandingPage() {
                     <PublicHeader />
 
                     {/* 2. HERO SECTION */}
-                    <section className="relative pt-24 pb-20 md:pt-32 md:pb-24 px-4 md:px-6 overflow-hidden">
+                    <section className="relative pt-24 pb-7 sm:pb-20 md:pt-32 md:pb-24 px-4 md:px-6 overflow-hidden">
 
                         <div className="max-w-7xl mx-auto">
                             {config.hero.layout === 'type2' ? (

@@ -78,7 +78,7 @@ const AdminActivityLogs = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20">
+            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
 
                 <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
 

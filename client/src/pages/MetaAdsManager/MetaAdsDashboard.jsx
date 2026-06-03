@@ -110,7 +110,7 @@ const MetaAdsDashboard = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => navigate('/meta-ads/wizard')}
-                    className="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white px-4 md:px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all"
+                    className="flex-shrink-0 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 md:px-6 py-3 rounded-lg font-bold shadow-md shadow-primary/25 transition-all"
                 >
                     <Plus className="w-5 h-5" />
                     Create New AI Campaign

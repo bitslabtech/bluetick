@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import { FileText, Save, Loader2, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStorePolicies() {
-    const { id } = useParams();
+    const { storeId: id } = useOutletContext();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     
@@ -58,7 +58,7 @@ export default function WaStorePolicies() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-7 sm:pb-20">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -70,7 +70,7 @@ export default function WaStorePolicies() {
                 <button 
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-medium transition-all shadow-sm shadow-indigo-600/20"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-sm shadow-indigo-600/20"
                 >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Save Policies

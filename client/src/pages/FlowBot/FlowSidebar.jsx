@@ -57,7 +57,7 @@ const FlowSidebar = () => {
     ];
 
     return (
-        <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shadow-sm z-10 relative">
+        <aside className="hidden md:flex w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col shadow-sm z-10 relative">
             <div className="p-4 border-b border-slate-100 dark:border-slate-800/50 flex-shrink-0">
                 <h3 className="font-semibold text-slate-800 dark:text-white">Blocks</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Drag and drop to build flow</p>

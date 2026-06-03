@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -157,22 +157,30 @@ function KpiCard({ icon, label, value, sub, color, loading }) {
 }
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
-function ChartCard({ title, subtitle, children, loading, height = 260, action }) {
+function ChartCard({ title, subtitle, children, loading, height = 260, mobileHeight, action }) {
+    const mHeight = mobileHeight || height;
+    const chartClass = `chart-h-${title.replace(/[^a-zA-Z0-9]/g, '')}`;
     return (
         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
-            <div className="flex items-start justify-between mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-5">
                 <div>
                     <h3 className="font-bold text-slate-900 dark:text-white text-base">{title}</h3>
                     {subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
                 </div>
-                {action}
+                {action && <div className="self-start sm:self-auto">{action}</div>}
             </div>
             {loading ? (
-                <Skeleton className={`w-full`} style={{ height }} />
+                <>
+                    <style>{`@media (max-width: 639px) { .${chartClass} { height: ${mHeight}px !important; } }`}</style>
+                    <Skeleton className={`w-full ${chartClass}`} style={{ height }} />
+                </>
             ) : (
-                <div style={{ height }}>
-                    {children}
-                </div>
+                <>
+                    <style>{`@media (max-width: 639px) { .${chartClass} { height: ${mHeight}px !important; } }`}</style>
+                    <div className={`${chartClass}`} style={{ height }}>
+                        {children}
+                    </div>
+                </>
             )}
         </div>
     );
@@ -180,7 +188,7 @@ function ChartCard({ title, subtitle, children, loading, height = 260, action })
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function WaStoreAnalytics() {
-    const { id } = useParams();
+    const { storeId: id } = useOutletContext();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [preset, setPreset] = useState(1); // 7 days default
@@ -443,6 +451,7 @@ export default function WaStoreAnalytics() {
                     subtitle="Distribution of orders by current status"
                     loading={loading}
                     height={280}
+                    mobileHeight={400}
                 >
                     {data && (
                         pieData.length === 0 ? (
@@ -451,28 +460,30 @@ export default function WaStoreAnalytics() {
                                 <p className="text-sm font-medium">No orders in this period</p>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-4 h-full">
-                                <ResponsiveContainer width="55%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={pieData}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius="58%"
-                                            outerRadius="80%"
-                                            paddingAngle={3}
-                                            dataKey="value"
-                                            strokeWidth={0}
-                                        >
-                                            {pieData.map((entry, i) => (
-                                                <Cell key={i} fill={entry.fill} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip content={<CustomPieTooltip currency={currency} />} />
-                                    </PieChart>
-                                </ResponsiveContainer>
+                            <div className="flex flex-col sm:flex-row items-center gap-4 h-full">
+                                <div className="w-full sm:w-[55%] h-[200px] sm:h-full flex-shrink-0">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={pieData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius="58%"
+                                                outerRadius="80%"
+                                                paddingAngle={3}
+                                                dataKey="value"
+                                                strokeWidth={0}
+                                            >
+                                                {pieData.map((entry, i) => (
+                                                    <Cell key={i} fill={entry.fill} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<CustomPieTooltip currency={currency} />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
                                 {/* Legend */}
-                                <div className="flex-1 space-y-2.5">
+                                <div className="w-full sm:w-auto flex-1 space-y-2.5 overflow-y-auto pb-2 pr-2">
                                     {pieData.map(item => (
                                         <div key={item.name} className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0">

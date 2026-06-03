@@ -139,7 +139,7 @@ const AdminNotifications = () => {
                 <ThemeToggle />
             </AdminHeader>
 
-            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-[1600px] max-w-full mx-auto w-full pb-20">
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-[1600px] max-w-full mx-auto w-full pb-7 sm:pb-20">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Broadcast Manager</h1>

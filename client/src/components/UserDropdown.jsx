@@ -1,11 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, LogOut, Settings, CreditCard, ChevronDown } from 'lucide-react';
+import { User, LogOut, Settings, CreditCard, ChevronDown, Bell, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
+import ThemeToggle from './ThemeToggle';
 
 const UserDropdown = () => {
     const { user, logout, isImpersonating, exitImpersonation } = useAuth();
+    const { unreadCount, isAdmin } = useNotifications();
+    const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
@@ -31,22 +36,31 @@ const UserDropdown = () => {
         }
     };
 
+    const toggleTheme = () => {
+        setTheme(theme === 'dark' ? 'light' : 'dark');
+    };
+
     return (
         <div className="relative" ref={containerRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group"
+                className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group relative"
             >
                 <div className="size-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold border-2 border-white dark:border-surface-dark shadow-sm group-hover:scale-105 transition-transform">
                     {user?.name?.[0]?.toUpperCase() || <User className="w-5 h-5" />}
                 </div>
+                {/* Mobile Notification Badge on Avatar */}
+                <span className="md:hidden absolute top-0.5 right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white border-2 border-white dark:border-surface-dark opacity-0" style={{ opacity: unreadCount > 0 ? 1 : 0 }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+
                 <div className="hidden md:block text-left mr-1">
                     <p className="text-sm font-bold text-slate-700 dark:text-white leading-none mb-0.5">{user?.name?.split(' ')[0]}</p>
                     <p className="text-[10px] text-slate-500 dark:text-text-secondary font-medium uppercase tracking-wide">
                         {isImpersonating ? 'Viewing As' : (user?.isAdmin ? 'Super Admin' : 'User')}
                     </p>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 hidden md:block ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             <AnimatePresence>
@@ -69,6 +83,34 @@ const UserDropdown = () => {
 
                         {/* Menu Items */}
                         <div className="p-2 space-y-1">
+                            {/* Mobile Only: Notifications */}
+                            <button
+                                onClick={() => { setIsOpen(false); navigate(isAdmin ? '/superadmin/alerts' : '/notifications'); }}
+                                className="md:hidden w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-indigo-600 dark:hover:text-white transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Bell className="w-4 h-4" />
+                                    Notifications
+                                </div>
+                                {unreadCount > 0 && (
+                                    <span className="flex h-5 items-center justify-center rounded-full bg-red-500 px-2 text-[10px] font-bold text-white">
+                                        {unreadCount} New
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Mobile Only: Theme Toggle */}
+                            <div className="md:hidden w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300">
+                                <div className="flex items-center gap-3">
+                                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                                    Appearance
+                                </div>
+                                <ThemeToggle />
+                            </div>
+
+                            {/* Mobile Divider */}
+                            <div className="md:hidden h-px bg-slate-100 dark:bg-white/5 my-1 mx-2" />
+
                             <button
                                 onClick={() => { setIsOpen(false); navigate('/settings', { state: { initialTab: 'profile' } }); }}
                                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-indigo-600 dark:hover:text-white transition-colors"

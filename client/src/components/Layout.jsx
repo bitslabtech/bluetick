@@ -7,6 +7,9 @@ import { LogOut, Info, AlertTriangle, AlertOctagon, Menu, X } from 'lucide-react
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 
+import NotificationBell from './NotificationBell';
+import UserDropdown from './UserDropdown';
+
 export default function Layout() {
     const { isImpersonating, exitImpersonation, user } = useAuth();
     const { publicSettings, publicSettingsLoading } = useUI();
@@ -38,7 +41,7 @@ export default function Layout() {
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm transition-opacity"
+                    className="fixed inset-0 bg-black/50 z-[55] md:hidden backdrop-blur-sm transition-opacity"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
@@ -47,26 +50,34 @@ export default function Layout() {
             <div className="flex-1 flex flex-col overflow-hidden relative">
 
                 {/* Mobile Header */}
-                <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-background-dark border-b border-slate-200 dark:border-surface-dark shrink-0 z-30 shadow-sm relative">
-                    <div className="flex items-center gap-3">
+                <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-background-dark border-b border-slate-200 dark:border-surface-dark shrink-0 z-30 shadow-sm relative h-[60px]">
+                    {/* Hamburger Menu - Left */}
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors z-10 relative"
+                    >
+                        <Menu className="w-6 h-6" />
+                    </button>
+
+                    {/* Logo - Centered */}
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
                         {publicSettings?.logoUrl ? (
                             <img 
                                 src={publicSettings.logoUrl} 
                                 alt="Logo" 
-                                className="h-8 max-w-[150px] w-auto object-contain" 
+                                className="h-7 max-w-[120px] w-auto object-contain" 
                                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                             />
                         ) : null}
-                        <div className="flex items-center justify-center rounded-lg bg-primary size-8 text-white shadow-lg shadow-blue-500/20" style={{ display: publicSettings?.logoUrl ? 'none' : 'flex' }}>
-                            <span className="font-bold text-sm">Wa</span>
+                        <div className="flex items-center justify-center rounded-lg bg-primary size-7 text-white shadow-lg shadow-blue-500/20" style={{ display: publicSettings?.logoUrl ? 'none' : 'flex' }}>
+                            <span className="font-bold text-xs">Wa</span>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setIsSidebarOpen(true)}
-                        className="p-2 -mr-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"
-                    >
-                        <Menu className="w-6 h-6" />
-                    </button>
+
+                    {/* Notification & Profile - Right */}
+                    <div className="flex items-center gap-3 z-10 relative">
+                        <UserDropdown />
+                    </div>
                 </div>
 
                 {/* Global Announcement Banner */}
@@ -127,7 +138,7 @@ export default function Layout() {
 
 
                 {/* Main Content */}
-                <main className={`flex-1 overflow-auto bg-background-light dark:bg-background-dark relative transition-colors duration-300 p-4 md:p-6 pb-20`}>
+                <main className={`flex-1 overflow-auto bg-background-light dark:bg-background-dark relative transition-colors duration-300 p-4 md:p-6 pb-7 sm:pb-20`}>
                     <Outlet />
                 </main>
 

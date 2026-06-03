@@ -92,7 +92,7 @@ const AddonDetail = () => {
 
     return (
         <>
-        <div className="p-4 sm:p-6 lg:p-8 w-full max-w-6xl mx-auto space-y-6">
+        <div className="p-4 sm:p-6 lg:p-8 w-full max-w-6xl mx-auto space-y-6 pb-28 md:pb-8">
 
             {/* Back button + installed badge */}
             <div className="flex items-center justify-between">
@@ -249,7 +249,7 @@ const AddonDetail = () => {
                             ))}
                         </div>
 
-                        <div className="pt-2">
+                        <div className="pt-2 hidden md:block">
                             {owned ? (
                                 <div className="space-y-4">
                                     <Link
@@ -299,6 +299,45 @@ const AddonDetail = () => {
             </div>
         </div>
 
+        {/* Mobile Sticky Action Bar */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.15)] z-40 p-4 pb-6 flex items-center justify-between gap-4">
+            <div className="flex flex-col">
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mb-0.5">{addon.price > 0 ? 'Total Price' : 'Free Add-on'}</span>
+                {addon.price > 0 ? (
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tight">
+                            {getCurrencySymbol(addon.currency)}{Math.floor(Number(addon.price))}
+                        </span>
+                        <span className="text-[10px] text-gray-500 font-medium">
+                            / {addon.isRecurring ? addon.recurringInterval : 'lifetime'}
+                        </span>
+                    </div>
+                ) : (
+                    <span className="text-xl font-extrabold text-green-600 dark:text-green-400">Free</span>
+                )}
+            </div>
+            
+            <div className="flex-1 max-w-[60%]">
+                {owned ? (
+                    <Link
+                        to={`/addons/${addon.module_key}`}
+                        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-indigo-500/25 transition-all"
+                    >
+                        <Settings className="w-4 h-4" /> Manage Addon
+                    </Link>
+                ) : (
+                    <button
+                        onClick={() => setShowPurchaseModal(true)}
+                        disabled={purchasing}
+                        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold rounded-xl flex justify-center items-center gap-1 shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-70 disabled:transform-none"
+                    >
+                        {purchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                            <><ShoppingCart className="w-4 h-4" /> {addon.price > 0 ? 'Purchase' : 'Enable Free'}</>
+                        )}
+                    </button>
+                )}
+            </div>
+        </div>
 
             {/* Purchase Confirmation Modal */}
             {showPurchaseModal && (

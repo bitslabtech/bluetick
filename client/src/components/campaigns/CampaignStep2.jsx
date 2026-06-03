@@ -56,7 +56,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
     };
 
     return (
-        <div className="flex flex-col gap-8 h-full fade-in">
+        <div className="flex flex-col gap-8 h-full fade-in pb-24 xl:pb-0">
             {/* Step Header */}
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-200 dark:border-surface-dark pb-6 transition-colors duration-300">
                 {/* Title Section */}
@@ -109,9 +109,9 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <select
-                                className="bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer"
+                                className="bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer w-full sm:w-auto"
                                 value={selectedCategory}
                                 onChange={(e) => setSelectedCategory(e.target.value)}
                             >
@@ -122,7 +122,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                             </select>
                             <button
                                 onClick={() => navigate('/templates', { state: { openCreateTemplate: true } })}
-                                className="flex items-center gap-2 px-4 md:px-6 py-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white text-sm font-bold rounded-xl transition-all whitespace-nowrap active:scale-95"
+                                className="flex justify-center items-center gap-2 px-4 md:px-6 py-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white text-sm font-bold rounded-xl transition-all whitespace-nowrap active:scale-95 w-full sm:w-auto"
                             >
                                 <Plus className="w-4 h-4" />
                                 New Template
@@ -146,7 +146,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                     )}
 
                     {/* Templates Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-7 sm:pb-20">
                         {filteredTemplates.map((template) => {
                             const originalIndex = templates.findIndex(t => t.id === template.id);
                             const locked = isLocked(originalIndex);
@@ -336,8 +336,8 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                             )}
                         </div>
 
-                        {/* Actions */}
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 flex flex-col gap-4 shadow-lg transition-colors duration-300">
+                        {/* Actions (Hidden on Mobile) */}
+                        <div className="hidden xl:flex bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 flex-col gap-4 shadow-lg transition-colors duration-300">
                             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-text-secondary mb-2">
                                 <span>Selected Template</span>
                                 <span className="text-slate-900 dark:text-white font-bold truncate max-w-[150px] max-w-full">{selectedTemplate?.name || '-'}</span>
@@ -362,6 +362,25 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Sticky Action Bar */}
+            <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-surface-dark border-t border-slate-200 dark:border-white/10 p-4 pb-safe flex items-center justify-between gap-3 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
+                <button
+                    onClick={onBack}
+                    className="flex-1 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                </button>
+                <button
+                    onClick={onNext}
+                    disabled={!selectedTemplate}
+                    className={`flex-[2] py-3 text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 group ${!selectedTemplate ? 'bg-slate-300 dark:bg-gray-700/50 cursor-not-allowed text-slate-500 dark:text-gray-400 shadow-none' : 'bg-primary hover:bg-blue-600 shadow-blue-500/20 active:scale-95'}`}
+                >
+                    Next Step
+                    <ArrowRight className="w-5 h-5" />
+                </button>
             </div>
         </div>
     );

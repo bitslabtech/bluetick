@@ -1,25 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2 } from 'lucide-react';
+import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreLayout() {
-    const { id } = useParams();
+    const params = useParams();
+    const slug = params.slug || params.id; // Fallback to id to handle Vite HMR caching of old App.jsx routes
     const navigate = useNavigate();
     const [store, setStore] = useState(null);
     const [loading, setLoading] = useState(true);
     const [coverUploading, setCoverUploading] = useState(false);
     const [coverHover, setCoverHover] = useState(false);
     const [coverDragOver, setCoverDragOver] = useState(false);
+    const [debugInfo, setDebugInfo] = useState({});
     const coverInputRef = useRef(null);
 
     useEffect(() => {
         const fetchStore = async () => {
             try {
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
-                const myStore = res.data.find(s => s.id === id);
+                const myStore = res.data.find(s => s.slug === slug || s.id === slug);
                 setStore(myStore);
+                if (!myStore) {
+                    setDebugInfo({ slug: slug, allSlugs: res.data.map(s => s.slug).join(', ') });
+                }
             } catch (error) {
                 toast.error("Failed to load store details");
             } finally {
@@ -27,7 +32,7 @@ export default function WaStoreLayout() {
             }
         };
         fetchStore();
-    }, [id]);
+    }, [slug]);
 
     // ── Cover image upload handler ──
     const handleCoverFile = async (file) => {
@@ -53,7 +58,7 @@ export default function WaStoreLayout() {
             const newUrl = res.data.url;
 
             // Save to store immediately
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${id}`, { coverImage: newUrl });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${store.id}`, { coverImage: newUrl });
             setStore(prev => ({ ...prev, coverImage: newUrl }));
             toast.success('Cover image updated!');
         } catch (err) {
@@ -66,7 +71,7 @@ export default function WaStoreLayout() {
     const removeCoverImage = async (e) => {
         e.stopPropagation();
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${id}`, { coverImage: '' });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${store.id}`, { coverImage: '' });
             setStore(prev => ({ ...prev, coverImage: '' }));
             toast.success('Cover image removed');
         } catch {
@@ -75,25 +80,25 @@ export default function WaStoreLayout() {
     };
 
     const navItems = [
-        { path: `/wastore/${id}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
-        { path: `/wastore/${id}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
-        { path: `/wastore/${id}/products`, icon: <Package className="w-5 h-5" />, label: 'Products' },
-        { path: `/wastore/${id}/categories`, icon: <Tag className="w-5 h-5" />, label: 'Categories' },
-        { path: `/wastore/${id}/orders`, icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
-        { path: `/wastore/${id}/coupons`, icon: <Tag className="w-5 h-5" />, label: 'Promo Codes' },
-        { path: `/wastore/${id}/seo`, icon: <Search className="w-5 h-5" />, label: 'SEO & Tracking' },
-        { path: `/wastore/${id}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
-        { path: `/wastore/${id}/policies`, icon: <FileText className="w-5 h-5" />, label: 'Policies' },
-        { path: `/wastore/${id}/settings`, icon: <Settings className="w-5 h-5" />, label: 'Settings' },
+        { path: `/wastore/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
+        { path: `/wastore/${slug}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
+        { path: `/wastore/${slug}/products`, icon: <Package className="w-5 h-5" />, label: 'Products' },
+        { path: `/wastore/${slug}/categories`, icon: <Tag className="w-5 h-5" />, label: 'Categories' },
+        { path: `/wastore/${slug}/orders`, icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
+        { path: `/wastore/${slug}/coupons`, icon: <Tag className="w-5 h-5" />, label: 'Promo Codes' },
+        { path: `/wastore/${slug}/seo`, icon: <Search className="w-5 h-5" />, label: 'SEO & Tracking' },
+        { path: `/wastore/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
+        { path: `/wastore/${slug}/policies`, icon: <FileText className="w-5 h-5" />, label: 'Policies' },
+        { path: `/wastore/${slug}/settings`, icon: <Settings className="w-5 h-5" />, label: 'Settings' },
     ];
 
     if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading store manager...</div>;
-    if (!store) return <div className="p-4 md:p-8 text-rose-500">Store not found</div>;
+    if (!store) return <div className="p-4 md:p-8 text-rose-500">Store not found. Debug: URL Slug = "{debugInfo.slug ? debugInfo.slug : 'UNDEFINED'}", Path = {window.location.pathname}, Params = {JSON.stringify(params)}, Available Slugs = "{debugInfo.allSlugs}"</div>;
 
     const storeUrl = `${window.location.origin}/store/${store.slug}`;
 
     return (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-20">
+        <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-7 sm:pb-20">
             {/* Animated Gradient CSS */}
             <style>{`
                 @keyframes coverGradientShift {
@@ -207,7 +212,7 @@ export default function WaStoreLayout() {
                                     href={storeUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors text-sm shadow-sm"
+                                    className="inline-flex items-center justify-center w-full sm:w-auto gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors text-sm shadow-sm"
                                 >
                                     <ExternalLink className="w-4 h-4" /> View Live Store
                                 </a>
@@ -258,7 +263,38 @@ export default function WaStoreLayout() {
                         <ArrowLeft className="w-4 h-4" /> Back to Stores
                     </button>
                     
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-3 sticky top-24 shadow-sm">
+                    {/* Mobile: Horizontal Swipe Menu */}
+                    <div className="md:hidden flex flex-col gap-1.5 mb-4">
+                        <div className="flex items-center justify-end px-2">
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1 opacity-80">
+                                Swipe Menu <ArrowRight className="w-3 h-3 animate-pulse" />
+                            </span>
+                        </div>
+                        <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-1.5 shadow-sm">
+                            <div className="absolute right-1 top-1 bottom-1 w-8 bg-gradient-to-l from-white dark:from-surface-dark pointer-events-none rounded-r-xl z-10" />
+                            <nav className="flex overflow-x-auto hide-scrollbar gap-1 snap-x px-0.5">
+                                {navItems.map((item) => (
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        className={({ isActive }) =>
+                                            `flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 snap-start ${
+                                                isActive 
+                                                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-500/20' 
+                                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
+                                            }`
+                                        }
+                                    >
+                                        {item.icon}
+                                        {item.label}
+                                    </NavLink>
+                                ))}
+                            </nav>
+                        </div>
+                    </div>
+
+                    {/* Desktop: Vertical Sidebar */}
+                    <div className="hidden md:block bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-3 sticky top-24 shadow-sm">
                         <nav className="flex flex-col gap-1">
                             {navItems.map((item) => (
                                 <NavLink
@@ -282,7 +318,7 @@ export default function WaStoreLayout() {
 
                 {/* Main Content Area */}
                 <div className="flex-1 min-w-0">
-                    <Outlet />
+                    <Outlet context={{ storeId: store.id }} />
                 </div>
             </div>
         </div>

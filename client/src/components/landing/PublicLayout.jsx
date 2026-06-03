@@ -49,7 +49,7 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
             <PublicHeader />
 
             {/* Main Content */}
-            <main className={`flex-1 ${fullWidth ? 'w-full' : 'pt-32 pb-20 px-6 max-w-4xl mx-auto w-full'}`}>
+            <main className={`flex-1 ${fullWidth ? 'w-full' : 'pt-32 pb-7 sm:pb-20 px-6 max-w-4xl mx-auto w-full'}`}>
                 {title && !fullWidth && (
                     <header className="mb-12 border-b border-slate-200 dark:border-white/10 pb-8">
                         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">{title}</h1>

@@ -13,6 +13,7 @@ const SystemNotification = require('../models/SystemNotification');
 const UserAddon = require('../models/UserAddon');
 const Addon = require('../models/Addon');
 const Contact = require('../models/Contact'); // NEW
+const { fireCapiEvent } = require('./ctwa'); // Phase 5: CAPI auto-fire
 const Flow = require('../models/Flow'); // NEW
 const ContactFlowState = require('../models/ContactFlowState'); // NEW
 const FlowRunner = require('../services/FlowRunner'); // NEW
@@ -250,6 +251,10 @@ router.post('/:userId', (req, res, next) => {
 
                         if (referralData) {
                             console.log(`[WEBHOOK][CTWA] Ad referral detected! Ad ID: ${referralData.source_id} | Headline: "${referralData.headline}"`);
+                            // Phase 5: Auto-fire CAPI Lead event
+                            fireCapiEvent(user.id, 'Lead', {
+                                ph: [require('crypto').createHash('sha256').update(senderNumber).digest('hex')]
+                            }).catch(() => {});
                         }
 
                         let messageType = message.type;
@@ -437,7 +442,7 @@ router.post('/:userId', (req, res, next) => {
                                             }
                                         }
 
-                                    const runner = new FlowRunner(settings, conversation, userId);
+                                    const runner = new FlowRunner(settings, conversation, userId, 'keyword');
 
                                     // 2. Check if user is PAUSED in an active flow (waiting for a button click)
                                     const activeState = await ContactFlowState.findOne({ where: { contactId: contact.id } });
@@ -619,7 +624,10 @@ router.post('/:userId', (req, res, next) => {
                                         if (triggerFlow) {
                                             console.log(`[WEBHOOK] Trigger matched Flow: ${triggerFlow.name}`);
                                             flowHandled = true;
-                                            await runner.executeFlow(triggerFlow, contact.id, null);
+                                            // Create a new runner with the correct triggerType
+                                            const matchedTriggerType = triggerFlow.isAny ? 'any' : 'keyword';
+                                            const triggerRunner = new FlowRunner(settings, conversation, userId, matchedTriggerType);
+                                            await triggerRunner.executeFlow(triggerFlow, contact.id, null);
                                         }
                                     }
                                     } // Close: if (conversation.botStatus !== 'paused')

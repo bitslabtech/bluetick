@@ -6,17 +6,33 @@ const User = require('../models/User');
 const SystemConfig = require('../models/SystemConfig');
 const AiTokenLog = require('../models/AiTokenLog');
 const axios = require('axios');
+const { Op } = require('sequelize');
 
 router.use(auth);
 
-// GET all campaigns
+// GET all campaigns (includes cached insights)
 router.get('/', async (req, res) => {
     try {
         const campaigns = await MetaAdCampaign.findAll({
             where: { userId: req.user.id },
             order: [['createdAt', 'DESC']]
         });
-        res.json(campaigns);
+        // Include insights data in each campaign for the frontend
+        const enriched = campaigns.map(c => {
+            const plain = c.toJSON();
+            const ins = plain.insights || {};
+            return {
+                ...plain,
+                impressions: ins.impressions || null,
+                clicks: ins.clicks || null,
+                spend: ins.spend || null,
+                ctr: ins.ctr || null,
+                cpc: ins.cpc || null,
+                reach: ins.reach || null,
+                insightsUpdatedAt: ins.updatedAt || null
+            };
+        });
+        res.json(enriched);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -100,7 +116,7 @@ Schema:
 
 // POST to generate AI Copy
 router.post('/ai-copy', async (req, res) => {
-    const { businessDescription, tone } = req.body;
+    const { businessDescription, tone, language } = req.body;
     try {
         if (!businessDescription) return res.status(400).json({ error: 'Business description is required' });
 
@@ -117,20 +133,41 @@ router.post('/ai-copy', async (req, res) => {
         const apiKey = process.env.GEMINI_API_KEY;
         const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
 
-        const systemInstruction = `You are a direct-response copywriter for Meta Ads.
+        // Language-specific instructions for Indian market
+        const langMap = {
+            english: 'English',
+            hinglish: 'Hinglish (a mix of Hindi and English, casual tone using Roman script)',
+            hindi: 'Hindi (Devanagari script हिंदी)',
+            tamil: 'Tamil (தமிழ் script)',
+            telugu: 'Telugu (తెలుగు script)',
+            bengali: 'Bengali (বাংলা script)',
+            marathi: 'Marathi (मराठी Devanagari script)',
+            kannada: 'Kannada (ಕನ್ನಡ script)',
+            malayalam: 'Malayalam (മലയാളം script)',
+            gujarati: 'Gujarati (ગુજરાતી script)',
+            punjabi: 'Punjabi (ਪੰਜਾਬੀ Gurmukhi script)',
+            urdu: 'Urdu (اردو script)'
+        };
+        const targetLang = langMap[language] || 'English';
+
+        const systemInstruction = `You are a direct-response copywriter for Meta Ads targeting the Indian market.
 The user wants ad copy to drive messages to their WhatsApp.
 Tone: ${tone || 'Persuasive and professional'}.
+
+IMPORTANT: Generate all ad copy (primary_text and headline) in ${targetLang}.
+${language !== 'english' ? `Use natural, colloquial ${targetLang} that resonates with local audiences. Include appropriate emojis.` : 'Use emojis for engagement.'}
 
 Output STRICTLY VALID JSON. NO MARKDOWN. NO COMMENTS.
 Schema:
 {
   "variations": [
     {
-      "primary_text": "string (Main ad text, use emojis)",
-      "headline": "string (Short, punchy, e.g., 'Chat with us now!')"
+      "primary_text": "string (Main ad text in ${targetLang})",
+      "headline": "string (Short, punchy headline in ${targetLang})"
     }
   ] // Provide 3 variations
 }`;
+
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${process.env.GEMINI_API_KEY}`;
         const payload = {
@@ -240,7 +277,7 @@ Business Info: ${businessDescription}`;
 // POST save / publish ad campaign
 router.post('/publish', async (req, res) => {
     try {
-        const { campaignName, objective, dailyBudget, targeting, creatives, imageUrl } = req.body;
+        const { campaignName, objective, dailyBudget, targeting, creatives, imageUrl, automation } = req.body;
         const user = await User.findByPk(req.user.id);
         
         let fbStatus = 'Draft';
@@ -299,13 +336,121 @@ router.post('/publish', async (req, res) => {
             objective,
             dailyBudget,
             targeting,
-            creatives: { ...creatives, imageUrl }, 
-            status: fbStatus
+            creatives: { ...creatives, imageUrl, automation: automation || null }, 
+            status: fbStatus,
+            metaCampaignId: fbStatus !== 'Draft' ? (campRes?.data?.id || null) : null,
+            metaAdsetId: fbStatus !== 'Draft' ? (adSetRes?.data?.id || null) : null
         });
 
         res.json({ success: true, campaign });
     } catch (err) {
         console.error("Publish error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /insights — Fetch live insights from Facebook Graph API and cache them
+router.get('/insights', async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        const { range = 'last_30d' } = req.query;
+
+        // Map our range to Facebook date presets
+        const datePresetMap = {
+            '1d': 'today',
+            '7d': 'last_7d',
+            '30d': 'last_30d',
+            '3m': 'last_90d'
+        };
+        const datePreset = datePresetMap[range] || 'last_30d';
+
+        const campaigns = await MetaAdCampaign.findAll({
+            where: { userId: req.user.id },
+            order: [['createdAt', 'DESC']]
+        });
+
+        const hasToken = user.metaAdsToken && user.metaAdAccountId;
+        const results = [];
+        let totalImpressions = 0, totalClicks = 0, totalSpend = 0;
+
+        for (const campaign of campaigns) {
+            const plain = campaign.toJSON();
+            let insights = plain.insights || {};
+
+            // If user has a token AND this campaign has a real Facebook ID, fetch live data
+            if (hasToken && campaign.metaCampaignId) {
+                try {
+                    const fbRes = await axios.get(
+                        `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}/insights`,
+                        {
+                            params: {
+                                fields: 'impressions,clicks,spend,ctr,cpc,reach',
+                                date_preset: datePreset,
+                                access_token: user.metaAdsToken
+                            }
+                        }
+                    );
+
+                    const fbData = fbRes.data?.data?.[0] || {};
+                    insights = {
+                        impressions: parseInt(fbData.impressions || 0),
+                        clicks: parseInt(fbData.clicks || 0),
+                        spend: parseFloat(fbData.spend || 0),
+                        ctr: fbData.ctr ? parseFloat(fbData.ctr).toFixed(2) : '0.00',
+                        cpc: fbData.cpc ? parseFloat(fbData.cpc).toFixed(2) : '0.00',
+                        reach: parseInt(fbData.reach || 0),
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    // Cache insights in DB
+                    campaign.insights = insights;
+                    await campaign.save();
+                } catch (fbErr) {
+                    console.error(`[META-ADS] Failed to fetch insights for campaign ${campaign.metaCampaignId}:`, fbErr.response?.data?.error?.message || fbErr.message);
+                    // Use cached insights if live fetch fails
+                }
+            }
+
+            totalImpressions += parseInt(insights.impressions || 0);
+            totalClicks += parseInt(insights.clicks || 0);
+            totalSpend += parseFloat(insights.spend || 0);
+
+            results.push({
+                id: plain.id,
+                campaignName: plain.campaignName,
+                objective: plain.objective,
+                dailyBudget: plain.dailyBudget,
+                status: plain.status,
+                metaCampaignId: plain.metaCampaignId,
+                createdAt: plain.createdAt,
+                // Insights
+                impressions: insights.impressions || null,
+                clicks: insights.clicks || null,
+                spend: insights.spend || null,
+                ctr: insights.ctr || null,
+                cpc: insights.cpc || null,
+                reach: insights.reach || null,
+                insightsUpdatedAt: insights.updatedAt || null
+            });
+        }
+
+        const avgCtr = totalImpressions > 0
+            ? ((totalClicks / totalImpressions) * 100).toFixed(2)
+            : '0.00';
+
+        res.json({
+            summary: {
+                totalCampaigns: campaigns.length,
+                totalImpressions,
+                totalClicks,
+                totalSpend: parseFloat(totalSpend.toFixed(2)),
+                avgCtr,
+                hasLiveConnection: !!hasToken
+            },
+            campaigns: results
+        });
+    } catch (err) {
+        console.error('Meta Ads Insights Error:', err);
         res.status(500).json({ error: err.message });
     }
 });

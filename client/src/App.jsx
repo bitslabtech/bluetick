@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import axios from 'axios';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -49,6 +49,7 @@ const AiBotSettings = React.lazy(() => import('./pages/AiBotSettings'));
 const WhatsAppFormsBuilder = React.lazy(() => import('./pages/addons/WhatsAppFormsBuilder'));
 const StorePage = React.lazy(() => import('./pages/Store'));
 const FlowBotBuilder = React.lazy(() => import('./pages/FlowBot'));
+const FlowList = React.lazy(() => import('./pages/FlowBot/FlowList'));
 const AdminSystemControls = React.lazy(() => import('./pages/AdminSystemControls'));
 const AdminReferralSettings = React.lazy(() => import('./pages/AdminReferralSettings'));
 const Support = React.lazy(() => import('./pages/Support'));
@@ -70,6 +71,7 @@ const CTWAAnalytics = React.lazy(() => import('./pages/CTWAAnalytics'));
 const WALinksGenerator = React.lazy(() => import('./pages/WALinksGenerator'));
 const MetaAdsDashboard = React.lazy(() => import('./pages/MetaAdsManager/MetaAdsDashboard'));
 const MetaAdsWizard = React.lazy(() => import('./pages/MetaAdsManager/MetaAdsWizard'));
+const GrowthHub = React.lazy(() => import('./pages/GrowthHub/GrowthHub'));
 const WaStoreList = React.lazy(() => import('./pages/WaStoreManager/WaStoreList'));
 const WaStoreLayout = React.lazy(() => import('./pages/WaStoreManager/WaStoreLayout'));
 const WaProductList = React.lazy(() => import('./pages/WaStoreManager/WaProductList'));
@@ -304,6 +306,7 @@ function App() {
                                                 <Route path="/campaigns" element={<Campaigns />} />
                                                 <Route path="/campaign-list" element={<CampaignList />} />
                                                 <Route path="/campaign-details/:id" element={<CampaignDetails />} />
+                                                <Route path="/growth-hub" element={<GrowthHub />} />
                                                 <Route path="/ctwa-analytics" element={<CTWAAnalytics />} />
                                                 <Route path="/meta-ads" element={<MetaAdsDashboard />} />
                                                 <Route path="/meta-ads/wizard" element={<MetaAdsWizard />} />
@@ -317,7 +320,8 @@ function App() {
                                                 <Route path="/vcards/builder" element={<VcardBuilder />} />
                                                 <Route path="/vcards/builder/:id" element={<VcardBuilder />} />
                                                 <Route path="/wastore" element={<WaStoreList />} />
-                                                <Route path="/wastore/:id" element={<WaStoreLayout />}>
+                                                <Route path="/wastore/:slug" element={<WaStoreLayout />}>
+                                                    <Route index element={<Navigate to="analytics" replace />} />
                                                     <Route path="analytics" element={<WaStoreAnalytics />} />
                                                     <Route path="details" element={<WaStoreBasicDetails />} />
                                                     <Route path="products" element={<WaProductList />} />
@@ -340,7 +344,9 @@ function App() {
                                                 <Route path="/store" element={<StorePage />} />
                                                 <Route path="/addons/ai_bot" element={<AiBotSettings />} />
                                                 <Route path="/addons/forms" element={<WhatsAppFormsBuilder />} />
-                                                <Route path="/flowbot" element={<FlowBotBuilder />} />
+                                                <Route path="/flowbot" element={<FlowList />} />
+                                                <Route path="/flowbot/create" element={<FlowBotBuilder />} />
+                                                <Route path="/flowbot/edit/:id" element={<FlowBotBuilder />} />
                                                 <Route path="/team" element={<Team />} />
                                                 <Route path="/team/:id/analytics" element={<TeamMemberAnalytics />} />
                                                 <Route path="/superadmin" element={<SuperAdminDashboard />} />

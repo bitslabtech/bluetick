@@ -471,7 +471,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                         {/* Stat 1: Messages Sent / Plan Limit */}
                         <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
                             <div className="flex items-start justify-between mb-4">
@@ -597,15 +597,18 @@ const Dashboard = () => {
                                     {stats.aiTokenBalance >= 1000 ? 'Good' : stats.aiTokenBalance > 0 ? 'Low' : 'Empty'}
                                 </span>
                             </div>
-                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">AI Tokens</p>
+                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">
+                                <span className="md:hidden">AI Token Available</span>
+                                <span className="hidden md:inline">AI Tokens</span>
+                            </p>
                             <div className="flex items-end gap-1 mb-4">
                                 <p className="text-slate-900 dark:text-white text-2xl font-bold">{(stats.aiTokenBalance || 0).toLocaleString()}</p>
                             </div>
-                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
-                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium">Available Balance</p>
+                            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 gap-2 md:gap-0">
+                                <p className="hidden md:block text-slate-500 dark:text-text-secondary text-xs font-medium">Available Balance</p>
                                 <button
                                     onClick={() => navigate('/store')}
-                                    className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm shadow-indigo-500/30 ${stats.aiTokenBalance < 1000 ? 'animate-pulse' : ''}`}
+                                    className={`w-full md:w-auto justify-center flex items-center gap-1 text-[10px] md:text-[10px] font-bold px-3 py-1.5 md:px-2 md:py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm shadow-indigo-500/30 ${stats.aiTokenBalance < 1000 ? 'animate-pulse' : ''}`}
                                 >
                                     <Zap className="w-3 h-3" />
                                     Buy More Tokens

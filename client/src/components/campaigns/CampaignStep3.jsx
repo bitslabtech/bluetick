@@ -327,7 +327,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     };
 
     return (
-        <div className="flex flex-col gap-8 h-full fade-in">
+        <div className="flex flex-col gap-8 h-full fade-in pb-24 xl:pb-0">
             {/* Step Header */}
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-200 dark:border-surface-dark pb-6 transition-colors duration-300">
                 <div className="w-full md:w-auto z-10">
@@ -662,23 +662,44 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                     <span className="text-[9px] text-slate-400">@ {currencySymbol}{costPerMessage}/msg</span>
                                 </div>
                             </div>
-                            <button
-                                onClick={handleSend}
-                                disabled={sending}
-                                className="w-full py-4 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                                <Send className="w-4 h-4" />
-                                {sending ? 'Processing...' : 'Send Campaign'}
-                            </button>
-                            <button
-                                onClick={onBack}
-                                className="w-full py-3 bg-transparent border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
-                            >
-                                Back
-                            </button>
+                            <div className="hidden xl:flex flex-col gap-4">
+                                <button
+                                    onClick={handleSend}
+                                    disabled={sending}
+                                    className="w-full py-4 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    <Send className="w-4 h-4" />
+                                    {sending ? 'Processing...' : 'Send Campaign'}
+                                </button>
+                                <button
+                                    onClick={onBack}
+                                    className="w-full py-3 bg-transparent border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                                >
+                                    Back
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Sticky Action Bar */}
+            <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-surface-dark border-t border-slate-200 dark:border-white/10 p-4 pb-safe flex items-center justify-between gap-3 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
+                <button
+                    onClick={onBack}
+                    className="flex-1 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                </button>
+                <button
+                    onClick={handleSend}
+                    disabled={sending}
+                    className="flex-[2] py-3 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                    <Send className="w-4 h-4" />
+                    {sending ? 'Processing...' : 'Send'}
+                </button>
             </div>
         </div>
     );

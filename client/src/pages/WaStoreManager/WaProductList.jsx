@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import { Package, Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -181,7 +181,7 @@ function MultiImageUploader({ imageUrls, onImagesChange }) {
 }
 
 export default function WaProductList() {
-    const { id: storeId } = useParams();
+    const { storeId } = useOutletContext();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -296,7 +296,7 @@ export default function WaProductList() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Package className="w-5 h-5 text-indigo-500" />
@@ -306,7 +306,7 @@ export default function WaProductList() {
                 </div>
                 <button 
                     onClick={() => { setEditingProduct(null); setForm(defaultForm); setIsAddingNewCategory(false); setShowModal(true); }}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-sm"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors text-sm shadow-sm"
                 >
                     <Plus className="w-4 h-4" /> Add Product
                 </button>
@@ -325,9 +325,9 @@ export default function WaProductList() {
                 </div>
             ) : (
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
+                    <div>
+                        <table className="w-full text-left text-sm block md:table">
+                            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5 hidden md:table-header-group">
                                 <tr>
                                     <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Product</th>
                                     <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Price</th>
@@ -336,47 +336,62 @@ export default function WaProductList() {
                                     <th className="px-4 md:px-6 py-4 text-right font-medium text-slate-500 dark:text-slate-400">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-white/5">
+                            <tbody className="divide-y divide-slate-200 dark:divide-white/5 block md:table-row-group">
                                 {products.map(product => (
-                                    <tr key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                        <td className="px-4 md:px-6 py-4">
+                                    <tr key={product.id} className="block md:table-row hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors p-4 md:p-0">
+                                        <td className="px-0 md:px-6 py-2 md:py-4 block md:table-cell border-b border-slate-100 dark:border-white/5 md:border-none mb-3 md:mb-0 pb-4 md:pb-4">
                                             <div className="flex items-center gap-3">
                                                 {product.imageUrls?.[0] ? (
-                                                    <img src={product.imageUrls[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800" />
+                                                    <img src={product.imageUrls[0]} alt={product.name} className="w-14 h-14 md:w-10 md:h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 flex-shrink-0" />
                                                 ) : (
-                                                    <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                        <ImageIcon className="w-4 h-4 text-slate-400" />
+                                                    <div className="w-14 h-14 md:w-10 md:h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                                                        <ImageIcon className="w-5 h-5 md:w-4 md:h-4 text-slate-400" />
                                                     </div>
                                                 )}
-                                                <div>
-                                                    <p className="font-bold text-slate-900 dark:text-white">{product.name}</p>
-                                                    <p className="text-xs text-slate-500 truncate max-w-[200px] max-w-full">{product.description}</p>
+                                                <div className="min-w-0">
+                                                    <p className="font-bold text-slate-900 dark:text-white truncate">{product.name}</p>
+                                                    <p className="text-xs text-slate-500 truncate max-w-full">{product.description}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 md:px-6 py-4">
-                                            <div className="font-medium text-slate-900 dark:text-white">{getCurrencySymbol(currency)}{product.price}</div>
-                                            {product.compareAtPrice && <div className="text-xs text-slate-500 line-through">{getCurrencySymbol(currency)}{product.compareAtPrice}</div>}
+                                        <td className="px-0 md:px-6 py-1.5 md:py-4 block md:table-cell">
+                                            <div className="flex items-center justify-between md:block">
+                                                <span className="md:hidden text-xs font-semibold text-slate-500 uppercase tracking-wider">Price</span>
+                                                <div className="text-right md:text-left">
+                                                    <span className="font-bold md:font-medium text-slate-900 dark:text-white">{getCurrencySymbol(currency)}{product.price}</span>
+                                                    {product.compareAtPrice && <span className="ml-2 md:ml-0 md:block text-xs text-slate-500 line-through">{getCurrencySymbol(currency)}{product.compareAtPrice}</span>}
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td className="px-4 md:px-6 py-4 text-slate-600 dark:text-slate-400">{product.category || '-'}</td>
-                                        <td className="px-4 md:px-6 py-4">
-                                            {product.inStock ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> In Stock
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Out of Stock
-                                                </span>
-                                            )}
+                                        <td className="px-0 md:px-6 py-1.5 md:py-4 block md:table-cell">
+                                            <div className="flex items-center justify-between md:block">
+                                                <span className="md:hidden text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</span>
+                                                <span className="font-medium md:font-normal text-slate-800 dark:text-slate-300 md:text-slate-600 md:dark:text-slate-400">{product.category || '-'}</span>
+                                            </div>
                                         </td>
-                                        <td className="px-4 md:px-6 py-4 text-right">
+                                        <td className="px-0 md:px-6 py-1.5 md:py-4 block md:table-cell">
+                                            <div className="flex items-center justify-between md:block">
+                                                <span className="md:hidden text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</span>
+                                                <div>
+                                                    {product.inStock ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold md:font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> In Stock
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold md:font-medium bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Out of Stock
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-0 md:px-6 py-2 md:py-4 block md:table-cell mt-3 md:mt-0 pt-3 md:pt-4 border-t border-slate-100 dark:border-white/5 md:border-none text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button onClick={() => openEdit(product)} className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                                                    <Edit3 className="w-4 h-4" />
+                                                <button onClick={() => openEdit(product)} className="flex-1 md:flex-none flex justify-center items-center gap-2 p-2.5 md:p-2 bg-slate-100 md:bg-transparent text-slate-600 hover:text-indigo-600 dark:bg-white/5 md:dark:bg-transparent dark:text-slate-300 dark:hover:text-indigo-400 rounded-xl md:rounded transition-colors">
+                                                    <Edit3 className="w-4 h-4 md:w-4 md:h-4" /> <span className="md:hidden text-xs font-bold">Edit</span>
                                                 </button>
-                                                <button onClick={() => handleDelete(product.id)} className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
-                                                    <Trash2 className="w-4 h-4" />
+                                                <button onClick={() => handleDelete(product.id)} className="flex-1 md:flex-none flex justify-center items-center gap-2 p-2.5 md:p-2 bg-slate-100 md:bg-transparent text-slate-600 hover:text-rose-600 dark:bg-white/5 md:dark:bg-transparent dark:text-slate-300 dark:hover:text-rose-400 rounded-xl md:rounded transition-colors">
+                                                    <Trash2 className="w-4 h-4 md:w-4 md:h-4" /> <span className="md:hidden text-xs font-bold">Delete</span>
                                                 </button>
                                             </div>
                                         </td>
@@ -389,12 +404,12 @@ export default function WaProductList() {
             )}
 
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-surface-dark rounded-2xl max-w-2xl w-full p-4 md:p-6 shadow-xl my-8">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
+                    <div className="bg-white dark:bg-surface-dark sm:rounded-2xl max-w-2xl w-full min-h-screen sm:min-h-0 p-4 md:p-6 shadow-xl sm:my-8 flex flex-col">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
                             {editingProduct ? 'Edit Product' : 'Add New Product'}
                         </h2>
-                        <form onSubmit={handleSave} className="space-y-5">
+                        <form onSubmit={handleSave} className="space-y-5 flex-1 flex flex-col">
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="space-y-1 md:col-span-2">
@@ -549,9 +564,9 @@ export default function WaProductList() {
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-white/10 mt-6">
-                                <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium transition-colors">Cancel</button>
-                                <button type="submit" className="flex-1 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors">
+                            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 dark:border-white/10 mt-auto">
+                                <button type="button" onClick={() => setShowModal(false)} className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
+                                <button type="submit" className="w-full sm:flex-1 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors">
                                     {editingProduct ? 'Save Changes' : 'Add Product'}
                                 </button>
                             </div>

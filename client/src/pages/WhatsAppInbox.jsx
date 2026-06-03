@@ -7,7 +7,7 @@ import { useUI } from '../context/UIContext';
 import {
     Search, MoreVertical, Paperclip, Smile, Send, Mic, Check, CheckCheck, Clock,
     MessageSquare, X, ChevronDown, Image as ImageIcon, FileText, Info, Bell, BellOff,
-    Tag, Users, UserCheck, Lock, Layout, ChevronRight, Eye, AlertCircle, Zap, Sparkles, Wand2, Hand, Bot
+    Tag, Users, UserCheck, Lock, Layout, ChevronRight, Eye, AlertCircle, Zap, Sparkles, Wand2, Hand, Bot, ChevronLeft
 } from 'lucide-react';
 import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
 import { io } from 'socket.io-client';
@@ -834,7 +834,7 @@ const WhatsAppInbox = () => {
             
             <div className="flex-1 flex overflow-hidden relative">
                 {/* ═══ LEFT SIDEBAR ═══ */}
-                <div className="w-[360px] max-w-full border-r border-slate-200 dark:border-white/5 flex flex-col bg-white dark:bg-[#111b21] shrink-0">
+                <div className={`w-full md:w-[360px] max-w-full border-r border-slate-200 dark:border-white/5 flex flex-col bg-white dark:bg-[#111b21] shrink-0 transition-all duration-300 ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
 
                 {/* Sidebar Header */}
                 <div className="px-4 py-3 bg-slate-50 dark:bg-[#202c33] flex justify-between items-center border-b border-slate-100 dark:border-white/5 shrink-0">
@@ -1015,10 +1015,20 @@ const WhatsAppInbox = () => {
 
                         {/* Chat Header */}
                         <div className="px-4 py-3 bg-slate-100 dark:bg-[#202c33] flex justify-between items-center border-b border-slate-200 dark:border-white/5 shrink-0 z-20">
-                            <button
-                                onClick={() => setShowContactPanel(p => !p)}
-                                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                            >
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                {/* Mobile Back Button */}
+                                <button
+                                    onClick={() => { setSelectedChat(null); setShowContactPanel(false); }}
+                                    className="md:hidden p-1.5 -ml-2 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                                    aria-label="Back to chats"
+                                >
+                                    <ChevronLeft className="w-6 h-6" />
+                                </button>
+                                
+                                <button
+                                    onClick={() => setShowContactPanel(p => !p)}
+                                    className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity"
+                                >
                                 <div className="size-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
                                     style={{ background: `hsl(${(selectedChat.phoneNumber?.charCodeAt(5) || 0) * 37 % 360}, 60%, 55%)` }}>
                                     {selectedChat.contactName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
@@ -1066,7 +1076,8 @@ const WhatsAppInbox = () => {
                                     </p>
                                 </div>
                             </button>
-                            <div className="flex gap-2 items-center">
+                            </div>
+                            <div className="flex gap-1 sm:gap-2 items-center">
 
                                 {/* Assign Agent Button + popover */}
                                 {(!isSubMember || user?.teamRole === 'admin') && (
@@ -1549,7 +1560,7 @@ const WhatsAppInbox = () => {
                 </div>
             ) : (
                 /* Empty state */
-                <div className="flex-1 flex flex-col items-center justify-center bg-[#f0f2f5] dark:bg-[#111b21] relative">
+                <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[#f0f2f5] dark:bg-[#111b21] relative">
                     <div className="absolute inset-0 opacity-30 dark:opacity-5 pointer-events-none"
                         style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")' }} />
                     <div className="relative z-10 flex flex-col items-center text-center p-4 md:p-8">

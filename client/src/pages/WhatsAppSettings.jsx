@@ -254,28 +254,10 @@ export default function WhatsAppSettings() {
                 title="WhatsApp Configuration" 
                 subtitle="Manage your live Meta Business Profile and Automated Messaging Rules."
             />
-            <div className="flex-1 overflow-y-auto w-full custom-scrollbar relative p-6 sm:p-4 md:p-8">
+            <div className="flex-1 overflow-y-auto w-full hide-scrollbar relative p-6 sm:p-4 md:p-8">
                 <div className="max-w-6xl mx-auto space-y-8">
                     
-                    {/* Action Buttons Row */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 mb-2">
-                        <button
-                            onClick={handleSyncProfile}
-                            disabled={syncing}
-                            className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-md shadow-green-500/10 disabled:opacity-50 w-full sm:w-auto"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                            Sync from Meta
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-md shadow-blue-500/10 disabled:opacity-50 w-full sm:w-auto"
-                        >
-                            {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            Save Changes
-                        </button>
-                    </div>
+
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -575,6 +557,30 @@ export default function WhatsAppSettings() {
 
                 </div>
             </div>
+            </div>
+
+            {/* Sticky Bottom Actions */}
+            <div className="-mx-4 md:-mx-6 -mb-7 sm:-mb-20 px-4 pt-4 pb-4 md:px-6 sm:py-6 shrink-0 bg-white dark:bg-surface-dark border-t border-slate-200 dark:border-white/5 transition-colors duration-300 z-10 relative shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <div className="max-w-6xl mx-auto flex items-center justify-end gap-3">
+                    <button
+                        onClick={handleSyncProfile}
+                        disabled={syncing}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-sm transition-all shadow-md shadow-green-500/20 disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${syncing ? 'animate-spin' : ''}`} />
+                        <span className="hidden sm:inline">Sync from Meta</span>
+                        <span className="sm:hidden">Sync</span>
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-sm transition-all shadow-md shadow-blue-500/20 disabled:opacity-50"
+                    >
+                        {saving ? <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Save className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        <span className="hidden sm:inline">Save Changes</span>
+                        <span className="sm:hidden">Save</span>
+                    </button>
+                </div>
             </div>
         </div>
     );

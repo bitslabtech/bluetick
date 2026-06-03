@@ -48,18 +48,18 @@ export default function VcardSettings() {
 
     return (
         <div className="max-w-3xl space-y-6 animate-in fade-in">
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <Settings className="w-6 h-6 text-indigo-600" />
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2 sm:gap-3">
+                        <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
                         veCard Global Settings
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Manage global preferences for your digital business cards.</p>
+                    <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">Manage global preferences for your digital business cards.</p>
                 </div>
                 <button 
                     onClick={handleSave} 
                     disabled={saving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors disabled:opacity-70"
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors disabled:opacity-70 w-full sm:w-auto"
                 >
                     <Save className="w-4 h-4" />
                     {saving ? 'Saving...' : 'Save Settings'}
@@ -72,12 +72,12 @@ export default function VcardSettings() {
                     <h3 className="font-bold text-slate-900 dark:text-white">Notification Preferences</h3>
                 </div>
                 <div className="p-4 md:p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
                             <p className="font-medium text-slate-900 dark:text-white">Email Notifications</p>
-                            <p className="text-sm text-slate-500">Receive an email when someone submits an enquiry or books an appointment.</p>
+                            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Receive an email when someone submits an enquiry or books an appointment.</p>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                             <input 
                                 type="checkbox" 
                                 className="sr-only peer" 

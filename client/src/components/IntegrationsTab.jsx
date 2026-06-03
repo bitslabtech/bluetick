@@ -5,7 +5,7 @@ import {
     Terminal, Webhook, Box, Plus, Key, Copy, 
     Trash2, ExternalLink, Lock, CheckCircle2,
     RefreshCw, AlertCircle, Search, BookOpen,
-    BarChart2, Activity, TrendingUp, Zap, CheckCircle, XCircle
+    BarChart2, Activity, TrendingUp, Zap, CheckCircle, XCircle, MessageSquare
 } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
@@ -42,18 +42,16 @@ const IntegrationsTab = () => {
         setLoading(true);
         setPlanError(null);
         try {
-            const headers = { 'x-auth-token': token };
-
             // Fetch Market Data (which should be public or accessible by all logged-in users)
-            const addonsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/addons`, { headers });
+            const addonsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/addons`);
             setAddons(addonsRes.data.addons || []);
             setUserAddons(addonsRes.data.userAddons || []);
 
             // Attempt to fetch secure Developer Data
-            const keysRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/integrations/keys`, { headers });
+            const keysRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/integrations/keys`);
             setApiKeys(keysRes.data);
 
-            const webhooksRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/integrations/webhooks`, { headers });
+            const webhooksRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/integrations/webhooks`);
             setWebhooks(webhooksRes.data);
 
         } catch (error) {
@@ -203,7 +201,7 @@ const IntegrationsTab = () => {
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Navigation Pills */}
-            <div className="flex overflow-x-auto gap-2 p-1.5 bg-slate-100/80 dark:bg-surface-dark/40 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-white/5 w-fit">
+            <div className="flex overflow-x-auto hide-scrollbar gap-2 p-1.5 bg-slate-100/80 dark:bg-surface-dark/40 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-white/5 w-full md:w-fit">
                 {[
             { id: 'connectors', label: 'App Connectors', icon: Box },
                     { id: 'keys', label: 'API Keys', icon: Key },
@@ -366,7 +364,8 @@ const IntegrationsTab = () => {
 
                             {/* Keys List */}
                             <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto">
+                                {/* Desktop Table View */}
+                                <div className="hidden md:block overflow-x-auto">
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 font-medium">
                                             <tr>
@@ -426,6 +425,56 @@ const IntegrationsTab = () => {
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+                                
+                                {/* Mobile Card View */}
+                                <div className="md:hidden flex flex-col divide-y divide-slate-100 dark:divide-white/5">
+                                    {apiKeys.length === 0 && (
+                                        <div className="px-4 py-8 text-center text-slate-400 text-sm">
+                                            No API keys generated yet.
+                                        </div>
+                                    )}
+                                    {apiKeys.map((key) => (
+                                        <div key={key.id} className="p-4 space-y-3">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div>
+                                                    <h4 className="font-bold text-slate-900 dark:text-white">{key.label}</h4>
+                                                    <div className="text-xs text-slate-500 mt-0.5">
+                                                        {new Date(key.createdAt).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleRevokeKey(key.id)}
+                                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <code className="px-2 py-1 bg-slate-100 dark:bg-black/30 rounded text-slate-500 text-xs font-mono">
+                                                        {key.keyPrefix ? `${key.keyPrefix}...${key.last4}` : `sk_live_....${key.last4}`}
+                                                    </code>
+                                                    {key.isActive ? (
+                                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-600">
+                                                            <span className="w-2 h-2 rounded-full bg-green-500"></span> Active
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                                                            <span className="w-2 h-2 rounded-full bg-slate-400"></span> Inactive
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {(key.scopes || ['messages:send']).map(scope => (
+                                                        <span key={scope} className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded text-[10px] font-mono">
+                                                            {scope}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -634,7 +683,9 @@ const IntegrationsTab = () => {
                                                 <RefreshCw className="w-4 h-4" />
                                             </button>
                                         </div>
-                                        <div className="overflow-x-auto">
+                                        
+                                        {/* Desktop Table View */}
+                                        <div className="hidden md:block overflow-x-auto">
                                             <table className="w-full text-sm">
                                                 <thead className="bg-slate-50 dark:bg-black/20 text-slate-500 dark:text-slate-400 font-medium">
                                                     <tr>
@@ -676,6 +727,52 @@ const IntegrationsTab = () => {
                                                     ))}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                        
+                                        {/* Mobile Card View */}
+                                        <div className="md:hidden flex flex-col divide-y divide-slate-100 dark:divide-white/5">
+                                            {(usageData.recentCalls || []).length === 0 && (
+                                                <div className="px-4 py-8 text-center text-slate-400 text-sm">
+                                                    No API calls recorded yet.
+                                                </div>
+                                            )}
+                                            {(usageData.recentCalls || []).map(call => (
+                                                <div key={call.id} className="p-4 space-y-3">
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <code className="text-xs font-mono text-slate-700 dark:text-slate-300 break-all bg-slate-50 dark:bg-black/20 px-2 py-1 rounded">
+                                                            {call.method} {call.endpoint}
+                                                        </code>
+                                                        <div className="shrink-0 text-right flex flex-col items-end">
+                                                            <div className="text-[11px] text-slate-400 font-mono">
+                                                                {new Date(call.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                            </div>
+                                                            <div className="text-[11px] text-slate-400 mt-0.5 font-medium bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded">
+                                                                {call.responseTimeMs}ms
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center justify-between pt-1">
+                                                        {call.status >= 200 && call.status < 300 ? (
+                                                            <span className="inline-flex px-2 py-1 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-mono font-bold rounded">
+                                                                {call.status} OK
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex px-2 py-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-mono font-bold rounded">
+                                                                {call.status} ERR
+                                                            </span>
+                                                        )}
+                                                        
+                                                        {call.templateName ? (
+                                                            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                                                                <MessageSquare className="w-3.5 h-3.5" /> {call.templateName}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-slate-400">-</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 </>

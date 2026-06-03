@@ -14,7 +14,7 @@ const PartnerWithUs = () => {
     return (
         <PublicLayout title="" pageKey="partner" fullWidth={true}>
             {/* 1. HERO SECTION */}
-            <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-[#F5F5F7] dark:bg-black">
+            <section className="relative pt-32 pb-7 sm:pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-[#F5F5F7] dark:bg-black">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] max-w-full h-[600px] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none" />
                 <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10 text-center">
                     <motion.div

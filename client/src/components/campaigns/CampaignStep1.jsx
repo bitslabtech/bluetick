@@ -225,8 +225,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
     };
 
     return (
-        <div className="flex flex-col gap-8 h-full fade-in">
-            {/* Step Header */}
+        <div className="flex flex-col gap-8 h-full fade-in pb-24 md:pb-0">
             {/* Step Header */}
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-200 dark:border-surface-dark pb-6 transition-colors duration-300">
                 {/* Title Section */}
@@ -358,21 +357,21 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
 
                             {/* Tabs */}
                             <div className="px-4 md:px-6 pt-6 pb-2">
-                                <div className="flex bg-slate-100 dark:bg-background-dark p-1 rounded-xl w-full sm:w-fit border border-slate-200 dark:border-white/10">
-                                    <button className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-surface-dark shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center gap-2 transition-all">
+                                <div className="flex overflow-x-auto custom-scrollbar bg-slate-100 dark:bg-background-dark p-1 rounded-xl w-full sm:w-fit border border-slate-200 dark:border-white/10">
+                                    <button className="whitespace-nowrap flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-white bg-white dark:bg-surface-dark shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center gap-2 transition-all">
                                         <Folder className="w-4 h-4" />
                                         Saved Groups
                                     </button>
                                     <button
                                         onClick={() => navigate('/contacts', { state: { openImportModal: true } })}
-                                        className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                                        className="whitespace-nowrap flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
                                     >
                                         <UploadCloud className="w-4 h-4" />
                                         Upload CSV
                                     </button>
                                     <button
                                         onClick={() => setShowManualModal(true)}
-                                        className="flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                                        className="whitespace-nowrap flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
                                     >
                                         <Clipboard className="w-4 h-4" />
                                         Enter Manually
@@ -582,8 +581,8 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                         )}
                     </div>
 
-                    {/* Actions Panel */}
-                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-lg transition-colors duration-300">
+                    {/* Actions Panel (Hidden on Mobile, replaced by sticky bar) */}
+                    <div className="hidden xl:block bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-lg transition-colors duration-300">
                         <h3 className="font-bold text-xs mb-4 uppercase tracking-wider text-slate-500 dark:text-text-secondary">Actions</h3>
                         <div className="space-y-3">
                             <button
@@ -614,7 +613,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                             </div>
                             {!limitCalc.isUnlimited && (
                                 <div className="flex justify-between items-center text-xs text-slate-500 dark:text-text-secondary">
-                                    <span>Remaining Monthly Limit</span>
+                                    <span>Remaining Limit</span>
                                     <span className={`font-bold text-sm tabular-nums ${limitCalc.remaining === 0 ? 'text-red-500' :
                                         limitCalc.remaining < 20 ? 'text-amber-500' :
                                             'text-slate-900 dark:text-white'
@@ -626,6 +625,32 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Sticky Action Bar */}
+            <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-surface-dark border-t border-slate-200 dark:border-white/10 p-4 pb-safe flex items-center justify-between gap-4 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
+                <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Recipients</span>
+                    <span className="text-sm font-bold text-slate-900 dark:text-white">{selectedCount.toLocaleString()}</span>
+                </div>
+                <button
+                    onClick={handleNext}
+                    disabled={
+                        !data.name ||
+                        (!data.retargetCampaignId && (data.recipients || []).length === 0 && (data.manualRecipients || []).length === 0) ||
+                        (!limitCalc.isUnlimited && limitCalc.wouldExceed)
+                    }
+                    className={`flex-1 py-3 text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 group ${(!data.name || (!data.retargetCampaignId && (data.recipients || []).length === 0 && (data.manualRecipients || []).length === 0) || (!limitCalc.isUnlimited && limitCalc.wouldExceed))
+                        ? 'bg-slate-300 dark:bg-gray-700/50 cursor-not-allowed text-slate-500 dark:text-gray-400 shadow-none'
+                        : 'bg-primary hover:bg-blue-600 shadow-blue-500/20 active:scale-95'
+                        }`}
+                >
+                    {!limitCalc.isUnlimited && limitCalc.wouldExceed ? (
+                        <><AlertTriangle className="w-4 h-4" /> Exceeded</>
+                    ) : (
+                        <>Next Step <ArrowRight className="w-5 h-5" /></>
+                    )}
+                </button>
             </div>
 
             {/* Manual Entry Modal */}

@@ -212,6 +212,13 @@ const User = sequelize.define('User', {
         type: DataTypes.JSON,
         defaultValue: {},
         comment: 'Tracks the last threshold percentage sent per limit type (e.g., {messages: 80, contacts: 100})'
+    },
+    // Phase 5: Meta Conversions API (CAPI)
+    capiConfig: {
+        type: DataTypes.JSONB,
+        defaultValue: null,
+        allowNull: true,
+        comment: 'Stores CAPI config: { pixelId, accessToken, testEventCode }'
     }
 }, {
     timestamps: true

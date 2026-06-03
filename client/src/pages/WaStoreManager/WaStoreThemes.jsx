@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import { LayoutTemplate, CheckCircle2, ShoppingBag, Watch, Utensils, Monitor, Sparkles, Gem, Leaf, Dumbbell, Briefcase } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { THEMES } from '../../utils/wastoreThemes';
 
 export default function WaStoreThemes() {
-    const { id: storeId } = useParams();
+    const { storeId } = useOutletContext();
     const [store, setStore] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -137,7 +137,7 @@ export default function WaStoreThemes() {
     if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500 flex justify-center items-center h-64">Loading premium themes...</div>;
 
     return (
-        <div className="space-y-8 max-w-7xl mx-auto pb-12">
+        <div className="space-y-6 md:space-y-8 max-w-7xl mx-auto pb-7 sm:pb-12">
             <div className="space-y-2">
                 <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
                     <LayoutTemplate className="w-8 h-8 text-indigo-500" />
@@ -148,7 +148,7 @@ export default function WaStoreThemes() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-8">
                 {themes.map(theme => {
                     const isActive = store?.themeId === theme.id;
                     
@@ -218,7 +218,7 @@ export default function WaStoreThemes() {
                             <div className="p-4 md:p-6 flex-1 flex flex-col relative">
                                 {/* Active Badge */}
                                 {isActive && (
-                                    <div className="absolute -top-4 right-6 z-30 bg-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">
+                                    <div className="absolute -top-4 right-4 md:right-6 z-30 bg-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">
                                         <CheckCircle2 className="w-4 h-4"/> Active
                                     </div>
                                 )}

@@ -24,6 +24,16 @@ body {
   @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-white;
 }
 
+/* React Flow Mobile Optimizations */
+@media (max-width: 768px) {
+  .react-flow__handle {
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+  }
+}
+
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
@@ -50,6 +60,21 @@ body {
 
 .animate-marquee:hover {
   animation-play-state: paused;
+}
+
+/* React Flow Attribution Override */
+.react-flow__attribution {
+  visibility: hidden;
+}
+.react-flow__attribution::after {
+  content: "Bluetick";
+  visibility: visible;
+  position: absolute;
+  right: 5px;
+  bottom: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8; /* slate-400 */
 }
 
 /* Custom scrollbar */
@@ -239,4 +264,3 @@ section {
     transition-duration: 0.01ms !important;
   }
 }
-

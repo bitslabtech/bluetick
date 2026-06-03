@@ -1,5 +1,60 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal, Copy, Check, Webhook, Zap, ShieldCheck, Users, LayoutTemplate, MessageSquare, Activity, BarChart2, Send } from 'lucide-react';
+
+
+const CollapsibleSection = ({ id, icon: Icon, title, iconColorClass, children, defaultOpen = false }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    
+    return (
+        <div id={id} className="scroll-mt-8">
+            {/* Mobile: collapsible card */}
+            <div className="md:hidden bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm transition-all duration-300">
+                <button 
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-black/20 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-left"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${iconColorClass}`}>
+                            <Icon className="w-5 h-5" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h3>
+                    </div>
+                    <div className={`p-2 rounded-full bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+                        <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </button>
+                <AnimatePresence>
+                    {isOpen && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <div className="p-4">
+                                {children}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Desktop: always expanded, original layout */}
+            <div className="hidden md:block">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className={`p-2 rounded-lg ${iconColorClass}`}>
+                        <Icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h3>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
+};
 
 const ApiDocs = () => {
     const [copiedContent, setCopiedContent] = useState(null);
@@ -16,13 +71,13 @@ const ApiDocs = () => {
 
         return (
             <div className="relative group rounded-xl overflow-hidden bg-slate-950 dark:bg-black/40 border border-slate-800 dark:border-white/10 my-4 transform transition-all duration-300 hover:shadow-xl">
-                <div className="flex items-center justify-between px-2 py-2 bg-slate-900 dark:bg-black/60 border-b border-slate-800 dark:border-white/5 overflow-x-auto hide-scrollbar">
-                    <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center justify-between px-2 py-2 bg-slate-900 dark:bg-black/60 border-b border-slate-800 dark:border-white/5 gap-2">
+                    <div className="flex flex-wrap items-center gap-1">
                         {snippets.map((snippet, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => setActiveLangIndex(idx)}
-                                className={`px-3 py-1.5 text-xs font-bold font-mono rounded-lg transition-colors whitespace-nowrap ${
+                                className={`px-3 py-1.5 text-xs font-bold font-mono rounded-lg transition-colors ${
                                     activeLangIndex === idx 
                                         ? 'bg-slate-800 text-white' 
                                         : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
@@ -41,7 +96,7 @@ const ApiDocs = () => {
                     </button>
                 </div>
                 <div className="p-4 overflow-x-auto">
-                    <pre className="text-sm font-mono text-slate-300">
+                    <pre className="text-sm font-mono text-slate-300 whitespace-pre-wrap break-all">
                         <code>{activeSnippet.code}</code>
                     </pre>
                 </div>
@@ -84,26 +139,18 @@ const ApiDocs = () => {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 min-w-0 space-y-12 pb-20">
+            <div className="flex-1 min-w-0 space-y-4 pb-7 sm:pb-20">
                 {/* Intro */}
                 <div>
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent mb-4">REST API Reference (V1)</h2>
+                    <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent mb-4">REST API Reference (V1)</h2>
                     <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">
                         Integrate WhatsApp messaging directly into your backend apps, CRMs, or eCommerce software. 
                         Our modern API follows predictable standard REST conventions and uses secure HMAC hashing for webhook events.
                     </p>
                 </div>
 
-                <hr className="border-slate-200 dark:border-white/10" />
-
                 {/* Authentication */}
-                <div id="authentication" className="scroll-mt-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg">
-                            <ShieldCheck className="w-5 h-5" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Authentication</h3>
-                    </div>
+                <CollapsibleSection id="authentication" title="Authentication" icon={ShieldCheck} iconColorClass="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" defaultOpen={true}>
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
                         Authenticate your API requests by including your secret API key in the <code className="px-2 py-0.5 bg-slate-100 dark:bg-white/10 rounded font-mono text-sm text-indigo-600 dark:text-indigo-300">x-api-key</code> request header.
                     </p>
@@ -155,34 +202,24 @@ curl_close($ch);`
                             Never expose your API key in front-end code (like React/Flutter/Vue). Always proxy requests through your own backend server.
                         </p>
                     </div>
-                </div>
-
-                <hr className="border-slate-200 dark:border-white/10" />
+                </CollapsibleSection>
 
                 {/* Contacts API */}
-                <div id="contacts" className="scroll-mt-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
-                            <Users className="w-5 h-5" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Contacts API</h3>
-                    </div>
+                <CollapsibleSection id="contacts" title="Contacts API" icon={Users} iconColorClass="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400" defaultOpen={false}>
 
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
                         Synchronize your internal CRM contacts securely with the SaaS messaging platform layout.
                     </p>
 
-                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-3 mt-8">List Contacts</h4>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                         <span className="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-mono font-bold text-xs rounded-md">GET</span>
-                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm">/api/v1/contacts</code>
+                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm break-all">/api/v1/contacts</code>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Returns a paginated list of your saved contacts. Supports <code className="text-xs">?limit=50&offset=0</code> parameters.</p>
 
-                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-3 mt-10">Create/Import Contact</h4>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                         <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-mono font-bold text-xs rounded-md">POST</span>
-                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm">/api/v1/contacts</code>
+                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm break-all">/api/v1/contacts</code>
                     </div>
                     
                     <MultiLanguageCodeBlock 
@@ -216,23 +253,14 @@ console.log('Contact imported!');`
                             }
                         ]}
                     />
-                </div>
-
-                <hr className="border-slate-200 dark:border-white/10" />
+                </CollapsibleSection>
 
                 {/* Templates API */}
-                <div id="templates" className="scroll-mt-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg">
-                            <LayoutTemplate className="w-5 h-5" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Templates API</h3>
-                    </div>
+                <CollapsibleSection id="templates" title="Templates API" icon={LayoutTemplate} iconColorClass="bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400" defaultOpen={false}>
 
-                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-3 mt-4">List Approved Templates</h4>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                         <span className="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-mono font-bold text-xs rounded-md">GET</span>
-                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm">/api/v1/templates</code>
+                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm break-all">/api/v1/templates</code>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                         Returns all Meta-approved templates that you can currently send. Perfect for populating a dropdown in your own software UI.
@@ -253,27 +281,18 @@ console.log('Available Templates:', response.data.data);`
                             }
                         ]}
                     />
-                </div>
-
-                <hr className="border-slate-200 dark:border-white/10" />
+                </CollapsibleSection>
 
                 {/* Send Message */}
-                <div id="messaging" className="scroll-mt-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg">
-                            <Zap className="w-5 h-5" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Messaging API</h3>
-                    </div>
+                <CollapsibleSection id="messaging" title="Messaging API" icon={Zap} iconColorClass="bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400" defaultOpen={false}>
 
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
                         Send outbound messages programmatically. WhatsApp has two message types: Templates (Marketing/Utility triggers) and Session messages (standard chat).
                     </p>
 
-                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-3 mt-8">Send Template (Trigger Notification)</h4>
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6">
                         <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-mono font-bold text-xs rounded-md">POST</span>
-                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm">/api/v1/messages/template</code>
+                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm break-all">/api/v1/messages/template</code>
                     </div>
 
                     <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm">
@@ -324,10 +343,9 @@ const response = await axios.post('https://[your-saas-domain]/api/v1/messages/te
                         ]}
                     />
 
-                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-3 mt-10">Send Session Message (Standard Chat)</h4>
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6">
                         <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-mono font-bold text-xs rounded-md">POST</span>
-                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm">/api/v1/messages/session</code>
+                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm break-all">/api/v1/messages/session</code>
                     </div>
 
                     <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm">
@@ -360,24 +378,16 @@ const response = await axios.post('https://[your-saas-domain]/api/v1/messages/se
                             }
                         ]}
                     />
-                </div>
-
-                <hr className="border-slate-200 dark:border-white/10" />
+                </CollapsibleSection>
 
                 {/* HEALTH CHECK */}
-                <div id="ping" className="scroll-mt-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-lg">
-                            <Activity className="w-5 h-5" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Health Check</h3>
-                    </div>
+                <CollapsibleSection id="ping" title="Health Check" icon={Activity} iconColorClass="bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400" defaultOpen={false}>
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
                         Verify your API key is valid, your subscription is active, and see your current usage quota. Integrate this into your app startup to detect connectivity issues early.
                     </p>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                         <span className="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-mono font-bold text-xs rounded-md">GET</span>
-                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm">/api/v1/ping</code>
+                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm break-all">/api/v1/ping</code>
                     </div>
                     <MultiLanguageCodeBlock
                         id="ping"
@@ -410,18 +420,10 @@ console.log('Connected! Plan:', res.data.plan);`
                             }
                         ]}
                     />
-                </div>
-
-                <hr className="border-slate-200 dark:border-white/10" />
+                </CollapsibleSection>
 
                 {/* Webhooks */}
-                <div id="webhooks" className="scroll-mt-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg">
-                            <Webhook className="w-5 h-5" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Receiving Webhooks</h3>
-                    </div>
+                <CollapsibleSection id="webhooks" title="Receiving Webhooks" icon={Webhook} iconColorClass="bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400" defaultOpen={false}>
                     
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
                         Configure webhooks to be notified when events happen (like a new WhatsApp message from a customer). 
@@ -520,24 +522,16 @@ def webhook_receiver():
                             }
                         ]}
                     />
-                </div>
-
-                <hr className="border-slate-200 dark:border-white/10" />
+                </CollapsibleSection>
 
                 {/* BULK SEND */}
-                <div id="bulk" className="scroll-mt-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded-lg">
-                            <Send className="w-5 h-5" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Bulk Send</h3>
-                    </div>
+                <CollapsibleSection id="bulk" title="Bulk Send" icon={Send} iconColorClass="bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400" defaultOpen={false}>
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
                         Send the same template to multiple recipients in a single API call. Perfect for order notifications, event reminders, or promotional messages. Supports up to 50 recipients per call.
                     </p>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                         <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-mono font-bold text-xs rounded-md">POST</span>
-                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm">/api/v1/messages/bulk</code>
+                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm break-all">/api/v1/messages/bulk</code>
                     </div>
                     <MultiLanguageCodeBlock
                         id="bulk-send"
@@ -602,24 +596,16 @@ echo "Sent: " . $result['summary']['sent'];`
                             If your monthly message limit is hit mid-batch, remaining recipients will automatically get status <code className="bg-blue-100 dark:bg-blue-900/30 px-1 rounded font-mono text-xs">skipped</code>. No error — the response always includes a full per-recipient result.
                         </p>
                     </div>
-                </div>
-
-                <hr className="border-slate-200 dark:border-white/10" />
+                </CollapsibleSection>
 
                 {/* MESSAGE STATUS */}
-                <div id="status" className="scroll-mt-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-lg">
-                            <MessageSquare className="w-5 h-5" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Message Status</h3>
-                    </div>
+                <CollapsibleSection id="status" title="Message Status" icon={MessageSquare} iconColorClass="bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400" defaultOpen={false}>
                     <p className="text-slate-600 dark:text-slate-400 mb-4">
                         Check the delivery status of any message using its <code className="px-1.5 py-0.5 font-mono text-xs bg-slate-100 dark:bg-white/10 rounded">messageId</code> returned when it was sent.
                     </p>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                         <span className="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-mono font-bold text-xs rounded-md">GET</span>
-                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm">/api/v1/status/:messageId</code>
+                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm break-all">/api/v1/status/:messageId</code>
                     </div>
                     <MultiLanguageCodeBlock
                         id="msg-status"
@@ -648,24 +634,16 @@ console.log('Status:', res.data.status);`
                             }
                         ]}
                     />
-                </div>
-
-                <hr className="border-slate-200 dark:border-white/10" />
+                </CollapsibleSection>
 
                 {/* USAGE API */}
-                <div id="usage" className="scroll-mt-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg">
-                            <BarChart2 className="w-5 h-5" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Usage API</h3>
-                    </div>
+                <CollapsibleSection id="usage" title="Usage API" icon={BarChart2} iconColorClass="bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400" defaultOpen={false}>
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
                         Query your own API usage statistics programmatically. Useful for building internal admin dashboards or monitoring scripts.
                     </p>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                         <span className="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-mono font-bold text-xs rounded-md">GET</span>
-                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm">/api/v1/usage</code>
+                        <code className="text-slate-800 dark:text-slate-200 font-mono text-sm break-all">/api/v1/usage</code>
                     </div>
                     <MultiLanguageCodeBlock
                         id="get-usage"
@@ -688,7 +666,7 @@ console.log('Messages remaining:', res.data.plan.messagesRemaining);`
                             }
                         ]}
                     />
-                </div>
+                </CollapsibleSection>
             </div>
         </div>
     );

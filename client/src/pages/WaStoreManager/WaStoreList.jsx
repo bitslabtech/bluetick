@@ -33,7 +33,7 @@ export default function WaStoreList() {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore`, newStore);
             toast.success("Store created successfully!");
             setShowCreateModal(false);
-            navigate(`/wastore/${res.data.id}/products`);
+            navigate(`/wastore/${res.data.slug}/analytics`);
         } catch (error) {
             toast.error(error.response?.data?.error || "Failed to create store");
         }
@@ -109,7 +109,7 @@ export default function WaStoreList() {
                                 </div>
 
                                 <button 
-                                    onClick={() => navigate(`/wastore/${store.id}/products`)}
+                                    onClick={() => navigate(`/wastore/${store.slug}/analytics`)}
                                     className="w-full flex items-center justify-center gap-2 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-lg transition-colors font-medium text-sm"
                                 >
                                     Manage Store <ArrowRight className="w-4 h-4" />

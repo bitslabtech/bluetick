@@ -533,89 +533,101 @@ export default function Team() {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display transition-colors duration-300">
             <TopHeader />
-            <div className="flex-1 overflow-y-auto p-4 sm:p-4 md:p-8 pb-32 max-w-[1400px] max-w-full w-full mx-auto custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-10 sm:pb-32 max-w-[1400px] max-w-full w-full mx-auto hide-scrollbar">
 
                 {currentView === 'invite' && <PolicyFormContent title="Deploy New Member" isEdit={false} />}
                 {currentView === 'edit' && <PolicyFormContent title={`Configuring ${editingMember?.name}`} isEdit={true} />}
 
                 {currentView === 'list' && (
-                    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div className="space-y-6 sm:space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
                         {/* Advanced Metrics Dashboard Header */}
-                        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 dark:from-black dark:via-surface-dark dark:to-indigo-950/20 rounded-[2rem] p-8 md:p-4 md:p-12 shadow-2xl relative overflow-hidden text-white border border-slate-700 dark:border-white/5">
+                        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 dark:from-black dark:via-surface-dark dark:to-indigo-950/20 rounded-3xl sm:rounded-[2rem] p-6 sm:p-8 md:p-12 shadow-2xl relative overflow-hidden text-white border border-slate-700 dark:border-white/5">
                             {/* Abstract Background Elements */}
                             <div className="absolute top-0 right-0 w-[800px] max-w-full h-[800px] bg-indigo-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
                             <div className="absolute bottom-0 left-0 w-[400px] max-w-full h-[400px] bg-emerald-500/10 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
 
-                            <div className="relative z-10 flex flex-col xl:flex-row gap-10 justify-between items-start xl:items-center">
+                            <div className="relative z-10 flex flex-col xl:flex-row gap-8 sm:gap-10 justify-between items-start xl:items-center">
 
                                 {/* Copy & Titles */}
                                 <div className="max-w-xl">
-                                    <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-black uppercase tracking-widest text-indigo-300 mb-6 inline-block">
+                                    <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-black uppercase tracking-widest text-indigo-300 mb-4 sm:mb-6 inline-block">
                                         Workspace Hub
                                     </span>
-                                    <h1 className="text-4xl sm:text-5xl font-black mb-4 tracking-tight leading-tight">
+                                    <h1 className="text-3xl sm:text-5xl font-black mb-3 sm:mb-4 tracking-tight leading-tight">
                                         Team Assembly
                                     </h1>
-                                    <p className="text-slate-300 text-lg sm:text-xl font-medium leading-relaxed">
+                                    <p className="text-slate-300 text-sm sm:text-xl font-medium leading-relaxed">
                                         Scale your operations. Govern custom roles, allocate inbox bounds, and monitor member analytics from a single command center.
                                     </p>
 
                                     <button
                                         onClick={handleOpenInvite}
                                         disabled={isLimitReached}
-                                        className={`mt-8 px-8 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-3 whitespace-nowrap ${isLimitReached
+                                        className={`mt-6 sm:mt-8 px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black transition-all flex items-center justify-center gap-2 sm:gap-3 whitespace-nowrap w-full sm:w-auto text-sm sm:text-base ${isLimitReached
                                             ? 'bg-white/10 text-white/40 cursor-not-allowed border border-white/5'
                                             : 'bg-white text-slate-900 hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-white/10'
                                             }`}
                                     >
-                                        <UserPlus className="w-5 h-5" />
+                                        <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
                                         {isLimitReached ? 'Capacity Reached' : 'Invite New Colleague'}
                                     </button>
                                     {isLimitReached && (
-                                        <p className="mt-3 text-sm text-red-400 font-semibold flex items-center gap-2">
-                                            <AlertCircle className="w-4 h-4" /> Please upgrade your plan to unlock more seats.
+                                        <p className="mt-3 text-xs sm:text-sm text-red-400 font-semibold flex items-center justify-center sm:justify-start gap-2">
+                                            <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Please upgrade your plan to unlock more seats.
                                         </p>
                                     )}
                                 </div>
 
-                                {/* Metrics Glass Cards */}
-                                <div className="w-full xl:w-auto grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
-                                    {/* Total Capacity */}
-                                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center">
-                                        <div className="w-12 h-12 bg-indigo-500/20 text-indigo-300 rounded-full flex items-center justify-center mb-3">
-                                            <Box className="w-6 h-6" />
+                                {/* Premium Capacity Widget */}
+                                <div className="w-full xl:w-[400px] shrink-0 mt-6 xl:mt-0">
+                                    <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2rem] p-6 sm:p-8 relative overflow-hidden group">
+                                        {/* Inner Glow */}
+                                        <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/20 blur-[50px] rounded-full group-hover:bg-white/30 transition-all duration-700"></div>
+                                        
+                                        <div className="flex items-center justify-between mb-8 relative z-10">
+                                            <div>
+                                                <h3 className="text-white/60 font-bold uppercase tracking-widest text-[10px] sm:text-xs mb-2 flex items-center gap-2">
+                                                    <Box className="w-4 h-4 text-white/40" /> Workspace Capacity
+                                                </h3>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">{occupiedSlots}</span>
+                                                    <span className="text-xl sm:text-2xl font-bold text-white/30">/ {memberLimit > 0 ? memberLimit : '∞'}</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex flex-col items-end gap-2">
+                                                <div className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold border backdrop-blur-md flex items-center gap-2
+                                                    ${isLimitReached 
+                                                        ? 'bg-red-500/20 text-red-300 border-red-500/30' 
+                                                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'}`}>
+                                                    {isLimitReached ? <AlertCircle className="w-4 h-4" /> : <PieChart className="w-4 h-4" />}
+                                                    {availableSlots} Available
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="text-3xl font-black text-white">{memberLimit > 0 ? memberLimit : '∞'}</div>
-                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Seats</div>
-                                    </div>
 
-                                    {/* Active */}
-                                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent"></div>
-                                        <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-3 relative z-10">
-                                            <Activity className="w-6 h-6" />
-                                        </div>
-                                        <div className="text-3xl font-black text-white relative z-10">{occupiedSlots}</div>
-                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 relative z-10">Joined</div>
-                                    </div>
-
-                                    {/* Available */}
-                                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-3xl flex flex-col items-center justify-center text-center">
-                                        <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mb-3">
-                                            <PieChart className="w-6 h-6" />
-                                        </div>
-                                        <div className="text-3xl font-black text-white">{availableSlots}</div>
-                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Available</div>
-                                    </div>
-
-                                    {/* Unified Progress Bar Spanning across cards */}
-                                    <div className="col-span-1 sm:col-span-3 mt-2">
-                                        <div className="w-full bg-black/40 rounded-full h-2 overflow-hidden flex border border-white/5">
+                                        {/* Progress Track */}
+                                        <div className="relative z-10 w-full bg-black/40 rounded-full h-3 sm:h-4 overflow-hidden border border-white/10 shadow-inner">
                                             <div
-                                                className={`h-full rounded-full transition-all duration-1000 ${isLimitReached ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]'}`}
+                                                className={`h-full rounded-full transition-all duration-1000 relative
+                                                    ${isLimitReached ? 'bg-gradient-to-r from-red-500 to-rose-400' : 'bg-gradient-to-r from-emerald-500 to-teal-400'}`}
                                                 style={{ width: `${limitPercentage}%` }}
-                                            ></div>
+                                            >
+                                                {/* Flare effect on the leading edge */}
+                                                <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/50 rounded-full blur-[2px]"></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-5 flex items-center justify-between text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/50 relative z-10">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${isLimitReached ? 'bg-red-400' : 'bg-emerald-400'}`}></div>
+                                                <span className="text-white/80">{limitPercentage.toFixed(0)}% Utilized</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-white/20"></div>
+                                                <span>{memberLimit > 0 ? memberLimit - occupiedSlots : 'Unlimited'} Free</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -624,91 +636,101 @@ export default function Team() {
 
                         {/* Premium List Design */}
                         <div className="space-y-4">
-                            <div className="px-4 md:px-6 flex items-center justify-between">
-                                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    Active Personnel Roster
-                                </h2>
-                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                    {team.length} Total Users
-                                </span>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-2 sm:px-4 mb-2">
+                                <div>
+                                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
+                                        <Users className="w-6 h-6 text-indigo-500" />
+                                        Team Members
+                                    </h2>
+                                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+                                        Manage permissions, view analytics, and control access.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 px-4 py-2 rounded-xl shadow-sm w-full sm:w-auto justify-center sm:justify-start shrink-0">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                                        {team.length} Active Member{team.length !== 1 ? 's' : ''}
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4">
                                 {team.map(member => (
-                                    <div key={member.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-3xl p-5 md:p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-black/50 hover:border-indigo-500/30 transition-all duration-300 group">
+                                    <div key={member.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-black/50 hover:border-indigo-500/30 transition-all duration-300 group">
 
                                         {/* Identity Block */}
-                                        <div className="flex gap-5 items-center w-full md:w-auto">
+                                        <div className="flex gap-4 sm:gap-5 items-center w-full md:w-auto">
                                             <div className="relative shrink-0">
-                                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner
+                                                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-xl sm:text-2xl shadow-inner
                                                 ${member.id === user.id
                                                         ? 'bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none'
                                                         : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
                                                 >
                                                     {member.name.charAt(0).toUpperCase()}
                                                 </div>
-                                                <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white dark:border-surface-dark transition-colors duration-300
+                                                <div className={`absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-[3px] sm:border-4 border-white dark:border-surface-dark transition-colors duration-300
                                                 ${member.isOnline ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]' : 'bg-slate-300 dark:bg-slate-600'}`}
                                                 />
                                             </div>
-                                            <div>
-                                                <h3 className="font-bold text-slate-900 dark:text-white text-xl flex items-center gap-2">
-                                                    {member.name}
-                                                    {member.id === user.id && <span className="text-[10px] bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 px-2.5 py-0.5 rounded-full uppercase tracking-widest font-black">Owner</span>}
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-xl flex flex-wrap items-center gap-2">
+                                                    <span className="truncate max-w-[150px] sm:max-w-none">{member.name}</span>
+                                                    {member.id === user.id && <span className="text-[9px] sm:text-[10px] bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 px-2 py-0.5 sm:px-2.5 rounded-full uppercase tracking-widest font-black shrink-0">Owner</span>}
                                                 </h3>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">{member.email}</p>
+                                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">{member.email}</p>
                                             </div>
                                         </div>
 
                                         {/* Badges Container */}
-                                        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-2 md:mt-0 p-4 md:p-0 bg-slate-50 md:bg-transparent dark:bg-slate-900/40 md:dark:bg-transparent rounded-2xl md:rounded-none">
+                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto mt-2 md:mt-0 p-3 sm:p-4 md:p-0 bg-slate-50 md:bg-transparent dark:bg-slate-900/40 md:dark:bg-transparent rounded-xl sm:rounded-2xl md:rounded-none">
 
                                             {/* Status Badges */}
-                                            <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2
+                                            <span className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center gap-1.5 sm:gap-2
                                             ${member.teamRole === 'owner' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' :
                                                     member.teamRole === 'admin' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20' :
                                                         'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}
                                             >
-                                                <Shield className="w-4 h-4" />
+                                                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                 {member.teamRole}
                                             </span>
 
                                             {member.teamPolicy && (
-                                                <span className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20" title="Inbox Visibility">
-                                                    <MessageSquare className="w-4 h-4" />
-                                                    {member.teamPolicy.inboxVisibility === 'see_all' ? 'All Chats' :
-                                                        member.teamPolicy.inboxVisibility === 'see_all_reply_assigned' ? 'View/Lock' : 'Assigned Only'}
-
-                                                    {member.teamPolicy.phonePrivacy === 'masked' ? ' (***)' : member.teamPolicy.phonePrivacy === 'blurred' ? ' (Blur)' : ''}
+                                                <span className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 sm:gap-2 bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20" title="Inbox Visibility">
+                                                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                                    <span className="truncate">
+                                                        {member.teamPolicy.inboxVisibility === 'see_all' ? 'All Chats' :
+                                                            member.teamPolicy.inboxVisibility === 'see_all_reply_assigned' ? 'View/Lock' : 'Assigned Only'}
+                                                        {member.teamPolicy.phonePrivacy === 'masked' ? ' (***)' : member.teamPolicy.phonePrivacy === 'blurred' ? ' (Blur)' : ''}
+                                                    </span>
                                                 </span>
                                             )}
                                         </div>
 
                                         {/* Actions */}
                                         {member.id !== user.id && (
-                                            <div className="flex w-full md:w-auto justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 md:-translate-x-4 md:group-hover:translate-x-0">
+                                            <div className="flex w-full md:w-auto justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 md:-translate-x-4 md:group-hover:translate-x-0 mt-2 md:mt-0">
                                                 <button
                                                     onClick={() => handleViewStats(member)}
-                                                    className="flex-1 md:flex-none p-3 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-sm"
+                                                    className="flex-1 md:flex-none p-2 sm:p-3 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-lg sm:rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-xs sm:text-sm"
                                                     title="View Member Analytics"
                                                 >
-                                                    <BarChart2 className="w-5 h-5" />
+                                                    <BarChart2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                                     <span className="md:hidden">Stats</span>
                                                 </button>
                                                 <button
                                                     onClick={() => handleOpenEdit(member)}
-                                                    className="flex-1 md:flex-none p-3 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-sm"
+                                                    className="flex-1 md:flex-none p-2 sm:p-3 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 rounded-lg sm:rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-xs sm:text-sm"
                                                     title="Config"
                                                 >
-                                                    <Edit3 className="w-5 h-5" />
+                                                    <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
                                                     <span className="md:hidden">Edit</span>
                                                 </button>
                                                 <button
                                                     onClick={() => removeMember(member.id)}
-                                                    className="flex-1 md:flex-none p-3 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-sm"
+                                                    className="flex-1 md:flex-none p-2 sm:p-3 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 rounded-lg sm:rounded-xl transition-all font-bold flex items-center justify-center gap-2 text-xs sm:text-sm"
                                                     title="Delete"
                                                 >
-                                                    <Trash2 className="w-5 h-5" />
+                                                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                                     <span className="md:hidden">Remove</span>
                                                 </button>
                                             </div>

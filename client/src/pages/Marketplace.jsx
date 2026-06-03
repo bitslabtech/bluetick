@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Package, CheckCircle, Zap, Star, ShieldCheck, ShoppingCart, Settings, Tag, LayoutGrid, Layers, Search } from 'lucide-react';
+import { Package, CheckCircle, Zap, Star, ShieldCheck, ShoppingCart, Settings, Tag, LayoutGrid, Layers, Search, List } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import TopHeader from '../components/TopHeader';
@@ -15,6 +15,7 @@ const Marketplace = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('browse');
     const [searchQuery, setSearchQuery] = useState('');
+    const [isMobileGridView, setIsMobileGridView] = useState(false);
 
     useEffect(() => {
         fetchMarketplaceData();
@@ -138,27 +139,36 @@ const Marketplace = () => {
                         </button>
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="relative w-full md:max-w-xs group">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors duration-200">
-                            <Search className="w-5 h-5" />
+                    {/* Search Bar & Mobile Layout Toggle */}
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <div className="relative w-full md:max-w-xs group flex-1">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-500 transition-colors duration-200">
+                                <Search className="w-5 h-5" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search plugins..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 rounded-full border border-gray-200/80 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 shadow-sm"
+                            />
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Search plugins..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 rounded-full border border-gray-200/80 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 shadow-sm"
-                        />
+                        {/* Mobile Grid/List Toggle */}
+                        <button
+                            onClick={() => setIsMobileGridView(!isMobileGridView)}
+                            className="md:hidden flex items-center justify-center p-3 rounded-xl border border-gray-200/80 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 text-gray-600 dark:text-gray-300 shadow-sm"
+                        >
+                            {isMobileGridView ? <List className="w-5 h-5" /> : <LayoutGrid className="w-5 h-5" />}
+                        </button>
                     </div>
                 </div>
 
                 {loading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className={`grid ${isMobileGridView ? 'grid-cols-2' : 'grid-cols-1'} sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6`}>
                         {[1, 2, 3, 4].map(i => <div key={i} className="h-64 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-3xl"></div>)}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className={`grid ${isMobileGridView ? 'grid-cols-2' : 'grid-cols-1'} sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6`}>
                         {filteredAddons.map((addon) => {
                             const ownedAddon = getOwnedAddon(addon.id);
                             const owned = !!ownedAddon;
@@ -174,13 +184,13 @@ const Marketplace = () => {
                             return (
                                 <div key={addon.id} className="group relative bg-white dark:bg-gray-800 rounded-3xl shadow-md hover:shadow-2xl border border-gray-100 dark:border-gray-700 transition-all duration-300 flex flex-col overflow-hidden transform hover:-translate-y-1">
                                     {owned && (
-                                        <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl z-20 flex flex-col items-center shadow-sm">
+                                        <div className={`absolute top-0 right-0 bg-green-500 text-white ${isMobileGridView ? 'text-[10px] px-2 py-1' : 'text-xs px-4 py-1.5'} font-bold rounded-bl-xl z-20 flex flex-col items-center shadow-sm`}>
                                             <div className="flex items-center gap-1">
                                                 <CheckCircle className="w-3.5 h-3.5" />
-                                                Installed
+                                                <span className={isMobileGridView ? "hidden sm:inline" : ""}>Installed</span>
                                             </div>
                                             {daysLeft !== null && (
-                                                <span className="text-[9px] opacity-90 mt-0.5 uppercase tracking-wider block text-center">
+                                                <span className="text-[9px] opacity-90 mt-0.5 uppercase tracking-wider block text-center hidden sm:block">
                                                     {daysLeft <= 0 ? 'Expires Today' : `Expiring in ${daysLeft} Days`}
                                                 </span>
                                             )}
@@ -196,7 +206,7 @@ const Marketplace = () => {
                                             </div>
                                         )}
                                         {addon.bannerUrl ? (
-                                            <div className="relative h-40 overflow-hidden">
+                                            <div className={`relative overflow-hidden ${isMobileGridView ? 'h-24 sm:h-40' : 'h-40'}`}>
                                                 <img
                                                     src={addon.bannerUrl}
                                                     alt={addon.name}
@@ -204,33 +214,33 @@ const Marketplace = () => {
                                                 />
                                             </div>
                                         ) : (
-                                            <div className="h-24 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 flex items-center justify-center">
+                                            <div className={`${isMobileGridView ? 'h-16 sm:h-24' : 'h-24'} bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 flex items-center justify-center`}>
                                                 <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner border border-white dark:border-gray-600">
                                                     <Package className="w-6 h-6" />
                                                 </div>
                                             </div>
                                         )}
-                                        <div className="p-5">
-                                            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{addon.name}</h3>
-                                            <p className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed line-clamp-2 min-h-[2rem]">{addon.description}</p>
+                                        <div className={`${isMobileGridView ? 'p-3 sm:p-5' : 'p-5'}`}>
+                                            <h3 className={`${isMobileGridView ? 'text-sm sm:text-base line-clamp-1' : 'text-base line-clamp-1 sm:line-clamp-none'} font-bold text-gray-900 dark:text-white mb-1.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors`}>{addon.name}</h3>
+                                            <p className={`text-gray-500 dark:text-gray-400 ${isMobileGridView ? 'text-[10px] sm:text-xs min-h-[1.5rem] sm:min-h-[2rem]' : 'text-xs min-h-[2rem]'} leading-relaxed line-clamp-2`}>{addon.description}</p>
                                         </div>
                                     </Link>
 
-                                    <div className="p-5 bg-gray-50 dark:bg-gray-800/80 border-t border-gray-100 dark:border-gray-700 mt-auto">
-                                        <div className="flex items-center justify-between mb-4">
+                                    <div className={`${isMobileGridView ? 'p-3 sm:p-5' : 'p-5'} bg-gray-50 dark:bg-gray-800/80 border-t border-gray-100 dark:border-gray-700 mt-auto`}>
+                                        <div className={`flex items-center justify-between ${isMobileGridView ? 'mb-2 sm:mb-4' : 'mb-4'}`}>
                                             <div>
                                                 {addon.price > 0 ? (
-                                                    <div className="flex items-baseline gap-0.5">
-                                                        <span className="text-sm font-bold text-gray-400 dark:text-gray-500">{getCurrencySymbol(addon.currency)}</span>
-                                                        <span className="text-xl font-extrabold text-gray-900 dark:text-white tabular-nums">
+                                                    <div className={`flex items-baseline ${isMobileGridView ? 'gap-0 sm:gap-0.5 flex-wrap' : 'gap-0.5'}`}>
+                                                        <span className={`${isMobileGridView ? 'text-xs sm:text-sm' : 'text-sm'} font-bold text-gray-400 dark:text-gray-500`}>{getCurrencySymbol(addon.currency)}</span>
+                                                        <span className={`${isMobileGridView ? 'text-base sm:text-xl' : 'text-xl'} font-extrabold text-gray-900 dark:text-white tabular-nums`}>
                                                             {Math.floor(Number(addon.price))}
                                                         </span>
-                                                        <span className="text-[10px] text-gray-500 font-medium ml-1.5 align-baseline">
+                                                        <span className={`text-[10px] text-gray-500 font-medium ${isMobileGridView ? 'ml-0.5 sm:ml-1.5' : 'ml-1.5'} align-baseline`}>
                                                             {addon.currency} {addon.isRecurring ? `/${addon.recurringInterval}` : 'one-time'}
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xl font-extrabold text-green-600 dark:text-green-400">Free</span>
+                                                    <span className={`${isMobileGridView ? 'text-base sm:text-xl' : 'text-xl'} font-extrabold text-green-600 dark:text-green-400`}>Free</span>
                                                 )}
                                             </div>
                                         </div>
@@ -238,17 +248,19 @@ const Marketplace = () => {
                                         {owned ? (
                                             <Link
                                                 to={`/addons/${addon.module_key}`}
-                                                className="w-full py-2.5 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl flex justify-center items-center gap-2 transition-colors"
+                                                className={`w-full ${isMobileGridView ? 'py-1.5 sm:py-2.5 px-2 sm:px-4' : 'py-2.5 px-4'} bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl flex justify-center items-center gap-2 transition-colors`}
                                             >
                                                 <Settings className="w-4 h-4" />
-                                                Manage Settings
+                                                <span className={isMobileGridView ? 'hidden sm:inline text-xs sm:text-sm' : 'text-sm'}>Manage Settings</span>
                                             </Link>
                                         ) : (
                                             <Link
                                                 to={`/marketplace/${addon.slug || addon.id}`}
-                                                className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl flex justify-center items-center gap-2 shadow-md shadow-indigo-600/20 transition-all hover:shadow-lg hover:-translate-y-0.5"
+                                                className={`w-full ${isMobileGridView ? 'py-1.5 sm:py-2.5 px-2 sm:px-4 text-xs sm:text-sm' : 'py-2.5 px-4 text-sm'} bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex justify-center items-center gap-1.5 sm:gap-2 shadow-md shadow-indigo-600/20 transition-all hover:shadow-lg hover:-translate-y-0.5`}
                                             >
-                                                <ShoppingCart className="w-4 h-4" /> View Details / Purchase
+                                                <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> 
+                                                <span className={isMobileGridView ? 'hidden sm:inline' : ''}>View Details</span>
+                                                <span className={isMobileGridView ? 'inline sm:hidden' : 'hidden'}>View</span>
                                             </Link>
                                         )}
                                     </div>

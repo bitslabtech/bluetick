@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import axios from 'axios';
+import UserDropdown from './UserDropdown';
 
 const userNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', perm: 'menu_dashboard' },
@@ -25,13 +26,13 @@ const userNavItems = [
         ]
     },
 
-    // Growth & Marketing — CTWA Ads only (Link Generator removed)
+    // Growth Hub — Unified Ads Command Center
     {
         icon: TrendingUp,
-        label: 'Growth & Marketing',
+        label: 'Growth Hub',
         subItems: [
-            { label: 'Click To WhatsApp Ads', path: '/ctwa-analytics', perm: 'menu_ctwa', requiresCtwa: true },
-            { label: 'Meta Ads Manager', path: '/meta-ads', perm: 'menu_meta_ads', requiresMetaAds: true },
+            { label: 'Ads Command Center', path: '/growth-hub', perm: 'menu_meta_ads', requiresMetaAds: true },
+            { label: 'CTWA Connect', path: '/ctwa-analytics', perm: 'menu_ctwa', requiresCtwa: true },
         ]
     },
 
@@ -335,7 +336,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         return (
             <aside className={cn(
                 "flex flex-col border-r border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark p-4 transition-all duration-300",
-                "fixed inset-y-0 left-0 z-50 w-72 transform overflow-y-auto",
+                "fixed inset-y-0 left-0 z-[60] w-72 transform overflow-y-auto",
                 isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
                 "md:translate-x-0 md:sticky md:top-0 md:h-screen md:shadow-none"
             )}>
@@ -360,7 +361,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     return (<>
         <aside className={cn(
             "flex flex-col justify-between border-r border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark p-4 transition-all duration-300",
-            "fixed inset-y-0 left-0 z-50 w-72 transform overflow-y-auto",
+            "fixed inset-y-0 left-0 z-[60] w-72 transform overflow-y-auto",
             isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
             "md:translate-x-0 md:sticky md:top-0 md:h-screen md:shadow-none"
         )}>
@@ -401,6 +402,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 </nav>
             </div>
 
+            <div className="flex flex-col mt-auto shrink-0">
+
             {/* ── Version Badge (all users) ── */}
             {currentVersion && (
                 <div className="px-3 pb-3">
@@ -432,6 +435,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                     </button>
                 </div>
             )}
+            </div>
 
         </aside>
 

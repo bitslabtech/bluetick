@@ -473,7 +473,7 @@ const Contacts = () => {
             </header>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 hide-scrollbar">
                 <div className="w-full flex flex-col gap-6">
 
                     {/* Page Header */}
@@ -539,65 +539,82 @@ const Contacts = () => {
                     )}
 
                     {/* Stats Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-4 flex items-center gap-4 shadow-sm transition-colors duration-300">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-3 md:p-4 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 shadow-sm transition-colors duration-300">
                             <div className="p-3 rounded-lg bg-blue-500/10 text-blue-500 dark:text-blue-400">
                                 <Users className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Total Contacts</p>
-                                <p className="text-slate-900 dark:text-white text-xl font-bold">{totalContacts}</p>
+                                <p className="text-slate-500 dark:text-text-secondary text-[10px] sm:text-xs font-medium uppercase tracking-wider leading-tight">Total Contacts</p>
+                                <p className="text-slate-900 dark:text-white text-lg sm:text-xl font-bold mt-1 sm:mt-0">{totalContacts}</p>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-4 flex items-center gap-4 shadow-sm transition-colors duration-300">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-3 md:p-4 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 shadow-sm transition-colors duration-300">
                             <div className="p-3 rounded-lg bg-red-500/10 text-red-500 dark:text-red-400">
                                 <Ban className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Invalid WhatsApp </p>
-                                <p className="text-slate-900 dark:text-white text-xl font-bold">{contacts.filter(c => c.status === 'Invalid').length}</p>
+                                <p className="text-slate-500 dark:text-text-secondary text-[10px] sm:text-xs font-medium uppercase tracking-wider leading-tight">Invalid</p>
+                                <p className="text-slate-900 dark:text-white text-lg sm:text-xl font-bold mt-1 sm:mt-0">{contacts.filter(c => c.status === 'Invalid').length}</p>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-4 flex items-center gap-4 shadow-sm transition-colors duration-300">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-3 md:p-4 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 shadow-sm transition-colors duration-300">
                             <div className="p-3 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
                                 <Tags className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Tags</p>
-                                <p className="text-slate-900 dark:text-white text-xl font-bold">{availableLabels.length}</p>
+                                <p className="text-slate-500 dark:text-text-secondary text-[10px] sm:text-xs font-medium uppercase tracking-wider leading-tight">Tags</p>
+                                <p className="text-slate-900 dark:text-white text-lg sm:text-xl font-bold mt-1 sm:mt-0">{availableLabels.length}</p>
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-4 flex items-center gap-4 shadow-sm transition-colors duration-300">
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl p-3 md:p-4 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 shadow-sm transition-colors duration-300">
                             <div className="p-3 rounded-lg bg-purple-500/10 text-purple-500 dark:text-purple-400">
                                 <Tag className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">Groups</p>
-                                <p className="text-slate-900 dark:text-white text-xl font-bold">{availableGroups.length}</p>
+                                <p className="text-slate-500 dark:text-text-secondary text-[10px] sm:text-xs font-medium uppercase tracking-wider leading-tight">Groups</p>
+                                <p className="text-slate-900 dark:text-white text-lg sm:text-xl font-bold mt-1 sm:mt-0">{availableGroups.length}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Filters & Search */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm transition-colors duration-300">
-                        {/* Search Bar */}
-                        <div className="flex items-center rounded-lg bg-slate-100 dark:bg-background-dark h-10 w-full sm:max-w-xs px-3 border border-transparent focus-within:border-primary transition-colors">
-                            <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
-                            <input
-                                value={tempSearch}
-                                onChange={(e) => setTempSearch(e.target.value)}
-                                className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary text-sm focus:outline-none ml-2"
-                                placeholder="Search contacts..."
-                            />
+                        {/* Search Bar & View Mode */}
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="flex-1 sm:w-64 flex items-center rounded-lg bg-slate-100 dark:bg-background-dark h-10 px-3 border border-transparent focus-within:border-primary transition-colors">
+                                <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary shrink-0" />
+                                <input
+                                    value={tempSearch}
+                                    onChange={(e) => setTempSearch(e.target.value)}
+                                    className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary text-sm focus:outline-none ml-2 min-w-0"
+                                    placeholder="Search contacts..."
+                                />
+                            </div>
+                            
+                            <div className="flex items-center bg-slate-100 dark:bg-background-dark rounded-lg p-1 shrink-0">
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-surface-dark shadow-sm text-primary' : 'bg-transparent text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white'}`}
+                                >
+                                    <LayoutGrid className="w-4 h-4 md:w-5 md:h-5" />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-surface-dark shadow-sm text-primary' : 'bg-transparent text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white'}`}
+                                >
+                                    <List className="w-4 h-4 md:w-5 md:h-5" />
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="flex gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
-                            <div className="relative">
+                        <div className="flex gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
+                            <div className="relative shrink-0">
                                 <Filter className="absolute left-3 top-2.5 text-slate-400 dark:text-text-secondary w-4 h-4 pointer-events-none" />
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-8 py-2.5 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
+                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-0 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
                                 >
                                     <option value="All">All Statuses</option>
                                     <option value="Valid">Valid</option>
@@ -606,12 +623,12 @@ const Contacts = () => {
                                 </select>
                             </div>
 
-                            <div className="relative">
+                            <div className="relative shrink-0">
                                 <Tag className="absolute left-3 top-2.5 text-slate-400 dark:text-text-secondary w-4 h-4 pointer-events-none" />
                                 <select
                                     value={groupFilter}
                                     onChange={(e) => setGroupFilter(e.target.value)}
-                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-8 py-2.5 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
+                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-0 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
                                 >
                                     <option value="All">All Groups</option>
                                     {availableGroups.map(g => (
@@ -620,12 +637,12 @@ const Contacts = () => {
                                 </select>
                             </div>
 
-                            <div className="relative">
+                            <div className="relative shrink-0">
                                 <Tags className="absolute left-3 top-2.5 text-slate-400 dark:text-text-secondary w-4 h-4 pointer-events-none" />
                                 <select
                                     value={labelFilter}
                                     onChange={(e) => setLabelFilter(e.target.value)}
-                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-8 py-2.5 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
+                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-0 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
                                 >
                                     <option value="All">All Tags</option>
                                     {availableLabels.map(l => (
@@ -633,20 +650,6 @@ const Contacts = () => {
                                     ))}
                                 </select>
                             </div>
-
-                            <div className="h-6 w-px bg-slate-200 dark:bg-white/10 my-auto mx-1"></div>
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`p-2.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'bg-transparent text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
-                            >
-                                <LayoutGrid className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`p-2.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'bg-transparent text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
-                            >
-                                <List className="w-5 h-5" />
-                            </button>
                         </div>
                     </div>
 
@@ -654,10 +657,10 @@ const Contacts = () => {
                     {viewMode === 'list' ? (
                         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shadow-sm transition-colors duration-300">
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
+                                <table className="w-full text-left text-sm table-fixed md:table-auto">
                                     <thead className="bg-slate-50 dark:bg-background-dark/50 text-slate-500 dark:text-text-secondary font-semibold border-b border-slate-200 dark:border-white/5">
                                         <tr>
-                                            <th className="px-4 md:px-6 py-4 w-12">
+                                            <th className="px-1 md:px-6 py-4 w-8 md:w-12 text-center">
                                                 <input
                                                     type="checkbox"
                                                     className="rounded border-slate-300 dark:border-gray-600 bg-white dark:bg-background-dark text-primary focus:ring-0 focus:ring-offset-0 size-4"
@@ -665,12 +668,12 @@ const Contacts = () => {
                                                     onChange={handleSelectAll}
                                                 />
                                             </th>
-                                            <th className="px-4 md:px-6 py-4">Name</th>
-                                            <th className="px-4 md:px-6 py-4">Phone Number</th>
-                                            <th className="px-4 md:px-6 py-4">Tags</th>
-                                            <th className="px-4 md:px-6 py-4">Group</th>
-                                            <th className="px-4 md:px-6 py-4">Status</th>
-                                            <th className="px-4 md:px-6 py-4 w-12 text-right">Actions</th>
+                                            <th className="pl-3 pr-1 md:px-6 py-4 w-auto">Name</th>
+                                            <th className="hidden md:table-cell px-4 md:px-6 py-4">Phone Number</th>
+                                            <th className="px-1 md:px-6 py-4 w-[35%] md:w-auto">Tags</th>
+                                            <th className="hidden md:table-cell px-4 md:px-6 py-4">Group</th>
+                                            <th className="hidden md:table-cell px-4 md:px-6 py-4">Status</th>
+                                            <th className="hidden md:table-cell px-2 md:px-6 py-4 w-8 md:w-12 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-700 dark:text-gray-200">
@@ -687,7 +690,7 @@ const Contacts = () => {
                                                     }}
                                                     className={`contact-trigger hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group ${isLocked ? 'cursor-default opacity-60 grayscale-[0.5]' : 'cursor-pointer'} ${selectedIds.includes(contact.id) ? 'bg-primary/5' : ''}`}
                                                 >
-                                                    <td className="px-4 md:px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                    <td className="px-1 md:px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                                                         {!isLocked && (
                                                             <input
                                                                 type="checkbox"
@@ -698,25 +701,47 @@ const Contacts = () => {
                                                         )}
                                                         {isLocked && <Lock className="w-4 h-4 text-slate-400 mx-auto" />}
                                                     </td>
-                                                    <td className="px-4 md:px-6 py-4">
-                                                        <div className="flex items-center gap-3">
+                                                    <td className="pl-3 pr-1 md:px-6 py-4">
+                                                        <div className="flex items-center gap-2 md:gap-3">
                                                             {contact.avatarImage ? (
                                                                 <div
-                                                                    className="size-9 rounded-full bg-cover bg-center border border-slate-200 dark:border-white/10"
+                                                                    className="size-7 md:size-9 rounded-full bg-cover bg-center border border-slate-200 dark:border-white/10 shrink-0"
                                                                     style={{ backgroundImage: `url('${contact.avatarImage}')` }}
                                                                 ></div>
                                                             ) : (
-                                                                <div className={`size-9 rounded-full ${contact.avatarColor} flex items-center justify-center text-white font-bold text-xs`}>
-                                                                    {contact.initials}
+                                                                <div className={`size-7 md:size-9 rounded-full ${contact.avatarColor || 'bg-slate-400 dark:bg-slate-600'} flex items-center justify-center text-white font-bold text-[10px] md:text-xs shrink-0`}>
+                                                                    {contact.initials || (contact.name ? contact.name.charAt(0).toUpperCase() : '?')}
                                                                 </div>
                                                             )}
-                                                            <div className="flex flex-col">
-                                                                <span className="font-medium text-slate-900 dark:text-white">{renderName(contact.name, contact.phone)}</span>
-                                                                {contact.email && <span className="text-slate-500 dark:text-text-secondary text-xs">{contact.email}</span>}
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="font-medium text-slate-900 dark:text-white truncate">{renderName(contact.name, contact.phone)}</span>
+                                                                {contact.email && <span className="hidden md:block text-slate-500 dark:text-text-secondary text-xs truncate">{contact.email}</span>}
+                                                                <span className="md:hidden text-slate-500 dark:text-text-secondary text-[10px] font-mono mt-0.5 truncate">{contact.phone}</span>
+                                                                {/* Mobile-only Groups */}
+                                                                <div className="md:hidden flex flex-wrap gap-1 mt-1.5">
+                                                                    {(contact.tags && contact.tags.length > 0) && (
+                                                                        <>
+                                                                            {contact.tags.slice(0, 1).map((tag, i) => {
+                                                                                const groupMeta = availableGroups.find(g => g.name === tag);
+                                                                                const tagColor = groupMeta?.color || '#6366F1';
+                                                                                return (
+                                                                                    <span key={i} className="px-1.5 py-0.5 rounded text-[8px] font-medium flex items-center border shrink-0" style={{ backgroundColor: `${tagColor}15`, borderColor: `${tagColor}30`, color: tagColor }}>
+                                                                                        {tag}
+                                                                                    </span>
+                                                                                );
+                                                                            })}
+                                                                            {contact.tags.length > 1 && (
+                                                                                <span className="px-1.5 py-0.5 rounded text-[8px] font-medium border bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shrink-0">
+                                                                                    +{contact.tags.length - 1}
+                                                                                </span>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 md:px-6 py-4 font-mono text-slate-600 dark:text-gray-300">
+                                                    <td className="hidden md:table-cell px-4 md:px-6 py-4 font-mono text-slate-600 dark:text-gray-300">
                                                         <span className={isSubMember && teamPolicy.phonePrivacy === 'blurred' ? 'blur-sm select-none' : ''}>
                                                             {isSubMember && teamPolicy.phonePrivacy === 'masked'
                                                                 ? `****${contact.phone?.slice(-4) || ''}`
@@ -724,19 +749,28 @@ const Contacts = () => {
                                                             }
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 md:px-6 py-4">
-                                                        <div className="flex flex-wrap gap-1.5">
-                                                            {(contact.labels && contact.labels.length > 0) ? contact.labels.map(l => (
-                                                                <span key={l.id} className="px-2 py-0.5 rounded text-xs font-medium border flex items-center gap-1" style={{ backgroundColor: `${l.color}15`, borderColor: `${l.color}30`, color: l.color }}>
-                                                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: l.color }}></div>
-                                                                    {l.name}
-                                                                </span>
-                                                            )) : (
-                                                                <span className="text-slate-400 dark:text-text-secondary text-xs italic opacity-60">No tags</span>
+                                                    <td className="px-1 md:px-6 py-4">
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {(contact.labels && contact.labels.length > 0) ? (
+                                                                <>
+                                                                    {contact.labels.slice(0, 1).map(l => (
+                                                                        <span key={l.id} className="px-1.5 py-0.5 rounded text-[8px] md:text-xs font-medium border flex items-center gap-1 shrink-0" style={{ backgroundColor: `${l.color}15`, borderColor: `${l.color}30`, color: l.color }}>
+                                                                            <div className="hidden md:block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: l.color }}></div>
+                                                                            {l.name}
+                                                                        </span>
+                                                                    ))}
+                                                                    {contact.labels.length > 1 && (
+                                                                        <span className="px-1.5 py-0.5 rounded text-[8px] md:text-xs font-medium border bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shrink-0">
+                                                                            +{contact.labels.length - 1}
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-slate-400 dark:text-text-secondary text-[10px] md:text-xs italic opacity-60">No tags</span>
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 md:px-6 py-4">
+                                                    <td className="hidden md:table-cell px-4 md:px-6 py-4">
                                                         <div className="flex flex-wrap gap-1.5">
                                                             {(contact.tags && contact.tags.length > 0) ? contact.tags.map((tag, i) => {
                                                                 const groupMeta = availableGroups.find(g => g.name === tag);
@@ -752,31 +786,31 @@ const Contacts = () => {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 md:px-6 py-4">
-                                                        <div className="flex items-center gap-2">
+                                                    <td className="hidden md:table-cell px-2 md:px-6 py-4">
+                                                        <div className="flex items-center gap-1.5 md:gap-2">
                                                             {contact.status === 'Valid' && (
                                                                 <>
-                                                                    <div className="size-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                                                    <span className="text-emerald-500 dark:text-emerald-400 font-medium text-xs">Valid</span>
+                                                                    <div className="size-1.5 md:size-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                                                    <span className="text-emerald-500 dark:text-emerald-400 font-medium text-[10px] md:text-xs">Valid</span>
                                                                 </>
                                                             )}
                                                             {contact.status === 'Unknown' && (
                                                                 <>
-                                                                    <div className="size-2 rounded-full bg-slate-400 dark:bg-gray-500"></div>
-                                                                    <span className="text-slate-500 dark:text-gray-400 font-medium text-xs">Pending Check</span>
+                                                                    <div className="size-1.5 md:size-2 rounded-full bg-slate-400 dark:bg-gray-500"></div>
+                                                                    <span className="text-slate-500 dark:text-gray-400 font-medium text-[10px] md:text-xs leading-tight">Pending</span>
                                                                 </>
                                                             )}
                                                             {contact.status === 'Opted Out' && (
                                                                 <>
-                                                                    <div className="size-2 rounded-full bg-rose-500"></div>
-                                                                    <span className="text-rose-500 dark:text-rose-400 font-medium text-xs">Opted Out</span>
+                                                                    <div className="size-1.5 md:size-2 rounded-full bg-rose-500"></div>
+                                                                    <span className="text-rose-500 dark:text-rose-400 font-medium text-[10px] md:text-xs leading-tight">Opted Out</span>
                                                                 </>
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 md:px-6 py-4 text-right">
+                                                    <td className="hidden md:table-cell px-2 md:px-6 py-4 text-right">
                                                         <button className="text-slate-400 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
-                                                            <MoreVertical className="w-5 h-5" />
+                                                            <MoreVertical className="w-4 h-4 md:w-5 md:h-5" />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -809,7 +843,7 @@ const Contacts = () => {
                             </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                             {filteredContacts.map((contact, index) => {
                                 // We need actual index in the full sorted list for locking
                                 const actualIndex = (page - 1) * limit + index;
@@ -1279,18 +1313,17 @@ const Contacts = () => {
                         {/* Tabs */}
                         <div className="flex border-b border-white/10 shrink-0">
                             {[
-                                { id: 'file',   label: 'Upload CSV/VCF',   shortLabel: 'Upload',  icon: UploadCloud },
-                                { id: 'google', label: 'Google Contacts',   shortLabel: 'Google',  icon: Users },
-                                { id: 'manual', label: 'Add Manually',      shortLabel: 'Manual',  icon: UserPlus },
+                                { id: 'file', label: 'Upload CSV/VCF', shortLabel: 'Upload', icon: UploadCloud },
+                                { id: 'google', label: 'Google Contacts', shortLabel: 'Google', icon: Users },
+                                { id: 'manual', label: 'Add Manually', shortLabel: 'Manual', icon: UserPlus },
                             ].map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setContactModalTab(tab.id)}
-                                    className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 text-xs font-bold transition-all border-b-2 ${
-                                        contactModalTab === tab.id
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 text-xs font-bold transition-all border-b-2 ${contactModalTab === tab.id
                                             ? 'text-indigo-600 dark:text-white border-indigo-600 dark:border-white bg-indigo-50 dark:bg-white/10'
                                             : 'text-slate-500 dark:text-text-secondary border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
-                                    }`}
+                                        }`}
                                 >
                                     <tab.icon className="w-3.5 h-3.5" />
                                     <span className="hidden sm:inline">{tab.label}</span>
@@ -1416,10 +1449,10 @@ const Contacts = () => {
                                 <div className="p-4 md:p-8 flex flex-col items-center text-center gap-5">
                                     <div className="w-20 h-20 rounded-2xl bg-white dark:bg-white/5 border border-white/10 flex items-center justify-center shadow-lg">
                                         <svg width="42" height="42" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4"/>
-                                            <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853"/>
-                                            <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04"/>
-                                            <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335"/>
+                                            <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4" />
+                                            <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853" />
+                                            <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04" />
+                                            <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335" />
                                         </svg>
                                     </div>
                                     <div>
@@ -1442,10 +1475,10 @@ const Contacts = () => {
                                         className="flex items-center gap-3 px-4 md:px-6 py-3 bg-white text-slate-800 font-bold rounded-xl hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
                                     >
                                         <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4"/>
-                                            <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853"/>
-                                            <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04"/>
-                                            <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335"/>
+                                            <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4" />
+                                            <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853" />
+                                            <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04" />
+                                            <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335" />
                                         </svg>
                                         Continue with Google
                                     </button>
@@ -1682,13 +1715,13 @@ const Contacts = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm text-text-secondary mb-1">Phone (with Country Code)</label>
-                                    <input 
-                                        required 
+                                    <input
+                                        required
                                         disabled={editingContact && newContact.phone.toString().startsWith('****')}
-                                        value={newContact.phone} 
-                                        onChange={e => setNewContact({ ...newContact, phone: e.target.value })} 
-                                        className={`w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white outline-none ${editingContact && newContact.phone.toString().startsWith('****') ? 'opacity-50 cursor-not-allowed' : 'focus:border-primary'}`} 
-                                        placeholder="+1234567890" 
+                                        value={newContact.phone}
+                                        onChange={e => setNewContact({ ...newContact, phone: e.target.value })}
+                                        className={`w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white outline-none ${editingContact && newContact.phone.toString().startsWith('****') ? 'opacity-50 cursor-not-allowed' : 'focus:border-primary'}`}
+                                        placeholder="+1234567890"
                                     />
                                     {editingContact && newContact.phone.toString().startsWith('****') && (
                                         <p className="text-[10px] text-amber-500 mt-1 flex items-center gap-1">
@@ -1799,9 +1832,9 @@ const Contacts = () => {
                                                     title={color.name}
                                                 />
                                             ))}
-                                            <input 
-                                                type="color" 
-                                                value={groupForm.color} 
+                                            <input
+                                                type="color"
+                                                value={groupForm.color}
                                                 onChange={(e) => setGroupForm({ ...groupForm, color: e.target.value })}
                                                 className="size-8 rounded-full bg-transparent border-none cursor-pointer overflow-hidden p-0"
                                             />
@@ -1862,13 +1895,13 @@ const Contacts = () => {
                                                                 </div>
                                                                 <div className="flex gap-2">
                                                                     <button
-                                                                        onClick={() => { 
-                                                                            setEditingGroup(group); 
-                                                                            setGroupForm({ 
-                                                                                name: group.name, 
-                                                                                description: group.description || '', 
-                                                                                color: group.color || '#3B82F6' 
-                                                                            }); 
+                                                                        onClick={() => {
+                                                                            setEditingGroup(group);
+                                                                            setGroupForm({
+                                                                                name: group.name,
+                                                                                description: group.description || '',
+                                                                                color: group.color || '#3B82F6'
+                                                                            });
                                                                         }}
                                                                         className="p-1.5 text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors"
                                                                         title="Edit"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Contact, ClipboardList, CalendarCheck, Settings, Zap, ShoppingBag, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Contact, ClipboardList, CalendarCheck, Settings, Zap, ShoppingBag, Sparkles, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 import { useUI } from '../../context/UIContext';
 
@@ -61,8 +61,43 @@ export default function VcardLayout() {
 
     return (
         <div className="flex flex-col md:flex-row gap-6 min-h-[calc(100vh-8rem)]">
-            {/* Vertical Sub-Sidebar */}
-            <div className="w-full md:w-64 flex-shrink-0">
+            {/* Mobile: Horizontal scrollable tab bar */}
+            <div className="md:hidden flex flex-col gap-1.5">
+                <div className="flex items-center justify-end px-2">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1 opacity-80">
+                        Swipe Menu <ArrowRight className="w-3 h-3 animate-pulse" />
+                    </span>
+                </div>
+                <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-1.5 shadow-sm">
+                    {/* Right fade gradient to indicate scrollability */}
+                    <div className="absolute right-1 top-1 bottom-1 w-8 bg-gradient-to-l from-white dark:from-surface-dark pointer-events-none rounded-r-xl z-10" />
+                
+                <nav className="flex overflow-x-auto hide-scrollbar gap-1 snap-x px-0.5">
+                    {navItems.map((item) => {
+                        const isActive = item.exact
+                            ? location.pathname === item.path
+                            : location.pathname.startsWith(item.path);
+                        return (
+                            <NavLink
+                                key={item.path}
+                                to={item.path}
+                                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 snap-start ${
+                                    isActive
+                                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-500/20'
+                                        : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5 border border-transparent'
+                                }`}
+                            >
+                                {item.icon}
+                                {item.label}
+                            </NavLink>
+                        );
+                    })}
+                </nav>
+                </div>
+            </div>
+
+            {/* Desktop: Original vertical sidebar */}
+            <div className="w-full md:w-64 flex-shrink-0 hidden md:block">
                 {/* Sticky wrapper */}
                 <div className="sticky top-24 flex flex-col gap-4">
 

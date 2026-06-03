@@ -129,7 +129,7 @@ const AiBotSettings = () => {
     }
 
     return (
-        <div className="max-w-4xl space-y-6 pb-20">
+        <div className="max-w-4xl space-y-6 pb-7 sm:pb-20">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>

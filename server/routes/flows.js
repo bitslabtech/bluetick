@@ -33,6 +33,126 @@ router.post('/upload', auth, storageProvider('flows_media', { fileFilter: storag
     }
 });
 
+const FlowExecutionLog = require('../models/FlowExecutionLog');
+const { Op, Sequelize } = require('sequelize');
+const { sequelize } = require('../config/database');
+
+// GET flow analytics/stats for the Reports page
+router.get('/stats', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { range = '30d' } = req.query;
+
+        // Calculate date range
+        const now = new Date();
+        const start = new Date();
+        if (range === '1d') start.setDate(now.getDate() - 1);
+        else if (range === '7d') start.setDate(now.getDate() - 7);
+        else if (range === '3m') start.setMonth(now.getMonth() - 3);
+        else start.setDate(now.getDate() - 30); // default 30d
+        start.setHours(0, 0, 0, 0);
+
+        // Get all flows for user
+        const allFlows = await Flow.findAll({
+            where: { userId },
+            order: [['createdAt', 'DESC']]
+        });
+
+        // Get all execution logs in range
+        const logs = await FlowExecutionLog.findAll({
+            where: {
+                userId,
+                createdAt: { [Op.between]: [start, now] }
+            },
+            raw: true
+        });
+
+        // Build per-flow stats
+        const flowStats = allFlows.map(flow => {
+            const flowLogs = logs.filter(l => l.flowId === flow.id);
+            const triggered = flowLogs.length;
+            const completed = flowLogs.filter(l => l.status === 'completed').length;
+            const dropped = flowLogs.filter(l => l.status === 'dropped').length;
+            const uniqueContacts = new Set(flowLogs.filter(l => l.contactId).map(l => l.contactId)).size;
+            const completionRate = triggered > 0 ? Math.round((completed / triggered) * 100) : 0;
+            const avgNodes = triggered > 0
+                ? Math.round(flowLogs.reduce((s, l) => s + (l.nodesExecuted || 0), 0) / triggered)
+                : 0;
+
+            // Last triggered timestamp
+            const lastTriggered = flowLogs.length > 0
+                ? flowLogs.reduce((latest, l) => new Date(l.createdAt) > new Date(latest) ? l.createdAt : latest, flowLogs[0].createdAt)
+                : null;
+
+            return {
+                id: flow.id,
+                name: flow.name,
+                triggerKeyword: flow.triggerKeyword,
+                isAny: flow.isAny,
+                isActive: flow.isActive,
+                nodeCount: (flow.nodes || []).length,
+                createdAt: flow.createdAt,
+                // Analytics
+                triggered,
+                completed,
+                dropped,
+                uniqueContacts,
+                completionRate,
+                avgNodes,
+                lastTriggered
+            };
+        });
+
+        // Aggregate summary
+        const totalTriggers = logs.length;
+        const totalCompleted = logs.filter(l => l.status === 'completed').length;
+        const totalDropped = logs.filter(l => l.status === 'dropped').length;
+        const totalUniqueContacts = new Set(logs.filter(l => l.contactId).map(l => l.contactId)).size;
+        const overallCompletionRate = totalTriggers > 0 ? Math.round((totalCompleted / totalTriggers) * 100) : 0;
+        const activeFlowsCount = allFlows.filter(f => f.isActive).length;
+
+        // Daily trigger volume for chart (last N days)
+        const dailyMap = {};
+        const dayCount = range === '1d' ? 1 : range === '7d' ? 7 : range === '3m' ? 90 : 30;
+        for (let i = 0; i < dayCount; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - (dayCount - 1 - i));
+            const key = d.toISOString().split('T')[0];
+            dailyMap[key] = {
+                date: key,
+                label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                triggers: 0,
+                completed: 0
+            };
+        }
+        for (const log of logs) {
+            const key = new Date(log.createdAt).toISOString().split('T')[0];
+            if (dailyMap[key]) {
+                dailyMap[key].triggers++;
+                if (log.status === 'completed') dailyMap[key].completed++;
+            }
+        }
+        const dailyData = Object.values(dailyMap);
+
+        res.json({
+            summary: {
+                totalTriggers,
+                totalCompleted,
+                totalDropped,
+                totalUniqueContacts,
+                overallCompletionRate,
+                activeFlowsCount,
+                totalFlows: allFlows.length
+            },
+            flows: flowStats,
+            dailyData
+        });
+    } catch (err) {
+        console.error('Fetch Flow Stats Error:', err);
+        res.status(500).json({ error: 'Failed to fetch flow stats' });
+    }
+});
+
 // GET all flows for user
 router.get('/', auth, async (req, res) => {
     try {

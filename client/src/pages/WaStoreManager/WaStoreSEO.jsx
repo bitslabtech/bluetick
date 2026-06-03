@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import { Search, Save, Globe, Code, Image as ImageIcon, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -48,17 +48,17 @@ function ImageUploader({ label, endpoint, currentUrl, onUploaded }) {
 
     return (
         <div className="space-y-2">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <button
                     type="button"
                     onClick={() => inputRef.current?.click()}
                     disabled={uploading}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                    className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold transition-colors"
                 >
                     {uploading ? 'Uploading...' : `Upload ${label}`}
                 </button>
                 {currentUrl && (
-                    <button type="button" onClick={() => onUploaded('')} className="text-rose-500 text-sm hover:underline">
+                    <button type="button" onClick={() => onUploaded('')} className="w-full sm:w-auto text-rose-500 text-sm hover:underline py-2 sm:py-0 font-medium">
                         Remove Image
                     </button>
                 )}
@@ -76,7 +76,7 @@ function ImageUploader({ label, endpoint, currentUrl, onUploaded }) {
 }
 
 export default function WaStoreSEO() {
-    const { id: storeId } = useParams();
+    const { storeId } = useOutletContext();
     const [store, setStore] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -131,7 +131,7 @@ export default function WaStoreSEO() {
     );
 
     return (
-        <div className="max-w-4xl space-y-6 pb-20">
+        <div className="max-w-4xl space-y-6 pb-7 sm:pb-20">
             <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Search className="w-5 h-5 text-indigo-500" />
@@ -270,7 +270,7 @@ export default function WaStoreSEO() {
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex items-center gap-2 px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-sm"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 md:px-6 py-3.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-sm"
                     >
                         <Save className="w-4 h-4" />
                         {saving ? 'Saving Settings...' : 'Save SEO & Tracking Settings'}

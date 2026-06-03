@@ -6,7 +6,9 @@ import UserDropdown from '../components/UserDropdown';
 import {
     Calendar, Download, ChevronDown, Send, CheckCircle2, Eye, AlertCircle,
     BarChart3, X, Loader2, Search, Check, Menu, TrendingUp, TrendingDown,
-    Clock, Users, FileText, Target, Zap, Activity, Award, Filter
+    Clock, Users, FileText, Target, Zap, Activity, Award, Filter,
+    Sparkles, Megaphone, GitMerge, MousePointerClick, DollarSign,
+    Play, Pause, ArrowRight, Bot, Hash, Layers, BarChart2
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -289,6 +291,290 @@ const StatusDonut = ({ stats }) => {
     );
 };
 
+// ─── AI Analytics Tab ────────────────────────────────────────────────────────
+const AiAnalyticsTab = ({ stats }) => {
+    if (!stats) return <div className="p-8 text-center text-slate-500">Loading AI stats...</div>;
+    if (!stats.hasHistory) return <div className="p-8 text-center text-slate-500">No AI usage history found.</div>;
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard icon={Sparkles} label="Tokens Used" value={stats.summary.totalUsed.toLocaleString()} color="bg-violet-500" />
+                <MetricCard icon={Activity} label="Balance Remaining" value={stats.summary.currentBalance.toLocaleString()} color="bg-indigo-500" />
+                <MetricCard icon={TrendingUp} label="Peak Daily Usage" value={stats.summary.peakDayUsage.toLocaleString()} color="bg-emerald-500" />
+                <MetricCard icon={Activity} label="Usage Ratio" value={`${stats.summary.usagePercent}%`} color="bg-blue-500" />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm">
+                    <h3 className="font-bold text-slate-900 dark:text-white mb-4">Feature Breakdown</h3>
+                    <div className="space-y-3">
+                        {stats.featureBreakdown.map(f => (
+                            <div key={f.key}>
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">{f.name}</span>
+                                    <span className="font-bold" style={{ color: f.color }}>{f.tokens.toLocaleString()} tokens ({f.percent}%)</span>
+                                </div>
+                                <div className="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${f.percent}%`, background: f.color }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Meta Ads Tab (Rich Analytics) ─────────────────────────────────────────
+const MetaAdsTab = ({ ads }) => {
+    if (!ads) return <div className="p-8 text-center text-slate-500">Loading Ads...</div>;
+
+    const { summary = {}, campaigns = [] } = ads;
+
+    if (campaigns.length === 0 && !summary.totalCampaigns) return (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Megaphone className="w-12 h-12 text-slate-300 dark:text-slate-600" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">No Meta Ad campaigns found.</p>
+        </div>
+    );
+
+    const fmtNum = (n) => n !== null && n !== undefined ? Number(n).toLocaleString() : '—';
+    const fmtCurrency = (n) => n !== null && n !== undefined ? `$${Number(n).toFixed(2)}` : '—';
+
+    return (
+        <div className="space-y-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[{
+                    icon: Eye, label: 'Total Impressions', value: fmtNum(summary.totalImpressions), color: 'indigo',
+                    bgClass: 'bg-indigo-50 dark:bg-indigo-500/10', iconClass: 'text-indigo-500'
+                }, {
+                    icon: MousePointerClick, label: 'Total Clicks', value: fmtNum(summary.totalClicks), color: 'emerald',
+                    bgClass: 'bg-emerald-50 dark:bg-emerald-500/10', iconClass: 'text-emerald-500'
+                }, {
+                    icon: DollarSign, label: 'Total Spend', value: fmtCurrency(summary.totalSpend), color: 'rose',
+                    bgClass: 'bg-rose-50 dark:bg-rose-500/10', iconClass: 'text-rose-500'
+                }, {
+                    icon: Target, label: 'Avg CTR', value: summary.avgCtr ? `${summary.avgCtr}%` : '—', color: 'amber',
+                    bgClass: 'bg-amber-50 dark:bg-amber-500/10', iconClass: 'text-amber-500'
+                }].map((kpi, i) => (
+                    <div key={i} className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-white/5 shadow-sm">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${kpi.bgClass}`}>
+                            <kpi.icon className={`w-4 h-4 ${kpi.iconClass}`} />
+                        </div>
+                        <div className="text-2xl font-extrabold text-slate-900 dark:text-white">{kpi.value}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{kpi.label}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Connection status */}
+            {!summary.hasLiveConnection && (
+                <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl px-4 py-2.5">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Showing cached data. Connect your Facebook Ads account in CTWA Analytics for live metrics.
+                </div>
+            )}
+
+            {/* Campaign Performance Table */}
+            <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">Campaign Performance</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">{campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}</p>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-50 dark:bg-background-dark/60 text-slate-500 dark:text-slate-400 text-[11px] uppercase font-bold tracking-wider">
+                            <tr>
+                                <th className="px-5 py-3">Campaign Name</th>
+                                <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3 text-right">Budget/day</th>
+                                <th className="px-4 py-3 text-right">Impressions</th>
+                                <th className="px-4 py-3 text-right">Clicks</th>
+                                <th className="px-4 py-3 text-right">Spend</th>
+                                <th className="px-4 py-3 text-right">CTR</th>
+                                <th className="px-4 py-3 text-right">CPC</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-sm divide-y divide-slate-100 dark:divide-white/5">
+                            {campaigns.map(ad => (
+                                <tr key={ad.id} className="hover:bg-slate-50/70 dark:hover:bg-white/5 transition-colors">
+                                    <td className="px-5 py-4">
+                                        <div className="font-semibold text-slate-900 dark:text-white">{ad.campaignName}</div>
+                                        {ad.metaCampaignId && <div className="text-[10px] text-slate-400 font-mono mt-0.5">{ad.metaCampaignId}</div>}
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${
+                                            ad.status?.includes('Active') || ad.status === 'Published'
+                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                : ad.status === 'Draft'
+                                                    ? 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400'
+                                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                        }`}>
+                                            {(ad.status?.includes('Active') || ad.status === 'Published') && <Play className="w-2.5 h-2.5" />}
+                                            {ad.status === 'Draft' && <Pause className="w-2.5 h-2.5" />}
+                                            {ad.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-4 text-right text-slate-600 dark:text-slate-300">${ad.dailyBudget}</td>
+                                    <td className="px-4 py-4 text-right text-slate-700 dark:text-slate-200 font-medium">{fmtNum(ad.impressions)}</td>
+                                    <td className="px-4 py-4 text-right text-slate-700 dark:text-slate-200 font-medium">{fmtNum(ad.clicks)}</td>
+                                    <td className="px-4 py-4 text-right font-semibold text-slate-800 dark:text-slate-200">{fmtCurrency(ad.spend)}</td>
+                                    <td className="px-4 py-4 text-right">
+                                        {ad.ctr ? (
+                                            <span className={`font-medium ${parseFloat(ad.ctr) >= 1 ? 'text-emerald-500' : 'text-slate-500'}`}>{ad.ctr}%</span>
+                                        ) : <span className="text-slate-400">—</span>}
+                                    </td>
+                                    <td className="px-4 py-4 text-right text-slate-600 dark:text-slate-300">{fmtCurrency(ad.cpc)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── FlowBots Tab (Rich Analytics) ─────────────────────────────────────────
+const FlowBotsTab = ({ flows }) => {
+    if (!flows) return <div className="p-8 text-center text-slate-500">Loading FlowBots...</div>;
+
+    const { summary = {}, flows: flowList = [], dailyData = [] } = flows;
+
+    if (flowList.length === 0 && !summary.totalFlows) return (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <GitMerge className="w-12 h-12 text-slate-300 dark:text-slate-600" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">No FlowBots found. Create your first flow to see analytics here.</p>
+        </div>
+    );
+
+    return (
+        <div className="space-y-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[{
+                    icon: Zap, label: 'Total Triggers', value: (summary.totalTriggers || 0).toLocaleString(),
+                    bgClass: 'bg-indigo-50 dark:bg-indigo-500/10', iconClass: 'text-indigo-500'
+                }, {
+                    icon: Users, label: 'Unique Contacts', value: (summary.totalUniqueContacts || 0).toLocaleString(),
+                    bgClass: 'bg-emerald-50 dark:bg-emerald-500/10', iconClass: 'text-emerald-500'
+                }, {
+                    icon: CheckCircle2, label: 'Completion Rate', value: `${summary.overallCompletionRate || 0}%`,
+                    bgClass: 'bg-amber-50 dark:bg-amber-500/10', iconClass: 'text-amber-500'
+                }, {
+                    icon: Activity, label: 'Active Flows', value: `${summary.activeFlowsCount || 0} / ${summary.totalFlows || 0}`,
+                    bgClass: 'bg-violet-50 dark:bg-violet-500/10', iconClass: 'text-violet-500'
+                }].map((kpi, i) => (
+                    <div key={i} className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-5 border border-slate-100 dark:border-white/5 shadow-sm">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${kpi.bgClass}`}>
+                            <kpi.icon className={`w-4 h-4 ${kpi.iconClass}`} />
+                        </div>
+                        <div className="text-2xl font-extrabold text-slate-900 dark:text-white">{kpi.value}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{kpi.label}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Daily Trigger Volume Chart */}
+            {dailyData.length > 1 && (
+                <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm">
+                    <div className="flex items-center justify-between mb-5">
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white">Daily Trigger Volume</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Flow triggers & completions over time</p>
+                        </div>
+                        <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
+                            <BarChart2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                    </div>
+                    <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={dailyData} margin={{ top: 0, right: 5, left: -30, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="flowTriggersGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                    </linearGradient>
+                                    <linearGradient id="flowCompletedGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-white/10" />
+                                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
+                                <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: '12px' }} />
+                                <Area type="monotone" dataKey="triggers" name="Triggers" stroke="#6366f1" fill="url(#flowTriggersGrad)" strokeWidth={2} />
+                                <Area type="monotone" dataKey="completed" name="Completed" stroke="#10b981" fill="url(#flowCompletedGrad)" strokeWidth={2} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
+
+            {/* Per-Flow Performance Table */}
+            <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">Per-Flow Performance</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">{flowList.length} flow{flowList.length !== 1 ? 's' : ''} configured</p>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-50 dark:bg-background-dark/60 text-slate-500 dark:text-slate-400 text-[11px] uppercase font-bold tracking-wider">
+                            <tr>
+                                <th className="px-5 py-3">Flow Name</th>
+                                <th className="px-4 py-3">Trigger</th>
+                                <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3 text-right">Triggers</th>
+                                <th className="px-4 py-3 text-right">Contacts</th>
+                                <th className="px-4 py-3 text-right">Completion</th>
+                                <th className="px-4 py-3 text-right">Last Triggered</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-sm divide-y divide-slate-100 dark:divide-white/5">
+                            {flowList.map(f => (
+                                <tr key={f.id} className="hover:bg-slate-50/70 dark:hover:bg-white/5 transition-colors">
+                                    <td className="px-5 py-4">
+                                        <div className="font-semibold text-slate-900 dark:text-white">{f.name}</div>
+                                        <div className="text-[10px] text-slate-400 mt-0.5">{f.nodeCount || 0} nodes</div>
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        <span className="inline-flex items-center gap-1 font-mono text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded">
+                                            <Hash className="w-3 h-3" />
+                                            {f.isAny ? 'Any Message' : (f.triggerKeyword || '—')}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${f.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400'}`}>
+                                            {f.isActive ? <><Play className="w-2.5 h-2.5" /> Active</> : <><Pause className="w-2.5 h-2.5" /> Draft</>}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-4 text-right font-bold text-slate-800 dark:text-white">{(f.triggered || 0).toLocaleString()}</td>
+                                    <td className="px-4 py-4 text-right text-slate-600 dark:text-slate-300">{(f.uniqueContacts || 0).toLocaleString()}</td>
+                                    <td className="px-4 py-4 text-right">
+                                        {f.triggered > 0 ? (
+                                            <div className="flex items-center justify-end gap-2">
+                                                <div className="h-1.5 w-14 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${f.completionRate}%` }} />
+                                                </div>
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{f.completionRate}%</span>
+                                            </div>
+                                        ) : <span className="text-slate-400 text-xs">—</span>}
+                                    </td>
+                                    <td className="px-4 py-4 text-right text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                        {f.lastTriggered ? new Date(f.lastTriggered).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ─── Main Reports Page ────────────────────────────────────────────────────────
 const Reports = () => {
     const [timeRange, setTimeRange] = useState('30d');
@@ -303,6 +589,13 @@ const Reports = () => {
     const [activeLines, setActiveLines] = useState({ sent: true, read: true, failed: true });
     const [campaignsList, setCampaignsList] = useState([]);
     const [selectedCampaignId, setSelectedCampaignId] = useState('all');
+    
+    // New Tabs State
+    const [activeTab, setActiveTab] = useState('messaging');
+    const [aiStats, setAiStats] = useState(null);
+    const [metaAds, setMetaAds] = useState(null);
+    const [flowBots, setFlowBots] = useState(null);
+    const [loadingExtras, setLoadingExtras] = useState(false);
 
     useEffect(() => {
         axios.get(`${API}/api/messages`, { headers: { } })
@@ -357,6 +650,41 @@ const Reports = () => {
     });
     const dowData = Object.entries(dowMap).map(([day, count]) => ({ day, count }));
 
+    useEffect(() => {
+        const fetchExtras = async () => {
+            if (activeTab === 'messaging') return;
+            setLoadingExtras(true);
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Authorization': `Bearer ${token}` };
+                
+                if (activeTab === 'ai' && !aiStats) {
+                    const res = await axios.get(`${API}/api/dashboard/ai-token-history?range=${timeRange}`, { headers });
+                    setAiStats(res.data);
+                } else if (activeTab === 'meta-ads') {
+                    const rangeMap = { '1d': '1d', '7d': '7d', '30d': '30d', '3m': '3m', 'custom': '30d' };
+                    const res = await axios.get(`${API}/api/meta-ads/insights?range=${rangeMap[timeRange] || '30d'}`, { headers });
+                    setMetaAds(res.data);
+                } else if (activeTab === 'flowbots') {
+                    const res = await axios.get(`${API}/api/flows/stats?range=${timeRange}`, { headers });
+                    setFlowBots(res.data);
+                }
+            } catch (err) {
+                console.error('Error fetching extra tab data:', err);
+            } finally {
+                setLoadingExtras(false);
+            }
+        };
+        fetchExtras();
+    }, [activeTab, timeRange]);
+
+    const TABS = [
+        { id: 'messaging', label: 'Messaging', icon: Send },
+        { id: 'ai', label: 'AI Analytics', icon: Sparkles },
+        { id: 'meta-ads', label: 'Meta Ads', icon: Megaphone },
+        { id: 'flowbots', label: 'FlowBots', icon: GitMerge }
+    ];
+
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-hidden transition-colors duration-300 relative">
 
@@ -397,10 +725,12 @@ const Reports = () => {
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <div>
                         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Analytics & Reports</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Deep insights into your messaging performance</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Deep insights across all your active channels</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                        <SearchableDropdown options={campaignsList} value={selectedCampaignId} onChange={setSelectedCampaignId} placeholder="All Campaigns" />
+                        {activeTab === 'messaging' && (
+                            <SearchableDropdown options={campaignsList} value={selectedCampaignId} onChange={setSelectedCampaignId} placeholder="All Campaigns" />
+                        )}
                         <div className="relative">
                             <select onChange={handleRangeChange} value={timeRange}
                                 className="appearance-none bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white text-sm rounded-xl pl-4 pr-8 py-2.5 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-sm">
@@ -417,17 +747,41 @@ const Reports = () => {
                         </button>
                     </div>
                 </div>
+                
+                {/* Tabs */}
+                <div className="flex overflow-x-auto hide-scrollbar gap-2 mt-6 pb-1 border-b border-slate-200 dark:border-white/10">
+                    {TABS.map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-t-xl transition-all whitespace-nowrap ${
+                                    isActive 
+                                    ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10' 
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'
+                                }`}
+                            >
+                                <Icon className="w-4 h-4" />
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">
-                {loading && !stats ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-3">
-                        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Loading analytics...</p>
-                    </div>
-                ) : (
-                    <div className="space-y-8 pb-10">
+                {activeTab === 'messaging' && (
+                    <>
+                        {loading && !stats ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
+                                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Loading analytics...</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-8 pb-10">
 
                         {/* ── Row 1: KPI Strip ────────────────────────────── */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -616,7 +970,22 @@ const Reports = () => {
                         </div>
 
                     </div>
+                        )}
+                    </>
                 )}
+
+                {/* NEW TABS CONTENT */}
+                {loadingExtras && activeTab !== 'messaging' && (
+                    <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
+                        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Loading {activeTab} data...</p>
+                    </div>
+                )}
+                
+                {!loadingExtras && activeTab === 'ai' && <AiAnalyticsTab stats={aiStats} />}
+                {!loadingExtras && activeTab === 'meta-ads' && <MetaAdsTab ads={metaAds} />}
+                {!loadingExtras && activeTab === 'flowbots' && <FlowBotsTab flows={flowBots} />}
+
             </div>
         </div>
     );
