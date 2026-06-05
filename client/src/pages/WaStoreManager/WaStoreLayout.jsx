@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell } from 'lucide-react';
+import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreLayout() {
@@ -80,16 +80,18 @@ export default function WaStoreLayout() {
     };
 
     const navItems = [
-        { path: `/online-store/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
         { path: `/online-store/${slug}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
-        { path: `/online-store/${slug}/products`, icon: <Package className="w-5 h-5" />, label: 'Products' },
+        { path: `/online-store/${slug}/navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Navigation' },
         { path: `/online-store/${slug}/categories`, icon: <Tag className="w-5 h-5" />, label: 'Categories' },
+        { path: `/online-store/${slug}/products`, icon: <Package className="w-5 h-5" />, label: 'Products' },
+        { path: `/online-store/${slug}/inventory`, icon: <ClipboardList className="w-5 h-5" />, label: 'Inventory' },
         { path: `/online-store/${slug}/orders`, icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
+        { path: `/online-store/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
+        { path: `/online-store/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
         { path: `/online-store/${slug}/pos`, icon: <ShoppingBag className="w-5 h-5" />, label: 'POS' },
         { path: `/online-store/${slug}/notifications`, icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
         { path: `/online-store/${slug}/coupons`, icon: <Tag className="w-5 h-5" />, label: 'Promo Codes' },
         { path: `/online-store/${slug}/seo`, icon: <Search className="w-5 h-5" />, label: 'SEO & Tracking' },
-        { path: `/online-store/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
         { path: `/online-store/${slug}/policies`, icon: <FileText className="w-5 h-5" />, label: 'Policies' },
         { path: `/online-store/${slug}/settings`, icon: <Settings className="w-5 h-5" />, label: 'Settings' },
     ];
@@ -100,7 +102,7 @@ export default function WaStoreLayout() {
     const storeUrl = `${window.location.origin}/store/${store.slug}`;
 
     return (
-        <div className="flex flex-col gap-6 w-full lg:w-[70%] max-w-[1600px] mx-auto px-4 lg:px-0 pb-7 sm:pb-20">
+        <div className="flex flex-col gap-6 w-full lg:w-[85%] max-w-[1600px] mx-auto px-4 lg:px-0 pb-7 sm:pb-20">
             {/* Animated Gradient CSS */}
             <style>{`
                 @keyframes coverGradientShift {

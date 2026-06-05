@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingBag, X, Plus, Minus, Search, ArrowRight, MapPin, Mail, Phone, MessageCircle, ChevronLeft, ChevronRight, Filter, Check } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, X, Plus, Minus, Search, ArrowRight, MapPin, Mail, Phone, MessageCircle, ChevronLeft, ChevronRight, Filter, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const API_BASE = `${import.meta.env.VITE_API_URL}`;
 const imgUrl = (url) => {
@@ -115,6 +116,14 @@ export default function PublicWaStore() {
     const cartTotal = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.qty), 0);
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
+    // Cross-sells: products from the same category, excluding the currently viewed product
+    const crossSellProducts = useMemo(() => {
+        if (!selectedProduct || !store?.showCrossSells) return [];
+        return products
+            .filter(p => p.id !== selectedProduct.id && p.category && p.category === selectedProduct.category)
+            .slice(0, 8);
+    }, [selectedProduct, products, store?.showCrossSells]);
+
     const getCurrencySymbol = (code) => {
         const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
         return symbols[code] || code;
@@ -159,7 +168,7 @@ export default function PublicWaStore() {
     if (!store) return <div className="h-screen flex items-center justify-center bg-white"><h1 className="text-2xl font-medium text-gray-900">Store Not Found</h1></div>;
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-black selection:text-white pb-24">
+        <div className="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-black selection:text-white pb-24" style={{ scrollbarGutter: 'stable' }}>
             
             {/* ─── MODERN HEADER ─── */}
             <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200">
@@ -187,12 +196,11 @@ export default function PublicWaStore() {
                     {/* Cart Button */}
                     <button 
                         onClick={() => setIsCartOpen(true)}
-                        className="relative p-2.5 hover:bg-gray-100 rounded-full transition-colors flex items-center gap-2"
+                        className="relative p-2 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
                     >
-                        <ShoppingBag className="w-5 h-5 text-black" />
-                        <span className="hidden sm:inline font-medium text-sm">Cart</span>
+                        <ShoppingCart className="w-6 h-6 text-black stroke-[1.5]" />
                         {cartCount > 0 && (
-                            <span className="absolute top-1 right-1 sm:-top-1 sm:-right-2 bg-black text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                            <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
                                 {cartCount}
                             </span>
                         )}
@@ -260,7 +268,7 @@ export default function PublicWaStore() {
             </div>
 
             {/* ─── MAIN CONTENT ─── */}
-            <main id="products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <main id="products" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 
                 {/* Categories & Filters */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -308,47 +316,99 @@ export default function PublicWaStore() {
                 {/* Product Grid */}
                 {filteredAndSortedProducts.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10">
-                        {filteredAndSortedProducts.map(product => (
-                            <div key={product.id} className="group cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                                {/* Image Box */}
-                                <div className="relative aspect-[4/5] bg-white rounded-2xl overflow-hidden border border-gray-100 mb-4 shadow-sm hover:shadow-md transition-shadow">
-                                    {product.imageUrls && product.imageUrls[0] ? (
-                                        <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-gray-50"><ShoppingBag className="w-8 h-8 text-gray-300" /></div>
-                                    )}
-                                    {product.oldPrice && (
-                                        <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wide">
-                                            Sale
-                                        </div>
-                                    )}
-                                    
-                                    {/* Quick Add Overlay */}
-                                    <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 flex justify-center">
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                                            className="w-full py-3 bg-black/90 backdrop-blur-md text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <Plus className="w-4 h-4" /> Add to Cart
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                {/* Info */}
+                        {filteredAndSortedProducts.map(product => {
+                            const cartItem = cart.find(item => item.id === product.id);
+                            const qtyInCart = cartItem ? cartItem.qty : 0;
+
+                            return (
+                            <div key={product.id} className="group cursor-pointer flex flex-col justify-between h-full bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow" onClick={() => setSelectedProduct(product)}>
                                 <div>
-                                    <h3 className="text-sm font-semibold text-gray-900 mb-1">{product.name}</h3>
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium text-black">{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
-                                            {product.oldPrice && (
-                                                <span className="text-xs text-gray-400 line-through">{getCurrencySymbol(store.currency)}{parseFloat(product.oldPrice).toFixed(2)}</span>
+                                    {/* Image Box */}
+                                    <div className="relative aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden border border-gray-100 mb-4">
+                                        {product.imageUrls && product.imageUrls[0] ? (
+                                            <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-gray-50"><ShoppingBag className="w-8 h-8 text-gray-300" /></div>
+                                        )}
+                                        {product.oldPrice && (
+                                            <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wide">
+                                                Sale
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Info */}
+                                    <div className="flex flex-col flex-1">
+                                        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400 mb-1.5 block">
+                                            {product.category || '\u00A0'}
+                                        </span>
+                                        <h3 className="text-[15px] font-semibold text-gray-900 mb-2 line-clamp-2 h-10 leading-snug hover:text-neutral-700 transition-colors">{product.name}</h3>
+                                        
+                                        <div className="flex items-baseline flex-wrap gap-2 mb-5">
+                                            <span className="text-lg font-bold text-black">{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
+                                            {product.oldPrice && parseFloat(product.oldPrice) > parseFloat(product.price) && (
+                                                <>
+                                                    <span className="text-sm text-gray-400 line-through font-normal">
+                                                        {getCurrencySymbol(store.currency)}{parseFloat(product.oldPrice).toFixed(2)}
+                                                    </span>
+                                                    <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-100/50">
+                                                        {Math.round(((parseFloat(product.oldPrice) - parseFloat(product.price)) / parseFloat(product.oldPrice)) * 100)}% OFF
+                                                    </span>
+                                                </>
                                             )}
                                         </div>
-                                        {product.wholesalePrice && product.minWholesaleQty && (
-                                            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 w-max px-2 py-0.5 rounded">
-                                                Buy {product.minWholesaleQty}+ for {getCurrencySymbol(store.currency)}{parseFloat(product.wholesalePrice).toFixed(2)}
-                                            </span>
-                                        )}
+                                    </div>
+                                </div>
+                                                  {/* Actions */}
+                                <div className="mt-4">
+                                    <div className="flex items-center w-full h-[42px] gap-0 relative">
+                                        {/* Quantity Selector Slider */}
+                                        <div className={`flex items-center justify-between border border-gray-200 rounded-[15px] p-1 bg-gray-50 h-full transition-all duration-300 overflow-hidden ${
+                                            qtyInCart > 0 ? 'w-[45%] opacity-100 mr-2' : 'w-0 opacity-0 pointer-events-none mr-0'
+                                        }`}>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); updateQty(product.id, -1); }} 
+                                                className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
+                                            >
+                                                -
+                                            </button>
+                                            <span className="font-bold text-xs text-gray-900 select-none">{qtyInCart}</span>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); updateQty(product.id, 1); }} 
+                                                className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+
+                                        {/* Sliding Add/View Button */}
+                                        <button 
+                                            onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                if (qtyInCart > 0) {
+                                                    setIsCartOpen(true);
+                                                } else {
+                                                    addToCart(product);
+                                                }
+                                            }}
+                                            className={`h-full transition-all duration-300 flex items-center justify-center gap-1.5 uppercase tracking-widest text-[9.5px] font-bold rounded-[15px] select-none ${
+                                                qtyInCart > 0 
+                                                ? 'w-[55%] bg-black text-white hover:bg-neutral-800 shadow-sm' 
+                                                : 'flex-1 w-full bg-white text-black border border-black hover:bg-black hover:text-white'
+                                            }`}
+                                        >
+                                            {qtyInCart > 0 ? (
+                                                <>
+                                                    <span className="truncate">View Cart</span>
+                                                    <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                                                    <span>Add to Cart</span>
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -406,83 +466,132 @@ export default function PublicWaStore() {
                             <button onClick={() => addToCart(selectedProduct)} className="w-full py-4 bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
                                 <ShoppingBag className="w-5 h-5" /> Add to Cart
                             </button>
+
+                            {/* ─── CROSS-SELLS ─── */}
+                            {crossSellProducts.length > 0 && (
+                                <div className="mt-8 pt-6 border-t border-gray-100">
+                                    <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">You May Also Like</h4>
+                                    <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+                                        {crossSellProducts.map(p => (
+                                            <div
+                                                key={p.id}
+                                                onClick={() => setSelectedProduct(p)}
+                                                className="shrink-0 w-28 cursor-pointer group/cs"
+                                            >
+                                                <div className="aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-100 mb-2">
+                                                    {p.imageUrls && p.imageUrls[0] ? (
+                                                        <img
+                                                            src={imgUrl(p.imageUrls[0])}
+                                                            alt={p.name}
+                                                            className="w-full h-full object-cover group-hover/cs:scale-105 transition-transform duration-300"
+                                                            onError={e => e.target.style.display = 'none'}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="w-6 h-6 text-gray-200" /></div>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug mb-0.5 group-hover/cs:text-black">{p.name}</p>
+                                                <p className="text-xs font-bold text-black">{getCurrencySymbol(store.currency)}{parseFloat(p.price).toFixed(2)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             )}
 
             {/* ─── CART DRAWER ─── */}
-            {isCartOpen && (
-                <div className="fixed inset-0 z-50 flex justify-end">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
-                    <div className="w-full max-w-md bg-white h-full relative z-10 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+            <AnimatePresence>
+                {isCartOpen && (
+                    <div className="fixed inset-0 z-50 flex justify-end">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                            onClick={() => setIsCartOpen(false)}
+                        />
                         
-                        <div className="px-4 md:px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
-                            <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
-                                <ShoppingBag className="w-5 h-5" /> Your Cart
-                            </h2>
-                            <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"><X className="w-5 h-5" /></button>
-                        </div>
+                        {/* Slide-in Drawer Container */}
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
+                            className="w-full max-w-md bg-white h-full relative z-10 flex flex-col shadow-2xl"
+                        >
+                            
+                            <div className="px-4 md:px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
+                                <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
+                                    <ShoppingBag className="w-5 h-5" /> Your Cart
+                                </h2>
+                                <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"><X className="w-5 h-5" /></button>
+                            </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-                            {cart.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
-                                    <ShoppingBag className="w-16 h-16 opacity-20" />
-                                    <p className="font-medium">Your cart is empty</p>
-                                    <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 transition-colors">Start Shopping</button>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    {cart.map(item => (
-                                        <div key={item.id} className="flex gap-4 items-start">
-                                            <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
-                                                {item.imageUrls && item.imageUrls[0] && (
-                                                    <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-cover" />
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0 pt-1">
-                                                <h4 className="font-semibold text-sm text-gray-900 truncate">{item.name}</h4>
-                                                <div className="font-medium text-sm text-gray-500 mt-1 flex items-center gap-2">
-                                                    {getCurrencySymbol(store.currency)}{getItemPrice(item).toFixed(2)}
-                                                    {item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty) && (
-                                                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Wholesale Applied</span>
+                            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                                {cart.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
+                                        <ShoppingBag className="w-16 h-16 opacity-20" />
+                                        <p className="font-medium">Your cart is empty</p>
+                                        <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 transition-colors">Start Shopping</button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {cart.map(item => (
+                                            <div key={item.id} className="flex gap-4 items-start">
+                                                <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
+                                                    {item.imageUrls && item.imageUrls[0] && (
+                                                        <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-cover" />
                                                     )}
                                                 </div>
-                                                
-                                                <div className="flex items-center gap-3 mt-3">
-                                                    <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                                                        <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
-                                                        <span className="w-8 text-center text-xs font-semibold">{item.qty}</span>
-                                                        <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
+                                                <div className="flex-1 min-w-0 pt-1">
+                                                    <h4 className="font-semibold text-sm text-gray-900 truncate">{item.name}</h4>
+                                                    <div className="font-medium text-sm text-gray-500 mt-1 flex items-center gap-2">
+                                                        {getCurrencySymbol(store.currency)}{getItemPrice(item).toFixed(2)}
+                                                        {item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty) && (
+                                                            <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Wholesale Applied</span>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-3 mt-3">
+                                                        <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                                                            <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
+                                                            <span className="w-8 text-center text-xs font-semibold">{item.qty}</span>
+                                                            <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {cart.length > 0 && (
+                                <div className="p-4 md:p-6 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] max-w-full">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <span className="text-gray-500">Subtotal</span>
+                                        <span className="text-xl font-bold text-gray-900">{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
+                                    </div>
+                                    <button 
+                                        onClick={() => handleWhatsAppCheckout()}
+                                        className="w-full py-4 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                                    >
+                                        <MessageCircle className="w-5 h-5" /> Checkout on WhatsApp
+                                    </button>
+                                    <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">
+                                        <Check className="w-3 h-3" /> Secure checkout via WhatsApp
+                                    </p>
                                 </div>
                             )}
-                        </div>
-
-                        {cart.length > 0 && (
-                            <div className="p-4 md:p-6 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] max-w-full">
-                                <div className="flex justify-between items-center mb-6">
-                                    <span className="text-gray-500">Subtotal</span>
-                                    <span className="text-xl font-bold text-gray-900">{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
-                                </div>
-                                <button 
-                                    onClick={() => handleWhatsAppCheckout()}
-                                    className="w-full py-4 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
-                                >
-                                    <MessageCircle className="w-5 h-5" /> Checkout on WhatsApp
-                                </button>
-                                <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">
-                                    <Check className="w-3 h-3" /> Secure checkout via WhatsApp
-                                </p>
-                            </div>
-                        )}
+                        </motion.div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
             
         </div>
     );

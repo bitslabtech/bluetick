@@ -85,6 +85,11 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: { desktop: 4, mobile: 2 },
         comment: 'Number of product columns: { desktop: 2-6, mobile: 1-3 }'
     },
+    showCrossSells: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        comment: 'Show cross-sell / you-may-also-like products from same category on single product page'
+    },
     categories: {
         type: DataTypes.JSON,
         defaultValue: [],
@@ -94,6 +99,21 @@ const WaStore = sequelize.define('WaStore', {
         type: DataTypes.JSON,
         defaultValue: {},
         comment: 'Map of category names to image URLs'
+    },
+    hiddenCategories: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Array of category names hidden from the landing page category list'
+    },
+    categoryDetails: {
+        type: DataTypes.JSON,
+        defaultValue: {},
+        comment: 'Map of category names to detail objects { description, metaTitle, metaDesc }'
+    },
+    megaMenu: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Configuration for the frontend navigation Mega Menu'
     },
     termsConditions: {
         type: DataTypes.TEXT
@@ -130,6 +150,11 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: {},
         comment: 'Stores API keys/secrets securely'
     },
+    checkoutConfig: {
+        type: DataTypes.JSON,
+        defaultValue: { minOrderValue: 0, flatShippingRate: 0, freeShippingThreshold: 0 },
+        comment: 'Stores checkout configuration like min order value, shipping rates'
+    },
     taxConfig: {
         type: DataTypes.JSON,
         defaultValue: { enabled: false, type: 'gst', rate: 0, autoGenerateBill: false, autoSendWhatsApp: false },
@@ -139,6 +164,24 @@ const WaStore = sequelize.define('WaStore', {
         type: DataTypes.JSON,
         defaultValue: { enabled: false, provider: null },
         comment: 'Stores Shiprocket / Delhivery config'
+    },
+    inventoryConfig: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            autoOutOfStock: false,
+            showLowStock: false,
+            preventCartAdd: false
+        },
+        comment: 'Store-level inventory management preferences'
+    },
+    invoiceConfig: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            prefixOnline: 'ORD-',
+            prefixPos: 'POS-',
+            startingNumber: 1001
+        },
+        comment: 'Store-level invoice numbering preferences'
     },
     notificationTemplates: {
         type: DataTypes.JSON,

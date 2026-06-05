@@ -77,12 +77,14 @@ const WaStoreLayout = React.lazy(() => import('./pages/WaStoreManager/WaStoreLay
 const WaProductList = React.lazy(() => import('./pages/WaStoreManager/WaProductList'));
 const WaStoreThemes = React.lazy(() => import('./pages/WaStoreManager/WaStoreThemes'));
 const WaStoreSettings = React.lazy(() => import('./pages/WaStoreManager/WaStoreSettings'));
+const WaStoreInventory = React.lazy(() => import('./pages/WaStoreManager/WaStoreInventory'));
 const WaStoreBasicDetails = React.lazy(() => import('./pages/WaStoreManager/WaStoreBasicDetails'));
 const WaStoreOrders = React.lazy(() => import('./pages/WaStoreManager/WaStoreOrders'));
 const WaStorePOS = React.lazy(() => import('./pages/WaStoreManager/WaStorePOS'));
 const WaStoreCategories = React.lazy(() => import('./pages/WaStoreManager/WaStoreCategories'));
 const WaStoreCoupons = React.lazy(() => import('./pages/WaStoreManager/WaStoreCoupons'));
 const WaStoreSEO = React.lazy(() => import('./pages/WaStoreManager/WaStoreSEO'));
+const WaStoreNavigation = React.lazy(() => import('./pages/WaStoreManager/WaStoreNavigation'));
 const WaStorePolicies = React.lazy(() => import('./pages/WaStoreManager/WaStorePolicies'));
 const WaStoreAnalytics = React.lazy(() => import('./pages/WaStoreManager/WaStoreAnalytics'));
 const WaStoreNotifications = React.lazy(() => import('./pages/WaStoreManager/WaStoreNotifications'));
@@ -330,6 +332,7 @@ function App() {
                                                     <Route path="analytics" element={<WaStoreAnalytics />} />
                                                     <Route path="details" element={<WaStoreBasicDetails />} />
                                                     <Route path="products" element={<WaProductList />} />
+                                                    <Route path="inventory" element={<WaStoreInventory />} />
                                                     <Route path="categories" element={<WaStoreCategories />} />
                                                     <Route path="orders" element={<WaStoreOrders />} />
                                                     <Route path="pos" element={<WaStorePOS />} />
@@ -337,6 +340,7 @@ function App() {
                                                     <Route path="coupons" element={<WaStoreCoupons />} />
                                                     <Route path="seo" element={<WaStoreSEO />} />
                                                     <Route path="themes" element={<WaStoreThemes />} />
+                                                    <Route path="navigation" element={<WaStoreNavigation />} />
                                                     <Route path="policies" element={<WaStorePolicies />} />
                                                     <Route path="settings" element={<WaStoreSettings />} />
                                                 </Route>

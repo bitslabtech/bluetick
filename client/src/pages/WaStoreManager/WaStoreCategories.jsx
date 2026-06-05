@@ -11,6 +11,9 @@ import toast from 'react-hot-toast';
 function CategoryModal({ mode, initial, onSave, onClose }) {
     const [name, setName] = useState(initial?.name || '');
     const [imageUrl, setImageUrl] = useState(initial?.image || '');
+    const [description, setDescription] = useState(initial?.description || '');
+    const [metaTitle, setMetaTitle] = useState(initial?.metaTitle || '');
+    const [metaDesc, setMetaDesc] = useState(initial?.metaDesc || '');
     const [uploading, setUploading] = useState(false);
     const fileRef = useRef(null);
 
@@ -34,7 +37,13 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
     const handleSave = () => {
         const trimmed = name.trim();
         if (!trimmed) { toast.error('Category name is required'); return; }
-        onSave({ name: trimmed, image: imageUrl });
+        onSave({ 
+            name: trimmed, 
+            image: imageUrl,
+            description: description.trim(),
+            metaTitle: metaTitle.trim(),
+            metaDesc: metaDesc.trim()
+        });
     };
 
     const resolvedImage = imageUrl
@@ -43,7 +52,7 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="w-full max-w-3xl max-h-[90vh] flex flex-col bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 md:px-6 py-5 border-b border-slate-100 dark:border-white/10">
                     <h3 className="font-bold text-lg text-slate-900 dark:text-white">
@@ -54,58 +63,101 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
                     </button>
                 </div>
 
-                <div className="p-4 md:p-6 space-y-6">
-                    {/* Image Upload */}
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                            Category Image <span className="font-normal text-slate-400">(optional)</span>
-                        </label>
-
-                        {resolvedImage ? (
-                            /* Image preview with change / remove buttons */
-                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-zinc-800 group">
-                                <img src={resolvedImage} alt="Category" className="w-full h-full object-cover" />
-                                {uploading && (
-                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                        <Loader2 className="w-8 h-8 text-white animate-spin" />
-                                    </div>
-                                )}
-                                {/* Overlay actions */}
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
-                                    <button
-                                        type="button"
-                                        onClick={() => fileRef.current?.click()}
-                                        className="flex items-center gap-2 px-4 py-2 bg-white text-slate-800 rounded-xl text-sm font-bold shadow-lg hover:bg-slate-100 transition-colors"
-                                    >
-                                        <Camera className="w-4 h-4" /> Change
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setImageUrl('')}
-                                        className="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-rose-600 transition-colors"
-                                    >
-                                        <X className="w-4 h-4" /> Remove
-                                    </button>
-                                </div>
+                <div className="p-4 md:p-6 space-y-6 overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-6">
+                            {/* Name input */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    Category Name <span className="text-rose-500">*</span>
+                                </label>
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose(); }}
+                                    placeholder="e.g. Men's Wear, Electronics…"
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400"
+                                />
                             </div>
-                        ) : (
-                            /* Empty upload area */
-                            <label
-                                className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all group"
-                            >
-                                {uploading ? (
-                                    <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                                ) : (
-                                    <>
-                                        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-3 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-colors">
-                                            <Upload className="w-7 h-7 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                            
+                            {/* Description input */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    Description <span className="font-normal text-slate-400">(optional)</span>
+                                </label>
+                                <textarea
+                                    value={description}
+                                    onChange={e => setDescription(e.target.value)}
+                                    placeholder="A brief description of this category..."
+                                    rows="3"
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Image Upload */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Category Image <span className="font-normal text-slate-400">(optional)</span>
+                            </label>
+
+                            {resolvedImage ? (
+                                /* Image preview with change / remove buttons */
+                                <div className="relative w-full h-full min-h-[140px] rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-zinc-800 group">
+                                    <img src={resolvedImage} alt="Category" className="w-full h-full object-cover" />
+                                    {uploading && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                            <Loader2 className="w-8 h-8 text-white animate-spin" />
                                         </div>
-                                        <p className="font-semibold text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                            Click to upload image
-                                        </p>
-                                        <p className="text-xs text-slate-400 mt-1">PNG, JPG up to 5 MB</p>
-                                    </>
-                                )}
+                                    )}
+                                    {/* Overlay actions */}
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
+                                        <button
+                                            type="button"
+                                            onClick={() => fileRef.current?.click()}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-white text-slate-800 rounded-xl text-xs font-bold shadow-lg hover:bg-slate-100 transition-colors"
+                                        >
+                                            <Camera className="w-3 h-3" /> Change
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setImageUrl('')}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-rose-600 transition-colors"
+                                        >
+                                            <X className="w-3 h-3" /> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Empty upload area */
+                                <label
+                                    className="flex flex-col items-center justify-center w-full h-full min-h-[140px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all group"
+                                >
+                                    {uploading ? (
+                                        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                                    ) : (
+                                        <>
+                                            <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-2 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-colors">
+                                                <Upload className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                            </div>
+                                            <p className="font-semibold text-sm text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                                Click to upload
+                                            </p>
+                                        </>
+                                    )}
+                                    <input
+                                        ref={fileRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleImageUpload}
+                                    />
+                                </label>
+                            )}
+                            {/* Hidden file input for "Change" button on existing image */}
+                            {resolvedImage && (
                                 <input
                                     ref={fileRef}
                                     type="file"
@@ -113,39 +165,45 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
                                     className="hidden"
                                     onChange={handleImageUpload}
                                 />
-                            </label>
-                        )}
-                        {/* Hidden file input for "Change" button on existing image */}
-                        {resolvedImage && (
-                            <input
-                                ref={fileRef}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleImageUpload}
-                            />
-                        )}
+                            )}
+                        </div>
                     </div>
 
-                    {/* Name input */}
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                            Category Name <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                            autoFocus
-                            type="text"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose(); }}
-                            placeholder="e.g. Men's Wear, Electronics…"
-                            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400"
-                        />
+                    <div className="border-t border-slate-100 dark:border-white/10 my-2 pt-4">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4">SEO Settings (Optional)</h4>
+                        
+                        {/* Meta Title */}
+                        <div className="space-y-2 mb-4">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                Meta Title
+                            </label>
+                            <input
+                                type="text"
+                                value={metaTitle}
+                                onChange={e => setMetaTitle(e.target.value)}
+                                placeholder={`e.g. Buy ${name || 'Category'} Online`}
+                                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400"
+                            />
+                        </div>
+
+                        {/* Meta Description */}
+                        <div className="space-y-2">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                Meta Description
+                            </label>
+                            <textarea
+                                value={metaDesc}
+                                onChange={e => setMetaDesc(e.target.value)}
+                                placeholder="Description for search engines..."
+                                rows="2"
+                                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 dark:text-white placeholder-slate-400 resize-none"
+                            />
+                        </div>
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 px-4 md:px-6 pb-6">
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 px-4 md:px-6 py-4 border-t border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-zinc-800/50 rounded-b-3xl mt-auto">
                     <button
                         onClick={onClose}
                         className="w-full sm:w-auto px-5 py-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
@@ -171,6 +229,8 @@ export default function WaStoreCategories() {
     const { storeId } = useOutletContext();
     const [categories, setCategories]       = useState([]);
     const [categoryImages, setCategoryImages] = useState({});
+    const [hiddenCategories, setHiddenCategories] = useState([]);
+    const [categoryDetails, setCategoryDetails] = useState({});
     const [productCounts, setProductCounts] = useState({});
     const [loading, setLoading]             = useState(true);
     const [saving, setSaving]               = useState(false);
@@ -194,6 +254,14 @@ export default function WaStoreCategories() {
                 if (typeof loadedImages === 'string') {
                     try { loadedImages = JSON.parse(loadedImages); } catch { loadedImages = {}; }
                 }
+                let loadedHidden = myStore?.hiddenCategories || [];
+                if (typeof loadedHidden === 'string') {
+                    try { loadedHidden = JSON.parse(loadedHidden); } catch { loadedHidden = []; }
+                }
+                let loadedDetails = myStore?.categoryDetails || {};
+                if (typeof loadedDetails === 'string') {
+                    try { loadedDetails = JSON.parse(loadedDetails); } catch { loadedDetails = {}; }
+                }
 
                 // Count products per category
                 const counts = {};
@@ -208,12 +276,14 @@ export default function WaStoreCategories() {
                 if (mergedCats.length > loadedCategories.length) {
                     axios.put(
                         `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`,
-                        { categories: mergedCats, categoryImages: loadedImages }
+                        { categories: mergedCats, categoryImages: loadedImages, hiddenCategories: loadedHidden, categoryDetails: loadedDetails }
                     ).catch(console.error);
                 }
 
                 setCategories(mergedCats);
                 setCategoryImages(loadedImages);
+                setHiddenCategories(loadedHidden);
+                setCategoryDetails(loadedDetails);
                 setProductCounts(counts);
             } catch {
                 toast.error('Failed to load categories');
@@ -224,12 +294,12 @@ export default function WaStoreCategories() {
         fetchData();
     }, [storeId]);
 
-    const persist = async (newList, newImages) => {
+    const persist = async (newList, newImages, newHidden, newDetails) => {
         setSaving(true);
         try {
             await axios.put(
                 `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`,
-                { categories: newList, categoryImages: newImages }
+                { categories: newList, categoryImages: newImages, hiddenCategories: newHidden, categoryDetails: newDetails }
             );
         } catch {
             toast.error('Failed to save categories');
@@ -238,7 +308,7 @@ export default function WaStoreCategories() {
         }
     };
 
-    const handleSaveModal = ({ name, image }) => {
+    const handleSaveModal = ({ name, image, description, metaTitle, metaDesc }) => {
         if (modal.mode === 'add') {
             if (categories.map(c => c.toLowerCase()).includes(name.toLowerCase())) {
                 toast.error('This category already exists');
@@ -246,9 +316,14 @@ export default function WaStoreCategories() {
             }
             const newList = [...categories, name];
             const newImages = { ...categoryImages, ...(image ? { [name]: image } : {}) };
+            const newDetails = { ...categoryDetails };
+            if (description || metaTitle || metaDesc) {
+                newDetails[name] = { description, metaTitle, metaDesc };
+            }
             setCategories(newList);
             setCategoryImages(newImages);
-            persist(newList, newImages);
+            setCategoryDetails(newDetails);
+            persist(newList, newImages, hiddenCategories, newDetails);
             toast.success(`"${name}" added!`);
         } else {
             const oldName = categories[modal.idx];
@@ -260,9 +335,33 @@ export default function WaStoreCategories() {
             }
             if (image) newImages[name] = image;
             else delete newImages[name];
+            
+            // Migrate hidden list if name changed
+            let newHidden = [...hiddenCategories];
+            let newDetails = { ...categoryDetails };
+            
+            if (oldName !== name) {
+                if (newHidden.includes(oldName)) {
+                    newHidden = newHidden.map(h => h === oldName ? name : h);
+                }
+                if (newDetails[oldName]) {
+                    newDetails[name] = newDetails[oldName];
+                    delete newDetails[oldName];
+                }
+            }
+            
+            // Update details
+            if (description || metaTitle || metaDesc) {
+                newDetails[name] = { description, metaTitle, metaDesc };
+            } else {
+                delete newDetails[name];
+            }
+
             setCategories(newList);
             setCategoryImages(newImages);
-            persist(newList, newImages);
+            setHiddenCategories(newHidden);
+            setCategoryDetails(newDetails);
+            persist(newList, newImages, newHidden, newDetails);
             toast.success('Category updated!');
         }
         setModal(null);
@@ -273,9 +372,15 @@ export default function WaStoreCategories() {
         const newList = categories.filter((_, i) => i !== idx);
         const newImages = { ...categoryImages };
         delete newImages[removed];
+        const newHidden = hiddenCategories.filter(c => c !== removed);
+        const newDetails = { ...categoryDetails };
+        delete newDetails[removed];
+
         setCategories(newList);
         setCategoryImages(newImages);
-        persist(newList, newImages);
+        setHiddenCategories(newHidden);
+        setCategoryDetails(newDetails);
+        persist(newList, newImages, newHidden, newDetails);
         if (productCounts[removed]) {
             toast(`⚠️ ${productCounts[removed]} product(s) still tagged as "${removed}" — they'll appear as Uncategorized.`, { duration: 4000 });
         } else {
@@ -288,7 +393,7 @@ export default function WaStoreCategories() {
         const newList = [...categories];
         [newList[idx - 1], newList[idx]] = [newList[idx], newList[idx - 1]];
         setCategories(newList);
-        persist(newList, categoryImages);
+        persist(newList, categoryImages, hiddenCategories, categoryDetails);
     };
 
     const moveDown = (idx) => {
@@ -296,7 +401,7 @@ export default function WaStoreCategories() {
         const newList = [...categories];
         [newList[idx], newList[idx + 1]] = [newList[idx + 1], newList[idx]];
         setCategories(newList);
-        persist(newList, categoryImages);
+        persist(newList, categoryImages, hiddenCategories, categoryDetails);
     };
 
     const resolveImg = (url) => url
@@ -310,7 +415,7 @@ export default function WaStoreCategories() {
     );
 
     return (
-        <div className="space-y-6 pb-7 sm:pb-20 max-w-2xl">
+        <div className="space-y-6 pb-7 sm:pb-20 w-full max-w-5xl">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div>
@@ -404,9 +509,29 @@ export default function WaStoreCategories() {
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="w-full sm:w-auto flex items-center justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-2 sm:mt-0">
+                                    <div className="w-full sm:w-auto flex items-center justify-end gap-2 shrink-0 mt-2 sm:mt-0">
                                         <button
-                                            onClick={() => setModal({ mode: 'edit', idx })}
+                                            onClick={() => {
+                                                const newHidden = hiddenCategories.includes(cat) 
+                                                    ? hiddenCategories.filter(c => c !== cat)
+                                                    : [...hiddenCategories, cat];
+                                                setHiddenCategories(newHidden);
+                                                persist(categories, categoryImages, newHidden, categoryDetails);
+                                            }}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                                                hiddenCategories.includes(cat) 
+                                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400' 
+                                                : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                            }`}
+                                            title={hiddenCategories.includes(cat) ? "Hidden from Landing Page. Click to show." : "Visible on Landing Page. Click to hide."}
+                                        >
+                                            <div className={`w-2 h-2 rounded-full ${hiddenCategories.includes(cat) ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+                                            {hiddenCategories.includes(cat) ? 'Hidden' : 'Visible'}
+                                        </button>
+                                        
+                                        <div className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                            <button
+                                                onClick={() => setModal({ mode: 'edit', idx })}
                                             className="flex items-center justify-center gap-1.5 px-3 py-1.5 flex-1 sm:flex-none text-slate-600 md:text-slate-500 bg-slate-100 md:bg-transparent hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-300 dark:bg-white/5 md:dark:bg-transparent dark:hover:bg-indigo-900/20 rounded-lg text-xs font-semibold transition-all"
                                             title="Edit name & image"
                                         >
@@ -420,7 +545,8 @@ export default function WaStoreCategories() {
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             <span className="md:hidden text-xs font-semibold">Delete</span>
-                                        </button>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -448,7 +574,10 @@ export default function WaStoreCategories() {
                     mode={modal.mode}
                     initial={modal.mode === 'edit' ? {
                         name: categories[modal.idx],
-                        image: categoryImages[categories[modal.idx]] || ''
+                        image: categoryImages[categories[modal.idx]] || '',
+                        description: categoryDetails[categories[modal.idx]]?.description || '',
+                        metaTitle: categoryDetails[categories[modal.idx]]?.metaTitle || '',
+                        metaDesc: categoryDetails[categories[modal.idx]]?.metaDesc || ''
                     } : null}
                     onSave={handleSaveModal}
                     onClose={() => setModal(null)}

@@ -46,6 +46,26 @@ const WaProduct = sequelize.define('WaProduct', {
         type: DataTypes.BOOLEAN,
         defaultValue: true
     },
+    sku: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Stock Keeping Unit'
+    },
+    trackQuantity: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Enable precise quantity tracking for this product'
+    },
+    stockQuantity: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'Current stock quantity'
+    },
+    lowStockThreshold: {
+        type: DataTypes.INTEGER,
+        defaultValue: 5,
+        comment: 'Threshold for low stock warning'
+    },
     options: {
         type: DataTypes.JSON,
         defaultValue: [],

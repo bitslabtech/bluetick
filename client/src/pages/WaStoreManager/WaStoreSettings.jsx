@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Settings, Trash2, AlertTriangle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText, ClipboardList, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreSettings() {
@@ -15,15 +15,24 @@ export default function WaStoreSettings() {
     const [customDomain, setCustomDomain] = useState('');
     const [showDnsInstructions, setShowDnsInstructions] = useState(false);
     const [gridColumns, setGridColumns] = useState({ desktop: 4, mobile: 2 });
+    const [showCrossSells, setShowCrossSells] = useState(true);
     const [savingGrid, setSavingGrid] = useState(false);
 
     const [checkoutMode, setCheckoutMode] = useState('whatsapp');
+    const [currency, setCurrency] = useState('USD');
     const [paymentProvider, setPaymentProvider] = useState('');
     const [paymentConfig, setPaymentConfig] = useState({ razorpayKeyId: '', razorpayKeySecret: '', phonepeMerchantId: '', phonepeSaltKey: '', phonepeSaltIndex: '1' });
+    const [checkoutConfig, setCheckoutConfig] = useState({ minOrderValue: 0, flatShippingRate: 0, freeShippingThreshold: 0 });
     const [savingCheckout, setSavingCheckout] = useState(false);
 
     const [taxConfig, setTaxConfig] = useState({ enabled: false, type: 'gst', rate: 0, autoGenerateBill: false, autoSendWhatsApp: false });
     const [savingTax, setSavingTax] = useState(false);
+
+    const [inventoryConfig, setInventoryConfig] = useState({ autoOutOfStock: false, showLowStock: false, preventCartAdd: false });
+    const [savingInventory, setSavingInventory] = useState(false);
+
+    const [invoiceConfig, setInvoiceConfig] = useState({ prefixOnline: 'ORD-', prefixPos: 'POS-', startingNumber: 1001 });
+    const [savingInvoice, setSavingInvoice] = useState(false);
 
     useEffect(() => {
         const fetchStore = async () => {
@@ -33,10 +42,15 @@ export default function WaStoreSettings() {
                 setStore(myStore);
                 if (myStore?.customDomain) setCustomDomain(myStore.customDomain);
                 if (myStore?.gridColumns) setGridColumns(myStore.gridColumns);
+                if (myStore?.showCrossSells !== undefined) setShowCrossSells(myStore.showCrossSells);
                 if (myStore?.checkoutMode) setCheckoutMode(myStore.checkoutMode);
+                if (myStore?.currency) setCurrency(myStore.currency);
                 if (myStore?.paymentProvider) setPaymentProvider(myStore.paymentProvider);
                 if (myStore?.paymentConfig) setPaymentConfig(prev => ({ ...prev, ...myStore.paymentConfig }));
+                if (myStore?.checkoutConfig) setCheckoutConfig(prev => ({ ...prev, ...myStore.checkoutConfig }));
                 if (myStore?.taxConfig) setTaxConfig(prev => ({ ...prev, ...myStore.taxConfig }));
+                if (myStore?.inventoryConfig) setInventoryConfig(prev => ({ ...prev, ...myStore.inventoryConfig }));
+                if (myStore?.invoiceConfig) setInvoiceConfig(prev => ({ ...prev, ...myStore.invoiceConfig }));
             } catch (error) {
                 toast.error('Failed to load store settings');
             } finally {
@@ -81,7 +95,8 @@ export default function WaStoreSettings() {
         setSavingGrid(true);
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
-                gridColumns
+                gridColumns,
+                showCrossSells
             });
             toast.success('Grid layout saved!');
         } catch (error) {
@@ -95,7 +110,7 @@ export default function WaStoreSettings() {
         setSavingCheckout(true);
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
-                checkoutMode, paymentProvider, paymentConfig
+                checkoutMode, currency, paymentProvider, paymentConfig, checkoutConfig
             });
             toast.success('Checkout settings saved!');
         } catch (error) {
@@ -111,11 +126,39 @@ export default function WaStoreSettings() {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
                 taxConfig
             });
-            toast.success('Tax settings saved!');
+            toast.success('Tax & Invoice settings saved!');
         } catch (error) {
             toast.error('Failed to save tax settings');
         } finally {
             setSavingTax(false);
+        }
+    };
+
+    const handleSaveInvoice = async () => {
+        setSavingInvoice(true);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
+                invoiceConfig
+            });
+            toast.success('Invoice numbering preferences saved!');
+        } catch (error) {
+            toast.error('Failed to save invoice numbering');
+        } finally {
+            setSavingInvoice(false);
+        }
+    };
+
+    const handleSaveInventory = async () => {
+        setSavingInventory(true);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
+                inventoryConfig
+            });
+            toast.success('Inventory preferences saved!');
+        } catch (error) {
+            toast.error('Failed to save inventory preferences');
+        } finally {
+            setSavingInventory(false);
         }
     };
 
@@ -337,6 +380,58 @@ export default function WaStoreSettings() {
                 </div>
             </div>
 
+            {/* Product Display Options */}
+            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-indigo-400" /> Product Display Options
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">Control what extra content is shown on the single product page.</p>
+                </div>
+                <div className="p-4 md:p-6 space-y-5">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                        <div className="relative mt-0.5 shrink-0">
+                            <input
+                                type="checkbox"
+                                id="showCrossSells"
+                                checked={showCrossSells}
+                                onChange={e => setShowCrossSells(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div
+                                onClick={() => setShowCrossSells(v => !v)}
+                                className={`w-11 h-6 rounded-full transition-colors cursor-pointer border-2 ${
+                                    showCrossSells
+                                        ? 'bg-indigo-600 border-indigo-600'
+                                        : 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
+                                }`}
+                            >
+                                <div className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                                    showCrossSells ? 'translate-x-5' : 'translate-x-0'
+                                }`} />
+                            </div>
+                        </div>
+                        <div>
+                            <span className="block text-sm font-medium text-slate-900 dark:text-white">Show Cross-Sells ("You May Also Like")</span>
+                            <span className="block text-xs text-slate-500 mt-0.5">
+                                When a customer opens a product, show other products from the same category below the product details.
+                            </span>
+                        </div>
+                    </label>
+
+                    <div className="pt-2">
+                        <button
+                            type="button"
+                            onClick={handleSaveGrid}
+                            disabled={savingGrid}
+                            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
+                        >
+                            {savingGrid ? 'Saving...' : 'Save Display Options'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {/* Checkout & Payment Configuration */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -345,20 +440,39 @@ export default function WaStoreSettings() {
                     </h3>
                 </div>
                 <div className="p-4 md:p-6 space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Checkout Mode</label>
-                        <select 
-                            value={checkoutMode} 
-                            onChange={e => setCheckoutMode(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
-                        >
-                            <option value="whatsapp">WhatsApp Conversational Checkout</option>
-                            <option value="gateway">Direct Payment Gateway (Express Checkout)</option>
-                        </select>
-                        <p className="text-xs text-slate-500 mt-1">
-                            {checkoutMode === 'whatsapp' ? 'Customers will complete their order by sending a WhatsApp message to your number.' : 'Customers will pay directly on your website using a payment gateway.'}
-                        </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Store Currency</label>
+                            <select 
+                                value={currency} 
+                                onChange={e => setCurrency(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
+                            >
+                                <option value="USD">USD — US Dollar ($)</option>
+                                <option value="EUR">EUR — Euro (€)</option>
+                                <option value="GBP">GBP — British Pound (£)</option>
+                                <option value="INR">INR — Indian Rupee (₹)</option>
+                                <option value="AED">AED — UAE Dirham (د.إ)</option>
+                                <option value="SGD">SGD — Singapore Dollar (S$)</option>
+                                <option value="AUD">AUD — Australian Dollar (A$)</option>
+                                <option value="CAD">CAD — Canadian Dollar (C$)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Checkout Mode</label>
+                            <select 
+                                value={checkoutMode} 
+                                onChange={e => setCheckoutMode(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
+                            >
+                                <option value="whatsapp">WhatsApp Conversational Checkout</option>
+                                <option value="gateway">Direct Payment Gateway (Express Checkout)</option>
+                            </select>
+                        </div>
                     </div>
+                    <p className="text-xs text-slate-500 -mt-3">
+                        {checkoutMode === 'whatsapp' ? 'Customers will complete their order by sending a WhatsApp message to your number.' : 'Customers will pay directly on your website using a payment gateway.'}
+                    </p>
 
                     {checkoutMode === 'gateway' && (
                         <div className="space-y-4 p-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/30">
@@ -407,6 +521,38 @@ export default function WaStoreSettings() {
                         </div>
                     )}
 
+                    {/* Order & Shipping Rules */}
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4 mt-6">
+                        <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">Order & Shipping Rules</h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Minimum Order Value</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                                    <input type="number" min="0" value={checkoutConfig?.minOrderValue || 0} onChange={e => setCheckoutConfig(p => ({...p, minOrderValue: Number(e.target.value)}))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1">Set to 0 for no minimum.</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Flat Shipping Rate</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                                    <input type="number" min="0" value={checkoutConfig?.flatShippingRate || 0} onChange={e => setCheckoutConfig(p => ({...p, flatShippingRate: Number(e.target.value)}))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1">Delivery fee added to cart.</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Free Shipping Threshold</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                                    <input type="number" min="0" value={checkoutConfig?.freeShippingThreshold || 0} onChange={e => setCheckoutConfig(p => ({...p, freeShippingThreshold: Number(e.target.value)}))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1">Waive fee if cart > this amount. (0 to disable)</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <button
                         type="button"
                         onClick={handleSaveCheckout}
@@ -415,6 +561,121 @@ export default function WaStoreSettings() {
                     >
                         {savingCheckout ? 'Saving...' : 'Save Checkout Settings'}
                     </button>
+                </div>
+            </div>
+
+            {/* Inventory Configuration */}
+            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4 text-indigo-400" /> Inventory Preferences
+                    </h3>
+                </div>
+                <div className="p-4 md:p-6 space-y-5">
+                    <div className="space-y-4">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={inventoryConfig.autoOutOfStock} 
+                                onChange={e => setInventoryConfig({...inventoryConfig, autoOutOfStock: e.target.checked})}
+                                className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                            />
+                            <div>
+                                <span className="block text-sm font-medium text-slate-900 dark:text-white">Auto "Out of Stock"</span>
+                                <span className="block text-xs text-slate-500 mt-0.5">Automatically mark items as Out of Stock when quantity reaches 0.</span>
+                            </div>
+                        </label>
+
+                        <label className="flex items-start gap-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={inventoryConfig.preventCartAdd} 
+                                onChange={e => setInventoryConfig({...inventoryConfig, preventCartAdd: e.target.checked})}
+                                className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                            />
+                            <div>
+                                <span className="block text-sm font-medium text-slate-900 dark:text-white">Prevent Adding to Cart on Zero Stock</span>
+                                <span className="block text-xs text-slate-500 mt-0.5">Disable the "Add to Cart" button if the product's exact stock quantity is 0.</span>
+                            </div>
+                        </label>
+
+                        <label className="flex items-start gap-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={inventoryConfig.showLowStock} 
+                                onChange={e => setInventoryConfig({...inventoryConfig, showLowStock: e.target.checked})}
+                                className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                            />
+                            <div>
+                                <span className="block text-sm font-medium text-slate-900 dark:text-white">Show "X items left"</span>
+                                <span className="block text-xs text-slate-500 mt-0.5">Show a low stock badge to customers on the storefront when stock drops below threshold.</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div className="pt-2">
+                        <button
+                            type="button"
+                            onClick={handleSaveInventory}
+                            disabled={savingInventory}
+                            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
+                        >
+                            {savingInventory ? 'Saving...' : 'Save Inventory Preferences'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Invoice Configuration */}
+            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-indigo-400" /> Invoice Numbering
+                    </h3>
+                </div>
+                <div className="p-4 md:p-6 space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Online Order Prefix</label>
+                            <input 
+                                type="text" 
+                                value={invoiceConfig.prefixOnline} 
+                                onChange={e => setInvoiceConfig({...invoiceConfig, prefixOnline: e.target.value.toUpperCase()})}
+                                placeholder="ORD-"
+                                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm uppercase font-mono"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">POS Order Prefix</label>
+                            <input 
+                                type="text" 
+                                value={invoiceConfig.prefixPos} 
+                                onChange={e => setInvoiceConfig({...invoiceConfig, prefixPos: e.target.value.toUpperCase()})}
+                                placeholder="POS-"
+                                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm uppercase font-mono"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Starting Number</label>
+                            <input 
+                                type="number" 
+                                value={invoiceConfig.startingNumber} 
+                                onChange={e => setInvoiceConfig({...invoiceConfig, startingNumber: parseInt(e.target.value) || 0})}
+                                placeholder="1001"
+                                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm font-mono"
+                            />
+                        </div>
+                    </div>
+                    <div className="pt-2">
+                        <button
+                            type="button"
+                            onClick={handleSaveInvoice}
+                            disabled={savingInvoice}
+                            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
+                        >
+                            {savingInvoice ? 'Saving...' : 'Save Invoice Preferences'}
+                        </button>
+                    </div>
                 </div>
             </div>
 

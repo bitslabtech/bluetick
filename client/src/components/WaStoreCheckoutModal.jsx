@@ -3,7 +3,7 @@ import { X, ShoppingBag, ArrowRight, Tag, Loader2, Check } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, onCheckoutSuccess }) {
+export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippingCost, cartTotal, onClose, onCheckoutSuccess }) {
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
@@ -64,16 +64,16 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
     };
 
     const calculateFinalTotal = () => {
-        if (!appliedCoupon) return cartTotal;
+        if (!appliedCoupon) return cartSubtotal;
         if (appliedCoupon.discountType === 'percentage') {
-            return cartTotal - (cartTotal * (parseFloat(appliedCoupon.discountValue) / 100));
+            return cartSubtotal - (cartSubtotal * (parseFloat(appliedCoupon.discountValue) / 100));
         } else {
-            return Math.max(0, cartTotal - parseFloat(appliedCoupon.discountValue));
+            return Math.max(0, cartSubtotal - parseFloat(appliedCoupon.discountValue));
         }
     };
 
     const calculateDiscountAmount = () => {
-        return cartTotal - calculateFinalTotal();
+        return cartSubtotal - calculateFinalTotal();
     };
 
     const taxEnabled = store?.taxConfig?.enabled || false;
@@ -108,13 +108,14 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
                 items: cart.map(item => ({
                     id: item.id, name: item.name, price: item.price, qty: item.qty, imageUrls: item.imageUrls
                 })),
-                subtotal: finalTotal,
-                originalTotal: appliedCoupon ? cartTotal : null,
+                subtotal: finalTotal, // discounted subtotal
+                shippingCost: shippingCost,
+                originalTotal: appliedCoupon ? cartSubtotal : null,
                 discountAmount: appliedCoupon ? calculateDiscountAmount() : 0,
                 taxAmount: calculateTaxAmount(),
                 taxRate: taxEnabled ? taxRate : 0,
                 taxName: taxEnabled ? taxName : null,
-                total: finalTotal + calculateTaxAmount(),
+                total: finalTotal + shippingCost + calculateTaxAmount(),
                 couponCode: appliedCoupon ? appliedCoupon.code : null,
                 currency: store.currency
             });
@@ -192,11 +193,17 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
                 message += `${i+1}. ${item.name}${variantText}\n   ${item.qty} x ${getCurrencySymbol(store.currency)} ${item.price}\n`;
             });
 
-            message += `\n*Subtotal:* ${getCurrencySymbol(store.currency)} ${cartTotal.toFixed(2)}\n`;
+            message += `\n*Subtotal:* ${getCurrencySymbol(store.currency)} ${cartSubtotal.toFixed(2)}\n`;
             if (appliedCoupon) {
                 message += `*Discount (${appliedCoupon.code}):* -${getCurrencySymbol(store.currency)} ${calculateDiscountAmount().toFixed(2)}\n`;
             }
-            message += `*Final Total:* ${getCurrencySymbol(store.currency)} ${finalTotal.toFixed(2)}\n\n`;
+            if (shippingCost > 0) {
+                message += `*Shipping:* ${getCurrencySymbol(store.currency)} ${shippingCost.toFixed(2)}\n`;
+            }
+            if (taxEnabled) {
+                message += `*${taxName}:* ${getCurrencySymbol(store.currency)} ${calculateTaxAmount().toFixed(2)}\n`;
+            }
+            message += `*Final Total:* ${getCurrencySymbol(store.currency)} ${(finalTotal + shippingCost + calculateTaxAmount()).toFixed(2)}\n\n`;
             
             if (formData.notes) message += `📝 *Note:* ${formData.notes}\n\n`;
             message += `_Please confirm my order. Thank you!_`;
@@ -324,12 +331,18 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
                     <div className="space-y-3 mb-6 text-sm font-medium">
                         <div className="flex justify-between text-gray-500">
                             <span>Subtotal ({cart.length} items)</span>
-                            <span>{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
+                            <span>{getCurrencySymbol(store.currency)}{cartSubtotal.toFixed(2)}</span>
                         </div>
                         {appliedCoupon && (
                             <div className="flex justify-between text-green-600 font-bold">
                                 <span>Discount ({appliedCoupon.code})</span>
                                 <span>-{getCurrencySymbol(store.currency)}{calculateDiscountAmount().toFixed(2)}</span>
+                            </div>
+                        )}
+                        {shippingCost > 0 && (
+                            <div className="flex justify-between text-gray-500">
+                                <span>Shipping</span>
+                                <span>{getCurrencySymbol(store.currency)}{shippingCost.toFixed(2)}</span>
                             </div>
                         )}
                         {taxEnabled && (
@@ -340,7 +353,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartTotal, onClose, 
                         )}
                         <div className="flex justify-between text-xl font-bold text-gray-900 border-t border-gray-200 pt-3">
                             <span>Total</span>
-                            <span>{getCurrencySymbol(store.currency)}{(calculateFinalTotal() + calculateTaxAmount()).toFixed(2)}</span>
+                            <span>{getCurrencySymbol(store.currency)}{(calculateFinalTotal() + shippingCost + calculateTaxAmount()).toFixed(2)}</span>
                         </div>
                     </div>
                     

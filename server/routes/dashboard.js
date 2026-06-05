@@ -255,10 +255,38 @@ router.get('/stats', async (req, res) => {
         let waMessagingThreshold = 250;
         let parsedTier = '250 Limit';
         if (user.metaTier) {
-            if (user.metaTier.includes('1K')) { waMessagingThreshold = 1000; parsedTier = '1K Limit'; }
-            else if (user.metaTier.includes('10K')) { waMessagingThreshold = 10000; parsedTier = '10K Limit'; }
-            else if (user.metaTier.includes('100K')) { waMessagingThreshold = 100000; parsedTier = '100K Limit'; }
-            else if (user.metaTier.includes('UNLIMITED')) { waMessagingThreshold = 9999999; parsedTier = 'Unlimited'; }
+            const tierStr = String(user.metaTier).toUpperCase();
+            if (tierStr.includes('UNLIMITED')) { 
+                waMessagingThreshold = 9999999; 
+                parsedTier = 'Unlimited'; 
+            } else if (tierStr.includes('100K')) { 
+                waMessagingThreshold = 100000; 
+                parsedTier = '100K Limit'; 
+            } else if (tierStr.includes('10K')) { 
+                waMessagingThreshold = 10000; 
+                parsedTier = '10K Limit'; 
+            } else if (tierStr.includes('1K')) { 
+                waMessagingThreshold = 1000; 
+                parsedTier = '1K Limit'; 
+            } else {
+                // Attempt to extract dynamic tiers like "TIER_2K" or "2000"
+                const matchK = tierStr.match(/(\d+)K/);
+                if (matchK) {
+                    waMessagingThreshold = parseInt(matchK[1], 10) * 1000;
+                    parsedTier = `${matchK[1]}K Limit`;
+                } else {
+                    const matchNum = tierStr.match(/\d+/);
+                    if (matchNum) {
+                        waMessagingThreshold = parseInt(matchNum[0], 10);
+                        // Convert to K if >= 1000 for nicer display
+                        if (waMessagingThreshold >= 1000 && waMessagingThreshold % 1000 === 0) {
+                            parsedTier = `${waMessagingThreshold / 1000}K Limit`;
+                        } else {
+                            parsedTier = `${waMessagingThreshold} Limit`;
+                        }
+                    }
+                }
+            }
         }
 
         res.json({

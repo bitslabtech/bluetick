@@ -21,6 +21,12 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 router.get('/public/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
+        
+        // Prevent browser caching so theme and layout changes reflect immediately
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
         const store = await WaStore.findOne({
             where: { slug, isActive: true }
         });
@@ -79,6 +85,12 @@ router.post('/public/:slug/view', async (req, res) => {
 router.get('/public/domain/:domain', async (req, res) => {
     try {
         const { domain } = req.params;
+
+        // Prevent browser caching
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
         const store = await WaStore.findOne({
             where: { customDomain: domain, isActive: true }
         });
@@ -131,8 +143,10 @@ router.post('/orders', async (req, res) => {
         if (!store || !store.isActive) return res.status(404).json({ error: 'Store not found' });
 
         // Generate human-readable order number
+        const prefixOnline = store.invoiceConfig?.prefixOnline || 'ORD-';
+        const startSeq = parseInt(store.invoiceConfig?.startingNumber) || 1001;
         const count = await WaOrder.count({ where: { storeId } });
-        const orderNumber = `ORD-${String(count + 1001).padStart(4, '0')}`;
+        const orderNumber = `${prefixOnline}${String(count + startSeq).padStart(4, '0')}`;
 
         const order = await WaOrder.create({
             storeId, orderNumber,
@@ -145,6 +159,22 @@ router.post('/orders', async (req, res) => {
             total: parseFloat(total) || subtotal,
             status: 'pending'
         });
+
+        // Deduct inventory
+        if (items && Array.isArray(items)) {
+            for (const item of items) {
+                const product = await WaProduct.findByPk(item.id);
+                if (product && product.trackQuantity) {
+                    const deduction = item.qty || 1;
+                    const newQty = (product.stockQuantity || 0) - deduction;
+                    product.stockQuantity = newQty;
+                    if (store.inventoryConfig?.autoOutOfStock && newQty <= 0) {
+                        product.inStock = false;
+                    }
+                    await product.save();
+                }
+            }
+        }
 
         // If checkout mode is gateway, initialize payment
         if (store.checkoutMode === 'gateway') {
@@ -343,7 +373,7 @@ async function sendOrderNotification(triggerKey, store, user, order, extras = {}
 }
 
 // POST /api/wastore/:storeId/orders/pos — Create Offline POS Order & Send Invoice
-router.post('/:storeId/orders/pos', async (req, res) => {
+router.post('/:storeId/orders/pos', auth, async (req, res) => {
     try {
         const { customerName, customerPhone, items, subtotal, taxAmount, total, taxRate, taxName, sendInvoice } = req.body;
         
@@ -353,8 +383,10 @@ router.post('/:storeId/orders/pos', async (req, res) => {
         const user = await User.findByPk(req.user.id);
         if (!user) return res.status(404).json({ error: 'User not found' });
         
-        const generateOrderNumber = () => 'POS-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-        const orderNumber = generateOrderNumber();
+        const prefixPos = store.invoiceConfig?.prefixPos || 'POS-';
+        const startSeq = parseInt(store.invoiceConfig?.startingNumber) || 1001;
+        const count = await WaOrder.count({ where: { storeId } });
+        const orderNumber = `${prefixPos}${String(count + startSeq).padStart(4, '0')}`;
 
         const order = await WaOrder.create({
             storeId: store.id,
@@ -371,6 +403,22 @@ router.post('/:storeId/orders/pos', async (req, res) => {
             status: 'delivered', // POS is instantly delivered
             source: 'pos'
         });
+
+        // Deduct inventory
+        if (items && Array.isArray(items)) {
+            for (const item of items) {
+                const product = await WaProduct.findByPk(item.id);
+                if (product && product.trackQuantity) {
+                    const deduction = item.qty || 1;
+                    const newQty = (product.stockQuantity || 0) - deduction;
+                    product.stockQuantity = newQty;
+                    if (store.inventoryConfig?.autoOutOfStock && newQty <= 0) {
+                        product.inStock = false;
+                    }
+                    await product.save();
+                }
+            }
+        }
 
         if (sendInvoice && user.fbAccessToken && user.metaPhoneNumberId) {
             await sendWhatsAppInvoiceHelper(store, user, order, customerName, customerPhone);
