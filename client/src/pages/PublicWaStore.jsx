@@ -425,7 +425,7 @@ export default function PublicWaStore({ customSlug }) {
 
             {/* ─── HERO SLIDER ─── */}
             {slides.length > 0 ? (
-                <div className={`relative bg-white h-[60vh] min-h-[400px] overflow-hidden group ${theme.heroShape || ''}`} onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
+                <div className={`relative bg-white h-[800px] overflow-hidden group ${theme.heroShape || ''}`} onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
                     {slides.map((slide, idx) => (
                         <div key={idx} className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === activeSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
                             <div className={`absolute inset-0 ${theme.heroOverlay} z-10`} />
