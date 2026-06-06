@@ -89,6 +89,7 @@ const WaStorePolicies = React.lazy(() => import('./pages/WaStoreManager/WaStoreP
 const WaStoreAnalytics = React.lazy(() => import('./pages/WaStoreManager/WaStoreAnalytics'));
 const WaStoreNotifications = React.lazy(() => import('./pages/WaStoreManager/WaStoreNotifications'));
 const PublicWaStore = React.lazy(() => import('./pages/PublicWaStore'));
+const PublicWaStoreCategory = React.lazy(() => import('./pages/PublicWaStoreCategory'));
 const PublicWaProduct = React.lazy(() => import('./pages/PublicWaProduct'));
 const PublicWaStoreVerify = React.lazy(() => import('./pages/PublicWaStoreVerify'));
 const VcardLayout = React.lazy(() => import('./pages/VcardManager/VcardLayout'));
@@ -260,6 +261,7 @@ function CustomDomainRouter({ children }) {
             <Routes>
                 <Route path="/verify" element={<PublicWaStoreVerify />} />
                 <Route path="/product/:productId" element={<PublicWaProduct customSlug={storeSlug} />} />
+                <Route path="/category/:categoryName" element={<PublicWaStoreCategory customSlug={storeSlug} />} />
                 <Route path="*" element={<PublicWaStore customSlug={storeSlug} />} />
             </Routes>
         );
@@ -293,6 +295,7 @@ function App() {
                                         <Route path="/store/:slug" element={<PublicWaStore />} /> {/* NEW: Public WhatsApp Store */}
                                         <Route path="/store/:slug/verify" element={<PublicWaStoreVerify />} />
                                         <Route path="/store/:slug/product/:productId" element={<PublicWaProduct />} /> {/* NEW: Single Product */}
+                                        <Route path="/store/:slug/category/:categoryName" element={<PublicWaStoreCategory />} /> {/* NEW: Category Page */}
                                         <Route element={<GuestRoute />}>
                                             <Route path="/login" element={<Login />} />
                                             <Route path="/register" element={<Register />} />

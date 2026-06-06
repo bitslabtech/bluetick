@@ -332,82 +332,71 @@ export default function WaProductList() {
                     </button>
                 </div>
             ) : (
-                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden">
-                    <div>
-                        <table className="w-full text-left text-sm block md:table">
-                            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5 hidden md:table-header-group">
-                                <tr>
-                                    <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Product</th>
-                                    <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Price</th>
-                                    <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Category</th>
-                                    <th className="px-4 md:px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Status</th>
-                                    <th className="px-4 md:px-6 py-4 text-right font-medium text-slate-500 dark:text-slate-400">Actions</th>
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden overflow-x-auto">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
+                            <tr>
+                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Product</th>
+                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Price</th>
+                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Category</th>
+                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Status</th>
+                                <th className="px-6 py-4 text-right font-medium text-slate-500 dark:text-slate-400">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-white/5">
+                            {products.map(product => (
+                                <tr key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            {product.imageUrls?.[0] ? (
+                                                <img src={product.imageUrls[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 flex-shrink-0" />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                                                    <ImageIcon className="w-4 h-4 text-slate-400" />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0 max-w-[200px] whitespace-normal">
+                                                <p className="font-bold text-slate-900 dark:text-white truncate">{product.name}</p>
+                                                <p className="text-xs text-slate-500 truncate max-w-full">{product.description}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div>
+                                            <span className="font-medium text-slate-900 dark:text-white">{getCurrencySymbol(currency)}{product.price}</span>
+                                            {product.compareAtPrice && <span className="ml-2 text-xs text-slate-500 line-through">{getCurrencySymbol(currency)}{product.compareAtPrice}</span>}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-slate-600 dark:text-slate-400">{product.category || '-'}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div>
+                                            {product.inStock ? (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> In Stock
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Out of Stock
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button onClick={() => openEdit(product)} className="flex justify-center items-center p-2 bg-transparent text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 rounded transition-colors" title="Edit">
+                                                <Edit3 className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => handleDelete(product.id)} className="flex justify-center items-center p-2 bg-transparent text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-400 rounded transition-colors" title="Delete">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-white/5 block md:table-row-group">
-                                {products.map(product => (
-                                    <tr key={product.id} className="block md:table-row hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors p-4 md:p-0">
-                                        <td className="px-0 md:px-6 py-2 md:py-4 block md:table-cell border-b border-slate-100 dark:border-white/5 md:border-none mb-3 md:mb-0 pb-4 md:pb-4">
-                                            <div className="flex items-center gap-3">
-                                                {product.imageUrls?.[0] ? (
-                                                    <img src={product.imageUrls[0]} alt={product.name} className="w-14 h-14 md:w-10 md:h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 flex-shrink-0" />
-                                                ) : (
-                                                    <div className="w-14 h-14 md:w-10 md:h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-                                                        <ImageIcon className="w-5 h-5 md:w-4 md:h-4 text-slate-400" />
-                                                    </div>
-                                                )}
-                                                <div className="min-w-0">
-                                                    <p className="font-bold text-slate-900 dark:text-white truncate">{product.name}</p>
-                                                    <p className="text-xs text-slate-500 truncate max-w-full">{product.description}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-0 md:px-6 py-1.5 md:py-4 block md:table-cell">
-                                            <div className="flex items-center justify-between md:block">
-                                                <span className="md:hidden text-xs font-semibold text-slate-500 uppercase tracking-wider">Price</span>
-                                                <div className="text-right md:text-left">
-                                                    <span className="font-bold md:font-medium text-slate-900 dark:text-white">{getCurrencySymbol(currency)}{product.price}</span>
-                                                    {product.compareAtPrice && <span className="ml-2 md:ml-0 md:block text-xs text-slate-500 line-through">{getCurrencySymbol(currency)}{product.compareAtPrice}</span>}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-0 md:px-6 py-1.5 md:py-4 block md:table-cell">
-                                            <div className="flex items-center justify-between md:block">
-                                                <span className="md:hidden text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</span>
-                                                <span className="font-medium md:font-normal text-slate-800 dark:text-slate-300 md:text-slate-600 md:dark:text-slate-400">{product.category || '-'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-0 md:px-6 py-1.5 md:py-4 block md:table-cell">
-                                            <div className="flex items-center justify-between md:block">
-                                                <span className="md:hidden text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</span>
-                                                <div>
-                                                    {product.inStock ? (
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold md:font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> In Stock
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold md:font-medium bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Out of Stock
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-0 md:px-6 py-2 md:py-4 block md:table-cell mt-3 md:mt-0 pt-3 md:pt-4 border-t border-slate-100 dark:border-white/5 md:border-none text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button onClick={() => openEdit(product)} className="flex-1 md:flex-none flex justify-center items-center gap-2 p-2.5 md:p-2 bg-slate-100 md:bg-transparent text-slate-600 hover:text-indigo-600 dark:bg-white/5 md:dark:bg-transparent dark:text-slate-300 dark:hover:text-indigo-400 rounded-xl md:rounded transition-colors">
-                                                    <Edit3 className="w-4 h-4 md:w-4 md:h-4" /> <span className="md:hidden text-xs font-bold">Edit</span>
-                                                </button>
-                                                <button onClick={() => handleDelete(product.id)} className="flex-1 md:flex-none flex justify-center items-center gap-2 p-2.5 md:p-2 bg-slate-100 md:bg-transparent text-slate-600 hover:text-rose-600 dark:bg-white/5 md:dark:bg-transparent dark:text-slate-300 dark:hover:text-rose-400 rounded-xl md:rounded transition-colors">
-                                                    <Trash2 className="w-4 h-4 md:w-4 md:h-4" /> <span className="md:hidden text-xs font-bold">Delete</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
 

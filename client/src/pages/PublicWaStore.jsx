@@ -5,6 +5,7 @@ import { ShoppingBag, ShoppingCart, X, Plus, Minus, Search, ArrowRight, MapPin, 
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import WaStoreFooter from '../components/WaStoreFooter';
+import WaStoreHeader from '../components/WaStoreHeader';
 import WaStoreCheckoutModal from '../components/WaStoreCheckoutModal';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
@@ -43,34 +44,17 @@ export default function PublicWaStore({ customSlug }) {
         const saved = localStorage.getItem(`wa_cart_${slug}`);
         return saved ? JSON.parse(saved) : [];
     });
+
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-    
-    // Theme
-    const theme = useMemo(() => getThemeConfig(store?.themeId), [store?.themeId]);
-    
-    // Search, Filter, Sort — category driven by URL ?cat= param
-    const [searchQuery, setSearchQuery] = useState('');
-    const selectedCategory = searchParams.get('cat') || 'All';
     const [sortBy, setSortBy] = useState('newest');
 
-    // Helper to change category and update URL
-    const setSelectedCategory = useCallback((cat) => {
-        if (cat === 'All') {
-            setSearchParams({}, { replace: true });
-        } else {
-            setSearchParams({ cat }, { replace: true });
-        }
-    }, [setSearchParams]);
+    // Theme
+    const theme = useMemo(() => getThemeConfig(store?.themeId), [store?.themeId]);
 
     // Hero Slider
     const [activeSlide, setActiveSlide] = useState(0);
     const [sliderPaused, setSliderPaused] = useState(false);
     const sliderTimer = useRef(null);
-
-    // Mobile Navigation Drawer
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [expandedMobileSections, setExpandedMobileSections] = useState({ categories: true, policies: false });
-    const [activePolicy, setActivePolicy] = useState(null); // 'privacy', 'terms', 'return'
 
     const slides = useMemo(() => {
         const heroSlides = store?.heroSlides || [];
@@ -121,21 +105,20 @@ export default function PublicWaStore({ customSlug }) {
     // ── Re-apply SEO whenever store data, category, or visible products change ──
     const filteredForSeo = useMemo(() => {
         if (!products.length) return [];
-        if (!selectedCategory || selectedCategory === 'All') return products;
-        return products.filter(p => p.category === selectedCategory);
-    }, [products, selectedCategory]);
+        return products.slice(0, 50);
+    }, [products]);
 
     useEffect(() => {
         if (store) {
-            applyStoreSeo(store, selectedCategory, filteredForSeo, window.location.origin);
+            applyStoreSeo(store, 'All', filteredForSeo, window.location.origin);
         }
-    }, [store, selectedCategory, filteredForSeo]);
+    }, [store, filteredForSeo]);
 
     const categories = useMemo(() => {
         const fromProducts = products.map(p => p.category).filter(Boolean);
         const adminCats = Array.isArray(store?.categories) ? store.categories : [];
         const merged = [...new Set([...adminCats, ...fromProducts])];
-        return ['All', ...merged];
+        return merged;
     }, [products, store]);
 
     // Advanced SEO: Dynamic Title and Meta Tags based on category
@@ -144,17 +127,6 @@ export default function PublicWaStore({ customSlug }) {
         
         let pageTitle = store.name;
         let pageDesc = store.description || `Welcome to ${store.name}`;
-        
-        if (selectedCategory && selectedCategory !== 'All') {
-            let details = {};
-            try {
-                const parsedDetails = typeof store.categoryDetails === 'string' ? JSON.parse(store.categoryDetails) : (store.categoryDetails || {});
-                details = parsedDetails[selectedCategory] || {};
-            } catch(e) {}
-            
-            pageTitle = details.metaTitle || `${selectedCategory} - ${store.name}`;
-            pageDesc = details.metaDesc || details.description || `Browse our collection of ${selectedCategory} at ${store.name}. Find the best products and offers.`;
-        }
         
         document.title = pageTitle;
         
@@ -195,30 +167,19 @@ export default function PublicWaStore({ customSlug }) {
             "url": window.location.href
         };
         
-        if (selectedCategory && selectedCategory !== 'All') {
-            schemaData.department = {
-                "@type": "Store",
-                "name": selectedCategory
-            };
-        }
         schemaScript.textContent = JSON.stringify(schemaData);
         
-    }, [store, selectedCategory]);
+    }, [store]);
 
     const filteredAndSortedProducts = useMemo(() => {
-        let result = products.filter(p => {
-            const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
-            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                  (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
-            return matchesCat && matchesSearch;
-        });
+        let result = [...products];
 
         return result.sort((a, b) => {
             if (sortBy === 'price-asc') return parseFloat(a.price) - parseFloat(b.price);
             if (sortBy === 'price-desc') return parseFloat(b.price) - parseFloat(a.price);
             return new Date(b.createdAt) - new Date(a.createdAt);
         });
-    }, [products, selectedCategory, searchQuery, sortBy]);
+    }, [products, sortBy]);
 
     const addToCart = (product, qty = 1) => {
         if (product.options && Array.isArray(product.options) && product.options.length > 0) {
@@ -275,157 +236,20 @@ export default function PublicWaStore({ customSlug }) {
 
     return (
         <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
-            
             {/* ─── MODERN HEADER ─── */}
-            <header className={`sticky top-0 z-50 ${theme.header}`}>
-                {theme.id === 'vogue' ? (
-                    /* ── VOGUE: Minimal 3-column ── Search | Logo | Cart */
-                    <div className="max-w-[1440px] mx-auto px-10 h-20 grid grid-cols-3 items-center">
-                        {/* LEFT – Minimal bordered search */}
-                        <div className="flex items-center gap-2 border border-gray-300 rounded-[15px] px-3.5 py-2 max-w-[220px] hover:border-gray-400 transition-colors">
-                            <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                            <input
-                                type="text"
-                                placeholder="Search"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="bg-transparent text-[13px] text-gray-700 placeholder-gray-400 outline-none w-full tracking-wide"
-                            />
-                        </div>
-
-                        {/* CENTER – Logo or store name */}
-                        <div className="flex items-center justify-center">
-                            {store.logo ? (
-                                <img src={imgUrl(store.logo)} alt={store.name} className="h-12 max-w-[180px] object-contain" onError={e => e.target.style.display = 'none'} />
-                            ) : (
-                                <span className="text-xl tracking-[0.25em] uppercase text-black font-normal" style={{ fontFamily: theme.fontFamily }}>{store.name}</span>
-                            )}
-                        </div>
-
-                        {/* RIGHT – Minimal borderless cart */}
-                        <div className="flex items-center justify-end">
-                            <button
-                                onClick={() => setIsCartOpen(true)}
-                                className="relative flex items-center justify-center p-2 text-black hover:bg-black/5 rounded-full transition-colors group"
-                            >
-                                <ShoppingCart className="w-5 h-5 text-black group-hover:scale-105 transition-transform stroke-[1.5]" />
-                                {cartCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex items-center justify-center bg-black text-white text-[10px] font-bold w-4 h-4 rounded-full border border-white">
-                                        {cartCount}
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    /* ── DEFAULT layout for all other themes ── */
-                    <div className={theme.headerWrapper || "max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between"}>
-                        {/* Logo & Store Name */}
-                        <div className={`flex items-center gap-3 ${theme.logoWrapper || ''}`}>
-                            <button 
-                                onClick={() => setIsMobileMenuOpen(true)}
-                                className={`md:hidden p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors`}
-                            >
-                                <Menu className="w-6 h-6" />
-                            </button>
-                            {store.logo && (
-                                <img src={imgUrl(store.logo)} alt={store.name} className="w-12 h-12 object-contain rounded-md" onError={e => e.target.style.display = 'none'} />
-                            )}
-                            <span className={`font-semibold text-xl tracking-tight ${theme.headerLogo}`}>{store.name}</span>
-                        </div>
-
-                        {/* Desktop Search */}
-                        <div className={`hidden md:flex flex-1 max-w-md relative group ${theme.searchWrapper !== undefined ? theme.searchWrapper : 'mx-8'}`}>
-                            <Search className={`w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 ${theme.textMuted} transition-colors`} />
-                            <input 
-                                type="text" 
-                                placeholder="Search products..." 
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className={`w-full ${theme.searchStyle} py-2.5 pl-11 pr-4 text-sm outline-none transition-all`}
-                            />
-                        </div>
-
-                        {/* Cart Button */}
-                        <button 
-                            onClick={() => setIsCartOpen(true)}
-                            className={`relative p-2 ${theme.cartButton} rounded-full transition-colors flex items-center justify-center ${theme.cartWrapper || ''}`}
-                        >
-                            <ShoppingCart className="w-6 h-6 stroke-[1.5]" />
-                            {cartCount > 0 && (
-                                <span className={`absolute -top-1 -right-1 ${theme.cartBadge} text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm`}>
-                                    {cartCount}
-                                </span>
-                            )}
-                        </button>
-                    </div>
-                )}
-
-                {/* ─── MEGA MENU ─── */}
-                {store.megaMenu && store.megaMenu.length > 0 && (
-                    <div className="w-full border-t border-gray-200/50 hidden md:block">
-                        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-                            <ul className="flex items-center justify-center space-x-10 h-12">
-                                {store.megaMenu.map((menuItem) => (
-                                    <li key={menuItem.id} className="h-full relative group flex items-center">
-                                        <a 
-                                            href={menuItem.link || '#'} 
-                                            onClick={(e) => {
-                                                if (!menuItem.link) e.preventDefault();
-                                                else if (menuItem.link.startsWith('/?cat=')) {
-                                                    e.preventDefault();
-                                                    setSelectedCategory(menuItem.link.split('=')[1]);
-                                                } else if (menuItem.link.startsWith('/')) {
-                                                    e.preventDefault();
-                                                    navigate(menuItem.link);
-                                                }
-                                            }}
-                                            className="flex items-center h-full text-sm font-semibold tracking-wide hover:opacity-70 transition-opacity uppercase"
-                                        >
-                                            {menuItem.title}
-                                            {menuItem.children && menuItem.children.length > 0 && (
-                                                <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-50 transition-transform group-hover:rotate-180" />
-                                            )}
-                                        </a>
-                                        
-                                        {/* Dropdown */}
-                                        {menuItem.children && menuItem.children.length > 0 && (
-                                            <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-56 bg-white border border-gray-100 shadow-2xl rounded-xl py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top translate-y-2 group-hover:translate-y-0 z-50">
-                                                <ul className="flex flex-col">
-                                                    {menuItem.children.map(child => (
-                                                        <li key={child.id}>
-                                                            <a 
-                                                                href={child.link || '#'}
-                                                                onClick={(e) => {
-                                                                    if (!child.link) e.preventDefault();
-                                                                    else if (child.link.startsWith('/?cat=')) {
-                                                                        e.preventDefault();
-                                                                        setSelectedCategory(child.link.split('=')[1]);
-                                                                    } else if (child.link.startsWith('/')) {
-                                                                        e.preventDefault();
-                                                                        navigate(child.link);
-                                                                    }
-                                                                }}
-                                                                className="block px-5 py-2.5 text-[13px] font-medium text-gray-700 hover:text-black hover:bg-gray-50 transition-colors"
-                                                            >
-                                                                {child.title}
-                                                            </a>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                )}
-            </header>
+            <WaStoreHeader 
+                store={store} 
+                theme={theme} 
+                slug={slug} 
+                products={products} 
+                categories={categories} 
+                cartCount={cartCount} 
+                setIsCartOpen={setIsCartOpen} 
+            />
 
             {/* ─── HERO SLIDER ─── */}
             {slides.length > 0 ? (
-                <div className={`relative bg-white h-[800px] overflow-hidden group ${theme.heroShape || ''}`} onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
+                <div className={`relative bg-white h-[60vh] min-h-[400px] md:h-[800px] overflow-hidden group ${theme.heroShape || ''}`} onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
                     {slides.map((slide, idx) => (
                         <div key={idx} className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === activeSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
                             <div className={`absolute inset-0 ${theme.heroOverlay} z-10`} />
@@ -435,15 +259,14 @@ export default function PublicWaStore({ customSlug }) {
                                 <img src={imgUrl(slide.imageUrl)} alt={slide.title} className="w-full h-full object-cover" onError={e => e.target.style.display = 'none'} />
                             )}
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4">
-                                <div className="max-w-3xl space-y-4">
-                                    {slide.title && <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white drop-shadow-lg">{slide.title}</h1>}
-                                    {slide.subtitle && <p className="text-lg md:text-2xl text-gray-100 font-medium drop-shadow-md">{slide.subtitle}</p>}
+                                <div className="max-w-3xl space-y-2 md:space-y-4">
+                                    {slide.title && <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white drop-shadow-lg">{slide.title}</h1>}
+                                    {slide.subtitle && <p className="text-base sm:text-lg md:text-2xl text-gray-100 font-medium drop-shadow-md">{slide.subtitle}</p>}
                                     {slide.ctaText && (
                                         <button 
                                             onClick={() => {
                                                 if (slide.ctaTargetType === 'category' && slide.ctaTargetId) {
-                                                    setSelectedCategory(slide.ctaTargetId);
-                                                    setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 50);
+                                                    navigate(`/store/${slug}/category/${encodeURIComponent(slide.ctaTargetId)}`);
                                                 } else if (slide.ctaTargetType === 'product' && slide.ctaTargetId) {
                                                     const targetProduct = products.find(p => p.id === slide.ctaTargetId);
                                                     if (targetProduct) {
@@ -493,26 +316,9 @@ export default function PublicWaStore({ customSlug }) {
             {/* ─── MAIN CONTENT ─── */}
             <main id="products" className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 
-                {/* ─── VISUAL BREADCRUMB ─── */}
-                {selectedCategory && selectedCategory !== 'All' && (
-                    <nav aria-label="Breadcrumb" className="mb-8">
-                        <ol className="flex items-center gap-1.5 flex-wrap text-sm">
-                            <li>
-                                <button
-                                    onClick={() => setSelectedCategory('All')}
-                                    className={`flex items-center gap-1 hover:underline font-medium ${theme.textMuted} hover:${theme.text} transition-colors`}
-                                >
-                                    <Home className="w-3.5 h-3.5" />
-                                    <span>{store.name}</span>
-                                </button>
-                            </li>
-                            <li className={theme.textMuted}><ChevronRight className="w-3.5 h-3.5" /></li>
-                            <li>
-                                <span className={`font-semibold ${theme.text}`}>{selectedCategory}</span>
-                            </li>
-                        </ol>
-                    </nav>
-                )}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                    <h2 className={`text-3xl font-bold ${theme.text}`}>All Products</h2>
+                </div>
 
                 {/* ─── SHOP BY CATEGORY (VISUAL) ─── */}
                 {categories.length > 1 && (
@@ -521,26 +327,6 @@ export default function PublicWaStore({ customSlug }) {
                         
                         {theme.id === 'vogue' ? (
                             <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-6 px-4 -mx-4 snap-x">
-                                {/* ALL PRODUCTS */}
-                                <button 
-                                    onClick={() => setSelectedCategory('All')}
-                                    className="flex flex-col items-center gap-4 shrink-0 group w-28 sm:w-36 snap-start"
-                                >
-                                    <div className={`w-28 h-28 sm:w-36 sm:h-36 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white ${
-                                        selectedCategory === 'All' 
-                                        ? 'shadow-md' 
-                                        : 'bg-zinc-100 dark:bg-zinc-900 group-hover:shadow-md'
-                                    }`}>
-                                        <div className={`absolute inset-0 transition-opacity duration-500 ${selectedCategory === 'All' ? 'bg-black/5 dark:bg-white/5' : 'bg-transparent group-hover:bg-black/5 dark:group-hover:bg-white/5'}`}></div>
-                                        <span className={`text-xl font-light tracking-[0.2em] uppercase transition-transform duration-500 ${selectedCategory === 'All' ? 'scale-105 text-zinc-900 dark:text-white font-medium' : 'text-zinc-500 dark:text-zinc-400 group-hover:scale-105 group-hover:text-zinc-900 dark:group-hover:text-white'}`}>
-                                            All
-                                        </span>
-                                    </div>
-                                    <span className={`text-sm tracking-[0.15em] uppercase text-center ${selectedCategory === 'All' ? 'font-medium text-zinc-900 dark:text-white' : 'font-light text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'}`}>
-                                        All Products
-                                    </span>
-                                </button>
-                                
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -556,22 +342,18 @@ export default function PublicWaStore({ customSlug }) {
                                         
                                     return (
                                         <button 
-                                            key={cat} onClick={() => setSelectedCategory(cat)}
+                                            key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
                                             className="flex flex-col items-center gap-4 shrink-0 group w-28 sm:w-36 snap-start"
                                         >
-                                            <div className={`w-28 h-28 sm:w-36 sm:h-36 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white ${
-                                                selectedCategory === cat 
-                                                ? 'shadow-md' 
-                                                : 'bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md'
-                                            }`}>
+                                            <div className={`w-28 h-28 sm:w-36 sm:h-36 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
                                                 {catImage ? (
-                                                    <img src={imgUrl(catImage)} alt={cat} className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${selectedCategory === cat ? 'scale-105' : 'scale-100 group-hover:scale-105'}`} />
+                                                    <img src={imgUrl(catImage)} alt={cat} className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-100 group-hover:scale-105`} />
                                                 ) : (
                                                     <span className="text-4xl font-thin text-zinc-400 dark:text-zinc-600">{cat.substring(0,1)}</span>
                                                 )}
-                                                <div className={`absolute inset-0 transition-opacity duration-500 ${selectedCategory === cat ? 'bg-black/10' : 'bg-transparent group-hover:bg-black/10'}`}></div>
+                                                <div className={`absolute inset-0 transition-opacity duration-500 bg-transparent group-hover:bg-black/10`}></div>
                                             </div>
-                                            <span className={`text-sm tracking-[0.15em] uppercase text-center ${selectedCategory === cat ? 'font-medium text-zinc-900 dark:text-white' : 'font-light text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'}`}>
+                                            <span className={`text-sm tracking-[0.15em] uppercase text-center font-light text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white`}>
                                                 {cat}
                                             </span>
                                         </button>
@@ -580,21 +362,6 @@ export default function PublicWaStore({ customSlug }) {
                             </div>
                         ) : (
                             <div className="flex overflow-x-auto hide-scrollbar gap-6 py-4 px-4 -mx-4">
-                                {/* ALL PRODUCTS */}
-                                <button 
-                                    onClick={() => setSelectedCategory('All')}
-                                    className="flex flex-col items-center gap-3 shrink-0 group w-20 sm:w-24"
-                                >
-                                    <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all duration-300 ${
-                                        selectedCategory === 'All' 
-                                        ? `bg-black/10 scale-105 shadow-md` 
-                                        : `bg-black/5 group-hover:bg-black/10 group-hover:scale-105`
-                                    }`}>
-                                        <span className={`text-xl sm:text-2xl font-bold uppercase ${selectedCategory === 'All' ? theme.text : theme.textMuted}`}>ALL</span>
-                                    </div>
-                                    <span className={`text-sm font-semibold text-center leading-tight ${selectedCategory === 'All' ? theme.text : theme.textMuted}`}>All Products</span>
-                                </button>
-                                
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -610,21 +377,17 @@ export default function PublicWaStore({ customSlug }) {
                                         
                                     return (
                                         <button 
-                                            key={cat} onClick={() => setSelectedCategory(cat)}
+                                            key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
                                             className="flex flex-col items-center gap-3 shrink-0 group w-20 sm:w-24"
                                         >
-                                            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden flex items-center justify-center transition-all duration-300 ${
-                                                selectedCategory === cat 
-                                                ? `bg-black/10 scale-105 shadow-md` 
-                                                : `bg-black/5 group-hover:bg-black/10 group-hover:scale-105`
-                                            }`}>
+                                            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
                                                 {catImage ? (
                                                     <img src={imgUrl(catImage)} alt={cat} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <span className={`text-xl sm:text-2xl font-bold uppercase ${selectedCategory === cat ? theme.text : theme.textMuted}`}>{cat.substring(0,2)}</span>
+                                                    <span className={`text-xl sm:text-2xl font-bold uppercase ${theme.textMuted}`}>{cat.substring(0,2)}</span>
                                                 )}
                                             </div>
-                                            <span className={`text-sm font-semibold text-center leading-tight ${selectedCategory === cat ? theme.text : theme.textMuted}`}>{cat}</span>
+                                            <span className={`text-sm font-semibold text-center leading-tight ${theme.textMuted}`}>{cat}</span>
                                         </button>
                                     );
                                 })}
@@ -633,19 +396,6 @@ export default function PublicWaStore({ customSlug }) {
                     </div>
                 )}
                 
-                {/* Category Description */}
-                {selectedCategory !== 'All' && (() => {
-                    let desc = '';
-                    try {
-                        const parsedDetails = typeof store.categoryDetails === 'string' ? JSON.parse(store.categoryDetails) : (store.categoryDetails || {});
-                        desc = parsedDetails[selectedCategory]?.description || '';
-                    } catch(e) {}
-                    return desc ? (
-                        <div className="mb-8 p-4 bg-gray-50/50 dark:bg-zinc-800/20 rounded-2xl border border-gray-100 dark:border-white/5">
-                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-center sm:text-left">{desc}</p>
-                        </div>
-                    ) : null;
-                })()}
 
                 {/* Filters */}
                 <div className="flex flex-col md:flex-row md:items-center justify-end gap-6 mb-8">
@@ -664,14 +414,7 @@ export default function PublicWaStore({ customSlug }) {
                     </div>
                 </div>
 
-                {/* Mobile Search */}
-                <div className="md:hidden relative mb-8">
-                    <Search className={`w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 ${theme.textMuted}`} />
-                    <input 
-                        type="text" placeholder="Search products..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                        className={`w-full ${theme.searchStyle} py-3 pl-11 pr-4 text-sm outline-none transition-colors`}
-                    />
-                </div>
+
 
                 {/* Product Grid */}
                 {filteredAndSortedProducts.length > 0 ? (() => {
@@ -710,7 +453,7 @@ export default function PublicWaStore({ customSlug }) {
                                 {/* Image Box */}
                                 <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                     {product.imageUrls && product.imageUrls[0] ? (
-                                        <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
+                                        <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
                                     )}
@@ -730,20 +473,20 @@ export default function PublicWaStore({ customSlug }) {
                                 </div>
                                 
                                 {/* Info */}
-                                <div className="p-5 flex flex-col flex-1">
-                                    <span className={`text-[10px] font-bold uppercase tracking-[0.18em] ${theme.textMuted} mb-1.5 block`}>
+                                <div className="p-3 md:p-5 flex flex-col flex-1">
+                                    <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-[0.18em] ${theme.textMuted} mb-1 block leading-none`}>
                                         {product.category || '\u00A0'}
                                     </span>
-                                    <h3 className={`text-[15px] font-semibold ${theme.text} mb-2 line-clamp-2 h-10 leading-snug hover:opacity-80 transition-opacity`}>{product.name}</h3>
+                                    <h3 className={`text-[13px] md:text-[15px] font-semibold ${theme.text} mb-1.5 line-clamp-2 leading-snug hover:opacity-80 transition-opacity`}>{product.name}</h3>
                                     
-                                    <div className="flex items-baseline flex-wrap gap-2 mb-5">
-                                        <span className={`${theme.priceStyle || 'text-lg font-bold text-black'}`}>{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
+                                    <div className="flex items-baseline flex-wrap gap-1 md:gap-2 mb-3 md:mb-5">
+                                        <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
                                         {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
                                             <>
-                                                <span className={`${theme.priceCompareStyle || 'text-sm text-gray-400 line-through font-normal'}`}>
+                                                <span className={`${theme.priceCompareStyle || 'text-xs md:text-sm text-gray-400 line-through font-normal'}`}>
                                                     {getCurrencySymbol(store.currency)}{parseFloat(product.compareAtPrice).toFixed(2)}
                                                 </span>
-                                                <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-100/50">
+                                                <span className="text-[9px] md:text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-100/50">
                                                     {Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100)}% OFF
                                                 </span>
                                             </>
@@ -751,7 +494,7 @@ export default function PublicWaStore({ customSlug }) {
                                     </div>
 
                                     <div className="mt-auto">
-                                        <div className="flex items-center w-full h-[42px] gap-0 relative">
+                                        <div className="flex items-center w-full h-[36px] md:h-[42px] gap-0 relative">
                                             {/* Quantity Selector Slider */}
                                             <div className={`flex items-center justify-between border border-gray-205 rounded-[15px] p-1 bg-gray-50 h-full transition-all duration-300 overflow-hidden ${
                                                 qtyInCart > 0 ? 'w-[45%] opacity-100 mr-2' : 'w-0 opacity-0 pointer-events-none mr-0'
@@ -873,12 +616,17 @@ export default function PublicWaStore({ customSlug }) {
                                                     )}
                                                     <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{parseFloat(item.price).toFixed(2)}</div>
                                                     
-                                                    <div className="flex items-center gap-3 mt-3">
+                                                    <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
                                                             <span className="w-8 text-center text-xs font-semibold">{item.qty}</span>
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
                                                         </div>
+                                                        {item.qty > 1 && (
+                                                            <div className={`font-bold text-sm ${theme.text}`}>
+                                                                {getCurrencySymbol(store.currency)}{(parseFloat(item.price) * item.qty).toFixed(2)}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -942,126 +690,6 @@ export default function PublicWaStore({ customSlug }) {
             )}
 
             {/* ─── MOBILE NAVIGATION DRAWER ─── */}
-            <div className={`fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm transition-opacity duration-300 md:hidden ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)}>
-                <div 
-                    className={`absolute top-0 left-0 w-[85%] max-w-sm h-full ${theme.pageBg} shadow-2xl transition-transform duration-300 ease-out flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
-                    onClick={e => e.stopPropagation()}
-                >
-                    {/* Drawer Header */}
-                    <div className={`flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/10 ${theme.header}`}>
-                        <div className="flex items-center gap-3">
-                            {store.logo && <img src={imgUrl(store.logo)} alt={store.name} className="w-8 h-8 object-contain rounded-md" />}
-                            <span className={`font-bold text-lg ${theme.headerLogo}`}>{store.name}</span>
-                        </div>
-                        <button onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-lg bg-gray-100 dark:bg-white/10 ${theme.text} hover:bg-gray-200 dark:hover:bg-white/20 transition-colors`}>
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    {/* Drawer Content */}
-                    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-                        {/* Home Button */}
-                        <button 
-                            onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setIsMobileMenuOpen(false); }}
-                            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${theme.categoryTab} font-semibold`}
-                        >
-                            <Home className="w-5 h-5" />
-                            <span>Home</span>
-                        </button>
-
-                        {/* Product Categories Accordion */}
-                        {categories.length > 0 && (
-                            <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
-                                <button 
-                                    onClick={() => setExpandedMobileSections(p => ({ ...p, categories: !p.categories }))}
-                                    className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <Tag className="w-5 h-5" />
-                                        <span>Product Categories</span>
-                                    </div>
-                                    {expandedMobileSections.categories ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                </button>
-                                
-                                <div className={`transition-all overflow-hidden ${expandedMobileSections.categories ? 'max-h-[1000px] border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
-                                    <div className="p-2 space-y-1 bg-white dark:bg-black/20">
-                                        {['All', ...categories.filter(c => c !== 'All')].map(cat => (
-                                            <button
-                                                key={cat}
-                                                onClick={() => {
-                                                    setSelectedCategory(cat);
-                                                    setIsMobileMenuOpen(false);
-                                                    setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 50);
-                                                }}
-                                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all ${selectedCategory === cat ? theme.categoryTabActive : theme.categoryTab}`}
-                                            >
-                                                {cat === 'All' ? 'All Products' : cat}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Policies Accordion */}
-                        {(store.privacyPolicy || store.termsConditions || store.returnPolicy) && (
-                            <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
-                                <button 
-                                    onClick={() => setExpandedMobileSections(p => ({ ...p, policies: !p.policies }))}
-                                    className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <FileText className="w-5 h-5" />
-                                        <span>Store Policies</span>
-                                    </div>
-                                    {expandedMobileSections.policies ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                </button>
-                                
-                                <div className={`transition-all overflow-hidden ${expandedMobileSections.policies ? 'max-h-96 border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
-                                    <div className="p-2 space-y-1 bg-white dark:bg-black/20">
-                                        {store.privacyPolicy && (
-                                            <button onClick={() => { setActivePolicy('privacy'); setIsMobileMenuOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Privacy Policy</button>
-                                        )}
-                                        {store.termsConditions && (
-                                            <button onClick={() => { setActivePolicy('terms'); setIsMobileMenuOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Terms & Conditions</button>
-                                        )}
-                                        {store.returnPolicy && (
-                                            <button onClick={() => { setActivePolicy('return'); setIsMobileMenuOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Return Policy</button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* ─── POLICY MODAL ─── */}
-            {activePolicy && (
-                <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-4 md:p-6" onClick={() => setActivePolicy(null)}>
-                    <div className={`w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl ${theme.pageBg}`} onClick={e => e.stopPropagation()}>
-                        <div className={`flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/10 ${theme.header}`}>
-                            <h2 className={`text-xl font-bold ${theme.text}`}>
-                                {activePolicy === 'privacy' && 'Privacy Policy'}
-                                {activePolicy === 'terms' && 'Terms & Conditions'}
-                                {activePolicy === 'return' && 'Return Policy'}
-                            </h2>
-                            <button onClick={() => setActivePolicy(null)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                                <X className={`w-6 h-6 ${theme.text}`} />
-                            </button>
-                        </div>
-                        <div className="p-4 md:p-6 overflow-y-auto">
-                            <div className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none whitespace-pre-wrap ${theme.text}`}>
-                                {activePolicy === 'privacy' && store.privacyPolicy}
-                                {activePolicy === 'terms' && store.termsConditions}
-                                {activePolicy === 'return' && store.returnPolicy}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-
             <WaStoreFooter store={store} />
         </div>
     );

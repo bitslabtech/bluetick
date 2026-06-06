@@ -5,6 +5,7 @@ import { ShoppingBag, ShoppingCart, ChevronLeft, Check, Truck, ShieldCheck, Arro
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import WaStoreFooter from '../components/WaStoreFooter';
+import WaStoreHeader from '../components/WaStoreHeader';
 import WaStoreCheckoutModal from '../components/WaStoreCheckoutModal';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyProductSeo, cleanupStoreSeo } from '../utils/storeSeo';
@@ -44,6 +45,7 @@ export default function PublicWaProduct({ customSlug }) {
     const navigate = useNavigate();
     const [store, setStore] = useState(null);
     const [product, setProduct] = useState(null);
+    const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [qty, setQty] = useState(1);
     const [cart, setCart] = useState(() => {
@@ -54,7 +56,6 @@ export default function PublicWaProduct({ customSlug }) {
     const [selectedVariants, setSelectedVariants] = useState({});
     const [activeImageIdx, setActiveImageIdx] = useState(0);
     const [isCartOpen, setIsCartOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [openAccordions, setOpenAccordions] = useState({
         description: true,
@@ -84,11 +85,6 @@ export default function PublicWaProduct({ customSlug }) {
 
     // Theme
     const theme = React.useMemo(() => getThemeConfig(store?.themeId), [store?.themeId]);
-
-    // Mobile Navigation Drawer
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [expandedMobileSections, setExpandedMobileSections] = useState({ categories: true, policies: false });
-    const [activePolicy, setActivePolicy] = useState(null);
 
     const categories = React.useMemo(() => {
         const cats = store?.categories || [];
@@ -123,6 +119,7 @@ export default function PublicWaProduct({ customSlug }) {
                 const timestamp = new Date().getTime();
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}?t=${timestamp}`);
                 setStore(res.data.store);
+                setAllProducts(res.data.products);
 
                 // Support both slug format ("blue-shirt--a1b2c3d4") and raw UUID (backward compat)
                 const shortId = extractShortId(productId);
@@ -221,157 +218,15 @@ export default function PublicWaProduct({ customSlug }) {
     return (
         <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white`} style={{ fontFamily: theme.fontFamily }}>
             {/* ─── MODERN HEADER ─── */}
-            <header className={`sticky top-0 z-50 ${theme.header}`}>
-                {theme.id === 'vogue' ? (
-                    /* ── VOGUE: Minimal 3-column ── Search | Logo | Cart */
-                    <div className="max-w-screen-xl mx-auto px-10 h-20 grid grid-cols-3 items-center">
-                        {/* LEFT – Minimal bordered search */}
-                        <div className="flex items-center gap-2 border border-gray-300 rounded-[15px] px-3.5 py-2 max-w-[220px] hover:border-gray-400 transition-colors">
-                            <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                            <input
-                                type="text"
-                                placeholder="Search"
-                                value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    navigate(`/store/${slug}?search=${encodeURIComponent(e.target.value)}`);
-                                }}
-                                className="bg-transparent text-[13px] text-gray-700 placeholder-gray-400 outline-none w-full tracking-wide"
-                            />
-                        </div>
-
-                        {/* CENTER – Logo or store name */}
-                        <div className="flex items-center justify-center">
-                            {store.logo ? (
-                                <img src={imgUrl(store.logo)} alt={store.name} className="h-12 max-w-[180px] object-contain cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
-                            ) : (
-                                <span className="text-xl tracking-[0.25em] uppercase text-black font-normal cursor-pointer" onClick={() => navigate(`/store/${slug}`)} style={{ fontFamily: theme.fontFamily }}>{store.name}</span>
-                            )}
-                        </div>
-
-                        {/* RIGHT – Minimal borderless cart */}
-                        <div className="flex items-center justify-end">
-                            <button
-                                onClick={() => setIsCartOpen(true)}
-                                className="relative flex items-center justify-center p-2 text-black hover:bg-black/5 rounded-full transition-colors group"
-                            >
-                                <ShoppingCart className="w-5 h-5 text-black group-hover:scale-105 transition-transform stroke-[1.5]" />
-                                {cartCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex items-center justify-center bg-black text-white text-[10px] font-bold w-4 h-4 rounded-full border border-white">
-                                        {cartCount}
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    /* ── DEFAULT layout for all other themes ── */
-                    <div className={theme.headerWrapper || "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between"}>
-                        {/* Logo & Store Name */}
-                        <div className={`flex items-center gap-3 ${theme.logoWrapper || ''}`}>
-                            <button 
-                                onClick={() => setIsMobileMenuOpen(true)}
-                                className={`md:hidden p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors`}
-                            >
-                                <Menu className="w-6 h-6" />
-                            </button>
-                            {store.logo && (
-                                <img src={imgUrl(store.logo)} alt={store.name} className="w-12 h-12 object-contain rounded-md cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
-                            )}
-                            <span className={`font-semibold text-xl tracking-tight ${theme.headerLogo} cursor-pointer`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
-                        </div>
-
-                        {/* Desktop Search */}
-                        <div className={`hidden md:flex flex-1 max-w-md relative group ${theme.searchWrapper !== undefined ? theme.searchWrapper : 'mx-8'}`}>
-                            <Search className={`w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 ${theme.textMuted} transition-colors`} />
-                            <input 
-                                type="text" 
-                                placeholder="Search products..." 
-                                value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    navigate(`/store/${slug}?search=${encodeURIComponent(e.target.value)}`);
-                                }}
-                                className={`w-full ${theme.searchStyle} py-2.5 pl-11 pr-4 text-sm outline-none transition-all`}
-                            />
-                        </div>
-
-                        {/* Cart Button */}
-                        <button 
-                            onClick={() => setIsCartOpen(true)}
-                            className={`relative p-2 ${theme.cartButton} rounded-full transition-colors flex items-center justify-center ${theme.cartWrapper || ''}`}
-                        >
-                            <ShoppingCart className="w-6 h-6 stroke-[1.5]" />
-                            {cartCount > 0 && (
-                                <span className={`absolute -top-1 -right-1 ${theme.cartBadge} text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm`}>
-                                    {cartCount}
-                                </span>
-                            )}
-                        </button>
-                    </div>
-                )}
-
-                {/* ─── MEGA MENU ─── */}
-                {store.megaMenu && store.megaMenu.length > 0 && (
-                    <div className="w-full border-t border-gray-200/50 hidden md:block">
-                        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <ul className="flex items-center justify-center space-x-10 h-12">
-                                {store.megaMenu.map((menuItem) => (
-                                    <li key={menuItem.id} className="h-full relative group flex items-center">
-                                        <a 
-                                            href={menuItem.link || '#'} 
-                                            onClick={(e) => {
-                                                if (!menuItem.link) e.preventDefault();
-                                                else if (menuItem.link.startsWith('/?cat=')) {
-                                                    e.preventDefault();
-                                                    navigate(`/store/${slug}${menuItem.link}`);
-                                                } else if (menuItem.link.startsWith('/')) {
-                                                    e.preventDefault();
-                                                    navigate(menuItem.link);
-                                                }
-                                            }}
-                                            className="flex items-center h-full text-sm font-semibold tracking-wide hover:opacity-70 transition-opacity uppercase"
-                                        >
-                                            {menuItem.title}
-                                            {menuItem.children && menuItem.children.length > 0 && (
-                                                <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-50 transition-transform group-hover:rotate-180" />
-                                            )}
-                                        </a>
-                                        
-                                        {/* Dropdown */}
-                                        {menuItem.children && menuItem.children.length > 0 && (
-                                            <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-56 bg-white border border-gray-100 shadow-2xl rounded-xl py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top translate-y-2 group-hover:translate-y-0 z-50">
-                                                <ul className="flex flex-col">
-                                                    {menuItem.children.map(child => (
-                                                        <li key={child.id}>
-                                                            <a 
-                                                                href={child.link || '#'}
-                                                                onClick={(e) => {
-                                                                    if (!child.link) e.preventDefault();
-                                                                    else if (child.link.startsWith('/?cat=')) {
-                                                                        e.preventDefault();
-                                                                        navigate(`/store/${slug}${child.link}`);
-                                                                    } else if (child.link.startsWith('/')) {
-                                                                        e.preventDefault();
-                                                                        navigate(child.link);
-                                                                    }
-                                                                }}
-                                                                className="block px-5 py-2.5 text-[13px] font-medium text-gray-700 hover:text-black hover:bg-gray-50 transition-colors"
-                                                            >
-                                                                {child.title}
-                                                            </a>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                )}
-            </header>
+            <WaStoreHeader 
+                store={store} 
+                theme={theme} 
+                slug={slug} 
+                products={allProducts}
+                categories={categories} 
+                cartCount={cartCount} 
+                setIsCartOpen={setIsCartOpen} 
+            />
 
             <main className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12 py-10">
                 
@@ -783,124 +638,7 @@ export default function PublicWaProduct({ customSlug }) {
                 />
             )}
 
-            {/* ─── MOBILE NAVIGATION DRAWER ─── */}
-            <div className={`fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm transition-opacity duration-300 md:hidden ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)}>
-                <div 
-                    className={`absolute top-0 left-0 w-[85%] max-w-sm h-full ${theme.pageBg} shadow-2xl transition-transform duration-300 ease-out flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
-                    onClick={e => e.stopPropagation()}
-                >
-                    {/* Drawer Header */}
-                    <div className={`flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/10 ${theme.header}`}>
-                        <div className="flex items-center gap-3">
-                            {store.logo && <img src={imgUrl(store.logo)} alt={store.name} className="w-8 h-8 object-contain rounded-md" />}
-                            <span className={`font-bold text-lg ${theme.headerLogo}`}>{store.name}</span>
-                        </div>
-                        <button onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-lg bg-gray-100 dark:bg-white/10 ${theme.text} hover:bg-gray-200 dark:hover:bg-white/20 transition-colors`}>
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
 
-                    {/* Drawer Content */}
-                    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-                        {/* Home Button */}
-                        <button 
-                            onClick={() => { setIsMobileMenuOpen(false); navigate(`/store/${slug}`); }}
-                            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${theme.categoryTab} font-semibold`}
-                        >
-                            <Home className="w-5 h-5" />
-                            <span>Home</span>
-                        </button>
-
-                        {/* Product Categories Accordion */}
-                        {categories.length > 0 && (
-                            <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
-                                <button 
-                                    onClick={() => setExpandedMobileSections(p => ({ ...p, categories: !p.categories }))}
-                                    className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <Tag className="w-5 h-5" />
-                                        <span>Product Categories</span>
-                                    </div>
-                                    {expandedMobileSections.categories ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                </button>
-                                
-                                <div className={`transition-all overflow-hidden ${expandedMobileSections.categories ? 'max-h-[1000px] border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
-                                    <div className="p-2 space-y-1 bg-white dark:bg-black/20">
-                                        {categories.map(cat => (
-                                            <button
-                                                key={cat}
-                                                onClick={() => {
-                                                    setIsMobileMenuOpen(false);
-                                                    navigate(`/store/${slug}`);
-                                                }}
-                                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all ${theme.categoryTab}`}
-                                            >
-                                                {cat === 'All' ? 'All Products' : cat}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Policies Accordion */}
-                        {(store.privacyPolicy || store.termsConditions || store.returnPolicy) && (
-                            <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
-                                <button 
-                                    onClick={() => setExpandedMobileSections(p => ({ ...p, policies: !p.policies }))}
-                                    className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <FileText className="w-5 h-5" />
-                                        <span>Store Policies</span>
-                                    </div>
-                                    {expandedMobileSections.policies ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                </button>
-                                
-                                <div className={`transition-all overflow-hidden ${expandedMobileSections.policies ? 'max-h-96 border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
-                                    <div className="p-2 space-y-1 bg-white dark:bg-black/20">
-                                        {store.privacyPolicy && (
-                                            <button onClick={() => { setActivePolicy('privacy'); setIsMobileMenuOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Privacy Policy</button>
-                                        )}
-                                        {store.termsConditions && (
-                                            <button onClick={() => { setActivePolicy('terms'); setIsMobileMenuOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Terms & Conditions</button>
-                                        )}
-                                        {store.returnPolicy && (
-                                            <button onClick={() => { setActivePolicy('return'); setIsMobileMenuOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Return Policy</button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* ─── POLICY MODAL ─── */}
-            {activePolicy && (
-                <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-4 md:p-6" onClick={() => setActivePolicy(null)}>
-                    <div className={`w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl ${theme.pageBg}`} onClick={e => e.stopPropagation()}>
-                        <div className={`flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/10 ${theme.header}`}>
-                            <h2 className={`text-xl font-bold ${theme.text}`}>
-                                {activePolicy === 'privacy' && 'Privacy Policy'}
-                                {activePolicy === 'terms' && 'Terms & Conditions'}
-                                {activePolicy === 'return' && 'Return Policy'}
-                            </h2>
-                            <button onClick={() => setActivePolicy(null)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                                <X className={`w-6 h-6 ${theme.text}`} />
-                            </button>
-                        </div>
-                        <div className="p-4 md:p-6 overflow-y-auto">
-                            <div className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none whitespace-pre-wrap ${theme.text}`}>
-                                {activePolicy === 'privacy' && store.privacyPolicy}
-                                {activePolicy === 'terms' && store.termsConditions}
-                                {activePolicy === 'return' && store.returnPolicy}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* ─── CART DRAWER ─── */}
             <AnimatePresence>
@@ -957,12 +695,17 @@ export default function PublicWaProduct({ customSlug }) {
                                                     )}
                                                     <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{parseFloat(item.price).toFixed(2)}</div>
                                                     
-                                                    <div className="flex items-center gap-3 mt-3">
+                                                    <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
                                                             <span className="w-8 text-center text-xs font-semibold">{item.qty}</span>
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
                                                         </div>
+                                                        {item.qty > 1 && (
+                                                            <div className={`font-bold text-sm ${theme.text}`}>
+                                                                {getCurrencySymbol(store.currency)}{(parseFloat(item.price) * item.qty).toFixed(2)}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
