@@ -115,6 +115,19 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: [],
         comment: 'Configuration for the frontend navigation Mega Menu'
     },
+    mobileBottomMenu: {
+        type: DataTypes.JSON,
+        defaultValue: [
+            { id: 'home', enabled: true },
+            { id: 'search', enabled: true },
+            { id: 'cart', enabled: true },
+            { id: 'whatsapp', enabled: true },
+            { id: 'categories', enabled: false },
+            { id: 'policies', enabled: false },
+            { id: 'profile', enabled: false }
+        ],
+        comment: 'Configuration for the mobile bottom navigation bar'
+    },
     termsConditions: {
         type: DataTypes.TEXT
     },

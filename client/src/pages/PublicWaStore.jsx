@@ -67,7 +67,7 @@ export default function PublicWaStore({ customSlug }) {
 
     useEffect(() => {
         if (slides.length <= 1 || sliderPaused) return;
-        sliderTimer.current = setInterval(nextSlide, 6000);
+        sliderTimer.current = setInterval(nextSlide, 3500);
         return () => clearInterval(sliderTimer.current);
     }, [slides.length, sliderPaused, nextSlide]);
 
@@ -83,7 +83,7 @@ export default function PublicWaStore({ customSlug }) {
                 const sessionKey = `wastore_viewed_${slug}`;
                 if (!sessionStorage.getItem(sessionKey)) {
                     sessionStorage.setItem(sessionKey, '1');
-                    axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}/view`).catch(() => {});
+                    axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}/view`).catch(() => { });
                 }
             } catch (error) {
                 toast.error("Failed to load store");
@@ -124,12 +124,12 @@ export default function PublicWaStore({ customSlug }) {
     // Advanced SEO: Dynamic Title and Meta Tags based on category
     useEffect(() => {
         if (!store) return;
-        
+
         let pageTitle = store.name;
         let pageDesc = store.description || `Welcome to ${store.name}`;
-        
+
         document.title = pageTitle;
-        
+
         // Update meta description
         let metaDesc = document.querySelector('meta[name="description"]');
         if (!metaDesc) {
@@ -138,7 +138,7 @@ export default function PublicWaStore({ customSlug }) {
             document.head.appendChild(metaDesc);
         }
         metaDesc.content = pageDesc;
-        
+
         // Open Graph tags
         let ogTitle = document.querySelector('meta[property="og:title"]');
         if (!ogTitle) {
@@ -147,7 +147,7 @@ export default function PublicWaStore({ customSlug }) {
             document.head.appendChild(ogTitle);
         }
         ogTitle.content = pageTitle;
-        
+
         // Advanced SEO: JSON-LD Structured Data
         let schemaScript = document.querySelector('script[id="schema-jsonld"]');
         if (!schemaScript) {
@@ -156,7 +156,7 @@ export default function PublicWaStore({ customSlug }) {
             schemaScript.type = 'application/ld+json';
             document.head.appendChild(schemaScript);
         }
-        
+
         const schemaData = {
             "@context": "https://schema.org",
             "@type": "Store",
@@ -166,9 +166,9 @@ export default function PublicWaStore({ customSlug }) {
             "@id": window.location.href,
             "url": window.location.href
         };
-        
+
         schemaScript.textContent = JSON.stringify(schemaData);
-        
+
     }, [store]);
 
     const filteredAndSortedProducts = useMemo(() => {
@@ -186,7 +186,7 @@ export default function PublicWaStore({ customSlug }) {
             navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`);
             return;
         }
-        
+
         setCart(prev => {
             const existing = prev.find(item => (item.cartItemId || item.id) === product.id);
             if (existing) {
@@ -235,35 +235,35 @@ export default function PublicWaStore({ customSlug }) {
     if (!store) return <div className="h-screen flex items-center justify-center bg-white"><h1 className="text-2xl font-medium text-gray-900">Store Not Found</h1></div>;
 
     return (
-        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
+        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-20 md:pb-0`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
             {/* ─── MODERN HEADER ─── */}
-            <WaStoreHeader 
-                store={store} 
-                theme={theme} 
-                slug={slug} 
-                products={products} 
-                categories={categories} 
-                cartCount={cartCount} 
-                setIsCartOpen={setIsCartOpen} 
+            <WaStoreHeader
+                store={store}
+                theme={theme}
+                slug={slug}
+                products={products}
+                categories={categories}
+                cartCount={cartCount}
+                setIsCartOpen={setIsCartOpen}
             />
 
             {/* ─── HERO SLIDER ─── */}
             {slides.length > 0 ? (
-                <div className={`relative bg-white h-[60vh] min-h-[400px] md:h-[800px] overflow-hidden group ${theme.heroShape || ''}`} onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
+                <div className={`relative bg-black w-full aspect-[2/1] overflow-hidden group ${theme.heroShape || ''}`} onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
                     {slides.map((slide, idx) => (
                         <div key={idx} className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === activeSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
                             <div className={`absolute inset-0 ${theme.heroOverlay} z-10`} />
                             {slide.imageUrl?.match(/\.(mp4|webm|ogg)(\?.*)?$/i) ? (
                                 <video src={imgUrl(slide.imageUrl)} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                             ) : (
-                                <img src={imgUrl(slide.imageUrl)} alt={slide.title} className="w-full h-full object-cover" onError={e => e.target.style.display = 'none'} />
+                                <img src={imgUrl(slide.imageUrl)} alt={slide.title} className="w-full h-full object-contain" onError={e => e.target.style.display = 'none'} />
                             )}
-                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4">
-                                <div className="max-w-3xl space-y-2 md:space-y-4">
-                                    {slide.title && <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white drop-shadow-lg">{slide.title}</h1>}
-                                    {slide.subtitle && <p className="text-base sm:text-lg md:text-2xl text-gray-100 font-medium drop-shadow-md">{slide.subtitle}</p>}
+                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-2 md:px-4">
+                                <div className="max-w-3xl space-y-1 sm:space-y-2 md:space-y-4">
+                                    {slide.title && <h1 className="text-xl sm:text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white drop-shadow-lg">{slide.title}</h1>}
+                                    {slide.subtitle && <p className="text-xs sm:text-base md:text-xl lg:text-2xl text-gray-100 font-medium drop-shadow-md">{slide.subtitle}</p>}
                                     {slide.ctaText && (
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 if (slide.ctaTargetType === 'category' && slide.ctaTargetId) {
                                                     navigate(`/store/${slug}/category/${encodeURIComponent(slide.ctaTargetId)}`);
@@ -275,8 +275,8 @@ export default function PublicWaStore({ customSlug }) {
                                                 } else {
                                                     document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
                                                 }
-                                            }} 
-                                            className="mt-4 px-4 md:px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-100 transition-colors"
+                                            }}
+                                            className="mt-2 md:mt-4 px-3 sm:px-6 md:px-8 py-1.5 sm:py-2 md:py-3 text-[10px] sm:text-sm md:text-base bg-white text-black font-semibold rounded-full hover:bg-gray-100 transition-colors"
                                         >
                                             {slide.ctaText}
                                         </button>
@@ -285,7 +285,7 @@ export default function PublicWaStore({ customSlug }) {
                             </div>
                         </div>
                     ))}
-                    
+
                     {/* Controls */}
                     {slides.length > 1 && (
                         <>
@@ -314,42 +314,38 @@ export default function PublicWaStore({ customSlug }) {
             )}
 
             {/* ─── MAIN CONTENT ─── */}
-            <main id="products" className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                    <h2 className={`text-3xl font-bold ${theme.text}`}>All Products</h2>
-                </div>
+            <main id="products" className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 sm:pt-12">
 
                 {/* ─── SHOP BY CATEGORY (VISUAL) ─── */}
                 {categories.length > 1 && (
-                    <div className="mb-12 w-full">
-                        <h2 className={`text-2xl font-bold mb-4 ${theme.text}`}>Shop by Category</h2>
-                        
+                    <div className="mb-4 w-full">
+                        <h2 className={`text-2xl font-bold mb-2 sm:mb-4 text-center ${theme.text}`}>Products Category</h2>
+
                         {theme.id === 'vogue' ? (
-                            <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-6 px-4 -mx-4 snap-x">
+                            <div className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 px-4 -mx-4 snap-x">
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
                                     let hidden = [];
-                                    try { hidden = typeof store.hiddenCategories === 'string' ? JSON.parse(store.hiddenCategories) : (store.hiddenCategories || []); } catch(e){}
+                                    try { hidden = typeof store.hiddenCategories === 'string' ? JSON.parse(store.hiddenCategories) : (store.hiddenCategories || []); } catch (e) { }
                                     return !hidden.includes(c);
                                 }).map(cat => {
                                     let catImage = null;
                                     try {
                                         const imgs = typeof store.categoryImages === 'string' ? JSON.parse(store.categoryImages) : (store.categoryImages || {});
                                         catImage = imgs[cat];
-                                    } catch(e){}
-                                        
+                                    } catch (e) { }
+
                                     return (
-                                        <button 
+                                        <button
                                             key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
-                                            className="flex flex-col items-center gap-4 shrink-0 group w-28 sm:w-36 snap-start"
+                                            className="flex flex-col items-center gap-2 sm:gap-4 shrink-0 group w-[72px] sm:w-36 snap-start"
                                         >
-                                            <div className={`w-28 h-28 sm:w-36 sm:h-36 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
+                                            <div className={`w-[72px] h-[72px] sm:w-36 sm:h-36 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
                                                 {catImage ? (
                                                     <img src={imgUrl(catImage)} alt={cat} className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-100 group-hover:scale-105`} />
                                                 ) : (
-                                                    <span className="text-4xl font-thin text-zinc-400 dark:text-zinc-600">{cat.substring(0,1)}</span>
+                                                    <span className="text-4xl font-thin text-zinc-400 dark:text-zinc-600">{cat.substring(0, 1)}</span>
                                                 )}
                                                 <div className={`absolute inset-0 transition-opacity duration-500 bg-transparent group-hover:bg-black/10`}></div>
                                             </div>
@@ -361,30 +357,30 @@ export default function PublicWaStore({ customSlug }) {
                                 })}
                             </div>
                         ) : (
-                            <div className="flex overflow-x-auto hide-scrollbar gap-6 py-4 px-4 -mx-4">
+                            <div className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 px-4 -mx-4">
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
                                     let hidden = [];
-                                    try { hidden = typeof store.hiddenCategories === 'string' ? JSON.parse(store.hiddenCategories) : (store.hiddenCategories || []); } catch(e){}
+                                    try { hidden = typeof store.hiddenCategories === 'string' ? JSON.parse(store.hiddenCategories) : (store.hiddenCategories || []); } catch (e) { }
                                     return !hidden.includes(c);
                                 }).map(cat => {
                                     let catImage = null;
                                     try {
                                         const imgs = typeof store.categoryImages === 'string' ? JSON.parse(store.categoryImages) : (store.categoryImages || {});
                                         catImage = imgs[cat];
-                                    } catch(e){}
-                                        
+                                    } catch (e) { }
+
                                     return (
-                                        <button 
+                                        <button
                                             key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
-                                            className="flex flex-col items-center gap-3 shrink-0 group w-20 sm:w-24"
+                                            className="flex flex-col items-center gap-2 sm:gap-3 shrink-0 group w-[72px] sm:w-24"
                                         >
-                                            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
+                                            <div className={`w-[72px] h-[72px] sm:w-24 sm:h-24 rounded-full overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
                                                 {catImage ? (
                                                     <img src={imgUrl(catImage)} alt={cat} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <span className={`text-xl sm:text-2xl font-bold uppercase ${theme.textMuted}`}>{cat.substring(0,2)}</span>
+                                                    <span className={`text-xl sm:text-2xl font-bold uppercase ${theme.textMuted}`}>{cat.substring(0, 2)}</span>
                                                 )}
                                             </div>
                                             <span className={`text-sm font-semibold text-center leading-tight ${theme.textMuted}`}>{cat}</span>
@@ -395,22 +391,28 @@ export default function PublicWaStore({ customSlug }) {
                         )}
                     </div>
                 )}
-                
 
-                {/* Filters */}
-                <div className="flex flex-col md:flex-row md:items-center justify-end gap-6 mb-8">
-                    
-                    {/* Sort */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Filter className="w-4 h-4 text-gray-400" />
-                        <select 
+                {categories.length > 1 && <hr className="border-gray-200 dark:border-gray-800 my-4 sm:my-8 w-full max-w-[1200px] mx-auto" />}
+
+                {/* Title */}
+                <div className="mb-4 sm:mb-6 relative">
+                    <h2 className={`text-3xl font-bold text-center w-full ${theme.text}`}>All Products</h2>
+                </div>
+
+                {/* Filters / Sort */}
+                <div className="flex items-center justify-start mb-4 sm:mb-8">
+                    <div className="flex items-center gap-2 bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-2.5 shadow-sm hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-md transition-all cursor-pointer relative group">
+                        <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-black dark:group-hover:text-white transition-colors" />
+                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:block">Sort By</span>
+                        <select
                             value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-transparent text-sm font-medium text-gray-700 outline-none cursor-pointer py-1"
+                            className="bg-transparent text-[13px] md:text-sm font-bold text-gray-800 dark:text-gray-200 outline-none cursor-pointer border-none focus:ring-0 appearance-none pr-6 z-10"
                         >
-                            <option value="newest">New Arrivals</option>
-                            <option value="price-asc">Price: Low to High</option>
-                            <option value="price-desc">Price: High to Low</option>
+                            <option value="newest" className="text-gray-900 font-medium">New Arrivals</option>
+                            <option value="price-asc" className="text-gray-900 font-medium">Price: Low to High</option>
+                            <option value="price-desc" className="text-gray-900 font-medium">Price: High to Low</option>
                         </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3.5 group-hover:text-black dark:group-hover:text-white transition-colors pointer-events-none" />
                     </div>
                 </div>
 
@@ -423,133 +425,130 @@ export default function PublicWaStore({ customSlug }) {
                     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
                     const cols = isMobile ? mobileCols : desktopCols;
                     return (
-                    <div
-                        className="grid gap-4 sm:gap-6"
-                        style={{ gridTemplateColumns: `repeat(${mobileCols}, minmax(0, 1fr))` }}
-                        ref={el => {
-                            if (!el) return;
-                            const update = () => {
-                                const w = window.innerWidth;
-                                const c = w < 640 ? (store.gridColumns?.mobile || 2)
+                        <div
+                            className="grid gap-4 sm:gap-6"
+                            style={{ gridTemplateColumns: `repeat(${mobileCols}, minmax(0, 1fr))` }}
+                            ref={el => {
+                                if (!el) return;
+                                const update = () => {
+                                    const w = window.innerWidth;
+                                    const c = w < 640 ? (store.gridColumns?.mobile || 2)
                                         : w < 1024 ? Math.min(store.gridColumns?.desktop || 4, 3)
-                                        : (store.gridColumns?.desktop || 4);
-                                el.style.gridTemplateColumns = `repeat(${c}, minmax(0, 1fr))`;
-                            };
-                            update();
-                            window.addEventListener('resize', update);
-                            el._cleanupGrid = () => window.removeEventListener('resize', update);
-                        }}
-                    >
-                        {filteredAndSortedProducts.map(product => {
-                            const isOutOfStock = product.trackQuantity ? product.stockQuantity <= 0 : !product.inStock;
-                            const preventAdd = store.inventoryConfig?.preventCartAdd && isOutOfStock;
-                            const showLowStock = store.inventoryConfig?.showLowStock && product.trackQuantity && product.stockQuantity > 0 && product.stockQuantity <= product.lowStockThreshold;
-                            const cartItem = cart.find(item => (item.cartItemId || item.id) === product.id);
-                            const qtyInCart = cartItem ? cartItem.qty : 0;
+                                            : (store.gridColumns?.desktop || 4);
+                                    el.style.gridTemplateColumns = `repeat(${c}, minmax(0, 1fr))`;
+                                };
+                                update();
+                                window.addEventListener('resize', update);
+                                el._cleanupGrid = () => window.removeEventListener('resize', update);
+                            }}
+                        >
+                            {filteredAndSortedProducts.map(product => {
+                                const isOutOfStock = product.trackQuantity ? product.stockQuantity <= 0 : !product.inStock;
+                                const preventAdd = store.inventoryConfig?.preventCartAdd && isOutOfStock;
+                                const showLowStock = store.inventoryConfig?.showLowStock && product.trackQuantity && product.stockQuantity > 0 && product.stockQuantity <= product.lowStockThreshold;
+                                const cartItem = cart.find(item => (item.cartItemId || item.id) === product.id);
+                                const qtyInCart = cartItem ? cartItem.qty : 0;
 
-                            return (
-                            <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`)}>
+                                return (
+                                    <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`)}>
 
-                                {/* Image Box */}
-                                <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
-                                    {product.imageUrls && product.imageUrls[0] ? (
-                                        <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
-                                    )}
-                                    {isOutOfStock ? (
-                                        <div className="absolute top-3 left-3 bg-rose-100 text-rose-700 px-2.5 py-1 rounded-md text-xs font-bold border border-rose-200">
-                                            Out of Stock
+                                        {/* Image Box */}
+                                        <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
+                                            {product.imageUrls && product.imageUrls[0] ? (
+                                                <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
+                                            )}
+                                            {isOutOfStock ? (
+                                                <div className="absolute top-3 left-3 bg-rose-100 text-rose-700 px-2.5 py-1 rounded-md text-xs font-bold border border-rose-200">
+                                                    Out of Stock
+                                                </div>
+                                            ) : showLowStock ? (
+                                                <div className="absolute top-3 left-3 bg-amber-100 text-amber-700 px-2.5 py-1 rounded-md text-xs font-bold border border-amber-200">
+                                                    Only {product.stockQuantity} left
+                                                </div>
+                                            ) : product.compareAtPrice ? (
+                                                <div className={`absolute top-3 left-3 ${theme.badgeStyle}`}>
+                                                    Sale
+                                                </div>
+                                            ) : null}
                                         </div>
-                                    ) : showLowStock ? (
-                                        <div className="absolute top-3 left-3 bg-amber-100 text-amber-700 px-2.5 py-1 rounded-md text-xs font-bold border border-amber-200">
-                                            Only {product.stockQuantity} left
-                                        </div>
-                                    ) : product.compareAtPrice ? (
-                                        <div className={`absolute top-3 left-3 ${theme.badgeStyle}`}>
-                                            Sale
-                                        </div>
-                                    ) : null}
-                                </div>
-                                
-                                {/* Info */}
-                                <div className="p-3 md:p-5 flex flex-col flex-1">
-                                    <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-[0.18em] ${theme.textMuted} mb-1 block leading-none`}>
-                                        {product.category || '\u00A0'}
-                                    </span>
-                                    <h3 className={`text-[13px] md:text-[15px] font-semibold ${theme.text} mb-1.5 line-clamp-2 leading-snug hover:opacity-80 transition-opacity`}>{product.name}</h3>
-                                    
-                                    <div className="flex items-baseline flex-wrap gap-1 md:gap-2 mb-3 md:mb-5">
-                                        <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
-                                        {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
-                                            <>
-                                                <span className={`${theme.priceCompareStyle || 'text-xs md:text-sm text-gray-400 line-through font-normal'}`}>
-                                                    {getCurrencySymbol(store.currency)}{parseFloat(product.compareAtPrice).toFixed(2)}
-                                                </span>
-                                                <span className="text-[9px] md:text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-100/50">
-                                                    {Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100)}% OFF
-                                                </span>
-                                            </>
-                                        )}
-                                    </div>
 
-                                    <div className="mt-auto">
-                                        <div className="flex items-center w-full h-[36px] md:h-[42px] gap-0 relative">
-                                            {/* Quantity Selector Slider */}
-                                            <div className={`flex items-center justify-between border border-gray-205 rounded-[15px] p-1 bg-gray-50 h-full transition-all duration-300 overflow-hidden ${
-                                                qtyInCart > 0 ? 'w-[45%] opacity-100 mr-2' : 'w-0 opacity-0 pointer-events-none mr-0'
-                                            }`}>
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); updateQty(product.id, -1); }} 
-                                                    className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
-                                                >
-                                                    -
-                                                </button>
-                                                <span className="font-bold text-xs text-gray-900 select-none">{qtyInCart}</span>
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); updateQty(product.id, 1); }} 
-                                                    className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
-                                                >
-                                                    +
-                                                </button>
-                                            </div>
+                                        {/* Info */}
+                                        <div className="p-3 md:p-5 flex flex-col flex-1">
+                                            <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-[0.18em] ${theme.textMuted} mb-1 block leading-none`}>
+                                                {product.category || '\u00A0'}
+                                            </span>
+                                            <h3 className={`text-[13px] md:text-[15px] font-semibold ${theme.text} mb-1.5 line-clamp-2 leading-snug hover:opacity-80 transition-opacity capitalize`}>{product.name}</h3>
 
-                                            {/* Sliding Add/View Button */}
-                                            <button 
-                                                onClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    if (qtyInCart > 0) {
-                                                        setIsCartOpen(true);
-                                                    } else if (!preventAdd) {
-                                                        addToCart(product);
-                                                    }
-                                                }}
-                                                disabled={preventAdd && qtyInCart === 0}
-                                                className={`h-full transition-all duration-300 flex items-center justify-center gap-1.5 uppercase tracking-widest text-[9.5px] font-bold rounded-[15px] select-none ${
-                                                    qtyInCart > 0 
-                                                    ? 'w-[55%] bg-black text-white hover:bg-neutral-800 shadow-sm' 
-                                                    : `${theme.buttonStyle} !py-0 flex-1 w-full ${preventAdd ? 'opacity-50 cursor-not-allowed' : ''}`
-                                                }`}
-                                            >
-                                                {qtyInCart > 0 ? (
+                                            <div className="flex items-baseline flex-wrap gap-1 md:gap-2 mb-3 md:mb-5">
+                                                <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
+                                                {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
                                                     <>
-                                                        <span className="truncate">View Cart</span>
-                                                        <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-                                                        <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                                                        <span className={`${theme.priceCompareStyle || 'text-xs md:text-sm text-gray-400 line-through font-normal'}`}>
+                                                            {getCurrencySymbol(store.currency)}{parseFloat(product.compareAtPrice).toFixed(2)}
+                                                        </span>
+                                                        <span className="text-[9px] md:text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-100/50">
+                                                            {Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100)}% OFF
+                                                        </span>
                                                     </>
                                                 )}
-                                            </button>
+                                            </div>
+
+                                            <div className="mt-auto">
+                                                <div className="flex items-center w-full h-[36px] md:h-[42px] gap-0 relative">
+                                                    {/* Quantity Selector Slider */}
+                                                    <div className={`flex items-center justify-between border border-gray-205 rounded-[15px] p-1 bg-gray-50 h-full transition-all duration-300 overflow-hidden ${qtyInCart > 0 ? 'w-[45%] opacity-100 mr-2' : 'w-0 opacity-0 pointer-events-none mr-0'
+                                                        }`}>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); updateQty(product.id, -1); }}
+                                                            className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
+                                                        >
+                                                            -
+                                                        </button>
+                                                        <span className="font-bold text-xs text-gray-900 select-none">{qtyInCart}</span>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); updateQty(product.id, 1); }}
+                                                            className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Sliding Add/View Button */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (qtyInCart > 0) {
+                                                                setIsCartOpen(true);
+                                                            } else if (!preventAdd) {
+                                                                addToCart(product);
+                                                            }
+                                                        }}
+                                                        disabled={preventAdd && qtyInCart === 0}
+                                                        className={`h-full transition-all duration-300 flex items-center justify-center gap-1.5 uppercase tracking-widest text-[9.5px] font-bold rounded-[15px] select-none ${qtyInCart > 0
+                                                            ? 'w-[55%] bg-black text-white hover:bg-neutral-800 shadow-sm'
+                                                            : `${theme.buttonStyle} !py-0 flex-1 w-full ${preventAdd ? 'opacity-50 cursor-not-allowed' : ''}`
+                                                            }`}
+                                                    >
+                                                        {qtyInCart > 0 ? (
+                                                            <>
+                                                                <span className="truncate">View Cart</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                                                                <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
                     );
                 })() : (
                     <div className={`text-center py-24 ${theme.cardStyle} rounded-3xl shadow-sm border border-transparent`}>
@@ -574,7 +573,7 @@ export default function PublicWaStore({ customSlug }) {
                             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
                             onClick={() => setIsCartOpen(false)}
                         />
-                        
+
                         {/* Slide-in Drawer Container */}
                         <motion.div
                             initial={{ x: '100%' }}
@@ -583,7 +582,7 @@ export default function PublicWaStore({ customSlug }) {
                             transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
                             className="w-full max-w-md bg-white h-full relative z-10 flex flex-col shadow-2xl"
                         >
-                            
+
                             <div className={`px-6 py-5 border-b border-gray-100 flex items-center justify-between ${theme.pageBg}`}>
                                 <h2 className={`text-lg font-semibold flex items-center gap-2 ${theme.text}`}>
                                     <ShoppingBag className="w-5 h-5" /> Your Cart
@@ -615,7 +614,7 @@ export default function PublicWaStore({ customSlug }) {
                                                         </div>
                                                     )}
                                                     <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{parseFloat(item.price).toFixed(2)}</div>
-                                                    
+
                                                     <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
@@ -658,7 +657,7 @@ export default function PublicWaStore({ customSlug }) {
                                         </div>
                                     ) : (
                                         <>
-                                            <button 
+                                            <button
                                                 onClick={() => { setIsCartOpen(false); setIsCheckoutModalOpen(true); }}
                                                 className="w-full py-4 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                                             >
@@ -675,17 +674,17 @@ export default function PublicWaStore({ customSlug }) {
                     </div>
                 )}
             </AnimatePresence>
-            
+
             {/* ─── CHECKOUT MODAL ─── */}
             {isCheckoutModalOpen && (
-                <WaStoreCheckoutModal 
-                    store={store} 
-                    cart={cart} 
+                <WaStoreCheckoutModal
+                    store={store}
+                    cart={cart}
                     cartSubtotal={cartSubtotal}
                     shippingCost={shippingCost}
-                    cartTotal={cartTotal} 
-                    onClose={() => setIsCheckoutModalOpen(false)} 
-                    onCheckoutSuccess={handleCheckoutSuccess} 
+                    cartTotal={cartTotal}
+                    onClose={() => setIsCheckoutModalOpen(false)}
+                    onCheckoutSuccess={handleCheckoutSuccess}
                 />
             )}
 

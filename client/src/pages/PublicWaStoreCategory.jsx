@@ -167,7 +167,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
     if (!store) return <div className="h-screen flex items-center justify-center bg-white"><h1 className="text-2xl font-medium text-gray-900">Store Not Found</h1></div>;
 
     return (
-        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
+        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-20 md:pb-0`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
             
             <WaStoreHeader 
                 store={store} 
@@ -260,7 +260,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                                     <div className={`p-3 md:p-4 flex flex-col flex-1 ${theme.cardBodyStyle}`}>
                                         <div className="flex-1">
                                             <p className={`text-[9px] md:text-[11px] font-medium tracking-wider uppercase mb-1 md:mb-1.5 leading-none ${theme.textMuted}`}>{product.category}</p>
-                                            <h3 className={`font-semibold text-[13px] md:text-[15px] leading-tight mb-1.5 md:mb-2 ${theme.text} line-clamp-2`}>{product.name}</h3>
+                                            <h3 className={`font-semibold text-[13px] md:text-[15px] leading-tight mb-1.5 md:mb-2 ${theme.text} line-clamp-2 capitalize`}>{product.name}</h3>
                                         </div>
                                         <div className="mt-auto">
                                             <div className="flex items-end gap-1.5 md:gap-2 mb-2 md:mb-3">

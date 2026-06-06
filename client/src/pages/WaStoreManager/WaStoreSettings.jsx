@@ -16,6 +16,15 @@ export default function WaStoreSettings() {
     const [showDnsInstructions, setShowDnsInstructions] = useState(false);
     const [gridColumns, setGridColumns] = useState({ desktop: 4, mobile: 2 });
     const [showCrossSells, setShowCrossSells] = useState(true);
+    const [mobileBottomMenu, setMobileBottomMenu] = useState([
+        { id: 'home', enabled: true },
+        { id: 'search', enabled: true },
+        { id: 'cart', enabled: true },
+        { id: 'whatsapp', enabled: true },
+        { id: 'categories', enabled: false },
+        { id: 'policies', enabled: false },
+        { id: 'profile', enabled: false }
+    ]);
     const [savingGrid, setSavingGrid] = useState(false);
 
     const [checkoutMode, setCheckoutMode] = useState('whatsapp');
@@ -43,6 +52,7 @@ export default function WaStoreSettings() {
                 if (myStore?.customDomain) setCustomDomain(myStore.customDomain);
                 if (myStore?.gridColumns) setGridColumns(myStore.gridColumns);
                 if (myStore?.showCrossSells !== undefined) setShowCrossSells(myStore.showCrossSells);
+                if (myStore?.mobileBottomMenu) setMobileBottomMenu(myStore.mobileBottomMenu);
                 if (myStore?.checkoutMode) setCheckoutMode(myStore.checkoutMode);
                 if (myStore?.currency) setCurrency(myStore.currency);
                 if (myStore?.paymentProvider) setPaymentProvider(myStore.paymentProvider);
@@ -96,9 +106,10 @@ export default function WaStoreSettings() {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
                 gridColumns,
-                showCrossSells
+                showCrossSells,
+                mobileBottomMenu
             });
-            toast.success('Grid layout saved!');
+            toast.success('Display layout saved!');
         } catch (error) {
             toast.error('Failed to save grid layout');
         } finally {
@@ -427,6 +438,69 @@ export default function WaStoreSettings() {
                             className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
                         >
                             {savingGrid ? 'Saving...' : 'Save Display Options'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile Bottom Menu Config */}
+            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
+                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Smartphone className="w-4 h-4 text-indigo-400" /> Mobile Bottom Menu
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">Configure the icons that appear in the sticky navigation bar on mobile devices.</p>
+                </div>
+                <div className="p-4 md:p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        {mobileBottomMenu.map((item, idx) => (
+                            <label key={item.id} className="flex items-start gap-3 cursor-pointer p-3 border border-slate-200 dark:border-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                <div className="relative mt-0.5 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        checked={item.enabled}
+                                        onChange={e => {
+                                            const updated = [...mobileBottomMenu];
+                                            updated[idx].enabled = e.target.checked;
+                                            setMobileBottomMenu(updated);
+                                        }}
+                                        className="sr-only peer"
+                                    />
+                                    <div
+                                        className={`w-9 h-5 rounded-full transition-colors cursor-pointer border-2 ${
+                                            item.enabled
+                                                ? 'bg-indigo-600 border-indigo-600'
+                                                : 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
+                                        }`}
+                                    >
+                                        <div className={`absolute top-[2px] left-[2px] w-3.5 h-3.5 bg-white rounded-full shadow transition-transform ${
+                                            item.enabled ? 'translate-x-4' : 'translate-x-0'
+                                        }`} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="block text-sm font-semibold text-slate-900 dark:text-white capitalize">{item.id === 'whatsapp' ? 'WhatsApp Redirect' : item.id}</span>
+                                    <span className="block text-[10px] text-slate-500 mt-0.5">
+                                        {item.id === 'home' && 'Link back to store home page'}
+                                        {item.id === 'search' && 'Open search overlay'}
+                                        {item.id === 'cart' && 'Open shopping cart drawer'}
+                                        {item.id === 'whatsapp' && 'Open wa.me/ to configured store WhatsApp number'}
+                                        {item.id === 'categories' && 'Open categories list'}
+                                        {item.id === 'policies' && 'Open store policies modal'}
+                                        {item.id === 'profile' && 'User profile / orders link'}
+                                    </span>
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                    <div>
+                        <button
+                            type="button"
+                            onClick={handleSaveGrid}
+                            disabled={savingGrid}
+                            className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
+                        >
+                            {savingGrid ? 'Saving...' : 'Save Mobile Menu Config'}
                         </button>
                     </div>
                 </div>

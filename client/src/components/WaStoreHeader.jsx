@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, ChevronUp, FileText, Phone, Mail, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import WaStoreMobileBottomMenu from './WaStoreMobileBottomMenu';
 
 // Helper to slugify product names for URLs
 const slugifyProduct = (name, id) => {
@@ -38,12 +39,71 @@ export default function WaStoreHeader({
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [expandedMobileSections, setExpandedMobileSections] = useState({ categories: true, policies: false });
+    const [expandedMobileSections, setExpandedMobileSections] = useState({ categories: true, policies: false, contact: false });
     const [activePolicy, setActivePolicy] = useState(null); // 'privacy', 'terms', 'return'
 
     const getCurrencySymbol = (code) => {
         const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
         return symbols[code] || code;
+    };
+
+    const renderSearchResults = () => {
+        const results = products.filter(p => 
+            p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        ).slice(0, 6);
+
+        if (results.length === 0) {
+            return (
+                <div className="p-6 text-center text-gray-500">
+                    No products found for "{searchQuery}"
+                </div>
+            );
+        }
+
+        return (
+            <ul className="flex flex-col">
+                {results.map(product => (
+                    <li key={product.id}>
+                        <button 
+                            onClick={() => {
+                                setIsSearchOpen(false);
+                                setSearchQuery('');
+                                navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`);
+                            }}
+                            className="w-full flex items-center gap-4 p-3 sm:p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 text-left"
+                        >
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                                {product.imageUrls && product.imageUrls[0] ? (
+                                    <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <ShoppingBag className="w-5 h-5 text-gray-400" />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm text-gray-900 truncate">{product.name}</h4>
+                                <p className="text-xs text-gray-500 truncate">{product.category || 'Uncategorized'}</p>
+                            </div>
+                            <div className="font-medium text-sm text-gray-900 shrink-0">
+                                {getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}
+                            </div>
+                        </button>
+                    </li>
+                ))}
+                <li className="bg-gray-50 p-3 text-center border-t border-gray-100">
+                    <button 
+                        onClick={() => {
+                            setIsSearchOpen(false);
+                            navigate(`/store/${slug}`);
+                            setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
+                        }}
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                        View all search results
+                    </button>
+                </li>
+            </ul>
+        );
     };
 
     return (
@@ -52,14 +112,39 @@ export default function WaStoreHeader({
                 {theme.id === 'vogue' ? (
                     /* ── VOGUE: Minimal 3-column ── Hamburger | Logo | Search+Cart */
                     <div className="max-w-[1440px] mx-auto px-4 sm:px-10 h-20 grid grid-cols-3 items-center">
-                        {/* LEFT – Hamburger on mobile */}
-                        <div className="flex items-center justify-start">
+                        {/* LEFT – Hamburger on mobile, Search on desktop */}
+                        <div className="flex items-center justify-start gap-2 relative">
                             <button 
                                 onClick={() => setIsMobileMenuOpen(true)}
                                 className="md:hidden p-2 -ml-2 text-black hover:bg-black/5 rounded-lg transition-colors"
                             >
                                 <Menu className="w-6 h-6" />
                             </button>
+                            {/* Desktop Search */}
+                            <div className="hidden md:block w-full max-w-[280px] relative">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search products..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full bg-gray-50 border border-gray-200 text-black py-2 pl-9 pr-8 rounded-full outline-none focus:border-black transition-colors text-sm"
+                                />
+                                {searchQuery && (
+                                    <button 
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black p-1"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                                {/* Results */}
+                                {searchQuery.trim().length > 0 && (
+                                    <div className="absolute left-0 w-[150%] top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
+                                        {renderSearchResults()}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* CENTER – Logo or store name */}
@@ -71,11 +156,11 @@ export default function WaStoreHeader({
                             )}
                         </div>
 
-                        {/* RIGHT – Search and Cart */}
+                        {/* RIGHT – Search(mobile) and Cart */}
                         <div className="flex items-center justify-end gap-2">
                             <button 
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                                className="p-2 text-black hover:bg-black/5 rounded-full transition-colors flex items-center justify-center"
+                                className="md:hidden p-2 text-black hover:bg-black/5 rounded-full transition-colors flex items-center justify-center"
                             >
                                 <Search className="w-5 h-5 stroke-[1.5]" />
                             </button>
@@ -107,13 +192,39 @@ export default function WaStoreHeader({
                                 <img src={imgUrl(store.logo)} alt={store.name} className="w-12 h-12 object-contain rounded-md cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
                             )}
                             <span className={`font-semibold text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
+                            
+                            {/* Desktop Search */}
+                            <div className="hidden md:block flex-1 max-w-md mx-8 relative">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search products..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full bg-gray-50 border border-gray-200 text-black py-2 pl-9 pr-8 rounded-full outline-none focus:border-black transition-colors text-sm"
+                                />
+                                {searchQuery && (
+                                    <button 
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black p-1"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                                {/* Results */}
+                                {searchQuery.trim().length > 0 && (
+                                    <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
+                                        {renderSearchResults()}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Right side: Search & Cart */}
+                        {/* Right side: Search(mobile) & Cart */}
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                                className={`p-2 rounded-full transition-colors ${theme.textMuted} hover:${theme.text} flex items-center justify-center`}
+                                className={`md:hidden p-2 rounded-full transition-colors ${theme.textMuted} hover:${theme.text} flex items-center justify-center`}
                             >
                                 <Search className="w-6 h-6 stroke-[1.5]" />
                             </button>
@@ -137,10 +248,11 @@ export default function WaStoreHeader({
                 <AnimatePresence>
                     {isSearchOpen && (
                         <motion.div 
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="w-full bg-white border-b border-gray-100 shadow-sm relative z-40 overflow-visible"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className="absolute left-0 right-0 top-full w-full bg-white border-b border-gray-100 shadow-sm z-40 overflow-visible"
                         >
                             <div className="max-w-[1440px] mx-auto px-4 py-4 sm:px-6 lg:px-8 relative">
                                 <div className="relative">
@@ -151,7 +263,6 @@ export default function WaStoreHeader({
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="w-full bg-gray-50 border border-gray-200 text-black py-3 pl-12 pr-4 rounded-xl outline-none focus:border-black transition-colors"
-                                        autoFocus
                                     />
                                     <button 
                                         onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
@@ -164,64 +275,7 @@ export default function WaStoreHeader({
                                 {/* LIVE SEARCH RESULTS */}
                                 {searchQuery.trim().length > 0 && (
                                     <div className="absolute left-4 right-4 sm:left-6 sm:right-6 lg:left-8 lg:right-8 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
-                                        {(() => {
-                                            const results = products.filter(p => 
-                                                p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                                (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
-                                            ).slice(0, 6);
-
-                                            if (results.length === 0) {
-                                                return (
-                                                    <div className="p-6 text-center text-gray-500">
-                                                        No products found for "{searchQuery}"
-                                                    </div>
-                                                );
-                                            }
-
-                                            return (
-                                                <ul className="flex flex-col">
-                                                    {results.map(product => (
-                                                        <li key={product.id}>
-                                                            <button 
-                                                                onClick={() => {
-                                                                    setIsSearchOpen(false);
-                                                                    setSearchQuery('');
-                                                                    navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`);
-                                                                }}
-                                                                className="w-full flex items-center gap-4 p-3 sm:p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 text-left"
-                                                            >
-                                                                <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
-                                                                    {product.imageUrls && product.imageUrls[0] ? (
-                                                                        <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-cover" />
-                                                                    ) : (
-                                                                        <ShoppingBag className="w-5 h-5 text-gray-400" />
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <h4 className="font-semibold text-sm text-gray-900 truncate">{product.name}</h4>
-                                                                    <p className="text-xs text-gray-500 truncate">{product.category || 'Uncategorized'}</p>
-                                                                </div>
-                                                                <div className="font-medium text-sm text-gray-900 shrink-0">
-                                                                    {getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}
-                                                                </div>
-                                                            </button>
-                                                        </li>
-                                                    ))}
-                                                    <li className="bg-gray-50 p-3 text-center border-t border-gray-100">
-                                                        <button 
-                                                            onClick={() => {
-                                                                setIsSearchOpen(false);
-                                                                navigate(`/store/${slug}`);
-                                                                setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
-                                                            }}
-                                                            className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                                                        >
-                                                            View all search results
-                                                        </button>
-                                                    </li>
-                                                </ul>
-                                            );
-                                        })()}
+                                        {renderSearchResults()}
                                     </div>
                                 )}
                             </div>
@@ -310,16 +364,19 @@ export default function WaStoreHeader({
                             transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
                             className={`w-[85%] max-w-sm h-full relative z-10 flex flex-col shadow-2xl ${theme.pageBg}`}
                         >
-                            <div className={`px-6 py-6 border-b border-gray-100 dark:border-white/10 flex items-center justify-between ${theme.header}`}>
-                                <div className="flex flex-col">
+                            <div className={`px-4 pt-6 pb-3 border-b border-gray-100 dark:border-white/10 flex items-center relative ${theme.header}`}>
+                                <div className="flex-1"></div>
+                                <div className="flex flex-col items-center text-center shrink-0">
                                     {store.logo ? (
-                                        <img src={imgUrl(store.logo)} alt={store.name} className="h-10 max-w-[150px] object-contain mb-2" />
+                                        <img src={imgUrl(store.logo)} alt={store.name} className="h-10 max-w-[150px] object-contain mb-0.5" />
                                     ) : null}
                                     <span className={`font-bold text-lg tracking-tight ${theme.headerLogo}`}>{store.name}</span>
                                 </div>
-                                <button onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${theme.textMuted}`}>
-                                    <X className="w-6 h-6" />
-                                </button>
+                                <div className="flex-1 flex justify-end">
+                                    <button onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${theme.textMuted}`}>
+                                        <X className="w-6 h-6" />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
@@ -363,6 +420,45 @@ export default function WaStoreHeader({
                                                         {cat}
                                                     </button>
                                                 ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Contact Us Accordion */}
+                                {(store.phone || store.whatsappNumber || store.email) && (
+                                    <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
+                                        <button 
+                                            onClick={() => setExpandedMobileSections(p => ({ ...p, contact: !p.contact }))}
+                                            className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Phone className="w-5 h-5" />
+                                                <span>Contact Us</span>
+                                            </div>
+                                            {expandedMobileSections.contact ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                        </button>
+                                        
+                                        <div className={`transition-all overflow-hidden ${expandedMobileSections.contact ? 'max-h-96 border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
+                                            <div className="p-2 space-y-1 bg-white dark:bg-black/20">
+                                                {store.whatsappNumber && (
+                                                    <a href={`https://wa.me/${store.whatsappNumber.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>
+                                                        <MessageCircle className="w-4 h-4" />
+                                                        WhatsApp
+                                                    </a>
+                                                )}
+                                                {store.phone && (
+                                                    <a href={`tel:${store.phone.replace(/\D/g, '')}`} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>
+                                                        <Phone className="w-4 h-4" />
+                                                        Call Us
+                                                    </a>
+                                                )}
+                                                {store.email && (
+                                                    <a href={`mailto:${store.email}`} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>
+                                                        <Mail className="w-4 h-4" />
+                                                        Email Us
+                                                    </a>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -427,6 +523,16 @@ export default function WaStoreHeader({
                     </div>
                 </div>
             )}
+
+            {/* Mobile Bottom Navigation Bar */}
+            <WaStoreMobileBottomMenu 
+                store={store}
+                theme={theme}
+                cartCount={cartCount}
+                setIsCartOpen={setIsCartOpen}
+                setIsSearchOpen={setIsSearchOpen}
+                setIsMobileMenuOpen={setIsMobileMenuOpen}
+            />
         </>
     );
 }

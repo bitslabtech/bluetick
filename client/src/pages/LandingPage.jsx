@@ -1713,14 +1713,14 @@ function TestimonialSlider({ testimonials }) {
 
     return (
         <div className="overflow-hidden relative -mx-4 px-4 sm:mx-0 sm:px-0">
-            <div 
+            <div
                 className={`flex gap-6 ${isTransitioning ? 'transition-transform duration-500 ease-in-out' : ''}`}
                 style={{ transform: `translateX(calc(-${currentIndex} * (100% + 24px) / ${visibleCount}))` }}
             >
                 {extendedTestimonials.map((t, i) => (
-                    <div 
-                        key={i} 
-                        className="flex-shrink-0" 
+                    <div
+                        key={i}
+                        className="flex-shrink-0"
                         style={{ width: `calc((100% - ${(visibleCount - 1) * 24}px) / ${visibleCount})` }}
                     >
                         <TestimonialCard t={t} str={str} />
@@ -2746,58 +2746,58 @@ export default function LandingPage() {
 
                                                         {/* Custom Features list */}
                                                         <div>
-                                                                <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Features</div>
-                                                                <ul className="space-y-3">
-                                                                    {plan.quickReplyLimit > 0 && (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.quickReplyLimit} Quick Replies</span>
-                                                                        </li>
-                                                                    )}
-                                                                    {plan.tagLimit > 0 && (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.tagLimit} Contact Tags</span>
-                                                                        </li>
-                                                                    )}
-                                                                    {plan.groupLimit > 0 && (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.groupLimit} Contact Groups</span>
-                                                                        </li>
-                                                                    )}
-                                                                    {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
-                                                                        <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
-                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                            <span className="leading-tight">{feat}</span>
-                                                                        </li>
-                                                                    ))}
-                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => (
-                                                                        <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50 grayscale' : ''}`}>
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                                                                            </div>
-                                                                            <span className="leading-tight">
-                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
-                                                                                {feat.name}
-                                                                            </span>
-                                                                        </li>
-                                                                    ))}
-                                                                    <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-50 grayscale' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowCtwaAnalytics ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                                                                            {!plan.allowCtwaAnalytics ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                                                                        </div>
-                                                                        <span className="leading-tight">Click to WhatsApp Ads</span>
+                                                            <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Features</div>
+                                                            <ul className="space-y-3">
+                                                                {plan.quickReplyLimit > 0 && (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.quickReplyLimit} Quick Replies</span>
                                                                     </li>
-                                                                    <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-50 grayscale' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowMetaAds ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                                                                            {!plan.allowMetaAds ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                                                                        </div>
-                                                                        <span className="leading-tight">Meta Ads Marketing</span>
+                                                                )}
+                                                                {plan.tagLimit > 0 && (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.tagLimit} Contact Tags</span>
                                                                     </li>
-                                                                </ul>
-                                                            </div>
+                                                                )}
+                                                                {plan.groupLimit > 0 && (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.groupLimit} Contact Groups</span>
+                                                                    </li>
+                                                                )}
+                                                                {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
+                                                                    <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
+                                                                        <span className="leading-tight">{feat}</span>
+                                                                    </li>
+                                                                ))}
+                                                                {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => (
+                                                                    <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50 grayscale' : ''}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                            {(!feat.qty || feat.qty === '0') ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                                                                        </div>
+                                                                        <span className="leading-tight">
+                                                                            {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                                                            {feat.name}
+                                                                        </span>
+                                                                    </li>
+                                                                ))}
+                                                                <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-50 grayscale' : ''}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowCtwaAnalytics ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                        {!plan.allowCtwaAnalytics ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                                                                    </div>
+                                                                    <span className="leading-tight">Click to WhatsApp Ads</span>
+                                                                </li>
+                                                                <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-50 grayscale' : ''}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowMetaAds ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                        {!plan.allowMetaAds ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                                                                    </div>
+                                                                    <span className="leading-tight">Meta Ads Marketing</span>
+                                                                </li>
+                                                            </ul>
                                                         </div>
+                                                    </div>
 
 
                                                     {plan.trialDays > 0 ? (

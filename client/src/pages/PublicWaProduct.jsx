@@ -62,6 +62,8 @@ export default function PublicWaProduct({ customSlug }) {
         delivery: false,
         details: false,
     });
+    const touchStartX = React.useRef(null);
+    const touchEndX = React.useRef(null);
 
     const toggleAccordion = (sec) => {
         setOpenAccordions(prev => ({ ...prev, [sec]: !prev[sec] }));
@@ -216,7 +218,7 @@ export default function PublicWaProduct({ customSlug }) {
     const checkoutTotal = checkoutSubtotal + checkoutShippingCost;
 
     return (
-        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white`} style={{ fontFamily: theme.fontFamily }}>
+        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-[140px] md:pb-0`} style={{ fontFamily: theme.fontFamily }}>
             {/* ─── MODERN HEADER ─── */}
             <WaStoreHeader 
                 store={store} 
@@ -228,10 +230,10 @@ export default function PublicWaProduct({ customSlug }) {
                 setIsCartOpen={setIsCartOpen} 
             />
 
-            <main className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12 py-10">
+            <main className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12 pt-4 pb-10 md:py-10">
                 
                 {/* ─── VISUAL BREADCRUMB ─── */}
-                <nav aria-label="Breadcrumb" className="mb-8">
+                <nav aria-label="Breadcrumb" className="mb-4 md:mb-8">
                     <ol className="flex items-center gap-1.5 flex-wrap text-xs font-semibold uppercase tracking-wider">
                         <li>
                             <button
@@ -257,7 +259,7 @@ export default function PublicWaProduct({ customSlug }) {
                         )}
                         <li className={theme.textMuted}><ChevronRight className="w-3 h-3" /></li>
                         <li>
-                            <span className={`text-black font-bold line-clamp-1`}>{product.name}</span>
+                            <span className={`text-black font-bold line-clamp-1 normal-case capitalize tracking-normal`}>{product.name}</span>
                         </li>
                     </ol>
                 </nav>
@@ -316,7 +318,33 @@ export default function PublicWaProduct({ customSlug }) {
                         )}
 
                         {/* Main Image Viewport */}
-                        <div className="flex-1 max-w-[500px] aspect-square bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in" onClick={() => setIsLightboxOpen(true)}>
+                        <div 
+                            className="flex-1 max-w-[500px] aspect-square bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in" 
+                            onClick={() => setIsLightboxOpen(true)}
+                            onTouchStart={(e) => {
+                                touchStartX.current = e.targetTouches[0].clientX;
+                            }}
+                            onTouchMove={(e) => {
+                                touchEndX.current = e.targetTouches[0].clientX;
+                            }}
+                            onTouchEnd={(e) => {
+                                if (!touchStartX.current || !touchEndX.current) return;
+                                const diff = touchStartX.current - touchEndX.current;
+                                if (Math.abs(diff) > 50 && product.imageUrls?.length > 1) {
+                                    // Prevent lightbox click on swipe
+                                    e.preventDefault();
+                                    if (diff > 0) {
+                                        // Swipe left -> next image
+                                        setActiveImageIdx(prev => prev === product.imageUrls.length - 1 ? 0 : prev + 1);
+                                    } else {
+                                        // Swipe right -> prev image
+                                        setActiveImageIdx(prev => prev === 0 ? product.imageUrls.length - 1 : prev - 1);
+                                    }
+                                }
+                                touchStartX.current = null;
+                                touchEndX.current = null;
+                            }}
+                        >
                             {product.imageUrls && product.imageUrls[activeImageIdx] ? (
                                 <img
                                     key={activeImageIdx}
@@ -368,26 +396,28 @@ export default function PublicWaProduct({ customSlug }) {
 
                     {/* Mobile Thumbnail Strip (hidden on desktop) */}
                     {product.imageUrls && product.imageUrls.length > 1 && (
-                        <div className="mobile-thumb-strip flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x lg:hidden w-full mt-2">
-                            {product.imageUrls.map((url, idx) => (
-                                <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => setActiveImageIdx(idx)}
-                                    className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-50 border snap-start relative ${
-                                        activeImageIdx === idx
-                                            ? 'border-black ring-1 ring-black'
-                                            : 'border-transparent opacity-60'
-                                    }`}
-                                >
-                                    <img
-                                        src={imgUrl(url)}
-                                        alt={`Thumbnail ${idx + 1}`}
-                                        className="w-full h-full object-cover mix-blend-multiply"
-                                        onError={e => e.target.style.display = 'none'}
-                                    />
-                                </button>
-                            ))}
+                        <div className="lg:hidden w-full mt-2 flex justify-center">
+                            <div className="mobile-thumb-strip flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x max-w-full px-1">
+                                {product.imageUrls.map((url, idx) => (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => setActiveImageIdx(idx)}
+                                        className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-50 border snap-start relative ${
+                                            activeImageIdx === idx
+                                                ? 'border-black ring-1 ring-black'
+                                                : 'border-transparent opacity-60'
+                                        }`}
+                                    >
+                                        <img
+                                            src={imgUrl(url)}
+                                            alt={`Thumbnail ${idx + 1}`}
+                                            className="w-full h-full object-cover mix-blend-multiply"
+                                            onError={e => e.target.style.display = 'none'}
+                                        />
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     )}
 
@@ -401,7 +431,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     {product.category}
                                 </span>
                             )}
-                            <h1 className="text-3xl lg:text-4xl font-normal tracking-tight text-black leading-tight mb-3">
+                            <h1 className="text-3xl lg:text-4xl font-normal tracking-tight text-black leading-tight mb-3 capitalize">
                                 {product.name}
                             </h1>
                             
@@ -481,7 +511,7 @@ export default function PublicWaProduct({ customSlug }) {
                         )}
 
                         {/* Quantity & Actions */}
-                        <div className="py-6 space-y-4 max-w-[280px]">
+                        <div className="hidden md:block py-6 space-y-4 max-w-[280px]">
                             <div className="flex items-center justify-between">
                                 <span className="text-xs font-bold uppercase tracking-wider text-black">Quantity</span>
                                 <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl p-1 shrink-0">
@@ -544,7 +574,7 @@ export default function PublicWaProduct({ customSlug }) {
                         </div>
 
                         {/* Collapsible Accordions */}
-                        <div className="border-t border-gray-100 mt-6 pt-4 space-y-0">
+                        <div className="md:border-t md:border-gray-100 md:mt-6 md:pt-4 space-y-0">
                             {/* DESCRIPTION ACCORDION */}
                             <div className="border-b border-gray-100">
                                 <button
@@ -808,6 +838,52 @@ export default function PublicWaProduct({ customSlug }) {
             </AnimatePresence>
 
             <WaStoreFooter store={store} />
+
+            {/* Sticky Mobile Add To Cart / Checkout Bar */}
+            <div 
+                className="md:hidden fixed left-0 w-full bg-white/95 backdrop-blur-md dark:bg-black/95 border-t border-gray-200 dark:border-white/10 px-2.5 py-3 z-30 flex items-center gap-2 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]"
+                style={{ bottom: 'calc(env(safe-area-inset-bottom) + 55px)' }}
+            >
+                {/* Price Display */}
+                <div className="flex flex-col justify-center shrink-0">
+                    <span className="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider leading-none mb-1">Total</span>
+                    <span className="text-sm font-bold text-black dark:text-white leading-none">
+                        {getCurrencySymbol(store.currency)}{(parseFloat(product.price) * qty).toFixed(2)}
+                    </span>
+                </div>
+
+                <div className="flex-1" />
+
+                {/* Quantity Selector */}
+                <div className="flex items-center bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-0.5 shrink-0 h-[42px]">
+                    <button 
+                        onClick={() => setQty(Math.max(1, qty - 1))} 
+                        className="w-7 sm:w-8 h-full flex items-center justify-center hover:bg-white dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 rounded-lg transition-all"
+                    >
+                        <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    </button>
+                    <span className="w-5 sm:w-6 text-center font-bold text-[11px] sm:text-xs text-black dark:text-white">{qty}</span>
+                    <button 
+                        onClick={() => setQty(qty + 1)} 
+                        className="w-7 sm:w-8 h-full flex items-center justify-center hover:bg-white dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 rounded-lg transition-all"
+                    >
+                        <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    </button>
+                </div>
+
+                <button 
+                    onClick={addToCart}
+                    disabled={preventAdd}
+                    className={`h-[42px] px-3 sm:px-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-1.5 shrink-0 ${
+                        preventAdd 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-black text-white hover:bg-neutral-800 shadow-md'
+                    }`}
+                >
+                    <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2] shrink-0" />
+                    <span className="truncate">{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                </button>
+            </div>
         </div>
     );
 }
