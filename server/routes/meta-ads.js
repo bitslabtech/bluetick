@@ -85,14 +85,28 @@ Schema:
         };
 
         const aiRes = await axios.post(url, payload);
-        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const candidate = aiRes.data.candidates?.[0];
+        let replyText = candidate?.content?.parts?.[0]?.text || '';
+        
+        if (!replyText) {
+            console.error('Empty response from AI. Candidate:', JSON.stringify(candidate));
+            return res.status(500).json({ error: 'AI returned an empty response. It might have been blocked by safety filters.', details: candidate });
+        }
+
         replyText = replyText.replace(/```(json)?/gi, '').replace(/```/gi, '').trim();
+        
+        // Try to extract JSON if there's surrounding text
+        const jsonMatch = replyText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        if (jsonMatch) {
+            replyText = jsonMatch[0];
+        }
 
         let generatedSpec;
         try {
             generatedSpec = JSON.parse(replyText);
         } catch (e) {
-            return res.status(500).json({ error: 'AI generated invalid structure.' });
+            console.error('Failed to parse AI response:', replyText);
+            return res.status(500).json({ error: 'AI generated invalid structure.', details: replyText });
         }
 
         await user.decrement('aiTokenBalance', { by: finalCost });
@@ -186,14 +200,28 @@ Schema:
         };
 
         const aiRes = await axios.post(url, payload);
-        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const candidate = aiRes.data.candidates?.[0];
+        let replyText = candidate?.content?.parts?.[0]?.text || '';
+
+        if (!replyText) {
+            console.error('Empty response from AI. Candidate:', JSON.stringify(candidate));
+            return res.status(500).json({ error: 'AI returned an empty response. It might have been blocked by safety filters.', details: candidate });
+        }
+
         replyText = replyText.replace(/```(json)?/gi, '').replace(/```/gi, '').trim();
+        
+        // Try to extract JSON if there's surrounding text
+        const jsonMatch = replyText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        if (jsonMatch) {
+            replyText = jsonMatch[0];
+        }
 
         let generatedCopy;
         try {
             generatedCopy = JSON.parse(replyText);
         } catch (e) {
-            return res.status(500).json({ error: 'AI generated invalid structure.' });
+            console.error('Failed to parse AI response:', replyText);
+            return res.status(500).json({ error: 'AI generated invalid structure.', details: replyText });
         }
 
         await user.decrement('aiTokenBalance', { by: finalCost });
