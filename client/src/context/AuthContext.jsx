@@ -99,8 +99,12 @@ export const AuthProvider = ({ children }) => {
 
             // 2. Update local state
             localStorage.setItem('user', JSON.stringify(targetUser));
+
+            // 3. Clear any stale pendingPlan so browsers with isolated storage (e.g. Brave)
+            //    don't lock the impersonated session to /checkout
+            localStorage.removeItem('pendingPlan');
             
-            // 3. Hard-navigate to dashboard
+            // 4. Hard-navigate to dashboard
             window.location.href = '/dashboard';
         } catch (err) {
             console.error("Impersonation failed:", err);

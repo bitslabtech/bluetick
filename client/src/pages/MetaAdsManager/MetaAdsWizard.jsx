@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Sparkles, Target, Type, CreditCard, ChevronRight, ChevronLeft, 
     CheckCircle2, AlertTriangle, Loader2, Megaphone, MapPin, 
     Users, Briefcase, Zap, Image, TrendingUp, ExternalLink, MoreVertical,
-    Bot, MessageCircle, Mail, ArrowRight, Workflow, Radio, Globe
+    Bot, MessageCircle, Mail, ArrowRight, Workflow, Radio, Globe,
+    PenLine, SlidersHorizontal, Hash, FileText, Plus, X, Tag
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +21,7 @@ const steps = [
 
 export default function MetaAdsWizard() {
     const navigate = useNavigate();
+    const [creationMode, setCreationMode] = useState('ai'); // 'ai' | 'manual'
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [metaConnected, setMetaConnected] = useState(null); // null = checking
@@ -39,6 +41,27 @@ export default function MetaAdsWizard() {
     const [generatedImage, setGeneratedImage] = useState(null);
     const [generatingImage, setGeneratingImage] = useState(false);
     const [budgetData, setBudgetData] = useState({ dailyBudget: 500, objective: 'OUTCOME_ENGAGEMENT' });
+
+    // Geography targeting — user controls this, not AI
+    const [targetLocations, setTargetLocations] = useState([]);
+    const [locationInput, setLocationInput] = useState('');
+
+    // ── Manual Mode State ──
+    const [manual, setManual] = useState({
+        campaignName: '',
+        objective: 'OUTCOME_ENGAGEMENT',
+        dailyBudget: 500,
+        ageMin: 18,
+        ageMax: 55,
+        primaryText: '',
+        headline: '',
+    });
+    const [manualLocations, setManualLocations] = useState([]);
+    const [manualLocationInput, setManualLocationInput] = useState('');
+    const [manualInterests, setManualInterests] = useState([]);
+    const [manualInterestInput, setManualInterestInput] = useState('');
+    const manualLocationRef = useRef(null);
+    const manualInterestRef = useRef(null);
 
     // Phase 6: Multi-language + Industry Templates
     const [adLanguage, setAdLanguage] = useState('english');
@@ -113,7 +136,8 @@ export default function MetaAdsWizard() {
         setLoading(true);
         try {
             const res = await axios.post('/api/meta-ads/ai-research', {
-                businessDescription: `Business Name: ${businessData.name}\n${businessData.description}`
+                businessDescription: `Business Name: ${businessData.name}\n${businessData.description}`,
+                targetLocations: targetLocations.length > 0 ? targetLocations : undefined
             }, { withCredentials: true });
             
             setAudienceData(res.data.research);
@@ -193,6 +217,46 @@ export default function MetaAdsWizard() {
         }
     };
 
+    // ── Manual Publish Handler ──
+    const handleManualPublish = async () => {
+        if (!manual.campaignName.trim()) return toast.error('Campaign name is required.');
+        if (!manual.primaryText.trim()) return toast.error('Ad primary text is required.');
+        if (!manual.headline.trim()) return toast.error('Headline is required.');
+        if (manualLocations.length === 0) return toast.error('Add at least one target location.');
+
+        setLoading(true);
+        try {
+            await axios.post('/api/meta-ads/publish', {
+                campaignName: manual.campaignName,
+                objective: manual.objective,
+                dailyBudget: manual.dailyBudget,
+                targeting: {
+                    age_min: manual.ageMin,
+                    age_max: manual.ageMax,
+                    locations: manualLocations,
+                    interests: manualInterests,
+                },
+                creatives: {
+                    primary_text: manual.primaryText,
+                    headline: manual.headline,
+                },
+                imageUrl: null,
+                automation: {
+                    type: automationType,
+                    flowId: automationType === 'flowbot' ? selectedFlowId : null,
+                    templateId: automationType === 'template' ? selectedTemplateId : null,
+                    icebreaker: icebreaker || null,
+                }
+            }, { withCredentials: true });
+            toast.success('Campaign saved successfully!');
+            navigate('/growth-hub');
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to save campaign.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // ── Get selected automation label for review ──
     const getAutomationLabel = () => {
         if (automationType === 'flowbot') {
@@ -204,6 +268,302 @@ export default function MetaAdsWizard() {
             return tpl ? `Template: ${tpl.name}` : 'Template (not selected)';
         }
         return 'No automation — leads go to inbox';
+    };
+
+    // ── Manual Form Tag Helper ──
+    const addManualLocation = () => {
+        const loc = manualLocationInput.trim().replace(/,$/, '');
+        if (loc && !manualLocations.includes(loc)) setManualLocations(p => [...p, loc]);
+        setManualLocationInput('');
+    };
+    const addManualInterest = () => {
+        const int = manualInterestInput.trim().replace(/,$/, '');
+        if (int && !manualInterests.includes(int)) setManualInterests(p => [...p, int]);
+        setManualInterestInput('');
+    };
+
+    // ════════════════════════════════════════════════
+    //  MANUAL FORM RENDERER
+    // ════════════════════════════════════════════════
+    const renderManualForm = () => {
+        const OBJECTIVES = [
+            { value: 'OUTCOME_ENGAGEMENT', label: 'Engagement', desc: 'Drive WhatsApp chats', emoji: '💬' },
+            { value: 'OUTCOME_LEADS', label: 'Lead Gen', desc: 'Collect qualified leads', emoji: '🎯' },
+            { value: 'OUTCOME_TRAFFIC', label: 'Traffic', desc: 'Drive website visits', emoji: '🌐' },
+            { value: 'OUTCOME_AWARENESS', label: 'Awareness', desc: 'Maximize brand reach', emoji: '📢' },
+        ];
+        const QUICK_LOCATIONS = ['India', 'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Pune', 'UAE', 'USA', 'UK', 'Singapore'];
+        const QUICK_INTERESTS = ['Small Business', 'E-commerce', 'Entrepreneurship', 'Digital Marketing', 'Online Shopping', 'Real Estate', 'Health & Fitness', 'Fashion', 'Technology', 'Education'];
+
+        return (
+            <div className="space-y-8">
+
+                {/* ─ Section 1: Campaign Identity ─ */}
+                <div className="group">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
+                            <FileText className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Campaign Identity</h3>
+                            <p className="text-xs text-slate-400">Name and goal of this campaign</p>
+                        </div>
+                    </div>
+                    <div className="bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-5 space-y-5">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">Campaign Name *</label>
+                            <input
+                                type="text"
+                                className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm font-medium outline-none focus:ring-2 focus:ring-violet-400/50 transition-all placeholder-slate-400"
+                                placeholder="e.g. Diwali Sale 2025 – WhatsApp Leads"
+                                value={manual.campaignName}
+                                onChange={e => setManual({...manual, campaignName: e.target.value})}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3">Campaign Objective</label>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {OBJECTIVES.map(obj => (
+                                    <button
+                                        key={obj.value}
+                                        type="button"
+                                        onClick={() => setManual({...manual, objective: obj.value})}
+                                        className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-center ${
+                                            manual.objective === obj.value
+                                                ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 shadow-lg shadow-violet-500/10'
+                                                : 'border-slate-100 dark:border-white/5 hover:border-violet-200 dark:hover:border-violet-500/30 bg-white dark:bg-surface-dark'
+                                        }`}
+                                    >
+                                        {manual.objective === obj.value && (
+                                            <span className="absolute top-2 right-2 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
+                                                <CheckCircle2 className="w-3 h-3 text-white" />
+                                            </span>
+                                        )}
+                                        <span className="text-2xl">{obj.emoji}</span>
+                                        <div>
+                                            <p className={`text-xs font-bold ${manual.objective === obj.value ? 'text-violet-700 dark:text-violet-300' : 'text-slate-700 dark:text-slate-300'}`}>{obj.label}</p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{obj.desc}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ─ Section 2: Budget ─ */}
+                <div>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                            <CreditCard className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Daily Budget</h3>
+                            <p className="text-xs text-slate-400">How much to spend per day</p>
+                        </div>
+                        <div className="ml-auto bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md">
+                            ₹{manual.dailyBudget.toLocaleString()}/day
+                        </div>
+                    </div>
+                    <div className="bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-5">
+                        <input
+                            type="range" min="100" max="50000" step="100"
+                            className="w-full accent-emerald-500 h-2 cursor-pointer"
+                            value={manual.dailyBudget}
+                            onChange={e => setManual({...manual, dailyBudget: parseInt(e.target.value)})}
+                        />
+                        <div className="flex justify-between text-xs text-slate-400 mt-2">
+                            <span>₹100 <span className="text-slate-300">(Min)</span></span>
+                            <div className="flex gap-2">
+                                {[500, 1000, 5000, 10000].map(v => (
+                                    <button key={v} type="button" onClick={() => setManual({...manual, dailyBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${ manual.dailyBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
+                                ))}
+                            </div>
+                            <span>₹50K+</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ─ Section 3: Audience ─ */}
+                <div>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                            <Users className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Target Audience</h3>
+                            <p className="text-xs text-slate-400">Who should see your ads</p>
+                        </div>
+                    </div>
+                    <div className="bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-5 space-y-6">
+
+                        {/* Age Range */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Min Age</label>
+                                <div className="relative">
+                                    <input type="number" min="13" max="65" className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-center text-lg font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50" value={manual.ageMin} onChange={e => setManual({...manual, ageMin: parseInt(e.target.value)||18})} />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">yrs</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Max Age</label>
+                                <div className="relative">
+                                    <input type="number" min="13" max="65" className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-center text-lg font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50" value={manual.ageMax} onChange={e => setManual({...manual, ageMax: parseInt(e.target.value)||55})} />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">yrs</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Locations */}
+                        <div>
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                                <MapPin className="w-3.5 h-3.5 text-red-400" /> Target Locations *
+                            </label>
+                            <div className="flex flex-wrap gap-2 mb-2 min-h-[32px]">
+                                {manualLocations.map((loc, i) => (
+                                    <span key={i} className="flex items-center gap-1.5 bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 px-3 py-1 rounded-full text-xs font-bold">
+                                        📍 {loc}
+                                        <button onClick={() => setManualLocations(p => p.filter((_,idx) => idx!==i))} className="hover:text-red-900 transition-colors">×</button>
+                                    </span>
+                                ))}
+                                {manualLocations.length === 0 && <span className="text-xs text-slate-400 italic">No locations added yet...</span>}
+                            </div>
+                            <div className="flex gap-2">
+                                <input ref={manualLocationRef} type="text" className="flex-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-400/40 transition-all" placeholder="Type city/state/country..." value={manualLocationInput} onChange={e => setManualLocationInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addManualLocation(); }}} />
+                                <button type="button" onClick={addManualLocation} className="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-all"><Plus className="w-4 h-4" /></button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                {QUICK_LOCATIONS.map(s => (
+                                    <button key={s} type="button" onClick={() => { if (!manualLocations.includes(s)) setManualLocations(p => [...p, s]); }} className={`text-[10px] px-2 py-1 rounded-full border transition-all ${ manualLocations.includes(s) ? 'border-red-400 bg-red-50 dark:bg-red-500/10 text-red-600' : 'border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-400'}`}>{s}</button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Interests */}
+                        <div>
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                                <Tag className="w-3.5 h-3.5 text-blue-400" /> Interests / Targeting Keywords
+                            </label>
+                            <div className="flex flex-wrap gap-2 mb-2 min-h-[32px]">
+                                {manualInterests.map((int, i) => (
+                                    <span key={i} className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 px-3 py-1 rounded-full text-xs font-bold">
+                                        # {int}
+                                        <button onClick={() => setManualInterests(p => p.filter((_,idx) => idx!==i))} className="hover:text-blue-900 transition-colors">×</button>
+                                    </span>
+                                ))}
+                                {manualInterests.length === 0 && <span className="text-xs text-slate-400 italic">No interests added...</span>}
+                            </div>
+                            <div className="flex gap-2">
+                                <input ref={manualInterestRef} type="text" className="flex-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/40 transition-all" placeholder="e.g. Fashion, Online Shopping..." value={manualInterestInput} onChange={e => setManualInterestInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addManualInterest(); }}} />
+                                <button type="button" onClick={addManualInterest} className="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-all"><Plus className="w-4 h-4" /></button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                {QUICK_INTERESTS.map(s => (
+                                    <button key={s} type="button" onClick={() => { if (!manualInterests.includes(s)) setManualInterests(p => [...p, s]); }} className={`text-[10px] px-2 py-1 rounded-full border transition-all ${ manualInterests.includes(s) ? 'border-blue-400 bg-blue-50 dark:bg-blue-500/10 text-blue-600' : 'border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-400'}`}>{s}</button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ─ Section 4: Ad Creative ─ */}
+                <div>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
+                            <PenLine className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Ad Creative</h3>
+                            <p className="text-xs text-slate-400">The copy that drives users to WhatsApp</p>
+                        </div>
+                    </div>
+                    <div className="bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-5 space-y-5">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Primary Text * <span className="normal-case text-slate-400 font-normal">(Main ad body, up to 200 chars)</span></label>
+                            <textarea
+                                rows={4}
+                                maxLength={200}
+                                className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-400/50 transition-all leading-relaxed resize-none"
+                                placeholder="Write your main ad text here. Use a hook in the first line. E.g.: 🔥 Flat 50% OFF on all dresses — limited time only! Click below to get your exclusive discount on WhatsApp."
+                                value={manual.primaryText}
+                                onChange={e => setManual({...manual, primaryText: e.target.value})}
+                            />
+                            <p className="text-right text-[10px] text-slate-400 mt-1">{manual.primaryText.length}/200</p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Headline * <span className="normal-case text-slate-400 font-normal">(Short punchy CTA, up to 40 chars)</span></label>
+                            <input
+                                type="text"
+                                maxLength={40}
+                                className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-400/50 transition-all"
+                                placeholder="e.g. Chat Now & Get 50% OFF!"
+                                value={manual.headline}
+                                onChange={e => setManual({...manual, headline: e.target.value})}
+                            />
+                            <p className="text-right text-[10px] text-slate-400 mt-1">{manual.headline.length}/40</p>
+                        </div>
+
+                        {/* Live Preview */}
+                        {(manual.primaryText || manual.headline) && (
+                            <div className="mt-2">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Live Preview</p>
+                                <div className="bg-white dark:bg-[#242526] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm max-w-sm">
+                                    <div className="p-3 flex items-center gap-2.5">
+                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">{manual.campaignName?.[0] || 'B'}</div>
+                                        <div>
+                                            <p className="font-bold text-xs text-slate-900 dark:text-[#E4E6EB]">{manual.campaignName || 'Your Business'}</p>
+                                            <p className="text-[10px] text-slate-400">Sponsored · 🌍</p>
+                                        </div>
+                                    </div>
+                                    <div className="px-3 pb-2">
+                                        <p className="text-xs text-slate-800 dark:text-[#E4E6EB] leading-relaxed">{manual.primaryText}</p>
+                                    </div>
+                                    <div className="bg-slate-100 dark:bg-[#3A3B3C] px-3 py-2.5 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[9px] text-slate-500 uppercase tracking-wide">CHAT ON WHATSAPP</p>
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white">{manual.headline || 'Your headline here'}</p>
+                                        </div>
+                                        <div className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-[10px] font-bold">WhatsApp</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* ─ Section 5: Meta Connection Status ─ */}
+                {metaConnected === false && (
+                    <div className="flex items-start gap-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl">
+                        <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="font-bold text-amber-900 dark:text-amber-300 text-sm">Meta Account Not Connected</p>
+                            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">Campaign will be saved as <strong>Draft</strong> and won't go live until you connect your Meta Ads account.</p>
+                        </div>
+                        <button onClick={() => navigate('/ctwa-analytics')} className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-800/40 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+                            Connect <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                )}
+
+                {/* ─ Publish Button ─ */}
+                <div className="flex gap-3 pt-2">
+                    <button onClick={() => navigate(-1)} className="px-5 py-3.5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-sm">Cancel</button>
+                    <button
+                        onClick={handleManualPublish}
+                        disabled={loading}
+                        className={`flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all text-sm ${
+                            metaConnected
+                                ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-violet-500/25'
+                                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-amber-500/25'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                    >
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Megaphone className="w-5 h-5" />}
+                        {metaConnected ? 'Publish Campaign' : 'Save as Draft'}
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     const renderStepContent = () => {
@@ -261,6 +621,78 @@ export default function MetaAdsWizard() {
                                 ))}
                             </div>
                             <p className="text-[11px] text-slate-400 mt-1.5">AI will generate ad copy in this language. You can write your description in any language.</p>
+                        </div>
+
+                        {/* Geography Targeting — User Controlled */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-red-500" /> Target Locations <span className="text-xs font-normal text-slate-400">(Where you want your ads to run)</span>
+                            </label>
+                            {/* Tag display */}
+                            <div className="flex flex-wrap gap-2 mb-2">
+                                {targetLocations.map((loc, i) => (
+                                    <span key={i} className="flex items-center gap-1.5 bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300 px-3 py-1 rounded-full text-xs font-bold">
+                                        📍 {loc}
+                                        <button onClick={() => setTargetLocations(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-red-900 dark:hover:text-red-100 transition-colors ml-0.5 text-sm leading-none">×</button>
+                                    </span>
+                                ))}
+                                {targetLocations.length === 0 && (
+                                    <span className="text-xs text-slate-400 italic">No locations added — AI will suggest locations based on your description.</span>
+                                )}
+                            </div>
+                            {/* Input row */}
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    className="flex-1 bg-slate-50 dark:bg-surface-dark/50 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-400/50 transition-all"
+                                    placeholder="e.g. Mumbai, Delhi, Karnataka..."
+                                    value={locationInput}
+                                    onChange={(e) => setLocationInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if ((e.key === 'Enter' || e.key === ',') && locationInput.trim()) {
+                                            e.preventDefault();
+                                            const loc = locationInput.trim().replace(/,$/, '');
+                                            if (loc && !targetLocations.includes(loc)) {
+                                                setTargetLocations(prev => [...prev, loc]);
+                                            }
+                                            setLocationInput('');
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const loc = locationInput.trim().replace(/,$/, '');
+                                        if (loc && !targetLocations.includes(loc)) {
+                                            setTargetLocations(prev => [...prev, loc]);
+                                        }
+                                        setLocationInput('');
+                                    }}
+                                    className="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-all flex-shrink-0"
+                                >Add</button>
+                            </div>
+                            {/* Quick suggestions */}
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                {['India', 'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'UAE', 'USA', 'UK'].map(suggestion => (
+                                    <button
+                                        key={suggestion}
+                                        type="button"
+                                        onClick={() => {
+                                            if (!targetLocations.includes(suggestion)) {
+                                                setTargetLocations(prev => [...prev, suggestion]);
+                                            }
+                                        }}
+                                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                                            targetLocations.includes(suggestion)
+                                                ? 'border-red-400 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                                                : 'border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                        }`}
+                                    >
+                                        {suggestion}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-1.5">Press Enter or comma to add. Click quick-suggestions or type any city/country/state. These become hard rules for the AI.</p>
                         </div>
 
                         {/* Phase 6: Industry Quick Templates */}
@@ -329,12 +761,36 @@ export default function MetaAdsWizard() {
                             <div className="space-y-4">
                                 <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-5">
                                     <h4 className="text-sm border-b border-slate-200 dark:border-white/5 pb-2 mb-4 font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                        <MapPin className="w-4 h-4 text-slate-400" /> Locations
+                                        <MapPin className="w-4 h-4 text-red-400" /> Target Locations
+                                        <span className="text-[10px] text-slate-400 font-normal ml-auto">Editable</span>
                                     </h4>
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-2 mb-2">
                                         {audienceData?.locations?.map((loc, i) => (
-                                            <span key={i} className="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold">{loc}</span>
+                                            <span key={i} className="flex items-center gap-1.5 bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300 px-3 py-1 rounded-full text-xs font-bold">
+                                                📍 {loc}
+                                                <button
+                                                    onClick={() => setAudienceData({...audienceData, locations: audienceData.locations.filter((_, idx) => idx !== i)})}
+                                                    className="hover:text-red-900 transition-colors text-sm leading-none"
+                                                >×</button>
+                                            </span>
                                         ))}
+                                    </div>
+                                    <div className="flex gap-2 mt-1">
+                                        <input
+                                            type="text"
+                                            id="audience-location-add"
+                                            className="flex-1 text-xs bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-400/40"
+                                            placeholder="Add location..."
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                                    const loc = e.target.value.trim();
+                                                    if (!audienceData.locations?.includes(loc)) {
+                                                        setAudienceData({...audienceData, locations: [...(audienceData.locations || []), loc]});
+                                                    }
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -824,44 +1280,175 @@ export default function MetaAdsWizard() {
 
     return (
         <div className="min-h-screen p-4 md:p-6 max-w-5xl mx-auto">
-            {/* Stepper Header */}
-            <div className="mb-10">
-                <div className="flex items-center justify-between relative">
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 dark:bg-white/5 rounded-full z-0"></div>
-                    <div 
-                        className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-primary to-secondary rounded-full z-0 transition-all duration-500"
-                        style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
-                    ></div>
 
-                    {steps.map((step, index) => {
-                        const Icon = step.icon;
-                        const isActive = index <= currentStep;
-                        return (
-                            <div key={step.id} className="relative z-10 flex flex-col items-center gap-2 bg-transparent">
-                                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-300 border-4 border-[#F8FAFC] dark:border-[#0f172a] ${isActive ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/30' : 'bg-slate-200 dark:bg-surface-dark text-slate-400'}`}>
-                                    <Icon className="w-4 h-4 md:w-5 md:h-5" />
-                                </div>
-                                <span className={`text-[10px] md:text-xs font-bold absolute -bottom-6 w-max ${isActive ? 'text-primary' : 'text-slate-400'}`}>{step.title}</span>
-                            </div>
-                        );
-                    })}
+            {/* ══════════════════════════════════════════
+                MODE TOGGLE — Premium dual-mode selector
+            ══════════════════════════════════════════ */}
+            <div className="mb-8">
+                {/* Back link */}
+                <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors mb-6 group">
+                    <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to Meta Ads
+                </button>
+
+                {/* Toggle Card */}
+                <div className="relative bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-2 shadow-xl shadow-black/5 dark:shadow-black/20 flex gap-2">
+                    {/* Sliding background */}
+                    <motion.div
+                        layout
+                        className="absolute inset-2 rounded-2xl"
+                        style={{ width: 'calc(50% - 8px)' }}
+                        animate={{ x: creationMode === 'manual' ? 'calc(100% + 8px)' : '0%' }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                    >
+                        <div className={`h-full w-full rounded-2xl shadow-lg ${
+                            creationMode === 'ai'
+                                ? 'bg-gradient-to-br from-primary to-secondary'
+                                : 'bg-gradient-to-br from-violet-600 to-purple-700'
+                        }`} />
+                    </motion.div>
+
+                    {/* AI Mode Button */}
+                    <button
+                        onClick={() => setCreationMode('ai')}
+                        className="relative z-10 flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-2xl transition-colors group"
+                    >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                            creationMode === 'ai'
+                                ? 'bg-white/20 text-white'
+                                : 'bg-primary/10 text-primary group-hover:bg-primary/15'
+                        }`}>
+                            <Sparkles className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                            <p className={`font-bold text-sm transition-colors ${ creationMode === 'ai' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                                AI-Assisted Wizard
+                            </p>
+                            <p className={`text-xs transition-colors ${ creationMode === 'ai' ? 'text-white/70' : 'text-slate-400'}`}>
+                                Let AI generate targeting & copy
+                            </p>
+                        </div>
+                        {creationMode === 'ai' && (
+                            <span className="ml-auto bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">⚡ ACTIVE</span>
+                        )}
+                    </button>
+
+                    {/* Manual Mode Button */}
+                    <button
+                        onClick={() => setCreationMode('manual')}
+                        className="relative z-10 flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-2xl transition-colors group"
+                    >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                            creationMode === 'manual'
+                                ? 'bg-white/20 text-white'
+                                : 'bg-violet-500/10 text-violet-600 group-hover:bg-violet-500/15'
+                        }`}>
+                            <SlidersHorizontal className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                            <p className={`font-bold text-sm transition-colors ${ creationMode === 'manual' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                                Manual Builder
+                            </p>
+                            <p className={`text-xs transition-colors ${ creationMode === 'manual' ? 'text-white/70' : 'text-slate-400'}`}>
+                                Full control, zero AI tokens
+                            </p>
+                        </div>
+                        {creationMode === 'manual' && (
+                            <span className="ml-auto bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">✍️ ACTIVE</span>
+                        )}
+                    </button>
                 </div>
-            </div>
 
-            {/* Main Content Area */}
-            <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-4 md:p-8 shadow-xl mt-12 min-h-[500px]">
+                {/* Mode description bar */}
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={currentStep}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.3 }}
+                        key={creationMode}
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.2 }}
+                        className="mt-3 flex items-center gap-3 px-4"
                     >
-                        {renderStepContent()}
+                        {creationMode === 'ai' ? (
+                            <>
+                                <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    <strong className="text-slate-700 dark:text-slate-300">AI Wizard</strong> — Describe your business and AI will generate optimal audience targeting, ad copy, and strategy in seconds.
+                                    <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">~20–30 tokens used</span>
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <SlidersHorizontal className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    <strong className="text-slate-700 dark:text-slate-300">Manual Builder</strong> — Set every parameter yourself. Ideal for experienced marketers who know exactly what they want.
+                                    <span className="ml-2 text-xs bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-semibold">0 tokens</span>
+                                </p>
+                            </>
+                        )}
                     </motion.div>
                 </AnimatePresence>
             </div>
+
+            {/* ══════════════════════════════════════════
+                CONDITIONAL CONTENT
+            ══════════════════════════════════════════ */}
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={creationMode}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -16 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    {creationMode === 'ai' ? (
+                        // ── AI WIZARD ──
+                        <>
+                            {/* Stepper Header */}
+                            <div className="mb-10">
+                                <div className="flex items-center justify-between relative">
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 dark:bg-white/5 rounded-full z-0"></div>
+                                    <div
+                                        className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-primary to-secondary rounded-full z-0 transition-all duration-500"
+                                        style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+                                    ></div>
+                                    {steps.map((step, index) => {
+                                        const Icon = step.icon;
+                                        const isActive = index <= currentStep;
+                                        return (
+                                            <div key={step.id} className="relative z-10 flex flex-col items-center gap-2 bg-transparent">
+                                                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-300 border-4 border-[#F8FAFC] dark:border-[#0f172a] ${isActive ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/30' : 'bg-slate-200 dark:bg-surface-dark text-slate-400'}`}>
+                                                    <Icon className="w-4 h-4 md:w-5 md:h-5" />
+                                                </div>
+                                                <span className={`text-[10px] md:text-xs font-bold absolute -bottom-6 w-max ${isActive ? 'text-primary' : 'text-slate-400'}`}>{step.title}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Main Content Area */}
+                            <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-4 md:p-8 shadow-xl mt-12 min-h-[500px]">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={currentStep}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        {renderStepContent()}
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
+                        </>
+                    ) : (
+                        // ── MANUAL BUILDER ──
+                        <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-4 md:p-8 shadow-xl">
+                            {renderManualForm()}
+                        </div>
+                    )}
+                </motion.div>
+            </AnimatePresence>
         </div>
     );
 }

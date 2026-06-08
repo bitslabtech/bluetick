@@ -77,6 +77,13 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected }) 
     const totalLeads = ctwaData?.totalLeads || 0;
     const totalSpend = ctwaData?.totalSpend || 0;
     const cpl = totalLeads > 0 && totalSpend > 0 ? (totalSpend / totalLeads) : null;
+    // Fallback: sum from local campaign insights when CTWA not connected
+    const campaignSpend       = campaigns.reduce((s, c) => s + parseFloat(c.spend || 0), 0);
+    const campaignImpressions = campaigns.reduce((s, c) => s + parseInt(c.impressions || 0), 0);
+    const campaignClicks      = campaigns.reduce((s, c) => s + parseInt(c.clicks || 0), 0);
+    const displaySpend       = totalSpend > 0 ? totalSpend : campaignSpend;
+    const displayImpressions = ctwaData?.ads?.reduce((s, a) => s + (a.impressions || 0), 0) || campaignImpressions;
+    const displayClicks      = campaignClicks;
 
     return (
         <div className="space-y-8">
@@ -123,15 +130,15 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected }) 
                     <FunnelCard
                         icon={DollarSign}
                         label="Total Spend"
-                        value={fmtCurrency(totalSpend)}
-                        subLabel="Across all campaigns"
+                        value={displaySpend > 0 ? fmtCurrency(displaySpend) : '—'}
+                        subLabel={displaySpend > 0 ? 'Across all campaigns' : 'No spend data yet'}
                         delay={0.1}
                     />
                     <FunnelCard
                         icon={Eye}
                         label="Impressions"
-                        value={fmt(ctwaData?.ads?.reduce((s, a) => s + (a.impressions || 0), 0))}
-                        subLabel="Total ad views"
+                        value={displayImpressions > 0 ? fmt(displayImpressions) : '—'}
+                        subLabel={displayImpressions > 0 ? 'Total ad views' : 'Connect Meta to sync'}
                         delay={0.2}
                     />
                     <FunnelCard
@@ -168,16 +175,16 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected }) 
                             <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-6 border border-white/20 shadow-inner">
                                 <Sparkles className="w-7 h-7" />
                             </div>
-                            <h3 className="text-2xl sm:text-3xl font-black mb-3 tracking-tight">Create AI Campaign</h3>
+                            <h3 className="text-2xl sm:text-3xl font-black mb-3 tracking-tight">Create Campaign</h3>
                             <p className="text-[15px] font-medium text-white/80 mb-8 leading-relaxed">
-                                Launch a high-converting WhatsApp ad in under 2 minutes. Our AI handles targeting, copy & creatives perfectly.
+                                Use AI to auto-generate targeting &amp; copy, or build manually with full control. Get your first WhatsApp ad live in under 2 minutes.
                             </p>
                         </div>
                         <button
                             onClick={() => navigate('/meta-ads/wizard')}
                             className="w-full bg-white text-indigo-600 hover:bg-slate-50 font-black py-4 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl group-hover:scale-[1.02]"
                         >
-                            <Plus className="w-5 h-5" /> Launch AI Wizard
+                            <Plus className="w-5 h-5" /> Launch Wizard
                         </button>
                     </div>
                 </motion.div>
@@ -232,7 +239,7 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected }) 
                                     Published: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
                                 };
                                 return (
-                                    <div key={campaign.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors gap-3 sm:gap-0">
+                                    <div key={campaign.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors gap-2 sm:gap-0">
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
                                                 <CreditCard className="w-5 h-5" />
@@ -240,14 +247,21 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected }) 
                                             <div className="min-w-0">
                                                 <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{campaign.campaignName}</p>
                                                 <p className="text-xs text-slate-500 mt-0.5">
-                                                    {formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true })}
+                                                    {campaign.createdAt ? formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true }) : '—'}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 w-full sm:w-auto border-t sm:border-0 border-slate-100 dark:border-white/5 pt-3 sm:pt-0 mt-1 sm:mt-0">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                ₹{parseFloat(campaign.dailyBudget || 0).toFixed(0)}/day
-                                            </span>
+                                        <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 w-full sm:w-auto border-t sm:border-0 border-slate-100 dark:border-white/5 pt-2 sm:pt-0">
+                                            <div className="text-right">
+                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                    ₹{parseFloat(campaign.dailyBudget || 0).toFixed(0)}<span className="text-[10px] font-medium text-slate-400">/day</span>
+                                                </p>
+                                                {parseFloat(campaign.spend || 0) > 0 && (
+                                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                                                        ₹{fmt(campaign.spend, 2)} spent
+                                                    </p>
+                                                )}
+                                            </div>
                                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColors[campaign.status] || statusColors.Draft}`}>
                                                 {campaign.status === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                                                 {campaign.status}
@@ -297,16 +311,25 @@ const CampaignsTab = ({ campaigns, loading, navigate, isDarkMode }) => {
         Paused: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
         Draft: 'bg-slate-100 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400',
         Published: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+        Error: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400',
     };
+
+    // Aggregate spend summary across all campaigns
+    const totalDailyBudget = campaigns.reduce((s, c) => s + parseFloat(c.dailyBudget || 0), 0);
+    const totalSpent       = campaigns.reduce((s, c) => s + parseFloat(c.spend || 0), 0);
+    const totalImpressions = campaigns.reduce((s, c) => s + parseInt(c.impressions || 0), 0);
+    const totalClicks      = campaigns.reduce((s, c) => s + parseInt(c.clicks || 0), 0);
+    const activeCampaigns  = campaigns.filter(c => c.status === 'Active').length;
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Megaphone className="w-5 h-5 text-primary" /> All Campaigns
                     </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">Manage your AI-generated ad campaigns</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Manage your ad campaigns — AI-generated or manually built</p>
                 </div>
                 <button
                     onClick={() => navigate('/meta-ads/wizard')}
@@ -316,11 +339,36 @@ const CampaignsTab = ({ campaigns, loading, navigate, isDarkMode }) => {
                 </button>
             </div>
 
+            {/* Budget Overview Strip */}
+            {campaigns.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Daily Budget</p>
+                        <p className="text-xl font-black text-slate-900 dark:text-white">₹{fmt(totalDailyBudget)}<span className="text-xs font-medium text-slate-400">/day</span></p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Spent</p>
+                        <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{totalSpent > 0 ? `₹${fmt(totalSpent)}` : '—'}</p>
+                        {totalSpent > 0 && <p className="text-[10px] text-slate-400 mt-0.5">across all campaigns</p>}
+                    </div>
+                    <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Impressions</p>
+                        <p className="text-xl font-black text-slate-900 dark:text-white">{totalImpressions > 0 ? fmt(totalImpressions) : '—'}</p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Active</p>
+                        <p className="text-xl font-black text-slate-900 dark:text-white">{activeCampaigns} <span className="text-xs font-medium text-slate-400">/ {campaigns.length}</span></p>
+                        {activeCampaigns > 0 && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>Live now</span>}
+                    </div>
+                </div>
+            )}
+
+            {/* Campaigns Table */}
             <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
                 {loading ? (
                     <div className="p-6 space-y-4">
                         {[1, 2, 3, 4].map(i => (
-                            <Skeleton key={i} height={72} baseColor={isDarkMode ? '#1e293b' : '#f8fafc'} highlightColor={isDarkMode ? '#334155' : '#ffffff'} className="rounded-xl" />
+                            <Skeleton key={i} height={80} baseColor={isDarkMode ? '#1e293b' : '#f8fafc'} highlightColor={isDarkMode ? '#334155' : '#ffffff'} className="rounded-xl" />
                         ))}
                     </div>
                 ) : campaigns.length === 0 ? (
@@ -329,7 +377,7 @@ const CampaignsTab = ({ campaigns, loading, navigate, isDarkMode }) => {
                             <Megaphone className="w-9 h-9 text-indigo-500" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No campaigns yet</h3>
-                        <p className="text-slate-500 max-w-sm mx-auto mb-6 text-sm">Use our AI wizard to create your first high-converting WhatsApp ad campaign.</p>
+                        <p className="text-slate-500 max-w-sm mx-auto mb-6 text-sm">Use our wizard to create your first high-converting WhatsApp ad campaign.</p>
                         <button
                             onClick={() => navigate('/meta-ads/wizard')}
                             className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-md transition-all"
@@ -338,66 +386,127 @@ const CampaignsTab = ({ campaigns, loading, navigate, isDarkMode }) => {
                         </button>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto sm:overflow-visible">
-                        <table className="w-full text-left border-collapse block sm:table">
-                            <thead className="hidden sm:table-header-group">
-                                <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02]">
-                                    <th className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-5 py-3.5">Campaign</th>
-                                    <th className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-4 py-3.5">Status</th>
-                                    <th className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-4 py-3.5">Budget</th>
-                                    <th className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-4 py-3.5">Objective</th>
-                                    <th className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-4 py-3.5 text-right">Created</th>
-                                </tr>
-                            </thead>
-                            <tbody className="block sm:table-row-group divide-y divide-slate-100 dark:divide-white/5">
-                                {campaigns.map((campaign) => (
-                                    <tr key={campaign.id} className="block sm:table-row hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group p-4 sm:p-0">
-                                        <td className="block sm:table-cell px-0 sm:px-5 py-3 sm:py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
-                                                    <CreditCard className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-primary transition-colors">
-                                                        {campaign.campaignName}
-                                                    </p>
-                                                    <p className="text-xs text-slate-500 mt-0.5">
-                                                        {campaign.targeting?.locations?.[0]} • Age {campaign.targeting?.age_min}-{campaign.targeting?.age_max}
-                                                    </p>
-                                                </div>
+                    <div className="divide-y divide-slate-100 dark:divide-white/5">
+                        {campaigns.map((campaign) => {
+                            const dailyBudget = parseFloat(campaign.dailyBudget || 0);
+                            const spent       = parseFloat(campaign.spend || 0);
+                            const impressions = parseInt(campaign.impressions || 0);
+                            const clicks      = parseInt(campaign.clicks || 0);
+                            const ctr         = campaign.ctr ? parseFloat(campaign.ctr) : null;
+                            const reach       = parseInt(campaign.reach || 0);
+                            const hasInsights = spent > 0 || impressions > 0;
+
+                            return (
+                                <div key={campaign.id} className="p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group">
+                                    {/* Row top: name + status + budget */}
+                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+                                                <CreditCard className="w-5 h-5" />
                                             </div>
-                                        </td>
-                                        <td className="flex sm:table-cell justify-between items-center sm:justify-start px-0 sm:px-4 py-2 sm:py-4 border-t border-slate-100/50 sm:border-0 dark:border-white/5">
-                                            <span className="sm:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</span>
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-primary transition-colors truncate">
+                                                    {campaign.campaignName}
+                                                </p>
+                                                <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                                    {campaign.targeting?.locations?.[0] || 'No location'} • Age {campaign.targeting?.age_min || '?'}–{campaign.targeting?.age_max || '?'} • {campaign.objective?.replace(/_/g, ' ') || 'Engagement'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Status + Date */}
+                                        <div className="flex items-center gap-2 flex-shrink-0">
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColors[campaign.status] || statusColors.Draft}`}>
                                                 {campaign.status === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                                                {campaign.status}
+                                                {campaign.status || 'Draft'}
                                             </span>
-                                        </td>
-                                        <td className="flex sm:table-cell justify-between items-center sm:justify-start px-0 sm:px-4 py-2 sm:py-4 border-t border-slate-100/50 sm:border-0 dark:border-white/5">
-                                            <span className="sm:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider">Budget</span>
-                                            <span className="font-semibold text-slate-900 dark:text-slate-200 text-sm">
-                                                ₹{parseFloat(campaign.dailyBudget || 0).toFixed(0)}/day
+                                            <span className="text-[11px] text-slate-400">
+                                                {campaign.createdAt ? formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true }) : '—'}
                                             </span>
-                                        </td>
-                                        <td className="flex sm:table-cell justify-between items-center sm:justify-start px-0 sm:px-4 py-2 sm:py-4 text-xs font-medium text-slate-600 dark:text-slate-400 border-t border-slate-100/50 sm:border-0 dark:border-white/5">
-                                            <span className="sm:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider">Objective</span>
-                                            <span>{campaign.objective?.replace('_', ' ')}</span>
-                                        </td>
-                                        <td className="flex sm:table-cell justify-between items-center sm:justify-end px-0 sm:px-4 py-2 sm:py-4 text-sm text-slate-500 border-t border-slate-100/50 sm:border-0 dark:border-white/5">
-                                            <span className="sm:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider">Created</span>
-                                            <span>{formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true })}</span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Budget + Spend Row */}
+                                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        {/* Daily Budget */}
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Daily Budget</p>
+                                            <p className="text-base font-black text-slate-900 dark:text-white mt-1">₹{fmt(dailyBudget)}</p>
+                                            <p className="text-[10px] text-slate-400">per day</p>
+                                        </div>
+
+                                        {/* Total Spent */}
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Spent</p>
+                                            {hasInsights ? (
+                                                <>
+                                                    <p className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-1">₹{fmt(spent, 2)}</p>
+                                                    <p className="text-[10px] text-slate-400">{campaign.insightsUpdatedAt ? `as of ${formatDistanceToNow(new Date(campaign.insightsUpdatedAt), {addSuffix:true})}` : 'from Meta'}</p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="text-base font-black text-slate-400 mt-1">—</p>
+                                                    <p className="text-[10px] text-slate-400">{campaign.status === 'Draft' ? 'Not yet published' : 'Connect Meta to sync'}</p>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {/* Impressions */}
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Impressions</p>
+                                            <p className={`text-base font-black mt-1 ${impressions > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                                                {impressions > 0 ? fmt(impressions) : '—'}
+                                            </p>
+                                            {clicks > 0 && <p className="text-[10px] text-slate-400">{fmt(clicks)} clicks</p>}
+                                        </div>
+
+                                        {/* CTR */}
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CTR</p>
+                                            {ctr !== null ? (
+                                                <>
+                                                    <p className={`text-base font-black mt-1 ${ctr >= 1 ? 'text-emerald-600 dark:text-emerald-400' : ctr >= 0.5 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>
+                                                        {ctr.toFixed(2)}%
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-400">{ctr >= 1 ? '🔥 Great' : ctr >= 0.5 ? '⚡ Average' : '⚠️ Low'}</p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="text-base font-black text-slate-400 mt-1">—</p>
+                                                    <p className="text-[10px] text-slate-400">No data yet</p>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Budget Utilization Bar (only when we have spend data) */}
+                                    {hasInsights && dailyBudget > 0 && (
+                                        <div className="mt-3">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Spend vs Daily Budget</span>
+                                                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">₹{fmt(spent, 2)} / ₹{fmt(dailyBudget)}</span>
+                                            </div>
+                                            <div className="h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-500"
+                                                    style={{ width: `${Math.min(100, dailyBudget > 0 ? (spent / dailyBudget) * 100 : 0)}%` }}
+                                                />
+                                            </div>
+                                            {reach > 0 && (
+                                                <p className="text-[10px] text-slate-400 mt-1">{fmt(reach)} people reached</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </div>
         </div>
     );
 };
+
 
 // ── Analytics Tab ─────────────────────────────────────────────────────
 const AnalyticsTab = ({ ctwaData, loading, dateRange, setDateRange, onRefresh, isDarkMode, onRetarget }) => {
@@ -816,7 +925,7 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
                                         </td>
                                         <td className="flex sm:table-cell justify-between items-center sm:justify-end px-0 sm:px-4 py-2 sm:py-3.5 border-t border-slate-100/50 sm:border-0 dark:border-white/5 text-xs text-slate-500 sm:text-right">
                                             <span className="sm:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider">Captured</span>
-                                            <span>{formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}</span>
+                                            <span>{lead.createdAt ? formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true }) : '—'}</span>
                                         </td>
                                         <td className="block sm:table-cell px-0 sm:px-4 py-3 sm:py-3.5 mt-2 sm:mt-0 border-t border-slate-100/50 sm:border-0 dark:border-white/5 sm:text-right">
                                             <button
@@ -1221,7 +1330,7 @@ export default function GrowthHub() {
                     className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-4 rounded-xl font-black shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all text-sm group"
                 >
                     <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-                    Create AI Campaign
+                    Create Campaign
                 </button>
 
                 {/* Vertical Tabs */}

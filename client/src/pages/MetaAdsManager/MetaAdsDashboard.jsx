@@ -100,10 +100,10 @@ const MetaAdsDashboard = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
                         <Megaphone className="w-8 h-8 text-secondary" />
-                        AI Meta Ads Manager
+                        Meta Ads Manager
                     </h1>
                     <p className="text-slate-500 dark:text-text-secondary mt-1 max-w-2xl text-sm">
-                        Create, deploy, and manage highly-targeted Click-to-WhatsApp (CTWA) ad campaigns powered by artificial intelligence.
+                        Create, deploy, and manage Click-to-WhatsApp (CTWA) ad campaigns. Use AI to auto-generate everything or build manually with full control.
                     </p>
                 </div>
                 <motion.button
@@ -113,7 +113,7 @@ const MetaAdsDashboard = () => {
                     className="flex-shrink-0 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 md:px-6 py-3 rounded-lg font-bold shadow-md shadow-primary/25 transition-all"
                 >
                     <Plus className="w-5 h-5" />
-                    Create New AI Campaign
+                    Create Campaign
                 </motion.button>
             </div>
 

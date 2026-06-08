@@ -16,36 +16,42 @@ const ProtectedRoute = () => {
 
     // Option A: Non-admins are locked if they have expired plans or pending checkouts
     if (user && !user.isAdmin) {
-        let pendingPlan = localStorage.getItem('pendingPlan');
-        
-        // Check if user has an active, valid plan or trial (not Free and not expired)
-        const hasActiveValidPlan = user.plan !== 'Free' && user.planExpiry && new Date(user.planExpiry) >= new Date();
-
-        // If the admin granted a trial/plan, clear out any stale pending checkouts silently
-        if (hasActiveValidPlan && pendingPlan) {
+        // If this is an impersonated admin session, NEVER lock to /checkout.
+        // Clear any stale pendingPlan that could be left in Brave's isolated localStorage.
+        if (user.origRole === 'Admin') {
             localStorage.removeItem('pendingPlan');
-            pendingPlan = null;
-        }
-        
-        // 1. If they have a pending checkout from registration, lock them to /checkout or /billing
-        if (pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
-            return <Navigate to="/checkout" replace />;
-        }
+        } else {
+            let pendingPlan = localStorage.getItem('pendingPlan');
+            
+            // Check if user has an active, valid plan or trial (not Free and not expired)
+            const hasActiveValidPlan = user.plan !== 'Free' && user.planExpiry && new Date(user.planExpiry) >= new Date();
 
-        // 2. If user's trial or plan is expired, lock them to /checkout or /billing
-        if (user.planExpiry && user.plan !== 'Free') {
-            const expiryDate = new Date(user.planExpiry);
-            if (expiryDate < new Date() && location.pathname !== '/checkout' && location.pathname !== '/billing') {
-                // Give them a pending plan based on their current plan so they can renew
-                if (!pendingPlan) {
-                     if (user.planDetails) {
-                        localStorage.setItem('pendingPlan', JSON.stringify(user.planDetails));
-                     } else {
-                         // Failsafe: if the plan doesn't exist anymore
-                         localStorage.setItem('pendingPlan', JSON.stringify({ name: 'Default', price: 0 }));
-                     }
-                }
+            // If the admin granted a trial/plan, clear out any stale pending checkouts silently
+            if (hasActiveValidPlan && pendingPlan) {
+                localStorage.removeItem('pendingPlan');
+                pendingPlan = null;
+            }
+            
+            // 1. If they have a pending checkout from registration, lock them to /checkout or /billing
+            if (pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
                 return <Navigate to="/checkout" replace />;
+            }
+
+            // 2. If user's trial or plan is expired, lock them to /checkout or /billing
+            if (user.planExpiry && user.plan !== 'Free') {
+                const expiryDate = new Date(user.planExpiry);
+                if (expiryDate < new Date() && location.pathname !== '/checkout' && location.pathname !== '/billing') {
+                    // Give them a pending plan based on their current plan so they can renew
+                    if (!pendingPlan) {
+                         if (user.planDetails) {
+                            localStorage.setItem('pendingPlan', JSON.stringify(user.planDetails));
+                         } else {
+                             // Failsafe: if the plan doesn't exist anymore
+                             localStorage.setItem('pendingPlan', JSON.stringify({ name: 'Default', price: 0 }));
+                         }
+                    }
+                    return <Navigate to="/checkout" replace />;
+                }
             }
         }
     }

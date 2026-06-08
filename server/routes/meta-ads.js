@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
 
 // POST to generate AI Research (Audience & Targeting)
 router.post('/ai-research', async (req, res) => {
-    const { businessDescription } = req.body;
+    const { businessDescription, targetLocations } = req.body;
     try {
         if (!businessDescription) return res.status(400).json({ error: 'Business description is required' });
 
@@ -59,18 +59,27 @@ router.post('/ai-research', async (req, res) => {
 
         const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
 
-        const systemInstruction = `You are an expert Meta Ads Strategist. 
+        // Build location instruction — user-specified locations are a hard rule, not a suggestion
+        const locationInstruction = targetLocations && targetLocations.length > 0
+            ? `IMPORTANT: The user has specified they want to target ONLY these locations: ${targetLocations.join(', ')}. Use EXACTLY these locations in the "locations" array. Do not add, remove, or change them.`
+            : `Recommend 3-5 relevant locations based on the business description.`;
+
+        const systemInstruction = `You are an expert Meta Ads Strategist.
 The user is providing a description of their business/product.
 Your job is to recommend the best targeting for a Click-to-WhatsApp (CTWA) ad campaign to maximize ROI.
 
-Output STRICTLY VALID JSON. NO MARKDOWN. NO COMMENTS.
+${locationInstruction}
+
+Output ONLY a single VALID JSON object. NO markdown. NO code fences. NO extra text before or after.
+Keep the "interests" array to a maximum of 6 items.
+Keep the "ai_strategy_note" under 60 words.
 Schema:
 {
   "age_min": 18,
   "age_max": 65,
-  "interests": ["string", "string"],
-  "locations": ["string", "string"],
-  "ai_strategy_note": "string (Short paragraph explaining the reasoning)"
+  "interests": ["string"],
+  "locations": ["string"],
+  "ai_strategy_note": "string"
 }`;
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
@@ -78,8 +87,8 @@ Schema:
             systemInstruction: { parts: [{ text: systemInstruction }] },
             contents: [{ role: 'user', parts: [{ text: businessDescription }] }],
             generationConfig: { 
-                temperature: 0.7, 
-                maxOutputTokens: 1024,
+                temperature: 0.5, 
+                maxOutputTokens: 2048,
                 responseMimeType: "application/json"
             }
         };
@@ -194,7 +203,7 @@ Schema:
             contents: [{ role: 'user', parts: [{ text: businessDescription }] }],
             generationConfig: { 
                 temperature: 0.8, 
-                maxOutputTokens: 1024,
+                maxOutputTokens: 2048,
                 responseMimeType: "application/json"
             }
         };
@@ -318,6 +327,9 @@ router.post('/publish', async (req, res) => {
         const user = await User.findByPk(req.user.id);
         
         let fbStatus = 'Draft';
+        // Hoist so they're accessible when building the MetaAdCampaign record below
+        let campRes = null;
+        let adSetRes = null;
 
         if (user.metaAdsToken && user.metaAdAccountId) {
             try {
@@ -325,19 +337,25 @@ router.post('/publish', async (req, res) => {
                 const token = user.metaAdsToken;
 
                 // 1. Create Campaign
-                const campRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/campaigns`, null, {
+                campRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/campaigns`, null, {
                     params: {
                         name: campaignName,
-                        objective: 'OUTCOME_ENGAGEMENT',
-                        status: 'ACTIVE', // Publish as ACTIVE 
+                        objective: objective || 'OUTCOME_ENGAGEMENT', // Bug 2 Fix: use user-supplied objective
+                        status: 'ACTIVE',
                         special_ad_categories: [],
                         access_token: token
                     }
                 });
                 const campaignId = campRes.data.id;
 
+                // Bug 3 Fix: Map user locations to Meta geo_locations format
+                const userLocations = targeting?.locations || [];
+                const geoLocations = userLocations.length > 0
+                    ? { cities: userLocations.map(loc => ({ name: loc })) }
+                    : { countries: ['IN'] }; // Default to India if no locations provided
+
                 // 2. Create AdSet
-                const adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
+                adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
                     params: {
                         name: `${campaignName} - AdSet`,
                         campaign_id: campaignId,
@@ -345,25 +363,25 @@ router.post('/publish', async (req, res) => {
                         billing_event: 'IMPRESSIONS',
                         optimization_goal: 'REPLIES',
                         promoted_object: JSON.stringify({
-                            whatsapp_number: user.phone || 'UNKNOWN_PHONE' // Meta requires a linked WA number, we omit for mockup if it fails
+                            whatsapp_number: user.phone || 'UNKNOWN_PHONE'
                         }),
                         targeting: JSON.stringify({
-                            age_max: targeting.age_max || 65,
-                            age_min: targeting.age_min || 18,
-                            geo_locations: { countries: ["US"] } // Simplified
+                            age_max: targeting?.age_max || 65,
+                            age_min: targeting?.age_min || 18,
+                            geo_locations: geoLocations
                         }),
-                        status: 'ACTIVE', // Live from the platform
+                        status: 'ACTIVE',
                         access_token: token
                     }
                 }).catch(e => {
                     console.log('FB Graph Warning (AdSet missing WA config): ', e.response?.data?.error?.message);
-                    return { data: { id: null } }; // Keep going locally if graph fails due to strict FB setup rules
+                    return { data: { id: null } };
                 });
 
                 fbStatus = adSetRes.data.id ? 'Active' : 'Draft';
             } catch (graphAPIError) {
                 console.error("Graph API Publish Error:", graphAPIError.response?.data || graphAPIError.message);
-                fbStatus = 'Draft (API Error)';
+                fbStatus = 'Error'; // Bug 4 Fix: 'Draft (API Error)' is not a valid ENUM value
             }
         }
 

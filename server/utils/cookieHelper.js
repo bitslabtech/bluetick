@@ -6,11 +6,16 @@
  * JavaScript on the client CANNOT read these cookies — eliminating XSS token theft.
  */
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const COOKIE_OPTIONS = {
-    httpOnly: true,                                      // JS cannot read
-    secure: process.env.NODE_ENV === 'production',       // HTTPS only in prod
-    sameSite: 'lax',                                     // CSRF protection
-    maxAge: 24 * 60 * 60 * 1000,                         // 24h — matches JWT expiry
+    httpOnly: true,                    // JS cannot read
+    secure: isProduction,              // HTTPS only in prod (required for SameSite=None)
+    // In production (cross-origin): SameSite=None so Brave/Firefox/Chrome all send
+    // the cookie across origins. In dev (localhost): Lax since Secure=false
+    // and SameSite=None requires Secure.
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000,      // 24h — matches JWT expiry
     path: '/'
 };
 
