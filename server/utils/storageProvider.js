@@ -225,9 +225,13 @@ const storageProvider = (folderName, options = {}) => {
                             const originalSize = fileBuffer.length;
 
                             if (isCompressibleImage(req.file.mimetype)) {
-                                const result = await compressImage(fileBuffer, req.file.mimetype);
+                                const result = await compressImage(fileBuffer, req.file.mimetype, { convertToWebp: options.convertToWebp });
                                 fileBuffer = result.buffer;
                                 if (result.compressed) {
+                                    if (result.format === 'webp' && req.file.mimetype !== 'image/webp') {
+                                        req.file.mimetype = 'image/webp';
+                                        req.file.originalname = req.file.originalname.replace(/\.[^/.]+$/, "") + ".webp";
+                                    }
                                     const savedPercent = Math.round((1 - result.compressedSize / result.originalSize) * 100);
                                     console.log(
                                         `[IMAGE COMPRESSOR] ${req.file.originalname}: ` +

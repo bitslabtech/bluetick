@@ -33,6 +33,11 @@ const WaProduct = sequelize.define('WaProduct', {
         allowNull: true,
         comment: 'Used for showing discounts'
     },
+    taxRate: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        comment: 'Specific GST/Tax percentage for this product. Overrides global rate.'
+    },
     imageUrls: {
         type: DataTypes.JSON,
         defaultValue: [],

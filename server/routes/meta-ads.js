@@ -66,10 +66,10 @@ Your job is to recommend the best targeting for a Click-to-WhatsApp (CTWA) ad ca
 Output STRICTLY VALID JSON. NO MARKDOWN. NO COMMENTS.
 Schema:
 {
-  "age_min": integer (e.g. 18),
-  "age_max": integer (e.g. 65),
-  "interests": ["string", "string"], // 3-5 specific FB interests
-  "locations": ["string", "string"], // 1-3 suggested locations
+  "age_min": 18,
+  "age_max": 65,
+  "interests": ["string", "string"],
+  "locations": ["string", "string"],
   "ai_strategy_note": "string (Short paragraph explaining the reasoning)"
 }`;
 
@@ -77,7 +77,11 @@ Schema:
         const payload = {
             systemInstruction: { parts: [{ text: systemInstruction }] },
             contents: [{ role: 'user', parts: [{ text: businessDescription }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+            generationConfig: { 
+                temperature: 0.7, 
+                maxOutputTokens: 1024,
+                responseMimeType: "application/json"
+            }
         };
 
         const aiRes = await axios.post(url, payload);
@@ -158,6 +162,7 @@ IMPORTANT: Generate all ad copy (primary_text and headline) in ${targetLang}.
 ${language !== 'english' ? `Use natural, colloquial ${targetLang} that resonates with local audiences. Include appropriate emojis.` : 'Use emojis for engagement.'}
 
 Output STRICTLY VALID JSON. NO MARKDOWN. NO COMMENTS.
+Provide 3 variations.
 Schema:
 {
   "variations": [
@@ -165,7 +170,7 @@ Schema:
       "primary_text": "string (Main ad text in ${targetLang})",
       "headline": "string (Short, punchy headline in ${targetLang})"
     }
-  ] // Provide 3 variations
+  ]
 }`;
 
 
@@ -173,7 +178,11 @@ Schema:
         const payload = {
             systemInstruction: { parts: [{ text: systemInstruction }] },
             contents: [{ role: 'user', parts: [{ text: businessDescription }] }],
-            generationConfig: { temperature: 0.8, maxOutputTokens: 1024 }
+            generationConfig: { 
+                temperature: 0.8, 
+                maxOutputTokens: 1024,
+                responseMimeType: "application/json"
+            }
         };
 
         const aiRes = await axios.post(url, payload);

@@ -170,8 +170,8 @@ const WaStore = sequelize.define('WaStore', {
     },
     taxConfig: {
         type: DataTypes.JSON,
-        defaultValue: { enabled: false, type: 'gst', rate: 0, autoGenerateBill: false, autoSendWhatsApp: false },
-        comment: 'Stores global tax / GST configuration'
+        defaultValue: { enabled: false, type: 'gst', taxInclusive: false, slabs: [], rate: 0, autoGenerateBill: false, autoSendWhatsApp: false },
+        comment: 'Stores global tax / GST configuration including tax inclusive flag and multiple slabs'
     },
     shippingConfig: {
         type: DataTypes.JSON,

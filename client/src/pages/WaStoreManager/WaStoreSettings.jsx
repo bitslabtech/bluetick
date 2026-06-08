@@ -34,7 +34,7 @@ export default function WaStoreSettings() {
     const [checkoutConfig, setCheckoutConfig] = useState({ minOrderValue: 0, flatShippingRate: 0, freeShippingThreshold: 0 });
     const [savingCheckout, setSavingCheckout] = useState(false);
 
-    const [taxConfig, setTaxConfig] = useState({ enabled: false, type: 'gst', rate: 0, autoGenerateBill: false, autoSendWhatsApp: false });
+    const [taxConfig, setTaxConfig] = useState({ enabled: false, type: 'gst', taxInclusive: false, slabs: [], rate: 0, autoGenerateBill: false, autoSendWhatsApp: false });
     const [savingTax, setSavingTax] = useState(false);
 
     const [inventoryConfig, setInventoryConfig] = useState({ autoOutOfStock: false, showLowStock: false, preventCartAdd: false });
@@ -785,14 +785,84 @@ export default function WaStoreSettings() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Default Tax Rate (%)</label>
-                                <input 
-                                    type="number" 
-                                    value={taxConfig.rate} 
-                                    onChange={e => setTaxConfig({...taxConfig, rate: parseFloat(e.target.value) || 0})}
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Pricing Mode</label>
+                                <select 
+                                    value={taxConfig.taxInclusive ? 'inclusive' : 'exclusive'} 
+                                    onChange={e => setTaxConfig({...taxConfig, taxInclusive: e.target.value === 'inclusive'})}
                                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
-                                />
+                                >
+                                    <option value="exclusive">Product Price Excludes Tax (Tax added at checkout)</option>
+                                    <option value="inclusive">Product Price Includes Tax</option>
+                                </select>
                             </div>
+
+                            {/* Tax Slabs Manager */}
+                            <div className="col-span-1 md:col-span-2 mt-2">
+                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Tax Slabs (Product-Wise)</label>
+                                <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    {(taxConfig.slabs || []).map((slab, index) => (
+                                        <div key={index} className="flex gap-2 items-center">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Slab Name (e.g., 18% GST)"
+                                                value={slab.name}
+                                                onChange={e => {
+                                                    const newSlabs = [...(taxConfig.slabs || [])];
+                                                    newSlabs[index].name = e.target.value;
+                                                    setTaxConfig({...taxConfig, slabs: newSlabs});
+                                                }}
+                                                className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+                                            />
+                                            <div className="relative w-24">
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="Rate"
+                                                    value={slab.rate}
+                                                    onChange={e => {
+                                                        const newSlabs = [...(taxConfig.slabs || [])];
+                                                        newSlabs[index].rate = parseFloat(e.target.value) || 0;
+                                                        setTaxConfig({...taxConfig, slabs: newSlabs});
+                                                    }}
+                                                    className="w-full px-3 py-2 pr-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+                                                />
+                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                                            </div>
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    const newSlabs = [...(taxConfig.slabs || [])];
+                                                    newSlabs.splice(index, 1);
+                                                    setTaxConfig({...taxConfig, slabs: newSlabs});
+                                                }}
+                                                className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <button 
+                                        type="button"
+                                        onClick={() => setTaxConfig({...taxConfig, slabs: [...(taxConfig.slabs || []), { name: '', rate: 0 }]})}
+                                        className="text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+                                    >
+                                        + Add Tax Slab
+                                    </button>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">If no slabs are defined, a global default rate of {taxConfig.rate}% is applied.</p>
+                            </div>
+
+                            {/* Legacy Global Rate (kept as fallback) */}
+                            {(!taxConfig.slabs || taxConfig.slabs.length === 0) && (
+                                <div className="col-span-1 md:col-span-2">
+                                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Global Default Tax Rate (%)</label>
+                                    <input 
+                                        type="number" 
+                                        value={taxConfig.rate} 
+                                        onChange={e => setTaxConfig({...taxConfig, rate: parseFloat(e.target.value) || 0})}
+                                        className="w-full md:w-1/2 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+                                    />
+                                </div>
+                            )}
 
                             <div className="col-span-1 md:col-span-2 space-y-3 mt-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                                 <label className="flex items-center gap-3 cursor-pointer">

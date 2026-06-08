@@ -34,7 +34,8 @@ const DEFAULT_CONFIG = {
     jpegQuality: 80,         // 80% = visually identical, ~60-70% smaller
     pngCompressionLevel: 8,  // 0-9, higher = more compression (lossless)
     webpQuality: 80,         // 80% quality for WebP
-    withoutEnlargement: true // Never upscale small images
+    withoutEnlargement: true, // Never upscale small images
+    convertToWebp: false     // Force conversion to WebP if true
 };
 
 /**
@@ -72,7 +73,14 @@ async function compressImage(buffer, mimetype, config = {}) {
 
         // Apply format-specific compression
         let outputBuffer;
-        if (mimetype === 'image/jpeg') {
+        let finalFormat = mimetype.split('/')[1]; // e.g. 'jpeg', 'png', 'webp'
+
+        if (opts.convertToWebp) {
+            outputBuffer = await pipeline
+                .webp({ quality: opts.webpQuality })
+                .toBuffer();
+            finalFormat = 'webp';
+        } else if (mimetype === 'image/jpeg') {
             outputBuffer = await pipeline
                 .jpeg({ quality: opts.jpegQuality, mozjpeg: true })
                 .toBuffer();
@@ -89,18 +97,19 @@ async function compressImage(buffer, mimetype, config = {}) {
             return { buffer, compressed: false };
         }
 
-        // Only use compressed version if it's actually smaller
-        if (outputBuffer.length < originalSize) {
+        // Only use compressed version if it's actually smaller, OR if we explicitly converted to WebP
+        if (outputBuffer.length < originalSize || opts.convertToWebp) {
             return {
                 buffer: outputBuffer,
                 compressed: true,
                 originalSize,
-                compressedSize: outputBuffer.length
+                compressedSize: outputBuffer.length,
+                format: finalFormat
             };
         }
 
         // Compressed was bigger (already-optimized image) — return original
-        return { buffer, compressed: false, originalSize, compressedSize: outputBuffer.length };
+        return { buffer, compressed: false, originalSize, compressedSize: outputBuffer.length, format: mimetype.split('/')[1] };
 
     } catch (err) {
         // If anything goes wrong, return the original unmodified buffer

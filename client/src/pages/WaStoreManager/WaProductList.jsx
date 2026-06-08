@@ -190,6 +190,7 @@ export default function WaProductList() {
     const [aiKeywords, setAiKeywords] = useState('');
     const [currency, setCurrency] = useState('USD');
     const [storeCategories, setStoreCategories] = useState([]);
+    const [storeTaxConfig, setStoreTaxConfig] = useState(null);
     const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
 
     const getCurrencySymbol = (code) => {
@@ -197,7 +198,7 @@ export default function WaProductList() {
         return symbols[code] || code;
     };
 
-    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [] };
+    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], taxRate: '' };
     const [form, setForm] = useState(defaultForm);
 
     useEffect(() => {
@@ -211,6 +212,7 @@ export default function WaProductList() {
             if (myStore) {
                 setCurrency(myStore.currency || 'USD');
                 setStoreCategories(myStore.categories || []);
+                setStoreTaxConfig(myStore.taxConfig || null);
             }
 
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products`);
@@ -226,6 +228,7 @@ export default function WaProductList() {
         e.preventDefault();
         try {
             const payload = { ...form };
+            payload.taxRate = payload.taxRate === '' ? null : payload.taxRate;
             payload.imageUrls = payload.imageUrls.filter(url => url.trim() !== '');
             payload.options = payload.options.map(opt => ({
                 ...opt,
@@ -271,7 +274,8 @@ export default function WaProductList() {
             imageUrls: product.imageUrls?.length > 0 ? product.imageUrls : [''],
             category: product.category || '',
             inStock: product.inStock,
-            options: product.options || []
+            options: product.options || [],
+            taxRate: product.taxRate !== null && product.taxRate !== undefined ? product.taxRate : ''
         });
         
         if (product.category && !storeCategories.includes(product.category)) {
@@ -477,6 +481,21 @@ export default function WaProductList() {
                                             </button>
                                         </div>
                                     )}
+                                </div>
+                                
+                                <div className="space-y-1 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Tax Slab</label>
+                                    <select 
+                                        value={form.taxRate === null ? '' : form.taxRate} 
+                                        onChange={e => setForm({...form, taxRate: e.target.value === '' ? '' : parseFloat(e.target.value)})}
+                                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    >
+                                        <option value="">Default Store Rate ({storeTaxConfig?.rate || 0}%)</option>
+                                        {(storeTaxConfig?.slabs || []).map((slab, idx) => (
+                                            <option key={idx} value={slab.rate}>{slab.name} ({slab.rate}%)</option>
+                                        ))}
+                                        <option value="0">No Tax / Exempt (0%)</option>
+                                    </select>
                                 </div>
                                 <div className="space-y-1 flex items-center pt-6">
                                     <label className="relative inline-flex items-center cursor-pointer">

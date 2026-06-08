@@ -77,9 +77,35 @@ export default function WaStorePOS() {
         setCart(prev => prev.filter(item => item.id !== id));
     };
 
-    const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.qty), 0);
-    const taxAmount = taxEnabled ? (subtotal * taxRate) / 100 : 0;
-    const total = subtotal + taxAmount;
+    const getDisplayPrice = (priceVal, prod) => {
+        let p = parseFloat(priceVal) || 0;
+        if (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false) {
+            let tRate = prod.taxRate !== null && prod.taxRate !== undefined ? parseFloat(prod.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
+            p = p + (p * tRate / 100);
+        }
+        return p;
+    };
+
+    const subtotal = cart.reduce((sum, item) => sum + (getDisplayPrice(item.price, item) * item.qty), 0);
+    
+    const calculateTaxAmount = () => {
+        if (!taxEnabled) return 0;
+        let totalTax = 0;
+        cart.forEach(item => {
+            let basePrice = parseFloat(item.price) || 0;
+            let itemTaxRate = item.taxRate !== null && item.taxRate !== undefined ? parseFloat(item.taxRate) : (parseFloat(store?.taxConfig?.rate) || 0);
+            
+            if (store.taxConfig.taxInclusive) {
+                totalTax += (basePrice - (basePrice / (1 + itemTaxRate / 100))) * item.qty;
+            } else {
+                totalTax += (basePrice * (itemTaxRate / 100)) * item.qty;
+            }
+        });
+        return totalTax;
+    };
+    
+    const taxAmount = calculateTaxAmount();
+    const total = subtotal; // subtotal includes tax as per display logic
 
     const handleCheckout = async () => {
         if (cart.length === 0) return toast.error("Cart is empty");
@@ -94,8 +120,8 @@ export default function WaStorePOS() {
                 subtotal,
                 taxAmount,
                 total,
-                taxRate,
-                taxName,
+                taxRate: null, // mixed tax rates
+                taxName: taxEnabled ? 'Tax' : null,
                 sendInvoice: store?.taxConfig?.autoSendInvoice || true
             });
             
@@ -162,7 +188,7 @@ export default function WaStorePOS() {
                                 <div className="mt-auto">
                                     <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 mb-1">{product.name}</h3>
                                     <p className="text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                                        {currencySym}{product.price}
+                                        {currencySym}{getDisplayPrice(product.price, product).toFixed(2)}
                                     </p>
                                 </div>
                             </div>
@@ -224,7 +250,7 @@ export default function WaStorePOS() {
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">
-                                        {currencySym}{(parseFloat(item.price) * item.qty).toFixed(2)}
+                                        {currencySym}{(getDisplayPrice(item.price, item) * item.qty).toFixed(2)}
                                     </p>
                                     <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                                         <button onClick={() => updateQty(item.id, -1)} className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-colors text-slate-600 dark:text-slate-300"><Minus className="w-3 h-3" /></button>
@@ -244,12 +270,12 @@ export default function WaStorePOS() {
                         <span className="font-medium text-slate-900 dark:text-white">{currencySym}{subtotal.toFixed(2)}</span>
                     </div>
                     {taxEnabled && (
-                        <div className="flex justify-between text-sm text-slate-500">
-                            <span>{taxName} ({taxRate}%)</span>
-                            <span className="font-medium text-slate-900 dark:text-white">{currencySym}{taxAmount.toFixed(2)}</span>
+                        <div className="flex justify-between text-xs text-slate-400 mt-1">
+                            <span>Includes Tax</span>
+                            <span className="font-medium">{currencySym}{taxAmount.toFixed(2)}</span>
                         </div>
                     )}
-                    <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white pt-2 border-t border-slate-100 dark:border-white/10">
+                    <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white pt-2 border-t border-slate-100 dark:border-white/10 mt-3">
                         <span>Total</span>
                         <span>{currencySym}{total.toFixed(2)}</span>
                     </div>

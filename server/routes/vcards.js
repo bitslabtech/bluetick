@@ -226,7 +226,8 @@ router.use(auth);
 router.post('/upload/hero-image',
     storageProvider('vcard-hero', {
         limits: { fileSize: IMAGE_LIMIT_MB * 1024 * 1024 },
-        fileFilter: imageFileFilter
+        fileFilter: imageFileFilter,
+        convertToWebp: true
     }).single('file'),
     async (req, res) => {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });

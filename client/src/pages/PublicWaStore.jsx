@@ -121,6 +121,15 @@ export default function PublicWaStore({ customSlug }) {
         return merged;
     }, [products, store]);
 
+    const getDisplayPrice = useCallback((priceVal, product) => {
+        let p = parseFloat(priceVal) || 0;
+        if (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false) {
+            let taxRate = product.taxRate !== null && product.taxRate !== undefined ? parseFloat(product.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
+            p = p + (p * taxRate / 100);
+        }
+        return p;
+    }, [store]);
+
     // Advanced SEO: Dynamic Title and Meta Tags based on category
     useEffect(() => {
         if (!store) return;
@@ -482,11 +491,11 @@ export default function PublicWaStore({ customSlug }) {
                                             <h3 className={`text-[13px] md:text-[15px] font-semibold ${theme.text} mb-1.5 line-clamp-2 leading-snug hover:opacity-80 transition-opacity capitalize`}>{product.name}</h3>
 
                                             <div className="flex items-baseline flex-wrap gap-1 md:gap-2 mb-3 md:mb-5">
-                                                <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
+                                                <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>{getCurrencySymbol(store.currency)}{getDisplayPrice(product.price, product).toFixed(2)}</span>
                                                 {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
                                                     <>
                                                         <span className={`${theme.priceCompareStyle || 'text-xs md:text-sm text-gray-400 line-through font-normal'}`}>
-                                                            {getCurrencySymbol(store.currency)}{parseFloat(product.compareAtPrice).toFixed(2)}
+                                                            {getCurrencySymbol(store.currency)}{getDisplayPrice(product.compareAtPrice, product).toFixed(2)}
                                                         </span>
                                                         <span className="text-[9px] md:text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-100/50">
                                                             {Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100)}% OFF
@@ -613,7 +622,7 @@ export default function PublicWaStore({ customSlug }) {
                                                             {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(' | ')}
                                                         </div>
                                                     )}
-                                                    <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{parseFloat(item.price).toFixed(2)}</div>
+                                                    <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{getDisplayPrice(item.price, item).toFixed(2)}</div>
 
                                                     <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -623,7 +632,7 @@ export default function PublicWaStore({ customSlug }) {
                                                         </div>
                                                         {item.qty > 1 && (
                                                             <div className={`font-bold text-sm ${theme.text}`}>
-                                                                {getCurrencySymbol(store.currency)}{(parseFloat(item.price) * item.qty).toFixed(2)}
+                                                                {getCurrencySymbol(store.currency)}{(getDisplayPrice(item.price, item) * item.qty).toFixed(2)}
                                                             </div>
                                                         )}
                                                     </div>

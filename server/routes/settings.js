@@ -730,7 +730,7 @@ router.post('/test-smtp', async (req, res) => {
 
 const storageProvider = require('../utils/storageProvider');
 
-router.post('/upload-logo', storageProvider('logos', { fileFilter: storageProvider.generalImageFilter }).single('logo'), async (req, res) => {
+router.post('/upload-logo', storageProvider('logos', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true }).single('logo'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -754,7 +754,7 @@ router.post('/upload-logo', storageProvider('logos', { fileFilter: storageProvid
     }
 });
 
-router.post('/upload-favicon', storageProvider('favicons', { fileFilter: storageProvider.generalImageFilter }).single('favicon'), async (req, res) => {
+router.post('/upload-favicon', storageProvider('favicons', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true }).single('favicon'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });

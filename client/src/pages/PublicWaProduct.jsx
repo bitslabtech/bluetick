@@ -69,8 +69,18 @@ export default function PublicWaProduct({ customSlug }) {
         setOpenAccordions(prev => ({ ...prev, [sec]: !prev[sec] }));
     };
 
+    const getDisplayPrice = React.useCallback((priceVal, prod) => {
+        let p = parseFloat(priceVal) || 0;
+        if (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false) {
+            let taxRate = prod.taxRate !== null && prod.taxRate !== undefined ? parseFloat(prod.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
+            p = p + (p * taxRate / 100);
+        }
+        return p;
+    }, [store]);
+
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
-    const cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.qty), 0);
+    // Note: this cartTotal is mostly unused in PublicWaProduct, but updated for consistency
+    const cartTotal = cart.reduce((sum, item) => sum + (getDisplayPrice(item.price, item) * item.qty), 0);
 
     const updateQty = (cartItemId, delta) => {
         setCart(prev => {
@@ -95,6 +105,7 @@ export default function PublicWaProduct({ customSlug }) {
         }
         return ['All', ...(Array.isArray(cats) ? cats : [])];
     }, [store]);
+
 
     // Pre-select first options if available
     useEffect(() => {
@@ -184,6 +195,33 @@ export default function PublicWaProduct({ customSlug }) {
         toast.success(`Added ${qty} ${product.name} to cart`);
     };
 
+    const handleBuyNow = () => {
+        if (!product || preventAdd) return;
+
+        // Validate variants
+        if (product.options && Array.isArray(product.options)) {
+            for (let opt of product.options) {
+                if (!selectedVariants[opt.name]) {
+                    toast.error(`Please select a ${opt.name}`);
+                    return;
+                }
+            }
+        }
+
+        const variantString = Object.values(selectedVariants).sort().join('-');
+        const cartItemId = variantString ? `${product.id}-${variantString}` : product.id;
+
+        setCart(prev => {
+            const existing = prev.find(item => item.cartItemId === cartItemId);
+            if (existing) {
+                return prev; // Already in cart, we can just proceed
+            }
+            return [...prev, { ...product, cartItemId, qty, selectedVariants }];
+        });
+        
+        setIsCheckoutModalOpen(true);
+    };
+
     const handleCheckoutSuccess = () => {
         setCart([]);
     };
@@ -213,7 +251,7 @@ export default function PublicWaProduct({ customSlug }) {
     const freeShippingThreshold = checkoutConfig.freeShippingThreshold || 0;
 
     const currentCart = cart.length > 0 ? cart : [{ ...product, cartItemId: product.id, qty, selectedVariants }];
-    const checkoutSubtotal = currentCart.reduce((sum, item) => sum + (parseFloat(item.price) * item.qty), 0);
+    const checkoutSubtotal = currentCart.reduce((sum, item) => sum + (getDisplayPrice(item.price, item) * item.qty), 0);
     const checkoutShippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || checkoutSubtotal < freeShippingThreshold)) ? flatShippingRate : 0;
     const checkoutTotal = checkoutSubtotal + checkoutShippingCost;
 
@@ -438,12 +476,12 @@ export default function PublicWaProduct({ customSlug }) {
                             {/* Pricing & Savings & Status */}
                             <div className="flex flex-wrap items-center gap-4">
                                 <span className="text-2xl font-semibold text-black">
-                                    {getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}
+                                    {getCurrencySymbol(store.currency)}{getDisplayPrice(product.price, product).toFixed(2)}
                                 </span>
                                 {product.compareAtPrice && (
                                     <>
                                         <span className="text-lg text-gray-400 line-through font-normal">
-                                            {getCurrencySymbol(store.currency)}{parseFloat(product.compareAtPrice).toFixed(2)}
+                                            {getCurrencySymbol(store.currency)}{getDisplayPrice(product.compareAtPrice, product).toFixed(2)}
                                         </span>
                                         {(() => {
                                             const discountPercent = Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100);
@@ -545,19 +583,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                                 </button>
                                 <button 
-                                    onClick={() => {
-                                        if (preventAdd) return;
-                                        // Validate before opening checkout
-                                        if (product.options && Array.isArray(product.options)) {
-                                            for (let opt of product.options) {
-                                                if (!selectedVariants[opt.name]) {
-                                                    toast.error(`Please select a ${opt.name}`);
-                                                    return;
-                                                }
-                                            }
-                                        }
-                                        setIsCheckoutModalOpen(true);
-                                    }}
+                                    onClick={handleBuyNow}
                                     disabled={preventAdd}
                                     className={`w-full max-w-[280px] py-3.5 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group ${
                                         preventAdd 
@@ -568,7 +594,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
                                         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.588 2.019 14.12 1.01 11.52 1.01c-5.442 0-9.866 4.372-9.87 9.802 0 1.688.451 3.336 1.307 4.795l-.986 3.6 3.69-.968zm11.396-6.49c-.274-.137-1.62-.8-1.87-.892-.252-.093-.437-.137-.62.137-.183.274-.707.892-.867 1.075-.16.183-.32.206-.594.069-.274-.137-1.157-.426-2.202-1.358-.814-.726-1.364-1.622-1.524-1.896-.16-.274-.017-.422.12-.559.124-.124.274-.32.411-.48.137-.16.183-.274.274-.457.09-.183.046-.343-.023-.48-.069-.137-.62-1.494-.85-2.043-.224-.54-.449-.467-.62-.476-.16-.008-.343-.01-.527-.01-.183 0-.48.069-.73.343-.252.274-.96 1.006-.96 2.455 0 1.449 1.052 2.846 1.198 3.043.147.197 2.07 3.16 5.016 4.434.701.303 1.248.485 1.674.621.706.224 1.349.193 1.856.117.566-.084 1.62-.662 1.85-1.3.23-.637.23-1.182.162-1.296-.069-.115-.252-.183-.527-.32z"/>
                                     </svg>
-                                    Proceed to Checkout
+                                    Buy Now
                                 </button>
                             </div>
                         </div>
@@ -723,7 +749,7 @@ export default function PublicWaProduct({ customSlug }) {
                                                             {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(' | ')}
                                                         </div>
                                                     )}
-                                                    <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{parseFloat(item.price).toFixed(2)}</div>
+                                                    <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{getDisplayPrice(item.price, item).toFixed(2)}</div>
                                                     
                                                     <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -733,7 +759,7 @@ export default function PublicWaProduct({ customSlug }) {
                                                         </div>
                                                         {item.qty > 1 && (
                                                             <div className={`font-bold text-sm ${theme.text}`}>
-                                                                {getCurrencySymbol(store.currency)}{(parseFloat(item.price) * item.qty).toFixed(2)}
+                                                                {getCurrencySymbol(store.currency)}{(getDisplayPrice(item.price, item) * item.qty).toFixed(2)}
                                                             </div>
                                                         )}
                                                     </div>
@@ -841,28 +867,26 @@ export default function PublicWaProduct({ customSlug }) {
 
             {/* Sticky Mobile Add To Cart / Checkout Bar */}
             <div 
-                className="md:hidden fixed left-0 w-full bg-white/95 backdrop-blur-md dark:bg-black/95 border-t border-gray-200 dark:border-white/10 px-2.5 py-3 z-30 flex items-center gap-2 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]"
+                className="md:hidden fixed left-0 w-full bg-white/95 backdrop-blur-md dark:bg-black/95 border-t border-gray-200 dark:border-white/10 px-2 py-3 z-30 flex items-center gap-1.5 sm:gap-2 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] overflow-x-auto hide-scrollbar"
                 style={{ bottom: 'calc(env(safe-area-inset-bottom) + 55px)' }}
             >
                 {/* Price Display */}
-                <div className="flex flex-col justify-center shrink-0">
+                <div className="flex flex-col justify-center shrink-0 mr-auto pl-1">
                     <span className="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider leading-none mb-1">Total</span>
-                    <span className="text-sm font-bold text-black dark:text-white leading-none">
-                        {getCurrencySymbol(store.currency)}{(parseFloat(product.price) * qty).toFixed(2)}
+                    <span className="text-xs sm:text-sm font-bold text-black dark:text-white leading-none whitespace-nowrap">
+                        {getCurrencySymbol(store.currency)}{(getDisplayPrice(product.price, product) * qty).toFixed(2)}
                     </span>
                 </div>
 
-                <div className="flex-1" />
-
                 {/* Quantity Selector */}
-                <div className="flex items-center bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-0.5 shrink-0 h-[42px]">
+                <div className="flex items-center bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-0.5 shrink-0 h-[38px] sm:h-[42px]">
                     <button 
                         onClick={() => setQty(Math.max(1, qty - 1))} 
                         className="w-7 sm:w-8 h-full flex items-center justify-center hover:bg-white dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 rounded-lg transition-all"
                     >
                         <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
-                    <span className="w-5 sm:w-6 text-center font-bold text-[11px] sm:text-xs text-black dark:text-white">{qty}</span>
+                    <span className="w-4 sm:w-6 text-center font-bold text-[11px] sm:text-xs text-black dark:text-white">{qty}</span>
                     <button 
                         onClick={() => setQty(qty + 1)} 
                         className="w-7 sm:w-8 h-full flex items-center justify-center hover:bg-white dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 rounded-lg transition-all"
@@ -871,17 +895,30 @@ export default function PublicWaProduct({ customSlug }) {
                     </button>
                 </div>
 
+                {/* Add to Cart button */}
                 <button 
                     onClick={addToCart}
                     disabled={preventAdd}
-                    className={`h-[42px] px-3 sm:px-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-1.5 shrink-0 ${
+                    className={`h-[38px] sm:h-[42px] px-3 sm:px-4 text-[10px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center shrink-0 ${
                         preventAdd 
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'bg-black text-white hover:bg-neutral-800 shadow-md'
                     }`}
                 >
-                    <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2] shrink-0" />
-                    <span className="truncate">{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                    <span className="truncate whitespace-nowrap">{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                </button>
+
+                {/* Buy Now button */}
+                <button 
+                    onClick={handleBuyNow}
+                    disabled={preventAdd}
+                    className={`h-[38px] sm:h-[42px] px-3 sm:px-4 text-[10px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-1.5 shrink-0 ${
+                        preventAdd 
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' 
+                            : 'bg-[#25D366] text-white hover:bg-[#128C7E] hover:shadow-lg shadow-green-500/10'
+                    }`}
+                >
+                    <span className="truncate">Buy Now</span>
                 </button>
             </div>
         </div>

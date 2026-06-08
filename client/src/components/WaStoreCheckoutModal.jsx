@@ -77,12 +77,36 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
     };
 
     const taxEnabled = store?.taxConfig?.enabled || false;
-    const taxRate = parseFloat(store?.taxConfig?.rate) || 0;
-    const taxName = store?.taxConfig?.name || 'Tax';
     
     const calculateTaxAmount = () => {
         if (!taxEnabled) return 0;
-        return (calculateFinalTotal() * taxRate) / 100;
+        let totalTax = 0;
+        let totalBase = 0; // total cart value with tax
+        
+        cart.forEach(item => {
+            let basePrice = parseFloat(item.price) || 0;
+            let taxRate = item.taxRate !== null && item.taxRate !== undefined ? parseFloat(item.taxRate) : (parseFloat(store?.taxConfig?.rate) || 0);
+            
+            let itemDisplayPrice = 0;
+            let itemTax = 0;
+            if (store.taxConfig.taxInclusive) {
+                itemDisplayPrice = basePrice;
+                itemTax = basePrice - (basePrice / (1 + taxRate / 100));
+            } else {
+                itemTax = basePrice * (taxRate / 100);
+                itemDisplayPrice = basePrice + itemTax;
+            }
+            totalTax += itemTax * item.qty;
+            totalBase += itemDisplayPrice * item.qty;
+        });
+        
+        // Prorate tax if there's a discount
+        if (appliedCoupon && totalBase > 0) {
+            const discountRatio = calculateDiscountAmount() / totalBase;
+            totalTax = totalTax * (1 - discountRatio);
+        }
+        
+        return totalTax;
     };
 
     const handleCheckout = async (e) => {
@@ -113,9 +137,9 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                 originalTotal: appliedCoupon ? cartSubtotal : null,
                 discountAmount: appliedCoupon ? calculateDiscountAmount() : 0,
                 taxAmount: calculateTaxAmount(),
-                taxRate: taxEnabled ? taxRate : 0,
-                taxName: taxEnabled ? taxName : null,
-                total: finalTotal + shippingCost + calculateTaxAmount(),
+                taxRate: null, // item-level taxes vary
+                taxName: taxEnabled ? 'Tax' : null,
+                total: finalTotal + shippingCost, // finalTotal already includes tax
                 couponCode: appliedCoupon ? appliedCoupon.code : null,
                 currency: store.currency
             });
@@ -201,9 +225,9 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                 message += `*Shipping:* ${getCurrencySymbol(store.currency)} ${shippingCost.toFixed(2)}\n`;
             }
             if (taxEnabled) {
-                message += `*${taxName}:* ${getCurrencySymbol(store.currency)} ${calculateTaxAmount().toFixed(2)}\n`;
+                message += `*(Includes Tax: ${getCurrencySymbol(store.currency)} ${calculateTaxAmount().toFixed(2)})*\n`;
             }
-            message += `*Final Total:* ${getCurrencySymbol(store.currency)} ${(finalTotal + shippingCost + calculateTaxAmount()).toFixed(2)}\n\n`;
+            message += `*Final Total:* ${getCurrencySymbol(store.currency)} ${(finalTotal + shippingCost).toFixed(2)}\n\n`;
             
             if (formData.notes) message += `📝 *Note:* ${formData.notes}\n\n`;
             message += `_Please confirm my order. Thank you!_`;
@@ -221,7 +245,8 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
 
         } catch (error) {
             console.error('Checkout error:', error);
-            toast.error('Failed to process order. Please try again.');
+            const errMsg = error.response?.data?.error || 'Failed to process order. Please try again.';
+            toast.error(errMsg);
         } finally {
             setIsSubmitting(false);
         }
@@ -346,14 +371,14 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                             </div>
                         )}
                         {taxEnabled && (
-                            <div className="flex justify-between text-gray-500">
-                                <span>{taxName} ({taxRate}%)</span>
+                            <div className="flex justify-between text-gray-400 text-xs mt-1">
+                                <span>Includes Tax</span>
                                 <span>{getCurrencySymbol(store.currency)}{calculateTaxAmount().toFixed(2)}</span>
                             </div>
                         )}
-                        <div className="flex justify-between text-xl font-bold text-gray-900 border-t border-gray-200 pt-3">
+                        <div className="flex justify-between text-xl font-bold text-gray-900 border-t border-gray-200 pt-3 mt-3">
                             <span>Total</span>
-                            <span>{getCurrencySymbol(store.currency)}{(calculateFinalTotal() + shippingCost + calculateTaxAmount()).toFixed(2)}</span>
+                            <span>{getCurrencySymbol(store.currency)}{(calculateFinalTotal() + shippingCost).toFixed(2)}</span>
                         </div>
                     </div>
                     
