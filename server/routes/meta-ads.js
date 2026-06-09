@@ -522,10 +522,12 @@ router.post('/publish', async (req, res) => {
                 }
 
 
+                const { budgetType, lifetimeBudget } = req.body;
+                const isLifetime = budgetType === 'lifetime';
+
                 const adSetParams = {
                     name: `${campaignName} - AdSet`,
                     campaign_id: campaignId,
-                    daily_budget: Math.round(dailyBudget * 100),
                     billing_event: 'IMPRESSIONS',
                     optimization_goal: 'REPLIES',
                     promoted_object: JSON.stringify({ page_id: pageId }),
@@ -534,12 +536,25 @@ router.post('/publish', async (req, res) => {
                     access_token: token
                 };
 
+                if (isLifetime) {
+                    // Lifetime budget: fixed total, requires end_time
+                    adSetParams.lifetime_budget = Math.round((lifetimeBudget || 3000) * 100);
+                } else {
+                    // Daily budget (default)
+                    adSetParams.daily_budget = Math.round(dailyBudget * 100);
+                }
+
                 // ── Ad Scheduling ──────────────────────────────────────
                 if (scheduling?.startDate) {
                     adSetParams.start_time = Math.floor(new Date(scheduling.startDate).getTime() / 1000);
                 }
                 if (scheduling?.endDate) {
-                    adSetParams.end_time   = Math.floor(new Date(scheduling.endDate).getTime() / 1000);
+                    adSetParams.end_time = Math.floor(new Date(scheduling.endDate).getTime() / 1000);
+                } else if (isLifetime) {
+                    // Lifetime budget REQUIRES an end_time — default to 30 days from now
+                    const defaultEnd = new Date();
+                    defaultEnd.setDate(defaultEnd.getDate() + 30);
+                    adSetParams.end_time = Math.floor(defaultEnd.getTime() / 1000);
                 }
 
                 // 2. Create AdSet
@@ -986,6 +1001,62 @@ router.post('/duplicate/:id', async (req, res) => {
         res.json({ success: true, campaign: clone.toJSON() });
     } catch (err) {
         console.error('[META-ADS] Duplicate campaign error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/meta-ads/:id — Get a single campaign (with optional live Meta sync)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/:id', async (req, res) => {
+    try {
+        const campaign = await MetaAdCampaign.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+        const user = await User.findByPk(req.user.id);
+        let insights = campaign.insights || {};
+
+        // If requested to sync, and campaign is linked to Meta
+        if (req.query.sync === 'true' && user.metaAdsToken && campaign.metaCampaignId) {
+            try {
+                const fbRes = await axios.get(
+                    `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}/insights`,
+                    {
+                        params: {
+                            fields: 'impressions,clicks,spend,ctr,cpc,reach,frequency',
+                            date_preset: 'maximum', // get lifetime stats for this campaign
+                            access_token: user.metaAdsToken
+                        }
+                    }
+                );
+
+                const fbData = fbRes.data?.data?.[0] || {};
+                insights = {
+                    impressions: parseInt(fbData.impressions || 0),
+                    clicks:      parseInt(fbData.clicks || 0),
+                    spend:       parseFloat(fbData.spend || 0),
+                    ctr:         fbData.ctr       ? parseFloat(fbData.ctr).toFixed(2)       : '0.00',
+                    cpc:         fbData.cpc       ? parseFloat(fbData.cpc).toFixed(2)       : '0.00',
+                    reach:       parseInt(fbData.reach || 0),
+                    frequency:   fbData.frequency ? parseFloat(fbData.frequency).toFixed(2) : '0.00',
+                    updatedAt:   new Date().toISOString()
+                };
+
+                campaign.insights = insights;
+                await campaign.save();
+            } catch (fbErr) {
+                console.warn(`[META-ADS] Insights single sync failed for ${campaign.metaCampaignId}:`, fbErr.response?.data?.error?.message || fbErr.message);
+            }
+        }
+
+        const enriched = {
+            ...campaign.toJSON(),
+            insights
+        };
+
+        res.json(enriched);
+    } catch (err) {
+        console.error('[META-ADS] Single campaign fetch error:', err);
         res.status(500).json({ error: err.message });
     }
 });

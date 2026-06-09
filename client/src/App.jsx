@@ -71,6 +71,7 @@ const CTWAAnalytics = React.lazy(() => import('./pages/CTWAAnalytics'));
 const WALinksGenerator = React.lazy(() => import('./pages/WALinksGenerator'));
 const MetaAdsDashboard = React.lazy(() => import('./pages/MetaAdsManager/MetaAdsDashboard'));
 const MetaAdsWizard = React.lazy(() => import('./pages/MetaAdsManager/MetaAdsWizard'));
+const MetaAdCampaignDetails = React.lazy(() => import('./pages/MetaAdsManager/MetaAdCampaignDetails'));
 const GrowthHub = React.lazy(() => import('./pages/GrowthHub/GrowthHub'));
 const WaStoreList = React.lazy(() => import('./pages/WaStoreManager/WaStoreList'));
 const WaStoreLayout = React.lazy(() => import('./pages/WaStoreManager/WaStoreLayout'));
@@ -320,6 +321,7 @@ function App() {
                                                 <Route path="/ctwa-analytics" element={<CTWAAnalytics />} />
                                                 <Route path="/meta-ads" element={<MetaAdsDashboard />} />
                                                 <Route path="/meta-ads/wizard" element={<MetaAdsWizard />} />
+                                                <Route path="/meta-ads/campaigns/:id" element={<MetaAdCampaignDetails />} />
                                                 <Route path="/vcards" element={<VcardLayout />}>
                                                     <Route index element={<VcardDashboard />} />
                                                     <Route path="list" element={<VcardList />} />

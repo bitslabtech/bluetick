@@ -288,7 +288,7 @@ export default function MetaAdsWizard() {
     const [selectedCreativeIndex, setSelectedCreativeIndex] = useState(0);
     const [generatedImage, setGeneratedImage] = useState(null);
     const [generatingImage, setGeneratingImage] = useState(false);
-    const [budgetData, setBudgetData] = useState({ dailyBudget: 500, objective: 'OUTCOME_ENGAGEMENT' });
+    const [budgetData, setBudgetData] = useState({ budgetType: 'daily', dailyBudget: 500, lifetimeBudget: 3000, objective: 'OUTCOME_ENGAGEMENT' });
 
     // Geography targeting — user controls this, not AI
     const [targetLocations, setTargetLocations] = useState([]);
@@ -297,7 +297,9 @@ export default function MetaAdsWizard() {
     const [manual, setManual] = useState({
         campaignName: '',
         objective: 'OUTCOME_ENGAGEMENT',
+        budgetType: 'daily',
         dailyBudget: 500,
+        lifetimeBudget: 3000,
         ageMin: 18,
         ageMax: 55,
         primaryText: '',
@@ -461,7 +463,9 @@ export default function MetaAdsWizard() {
             await axios.post('/api/meta-ads/publish', {
                 campaignName: `${businessData.name.replace(/\s+/g,'_')}_AI_Campaign`,
                 objective: budgetData.objective,
-                dailyBudget: budgetData.dailyBudget,
+                dailyBudget: budgetData.budgetType === 'daily' ? budgetData.dailyBudget : undefined,
+                lifetimeBudget: budgetData.budgetType === 'lifetime' ? budgetData.lifetimeBudget : undefined,
+                budgetType: budgetData.budgetType,
                 targeting: {
                     ...(audienceData || {}),
                     locations:       targetLocations.map(l => l.name || l),
@@ -505,7 +509,9 @@ export default function MetaAdsWizard() {
             await axios.post('/api/meta-ads/publish', {
                 campaignName: manual.campaignName,
                 objective: manual.objective,
-                dailyBudget: manual.dailyBudget,
+                dailyBudget: manual.budgetType === 'daily' ? manual.dailyBudget : undefined,
+                lifetimeBudget: manual.budgetType === 'lifetime' ? manual.lifetimeBudget : undefined,
+                budgetType: manual.budgetType,
                 targeting: {
                     age_min:            manual.ageMin,
                     age_max:            manual.ageMax,
@@ -634,31 +640,102 @@ export default function MetaAdsWizard() {
                             <CreditCard className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Daily Budget</h3>
-                            <p className="text-xs text-slate-400">How much to spend per day</p>
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Budget</h3>
+                            <p className="text-xs text-slate-400">Choose how you want to control your spend</p>
                         </div>
                         <div className="ml-auto bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md">
-                            ₹{manual.dailyBudget.toLocaleString()}/day
+                            {manual.budgetType === 'daily'
+                                ? `₹${manual.dailyBudget.toLocaleString()}/day`
+                                : `₹${manual.lifetimeBudget.toLocaleString()} total`}
                         </div>
                     </div>
+
+                    {/* Budget Type Toggle */}
+                    <div className="flex gap-2 mb-4">
+                        {[
+                            { type: 'daily',    label: '📅 Daily Budget',    desc: 'Spend per day, runs until paused' },
+                            { type: 'lifetime', label: '🎯 Fixed Budget', desc: 'Fixed total, auto-stops at end date' },
+                        ].map(opt => (
+                            <button
+                                key={opt.type}
+                                type="button"
+                                onClick={() => setManual({...manual, budgetType: opt.type})}
+                                className={`flex-1 px-3 py-3 rounded-xl border-2 text-left transition-all ${
+                                    manual.budgetType === opt.type
+                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
+                                        : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-slate-300'
+                                }`}
+                            >
+                                <p className={`text-xs font-bold ${manual.budgetType === opt.type ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-600 dark:text-slate-300'}`}>{opt.label}</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{opt.desc}</p>
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-5">
-                        <input
-                            type="range" min="100" max="50000" step="100"
-                            className="w-full accent-emerald-500 h-2 cursor-pointer"
-                            value={manual.dailyBudget}
-                            onChange={e => setManual({...manual, dailyBudget: parseInt(e.target.value)})}
-                        />
-                        <div className="flex justify-between text-xs text-slate-400 mt-2">
-                            <span>₹100 <span className="text-slate-300">(Min)</span></span>
-                            <div className="flex gap-2">
-                                {[500, 1000, 5000, 10000].map(v => (
-                                    <button key={v} type="button" onClick={() => setManual({...manual, dailyBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${ manual.dailyBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
-                                ))}
-                            </div>
-                            <span>₹50K+</span>
-                        </div>
+                        {manual.budgetType === 'daily' ? (
+                            <>
+                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 block">Daily Amount</label>
+                                <input
+                                    type="range" min="100" max="50000" step="100"
+                                    className="w-full accent-emerald-500 h-2 cursor-pointer"
+                                    value={manual.dailyBudget}
+                                    onChange={e => setManual({...manual, dailyBudget: parseInt(e.target.value)})}
+                                />
+                                <div className="flex justify-between text-xs text-slate-400 mt-2">
+                                    <span>₹100 <span className="text-slate-300">(Min)</span></span>
+                                    <div className="flex gap-2">
+                                        {[500, 1000, 5000, 10000].map(v => (
+                                            <button key={v} type="button" onClick={() => setManual({...manual, dailyBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${ manual.dailyBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
+                                        ))}
+                                    </div>
+                                    <span>₹50K+</span>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 block">Total Fixed Amount</label>
+                                <input
+                                    type="range" min="500" max="500000" step="500"
+                                    className="w-full accent-emerald-500 h-2 cursor-pointer"
+                                    value={manual.lifetimeBudget}
+                                    onChange={e => setManual({...manual, lifetimeBudget: parseInt(e.target.value)})}
+                                />
+                                <div className="flex justify-between text-xs text-slate-400 mt-2">
+                                    <span>₹500 <span className="text-slate-300">(Min)</span></span>
+                                    <div className="flex gap-2">
+                                        {[3000, 5000, 10000, 50000].map(v => (
+                                            <button key={v} type="button" onClick={() => setManual({...manual, lifetimeBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${ manual.lifetimeBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
+                                        ))}
+                                    </div>
+                                    <span>₹5L+</span>
+                                </div>
+                            </>
+                        )}
                     </div>
+
+                    {/* Dynamic info banner */}
+                    {manual.budgetType === 'daily' ? (
+                        <div className="mt-3 p-3.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-start gap-2.5">
+                            <span className="text-base flex-shrink-0">💡</span>
+                            <div className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed space-y-1">
+                                <p><strong>₹{manual.dailyBudget.toLocaleString()}/day = Meta charges up to ₹{manual.dailyBudget.toLocaleString()} every single day.</strong></p>
+                                <p>Without an end date, your ad runs <strong>indefinitely</strong> — it does NOT stop automatically. You must <strong>Pause or Delete</strong> it from GrowthHub → Campaigns to stop spending.</p>
+                                <p className="text-amber-600 dark:text-amber-400">💰 30 days at ₹{manual.dailyBudget.toLocaleString()}/day = <strong>~₹{(manual.dailyBudget * 30).toLocaleString()} total.</strong></p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-3 p-3.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl flex items-start gap-2.5">
+                            <span className="text-base flex-shrink-0">🎯</span>
+                            <div className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed space-y-1">
+                                <p><strong>₹{manual.lifetimeBudget.toLocaleString()} fixed total — Meta spreads this optimally across your ad's full duration.</strong></p>
+                                <p>Your ad will <strong>automatically stop</strong> when the end date is reached. <span className="text-red-500 dark:text-red-400 font-semibold">⚠️ An end date is required for Fixed Budget.</span></p>
+                                <p className="text-blue-600 dark:text-blue-400">✅ Best for fixed-budget campaigns (product launches, limited-time offers).</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
+
 
                 {/* ─ Section 3: Audience ─ */}
                 <div>
@@ -1603,25 +1680,99 @@ export default function MetaAdsWizard() {
                                 <h4 className="font-bold text-slate-900 dark:text-white">Budget &amp; Schedule</h4>
                             </div>
                             
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="flex justify-between text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                        <span>Daily Budget</span>
-                                        <span className="text-primary">₹{budgetData.dailyBudget}</span>
-                                    </label>
-                                    <input 
-                                        type="range" min="100" max="50000" step="100"
-                                        className="w-full accent-primary h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                                        value={budgetData.dailyBudget}
-                                        onChange={(e) => setBudgetData({...budgetData, dailyBudget: parseInt(e.target.value)})}
-                                    />
-                                    <div className="flex justify-between text-xs text-slate-500 mt-2">
-                                        <span>₹100</span>
-                                        <span>₹50,000+</span>
-                                    </div>
+                            <div className="space-y-4">
+                                {/* Budget Type Toggle */}
+                                <div className="flex gap-2">
+                                    {[
+                                        { type: 'daily',    label: '📅 Daily Budget',    desc: 'Runs indefinitely per day' },
+                                        { type: 'lifetime', label: '🎯 Fixed Budget', desc: 'Fixed total, auto-stops' },
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.type}
+                                            type="button"
+                                            onClick={() => setBudgetData({...budgetData, budgetType: opt.type})}
+                                            className={`flex-1 px-3 py-3 rounded-xl border-2 text-left transition-all ${
+                                                budgetData.budgetType === opt.type
+                                                    ? 'border-primary bg-blue-50 dark:bg-primary/10'
+                                                    : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <p className={`text-xs font-bold ${budgetData.budgetType === opt.type ? 'text-primary' : 'text-slate-600 dark:text-slate-300'}`}>{opt.label}</p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">{opt.desc}</p>
+                                        </button>
+                                    ))}
                                 </div>
 
-                                <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-100 dark:border-emerald-500/20 flex gap-3 mt-4">
+                                <div>
+                                    {budgetData.budgetType === 'daily' ? (
+                                        <>
+                                            <label className="flex justify-between text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                                <span>Daily Amount</span>
+                                                <span className="text-primary">₹{budgetData.dailyBudget.toLocaleString()}/day</span>
+                                            </label>
+                                            <input 
+                                                type="range" min="100" max="50000" step="100"
+                                                className="w-full accent-primary h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                                                value={budgetData.dailyBudget}
+                                                onChange={(e) => setBudgetData({...budgetData, dailyBudget: parseInt(e.target.value)})}
+                                            />
+                                            <div className="flex justify-between text-xs text-slate-500 mt-2">
+                                                <span>₹100</span>
+                                                <div className="flex gap-2">
+                                                    {[500, 1000, 5000, 10000].map(v => (
+                                                        <button key={v} type="button" onClick={() => setBudgetData({...budgetData, dailyBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${budgetData.dailyBudget === v ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
+                                                    ))}
+                                                </div>
+                                                <span>₹50,000+</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <label className="flex justify-between text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                                <span>Total Fixed Amount</span>
+                                                <span className="text-primary">₹{budgetData.lifetimeBudget.toLocaleString()} total</span>
+                                            </label>
+                                            <input 
+                                                type="range" min="500" max="500000" step="500"
+                                                className="w-full accent-primary h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                                                value={budgetData.lifetimeBudget}
+                                                onChange={(e) => setBudgetData({...budgetData, lifetimeBudget: parseInt(e.target.value)})}
+                                            />
+                                            <div className="flex justify-between text-xs text-slate-500 mt-2">
+                                                <span>₹500</span>
+                                                <div className="flex gap-2">
+                                                    {[3000, 5000, 10000, 50000].map(v => (
+                                                        <button key={v} type="button" onClick={() => setBudgetData({...budgetData, lifetimeBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${budgetData.lifetimeBudget === v ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
+                                                    ))}
+                                                </div>
+                                                <span>₹5L+</span>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Dynamic info banner */}
+                                {budgetData.budgetType === 'daily' ? (
+                                    <div className="p-3.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-start gap-2.5">
+                                        <span className="text-base flex-shrink-0">💡</span>
+                                        <div className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed space-y-1">
+                                            <p><strong>₹{budgetData.dailyBudget.toLocaleString()}/day = Meta charges up to ₹{budgetData.dailyBudget.toLocaleString()} every single day.</strong></p>
+                                            <p>Without an end date, your ad runs <strong>indefinitely</strong> — it does NOT auto-stop. You must <strong>Pause or Delete</strong> it from GrowthHub → Campaigns to stop spending.</p>
+                                            <p className="text-amber-600 dark:text-amber-400">💰 30 days = <strong>~₹{(budgetData.dailyBudget * 30).toLocaleString()} total.</strong></p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-3.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl flex items-start gap-2.5">
+                                        <span className="text-base flex-shrink-0">🎯</span>
+                                        <div className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed space-y-1">
+                                            <p><strong>₹{budgetData.lifetimeBudget.toLocaleString()} total — Meta spreads this optimally across your ad's duration.</strong></p>
+                                            <p>Automatically stops at end date. <span className="text-red-500 dark:text-red-400 font-semibold">⚠️ An end date is required.</span></p>
+                                            <p className="text-blue-600 dark:text-blue-400">✅ Best for launches and limited-time offers.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-100 dark:border-emerald-500/20 flex gap-3">
                                     <Zap className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                                     <p className="text-sm text-emerald-800 dark:text-emerald-300">
                                         {metaConnected
