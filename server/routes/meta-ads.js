@@ -435,13 +435,31 @@ router.post('/publish', async (req, res) => {
                 };
 
                 // ── Build AdSet params ────────────────────────────────
+                let pageId = user.metaPageId;
+                if (!pageId) {
+                    try {
+                        const pagesRes = await axios.get('https://graph.facebook.com/v22.0/me/accounts', {
+                            params: { access_token: token }
+                        });
+                        if (pagesRes.data && pagesRes.data.data && pagesRes.data.data.length > 0) {
+                            pageId = pagesRes.data.data[0].id;
+                            user.metaPageId = pageId;
+                            await user.save();
+                        } else {
+                            throw new Error('No Facebook Page found. A Facebook Page is required to run Click-to-WhatsApp ads.');
+                        }
+                    } catch (err) {
+                        return res.status(400).json({ error: err.response?.data?.error?.message || err.message || 'Failed to fetch Facebook Page ID.' });
+                    }
+                }
+
                 const adSetParams = {
                     name: `${campaignName} - AdSet`,
                     campaign_id: campaignId,
                     daily_budget: Math.round(dailyBudget * 100),
                     billing_event: 'IMPRESSIONS',
                     optimization_goal: 'REPLIES',
-                    promoted_object: JSON.stringify({ whatsapp_number: user.phone || '' }),
+                    promoted_object: JSON.stringify({ page_id: pageId }),
                     targeting: JSON.stringify(targetingSpec),
                     status: 'ACTIVE',
                     access_token: token

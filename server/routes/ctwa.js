@@ -125,9 +125,22 @@ router.post('/select-account', auth, async (req, res) => {
 router.get('/status', auth, async (req, res) => {
     try {
         const user = await User.findByPk(req.user.id);
+        const hasMetaToken   = !!user.metaAdsToken;
+        const hasAdAccount   = !!user.metaAdAccountId;
+        const hasWhatsApp    = !!(user.metaPhoneNumberId || user.wabaId);
+        const hasWabaSetup   = !!(user.fbAccessToken && user.wabaId);
+
         res.json({
-            connected: !!user.metaAdsToken,
-            adAccountId: user.metaAdAccountId || null
+            // Simple boolean for legacy code
+            connected: hasMetaToken,
+            adAccountId: user.metaAdAccountId || null,
+            // Granular per-checklist-item validations
+            checks: {
+                hasMetaToken,        // Facebook Login / Meta Ads connected
+                hasAdAccount,        // Ad account selected
+                hasWhatsApp,         // WhatsApp Business API number set up
+                hasWabaSetup,        // Full WhatsApp Business API + WABA configured
+            }
         });
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch CTWA status.' });

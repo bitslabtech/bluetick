@@ -75,7 +75,7 @@ const FunnelCard = ({ icon: Icon, label, value, subLabel, delay = 0 }) => (
 );
 
 // ── Overview Tab ─────────────────────────────────────────────────────
-const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected }) => {
+const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected, onSwitchTab }) => {
     const activeCampaigns = campaigns.filter(c => c.status === 'Active' || c.status === 'Published');
     const totalLeads = ctwaData?.totalLeads || 0;
     const totalSpend = ctwaData?.totalSpend || 0;
@@ -242,7 +242,12 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected }) 
                                     Published: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
                                 };
                                 return (
-                                    <div key={campaign.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors gap-2 sm:gap-0">
+                                    <div 
+                                        key={campaign.id} 
+                                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors gap-2 sm:gap-0 cursor-pointer group"
+                                        onClick={() => onSwitchTab && onSwitchTab('campaigns')}
+                                        title="View all campaigns"
+                                    >
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
                                                 <CreditCard className="w-5 h-5" />
@@ -313,6 +318,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
     const [actionLoading, setActionLoading] = useState({}); // { [campaignId]: 'pause'|'resume'|'delete'|'duplicate' }
     const [openMenu, setOpenMenu] = useState(null); // campaign id with open dropdown
     const [editModal, setEditModal] = useState(null); // { campaign, newName, newBudget }
+    const [detailPanel, setDetailPanel] = useState(null); // campaign to show detail
     const menuRef = useRef(null);
 
     // Sync when parent updates (e.g. refresh)
@@ -329,7 +335,8 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
     const clearLoading = (id) => setActionLoading(prev => { const n = { ...prev }; delete n[id]; return n; });
 
     const handleToggleStatus = async (campaign) => {
-        const action = campaign.status === 'Active' ? 'pause' : 'resume';
+        const isRunning = campaign.status === 'Active' || campaign.status === 'Published';
+        const action = isRunning ? 'pause' : 'resume';
         setLoading(campaign.id, action);
         setOpenMenu(null);
         try {
@@ -391,6 +398,36 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
         }
     };
 
+    const handlePublish = async (campaign) => {
+        setLoading(campaign.id, 'publish');
+        setOpenMenu(null);
+        try {
+            const res = await axios.post(`/api/meta-ads/${campaign.id}/publish`, {}, { withCredentials: true });
+            setCampaigns(prev => prev.map(c => c.id === campaign.id ? { ...c, status: res.data.status || 'Published', metaCampaignId: res.data.metaCampaignId || c.metaCampaignId } : c));
+            toast.success('Campaign published to Meta!');
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to publish campaign');
+        } finally {
+            clearLoading(campaign.id);
+        }
+    };
+
+    const handleSyncInsights = async () => {
+        try {
+            toast('Syncing insights from Meta...', { icon: '🔄' });
+            const res = await axios.get('/api/meta-ads/insights', { withCredentials: true });
+            if (res.data?.campaigns) {
+                setCampaigns(prev => prev.map(c => {
+                    const updated = res.data.campaigns.find(r => r.id === c.id);
+                    return updated ? { ...c, ...updated } : c;
+                }));
+                toast.success('Insights synced from Meta!');
+            }
+        } catch (err) {
+            toast.error('Failed to sync insights');
+        }
+    };
+
     const statusColors = {
         Active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
         Paused: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
@@ -404,7 +441,16 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
     const totalSpent       = campaigns.reduce((s, c) => s + parseFloat(c.spend || 0), 0);
     const totalImpressions = campaigns.reduce((s, c) => s + parseInt(c.impressions || 0), 0);
     const totalClicks      = campaigns.reduce((s, c) => s + parseInt(c.clicks || 0), 0);
-    const activeCampaigns  = campaigns.filter(c => c.status === 'Active').length;
+    const activeCampaigns  = campaigns.filter(c => c.status === 'Active' || c.status === 'Published').length;
+
+    // Search + Filter state
+    const [searchQ, setSearchQ] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const filteredCampaigns = campaigns.filter(c => {
+        const matchSearch = !searchQ || c.campaignName?.toLowerCase().includes(searchQ.toLowerCase());
+        const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+        return matchSearch && matchStatus;
+    });
 
     return (
         <>
@@ -417,12 +463,21 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">Manage your ad campaigns — AI-generated or manually built</p>
                 </div>
-                <button
-                    onClick={() => navigate('/meta-ads/wizard')}
-                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-bold shadow-md shadow-primary/20 transition-all text-sm"
-                >
-                    <Plus className="w-4 h-4" /> New Campaign
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                        onClick={handleSyncInsights}
+                        className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                        title="Sync live insights from Meta"
+                    >
+                        <RefreshCw className="w-3.5 h-3.5" /> Sync
+                    </button>
+                    <button
+                        onClick={() => navigate('/meta-ads/wizard')}
+                        className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-bold shadow-md shadow-primary/20 transition-all text-sm"
+                    >
+                        <Plus className="w-4 h-4" /> New Campaign
+                    </button>
+                </div>
             </div>
 
             {/* Budget Overview Strip */}
@@ -449,6 +504,34 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                 </div>
             )}
 
+            {/* Search + Status Filter */}
+            {campaigns.length > 0 && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            value={searchQ}
+                            onChange={e => setSearchQ(e.target.value)}
+                            placeholder="Search campaigns..."
+                            className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                    </div>
+                    <select
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                        className="text-sm border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark text-slate-700 dark:text-white rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Published">Published</option>
+                        <option value="Paused">Paused</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Error">Error</option>
+                    </select>
+                </div>
+            )}
+
             {/* Campaigns Table */}
             <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
                 {loading ? (
@@ -457,23 +540,33 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                             <Skeleton key={i} height={80} baseColor={isDarkMode ? '#1e293b' : '#f8fafc'} highlightColor={isDarkMode ? '#334155' : '#ffffff'} className="rounded-xl" />
                         ))}
                     </div>
-                ) : campaigns.length === 0 ? (
+                ) : filteredCampaigns.length === 0 ? (
                     <div className="p-8 sm:p-16 text-center">
                         <div className="w-20 h-20 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-5">
                             <Megaphone className="w-9 h-9 text-indigo-500" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No campaigns yet</h3>
-                        <p className="text-slate-500 max-w-sm mx-auto mb-6 text-sm">Use our wizard to create your first high-converting WhatsApp ad campaign.</p>
-                        <button
-                            onClick={() => navigate('/meta-ads/wizard')}
-                            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-md transition-all"
-                        >
-                            <Sparkles className="w-5 h-5" /> Create Your First Campaign
-                        </button>
+                        {campaigns.length === 0 ? (
+                            <>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No campaigns yet</h3>
+                                <p className="text-slate-500 max-w-sm mx-auto mb-6 text-sm">Use our wizard to create your first high-converting WhatsApp ad campaign.</p>
+                                <button
+                                    onClick={() => navigate('/meta-ads/wizard')}
+                                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-md transition-all"
+                                >
+                                    <Sparkles className="w-5 h-5" /> Create Your First Campaign
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No results found</h3>
+                                <p className="text-slate-500 max-w-sm mx-auto mb-4 text-sm">No campaigns match your search or filter.</p>
+                                <button onClick={() => { setSearchQ(''); setStatusFilter('all'); }} className="text-sm font-bold text-primary hover:underline">Clear filters</button>
+                            </>
+                        )}
                     </div>
                 ) : (
                     <div className="divide-y divide-slate-100 dark:divide-white/5">
-                        {campaigns.map((campaign) => {
+                        {filteredCampaigns.map((campaign) => {
                             const dailyBudget = parseFloat(campaign.dailyBudget || 0);
                             const spent       = parseFloat(campaign.spend || 0);
                             const impressions = parseInt(campaign.impressions || 0);
@@ -483,7 +576,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                             const hasInsights = spent > 0 || impressions > 0;
 
                             return (
-                                <div key={campaign.id} className="p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group">
+                                <div key={campaign.id} className="p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors group cursor-pointer" onClick={() => setDetailPanel(campaign)}>
                                     {/* Row top: name + status + budget */}
                                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -500,15 +593,16 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                             </div>
                                         </div>
 
-                                        {/* Status + Date */}
+                                        {/* Status + Date + Click hint */}
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColors[campaign.status] || statusColors.Draft}`}>
                                                 {campaign.status === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                                                 {campaign.status || 'Draft'}
                                             </span>
-                                            <span className="text-[11px] text-slate-400">
+                                            <span className="text-[11px] text-slate-400 hidden sm:block">
                                                 {campaign.createdAt ? formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true }) : '—'}
                                             </span>
+                                            <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                     </div>
 
@@ -588,20 +682,42 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
 
                                     {/* Action buttons row */}
                                     <div className="mt-4 flex items-center gap-2 justify-end" ref={openMenu === campaign.id ? menuRef : null}>
-                                        {/* Pause / Resume */}
-                                        {(campaign.status === 'Active' || campaign.status === 'Paused') && (
+
+                                        {/* Publish for Draft / Retry for Error */}
+                                        {(campaign.status === 'Draft' || campaign.status === 'Error') && (
                                             <button
-                                                onClick={() => handleToggleStatus(campaign)}
+                                                onClick={e => { e.stopPropagation(); handlePublish(campaign); }}
                                                 disabled={!!actionLoading[campaign.id]}
                                                 className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all ${
-                                                    campaign.status === 'Active'
+                                                    campaign.status === 'Error'
+                                                        ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/10 dark:text-red-400'
+                                                        : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                                } disabled:opacity-50`}
+                                            >
+                                                {actionLoading[campaign.id] === 'publish' ? (
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                ) : campaign.status === 'Error' ? (
+                                                    <><RefreshCw className="w-3 h-3" /> Retry</>
+                                                ) : (
+                                                    <><Rocket className="w-3 h-3" /> Publish</>
+                                                )}
+                                            </button>
+                                        )}
+
+                                        {/* Pause / Resume — shown for Active, Published, and Paused campaigns */}
+                                        {(campaign.status === 'Active' || campaign.status === 'Published' || campaign.status === 'Paused') && (
+                                            <button
+                                                onClick={e => { e.stopPropagation(); handleToggleStatus(campaign); }}
+                                                disabled={!!actionLoading[campaign.id]}
+                                                className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all ${
+                                                    (campaign.status === 'Active' || campaign.status === 'Published')
                                                         ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400'
                                                         : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400'
                                                 } disabled:opacity-50`}
                                             >
                                                 {actionLoading[campaign.id] === 'pause' || actionLoading[campaign.id] === 'resume' ? (
                                                     <Loader2 className="w-3 h-3 animate-spin" />
-                                                ) : campaign.status === 'Active' ? (
+                                                ) : (campaign.status === 'Active' || campaign.status === 'Published') ? (
                                                     <><Pause className="w-3 h-3" /> Pause</>
                                                 ) : (
                                                     <><Play className="w-3 h-3" /> Resume</>
@@ -609,21 +725,13 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                             </button>
                                         )}
 
-                                        {/* Edit button */}
-                                        <button
-                                            onClick={() => setEditModal({ campaign, newName: campaign.campaignName, newBudget: campaign.dailyBudget })}
-                                            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 transition-all"
-                                        >
-                                            <Edit3 className="w-3 h-3" /> Edit
-                                        </button>
-
-                                        {/* More menu */}
-                                        <div className="relative">
+                                        {/* More menu (⋮) — Edit, Duplicate, Delete */}
+                                        <div className="relative" onClick={e => e.stopPropagation()}>
                                             <button
                                                 onClick={() => setOpenMenu(openMenu === campaign.id ? null : campaign.id)}
-                                                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                                className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 transition-colors"
                                             >
-                                                <MoreVertical className="w-4 h-4 text-slate-400" />
+                                                <MoreVertical className="w-3.5 h-3.5" /> More
                                             </button>
                                             <AnimatePresence>
                                                 {openMenu === campaign.id && (
@@ -632,8 +740,16 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                                         exit={{ opacity: 0, scale: 0.95, y: -5 }}
                                                         transition={{ duration: 0.15 }}
-                                                        className="absolute right-0 bottom-8 z-20 w-44 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden"
+                                                        className="absolute right-0 bottom-9 z-20 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden"
                                                     >
+                                                        {/* Edit */}
+                                                        <button
+                                                            onClick={() => { setOpenMenu(null); setEditModal({ campaign, newName: campaign.campaignName, newBudget: campaign.dailyBudget }); }}
+                                                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                                                        >
+                                                            <Edit3 className="w-4 h-4" /> Edit Name & Budget
+                                                        </button>
+                                                        {/* Duplicate */}
                                                         <button
                                                             onClick={() => handleDuplicate(campaign)}
                                                             className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
@@ -642,6 +758,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                                             Duplicate
                                                         </button>
                                                         <div className="h-px bg-slate-100 dark:bg-white/5 mx-3" />
+                                                        {/* Delete */}
                                                         <button
                                                             onClick={() => handleDelete(campaign)}
                                                             className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
@@ -730,6 +847,245 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                     </motion.div>
                 </motion.div>
             )}
+        </AnimatePresence>
+
+        {/* ── Campaign Detail Panel (slide-over) ────────────── */}
+        <AnimatePresence>
+            {detailPanel && (() => {
+                const c = campaigns.find(x => x.id === detailPanel.id) || detailPanel;
+                const spent = parseFloat(c.spend || 0);
+                const impressions = parseInt(c.impressions || 0);
+                const clicks = parseInt(c.clicks || 0);
+                const ctr = c.ctr ? parseFloat(c.ctr) : null;
+                const cpc = c.cpc ? parseFloat(c.cpc) : null;
+                const reach = parseInt(c.reach || 0);
+                const frequency = c.frequency ? parseFloat(c.frequency) : null;
+                const isRunning = c.status === 'Active' || c.status === 'Published';
+                const statusColors = {
+                    Active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
+                    Published: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+                    Paused: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
+                    Draft: 'bg-slate-100 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400',
+                    Error: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400',
+                };
+                return (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-end sm:justify-end"
+                        onClick={() => setDetailPanel(null)}
+                    >
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                            onClick={e => e.stopPropagation()}
+                            className="h-full w-full sm:w-[460px] bg-white dark:bg-slate-900 shadow-2xl flex flex-col overflow-hidden"
+                        >
+                            {/* Header */}
+                            <div className="p-5 border-b border-slate-100 dark:border-white/5 flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+                                        <Megaphone className="w-5 h-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{c.campaignName}</p>
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold mt-1 ${statusColors[c.status] || statusColors.Draft}`}>
+                                            {(c.status === 'Active' || c.status === 'Published') && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                                            {c.status || 'Draft'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button onClick={() => setDetailPanel(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg flex-shrink-0">
+                                    <X className="w-5 h-5 text-slate-400" />
+                                </button>
+                            </div>
+
+                            {/* Scrollable content */}
+                            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+
+                                {/* Quick Actions */}
+                                <div className="flex flex-wrap gap-2">
+                                    {(c.status === 'Active' || c.status === 'Published' || c.status === 'Paused') && (
+                                        <button
+                                            onClick={() => { handleToggleStatus(c); setDetailPanel(prev => prev ? { ...prev, status: isRunning ? 'Paused' : 'Active' } : null); }}
+                                            disabled={!!actionLoading[c.id]}
+                                            className={`inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-all ${
+                                                isRunning ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400'
+                                                          : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                            } disabled:opacity-50`}
+                                        >
+                                            {actionLoading[c.id] === 'pause' || actionLoading[c.id] === 'resume' ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : isRunning ? <><Pause className="w-3.5 h-3.5" /> Pause Campaign</> : <><Play className="w-3.5 h-3.5" /> Resume Campaign</>}
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => { setDetailPanel(null); setEditModal({ campaign: c, newName: c.campaignName, newBudget: c.dailyBudget }); }}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 transition-all"
+                                    >
+                                        <Edit3 className="w-3.5 h-3.5" /> Edit
+                                    </button>
+                                    <button
+                                        onClick={() => { handleDuplicate(c); setDetailPanel(null); }}
+                                        disabled={!!actionLoading[c.id]}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 transition-all disabled:opacity-50"
+                                    >
+                                        {actionLoading[c.id] === 'duplicate' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />} Duplicate
+                                    </button>
+                                    <button
+                                        onClick={() => { handleDelete(c); setDetailPanel(null); }}
+                                        disabled={!!actionLoading[c.id]}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/15 transition-all disabled:opacity-50"
+                                    >
+                                        {actionLoading[c.id] === 'delete' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Delete
+                                    </button>
+                                </div>
+
+                                {/* Performance Metrics */}
+                                <div>
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Performance Metrics</h4>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { label: 'Spend', value: spent > 0 ? `₹${fmt(spent, 2)}` : '—', color: spent > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400' },
+                                            { label: 'Impressions', value: impressions > 0 ? fmt(impressions) : '—', color: impressions > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400' },
+                                            { label: 'Clicks', value: clicks > 0 ? fmt(clicks) : '—', color: clicks > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400' },
+                                            { label: 'CTR', value: ctr !== null ? `${ctr.toFixed(2)}%` : '—', color: ctr >= 1 ? 'text-emerald-600 dark:text-emerald-400' : ctr >= 0.5 ? 'text-amber-600' : ctr !== null ? 'text-red-500' : 'text-slate-400' },
+                                            { label: 'CPC', value: cpc !== null ? `₹${cpc.toFixed(2)}` : '—', color: cpc !== null ? 'text-slate-900 dark:text-white' : 'text-slate-400' },
+                                            { label: 'Reach', value: reach > 0 ? fmt(reach) : '—', color: reach > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400' },
+                                            { label: 'Frequency', value: frequency !== null ? frequency.toFixed(2) : '—', color: frequency !== null ? 'text-slate-900 dark:text-white' : 'text-slate-400' },
+                                            { label: 'Daily Budget', value: `₹${fmt(parseFloat(c.dailyBudget || 0))}`, color: 'text-slate-900 dark:text-white' },
+                                        ].map(m => (
+                                            <div key={m.label} className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{m.label}</p>
+                                                <p className={`text-base font-black ${m.color}`}>{m.value}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {c.insightsUpdatedAt && (
+                                        <p className="text-[10px] text-slate-400 mt-2 text-right">Last synced {formatDistanceToNow(new Date(c.insightsUpdatedAt), { addSuffix: true })}</p>
+                                    )}
+                                </div>
+
+                                {/* Budget utilization bar */}
+                                {spent > 0 && parseFloat(c.dailyBudget) > 0 && (
+                                    <div>
+                                        <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+                                            <span>SPEND VS DAILY BUDGET</span>
+                                            <span>₹{fmt(spent, 2)} / ₹{fmt(parseFloat(c.dailyBudget))}</span>
+                                        </div>
+                                        <div className="h-2 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
+                                                style={{ width: `${Math.min(100, (spent / parseFloat(c.dailyBudget)) * 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Campaign details */}
+                                <div>
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Campaign Details</h4>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Objective</span>
+                                            <span className="font-semibold text-slate-900 dark:text-white">{(c.objective || 'OUTCOME_ENGAGEMENT').replace(/_/g, ' ')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Location(s)</span>
+                                            <span className="font-semibold text-slate-900 dark:text-white text-right max-w-[220px] truncate">{c.targeting?.locations?.join(', ') || '—'}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Age Range</span>
+                                            <span className="font-semibold text-slate-900 dark:text-white">{c.targeting?.age_min || '?'} – {c.targeting?.age_max || '?'}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Gender</span>
+                                            <span className="font-semibold text-slate-900 dark:text-white capitalize">{c.targeting?.gender || 'All'}</span>
+                                        </div>
+                                        {c.targeting?.interests?.length > 0 && (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-slate-500">Interests</span>
+                                                <span className="font-semibold text-slate-900 dark:text-white text-right max-w-[220px]">{c.targeting.interests.join(', ')}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Created</span>
+                                            <span className="font-semibold text-slate-900 dark:text-white">{c.createdAt ? formatDistanceToNow(new Date(c.createdAt), { addSuffix: true }) : '—'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Ad Creative */}
+                                {(c.creatives?.primary_text || c.creatives?.headline) && (
+                                    <div>
+                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Ad Creative</h4>
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4 space-y-3">
+                                            {c.creatives?.headline && (
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Headline</p>
+                                                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{c.creatives.headline}</p>
+                                                </div>
+                                            )}
+                                            {c.creatives?.primary_text && (
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Primary Text</p>
+                                                    <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{c.creatives.primary_text}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Meta IDs */}
+                                {(c.metaCampaignId || c.metaAdsetId || c.metaAdId) && (
+                                    <div>
+                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Meta Ad IDs</h4>
+                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4 space-y-2 font-mono text-xs">
+                                            {c.metaCampaignId && (
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-slate-400 flex-shrink-0">Campaign ID</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-slate-700 dark:text-slate-300 break-all text-right">{c.metaCampaignId}</span>
+                                                        <button onClick={() => { navigator.clipboard.writeText(c.metaCampaignId); toast.success('Copied!'); }} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded flex-shrink-0" title="Copy"><Copy className="w-3 h-3 text-slate-400" /></button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {c.metaAdsetId && (
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-slate-400 flex-shrink-0">AdSet ID</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-slate-700 dark:text-slate-300 break-all text-right">{c.metaAdsetId}</span>
+                                                        <button onClick={() => { navigator.clipboard.writeText(c.metaAdsetId); toast.success('Copied!'); }} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded flex-shrink-0" title="Copy"><Copy className="w-3 h-3 text-slate-400" /></button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {c.metaAdId && (
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-slate-400 flex-shrink-0">Ad ID</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-slate-700 dark:text-slate-300 break-all text-right">{c.metaAdId}</span>
+                                                        <button onClick={() => { navigator.clipboard.writeText(c.metaAdId); toast.success('Copied!'); }} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded flex-shrink-0" title="Copy"><Copy className="w-3 h-3 text-slate-400" /></button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {c.metaCampaignId && (
+                                            <a
+                                                href={`https://www.facebook.com/adsmanager/manage/campaigns?act=${c.metaCampaignId}`}
+                                                target="_blank" rel="noreferrer"
+                                                className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                                            >
+                                                <ExternalLink className="w-3.5 h-3.5" /> View in Meta Ads Manager
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                );
+            })()}
         </AnimatePresence>
         </>
     );
@@ -1214,14 +1570,17 @@ const RoiCalculatorTab = ({ ctwaData }) => {
         if (actualCpl > 0) setCpl(actualCpl);
     }, [actualCpl]);
 
-    // Calculations
-    const dailyLeads = dailyBudget > 0 && cpl > 0 ? Math.floor(dailyBudget / cpl) : 0;
-    const dailyConversions = dailyLeads * (conversionRate / 100);
-    const dailyRevenue = dailyConversions * dealValue;
-    const monthlyRevenue = dailyRevenue * 30;
-    const monthlySpend = dailyBudget * 30;
-    const roi = monthlySpend > 0 ? ((monthlyRevenue - monthlySpend) / monthlySpend * 100) : 0;
-    const breakEvenCr = dailyLeads > 0 && dealValue > 0 ? (dailyBudget / (dailyLeads * dealValue) * 100) : 0;
+    // Calculations — use EXACT (non-floored) leads for revenue math, floor only for display
+    const exactDailyLeads  = dailyBudget > 0 && cpl > 0 ? dailyBudget / cpl : 0;
+    const dailyLeads        = Math.floor(exactDailyLeads); // display only
+    const dailyConversions  = exactDailyLeads * (conversionRate / 100);
+    const dailyRevenue      = dailyConversions * dealValue;
+    const monthlyRevenue    = dailyRevenue * 30;
+    const monthlySpend      = dailyBudget * 30;
+    const roi               = monthlySpend > 0 ? ((monthlyRevenue - monthlySpend) / monthlySpend * 100) : 0;
+    // Break-even CR: the minimum conversion rate needed so monthly revenue >= monthly spend
+    // monthlySpend = exactDailyLeads * CR * dealValue * 30  =>  CR = cpl / dealValue
+    const breakEvenCr       = dealValue > 0 && cpl > 0 ? (cpl / dealValue) * 100 : 0;
 
     return (
         <div className="space-y-6">
@@ -1396,17 +1755,47 @@ const RoiCalculatorTab = ({ ctwaData }) => {
                         <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <PieChart className="w-5 h-5 text-primary" /> Break-Even Analysis
                         </h4>
-                        <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                            Need <span className="font-black text-primary">{breakEvenCr.toFixed(1)}%</span> conversion rate 
-                            to break even at ₹{dailyBudget}/day spend.
-                        </p>
-                        <div className="mt-4 w-full bg-slate-200 dark:bg-white/10 rounded-full h-4 overflow-hidden relative shadow-inner">
-                            <div
-                                className={`h-full rounded-full transition-all duration-500 ease-out ${conversionRate >= breakEvenCr ? 'bg-emerald-500' : 'bg-red-500'}`}
-                                style={{ width: `${Math.min(100, breakEvenCr > 0 ? (conversionRate / breakEvenCr) * 50 : 0)}%` }}
-                            />
-                            <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-white/50 dark:bg-white/20" />
+                        <div className="mt-3 space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Break-even conversion rate</span>
+                                <span className="font-black text-primary">{breakEvenCr.toFixed(2)}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Your current conversion rate</span>
+                                <span className={`font-black ${conversionRate >= breakEvenCr ? 'text-emerald-600' : 'text-red-500'}`}>{conversionRate}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Status</span>
+                                <span className={`font-bold text-xs px-2 py-0.5 rounded-full ${conversionRate >= breakEvenCr ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'}`}>
+                                    {conversionRate >= breakEvenCr ? '✓ Above break-even' : '✗ Below break-even'}
+                                </span>
+                            </div>
                         </div>
+                        <p className="text-xs text-slate-400 mt-3">
+                            At ₹{cpl.toFixed(0)} CPL and ₹{dealValue.toLocaleString('en-IN')} deal value, you need at least {breakEvenCr.toFixed(2)}% conversion to break even.
+                        </p>
+                        {breakEvenCr > 0 && (
+                            <div className="mt-4">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+                                    <span>0%</span>
+                                    <span className="text-primary">Break-even: {breakEvenCr.toFixed(1)}%</span>
+                                    <span>50%</span>
+                                </div>
+                                <div className="w-full bg-slate-200 dark:bg-white/10 rounded-full h-3 overflow-hidden relative shadow-inner">
+                                    {/* Break-even marker */}
+                                    <div
+                                        className="absolute top-0 bottom-0 w-0.5 bg-white/70 dark:bg-white/30 z-10"
+                                        style={{ left: `${Math.min(98, (breakEvenCr / 50) * 100)}%` }}
+                                    />
+                                    {/* Current CR fill */}
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ease-out ${conversionRate >= breakEvenCr ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                        style={{ width: `${Math.min(100, (conversionRate / 50) * 100)}%` }}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1">Scale: 0–50% conversion rate</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1504,20 +1893,31 @@ const CtwaAdSettingsTab = () => {
                                     <div
                                         key={tpl.name}
                                         onClick={() => setConfig(c => ({ ...c, templateName: tpl.name }))}
-                                        className={`flex items-center gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                                        className={`flex items-start gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                                             config.templateName === tpl.name
                                                 ? 'border-primary bg-primary/5 dark:bg-primary/10'
                                                 : 'border-slate-100 dark:border-white/5 hover:border-primary/30'
                                         }`}
                                     >
-                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${ config.templateName === tpl.name ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-400' }`}>
+                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${ config.templateName === tpl.name ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-400' }`}>
                                             <Mail className="w-4 h-4" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{tpl.name}</p>
                                             <p className="text-[11px] text-slate-400">{tpl.category || 'MARKETING'} · {tpl.language || 'en'}</p>
+                                            {/* Template body preview */}
+                                            {tpl.components && (() => {
+                                                const bodyComp = tpl.components.find(c => c.type === 'BODY');
+                                                const headerComp = tpl.components.find(c => c.type === 'HEADER');
+                                                return bodyComp?.text ? (
+                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 whitespace-pre-wrap leading-relaxed">
+                                                        {headerComp?.text ? <span className="font-bold">{headerComp.text}{' '}</span> : null}
+                                                        {bodyComp.text}
+                                                    </p>
+                                                ) : null;
+                                            })()}
                                         </div>
-                                        {config.templateName === tpl.name && <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />}
+                                        {config.templateName === tpl.name && <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />}
                                     </div>
                                 ))}
                             </div>
@@ -1799,6 +2199,12 @@ export default function GrowthHub() {
                     {TABS.map((tab) => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
+                        // Sidebar badges
+                        let badge = null;
+                        if (tab.id === 'campaigns') {
+                            const live = campaigns.filter(c => c.status === 'Active' || c.status === 'Published').length;
+                            if (live > 0) badge = { value: live, color: 'bg-emerald-500' };
+                        }
                         return (
                             <button
                                 key={tab.id}
@@ -1819,7 +2225,12 @@ export default function GrowthHub() {
                                 <div className={`relative z-10 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-primary text-white shadow-md shadow-primary/30 scale-105' : 'bg-slate-100 dark:bg-white/5 group-hover:bg-slate-200 dark:group-hover:bg-white/10'}`}>
                                     <Icon className="w-4 h-4" />
                                 </div>
-                                <span className="relative z-10 tracking-tight text-[15px]">{tab.label}</span>
+                                <span className="relative z-10 tracking-tight text-[15px] flex-1">{tab.label}</span>
+                                {badge && !isActive && (
+                                    <span className={`relative z-10 ${badge.color} text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center`}>
+                                        {badge.value}
+                                    </span>
+                                )}
                                 {isActive && <ChevronRight className="w-4 h-4 ml-auto relative z-10 text-primary" />}
                             </button>
                         );
@@ -1848,6 +2259,7 @@ export default function GrowthHub() {
                             loading={loading}
                             navigate={navigate}
                             metaConnected={metaConnected}
+                            onSwitchTab={setActiveTab}
                         />
                     )}
                     {activeTab === 'campaigns' && (

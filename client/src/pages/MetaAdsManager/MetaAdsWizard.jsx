@@ -267,13 +267,19 @@ export default function MetaAdsWizard() {
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [metaConnected, setMetaConnected] = useState(null); // null = checking
+    const [checklistChecks, setChecklistChecks] = useState({ hasMetaToken: false, hasAdAccount: false, hasWhatsApp: false, hasWabaSetup: false });
+    const [checklistLoading, setChecklistLoading] = useState(false);
+
+    const fetchStatus = async () => {
+        try {
+            const res = await axios.get('/api/ctwa/status', { withCredentials: true });
+            setMetaConnected(res.data.connected);
+            if (res.data.checks) setChecklistChecks(res.data.checks);
+        } catch { setMetaConnected(false); }
+    };
 
     // Check Meta connection on mount
-    useEffect(() => {
-        axios.get('/api/ctwa/status', { withCredentials: true })
-            .then(res => setMetaConnected(res.data.connected))
-            .catch(() => setMetaConnected(false));
-    }, []);
+    useEffect(() => { fetchStatus(); }, []);
 
     // Form State
     const [businessData, setBusinessData] = useState({ name: '', description: '' });
@@ -1684,36 +1690,46 @@ export default function MetaAdsWizard() {
                             <div className="p-6 space-y-4">
                                 {[
                                     {
-                                        done: true,
+                                        done: checklistChecks.hasWabaSetup || checklistChecks.hasWhatsApp,
                                         icon: '📄',
                                         title: 'Facebook Business Page',
-                                        desc: 'A verified Facebook Page for your business (not personal profile)',
+                                        desc: checklistChecks.hasWabaSetup || checklistChecks.hasWhatsApp
+                                            ? 'Your WhatsApp Business Account is connected — a Facebook Page is confirmed.'
+                                            : 'A verified Facebook Page linked to your WhatsApp Business Account is required.',
                                         link: 'https://www.facebook.com/pages/creation/',
                                         linkLabel: 'Create Page →'
                                     },
                                     {
-                                        done: true,
+                                        done: checklistChecks.hasMetaToken,
                                         icon: '🏢',
-                                        title: 'Meta Business Manager',
-                                        desc: 'Your business must be verified in Meta Business Suite',
-                                        link: 'https://business.facebook.com',
-                                        linkLabel: 'Open Business Manager →'
-                                    },
-                                    {
-                                        done: !!metaConnected,
-                                        icon: '💳',
-                                        title: 'Ad Account with Payment Method',
-                                        desc: 'Add a credit/debit card in your Meta Ad Account before ads can go live',
-                                        link: 'https://www.facebook.com/ads/manager/billing',
-                                        linkLabel: 'Add Payment →'
-                                    },
-                                    {
-                                        done: !!metaConnected,
-                                        icon: '📱',
-                                        title: 'WhatsApp Number Connected',
-                                        desc: 'Your WhatsApp Business API number must be linked to your Facebook Page',
+                                        title: 'Meta Business Manager Connected',
+                                        desc: checklistChecks.hasMetaToken
+                                            ? 'Your Facebook Ads account is connected to BlueTick.'
+                                            : 'Connect your Meta Ads account via Facebook Login so we can create campaigns on your behalf.',
                                         link: '/ctwa-analytics',
                                         linkLabel: 'Connect Meta Ads →',
+                                        internal: true
+                                    },
+                                    {
+                                        done: checklistChecks.hasAdAccount,
+                                        icon: '💳',
+                                        title: 'Ad Account with Payment Method',
+                                        desc: checklistChecks.hasAdAccount
+                                            ? `Ad account ${checklistChecks.hasAdAccount ? 'selected' : ''} — ensure a payment method is added in Meta Ad Manager.`
+                                            : 'Select an Ad Account and add a credit/debit card in Meta Ad Manager before ads can go live.',
+                                        link: 'https://www.facebook.com/ads/manager/billing',
+                                        linkLabel: 'Add Payment →',
+                                        extraLink: checklistChecks.hasMetaToken && !checklistChecks.hasAdAccount ? { label: 'Select Ad Account →', to: '/ctwa-analytics', internal: true } : null
+                                    },
+                                    {
+                                        done: checklistChecks.hasWhatsApp,
+                                        icon: '📱',
+                                        title: 'WhatsApp Number Connected',
+                                        desc: checklistChecks.hasWhatsApp
+                                            ? 'Your WhatsApp Business API number is configured and ready.'
+                                            : 'Your WhatsApp Business API number must be set up and linked to your Facebook Page.',
+                                        link: '/settings',
+                                        linkLabel: 'Setup WhatsApp →',
                                         internal: true
                                     },
                                 ].map((item, i) => (
@@ -1725,16 +1741,32 @@ export default function MetaAdsWizard() {
                                             <p className={`font-bold text-sm ${item.done ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-800 dark:text-white'}`}>{item.title}</p>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{item.desc}</p>
                                             {!item.done && (
-                                                item.internal ? (
-                                                    <button onClick={() => { setShowChecklist(false); navigate(item.link); }} className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-1.5 hover:underline">{item.linkLabel}</button>
-                                                ) : (
-                                                    <a href={item.link} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-1.5 hover:underline">{item.linkLabel}</a>
-                                                )
+                                                <div className="flex flex-wrap gap-3 mt-1.5">
+                                                    {item.internal
+                                                        ? <button onClick={() => { setShowChecklist(false); navigate(item.link); }} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{item.linkLabel}</button>
+                                                        : <a href={item.link} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{item.linkLabel}</a>
+                                                    }
+                                                    {item.extraLink && (
+                                                        item.extraLink.internal
+                                                            ? <button onClick={() => { setShowChecklist(false); navigate(item.extraLink.to); }} className="text-xs font-bold text-indigo-500 dark:text-indigo-400 hover:underline">{item.extraLink.label}</button>
+                                                            : <a href={item.extraLink.to} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-500 dark:text-indigo-400 hover:underline">{item.extraLink.label}</a>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                     </div>
                                 ))}
+
+                                {/* Re-check my setup */}
+                                <button
+                                    onClick={async () => { setChecklistLoading(true); await fetchStatus(); setChecklistLoading(false); }}
+                                    disabled={checklistLoading}
+                                    className="w-full flex items-center justify-center gap-2 text-xs font-bold text-slate-500 hover:text-primary py-2 border border-dashed border-slate-200 dark:border-white/10 rounded-xl transition-colors disabled:opacity-50"
+                                >
+                                    {checklistLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '🔄'} Re-check my setup
+                                </button>
                             </div>
+
 
                             <div className="px-6 pb-6">
                                 <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-2xl px-4 py-3 mb-4">
@@ -1900,7 +1932,7 @@ export default function MetaAdsWizard() {
                 <div className="relative bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-2 shadow-xl shadow-black/5 dark:shadow-black/20 flex gap-2">
                     {/* Sliding background */}
                     <motion.div
-                        layout
+                        initial={false}
                         className="absolute inset-2 rounded-2xl"
                         style={{ width: 'calc(50% - 8px)' }}
                         animate={{ x: creationMode === 'manual' ? 'calc(100% + 8px)' : '0%' }}

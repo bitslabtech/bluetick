@@ -1723,7 +1723,7 @@ const Settings = () => {
                                             {/* Connection Details */}
                                             <div className="p-4 md:p-8 bg-slate-50 dark:bg-background-dark/50">
                                                 <h3 className="font-bold text-slate-900 dark:text-white mb-6 uppercase text-xs tracking-wider">Account Information</h3>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                                     <div className="bg-white dark:bg-surface-dark p-5 rounded-xl border border-slate-200 dark:border-white/5 flex items-start gap-4 shadow-sm">
                                                         <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-lg"><Smartphone className="w-5 h-5" /></div>
                                                         <div>
@@ -1738,6 +1738,27 @@ const Settings = () => {
                                                             <p className="font-mono text-sm text-slate-900 dark:text-white break-all">{formData.metaBusinessAccountId || "Pending configuration..."}</p>
                                                         </div>
                                                     </div>
+                                                </div>
+                                                
+                                                {/* Meta Billing Card */}
+                                                <div className="bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg">
+                                                            <CreditCard className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-sm text-slate-900 dark:text-white">Meta Billing & Payments</h4>
+                                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Manage your payment methods and billing directly in Meta Business Manager. Required to run Meta Ads.</p>
+                                                        </div>
+                                                    </div>
+                                                    <a
+                                                        href="https://business.facebook.com/billing_hub"
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white font-bold text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm"
+                                                    >
+                                                        Add Payment Method <ArrowRight className="w-4 h-4" />
+                                                    </a>
                                                 </div>
                                             </div>
 

@@ -178,6 +178,11 @@ const User = sequelize.define('User', {
         allowNull: true,
         comment: 'Long-lived User Access Token with ads_read permission'
     },
+    metaPageId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Facebook Page ID linked to WhatsApp Business Account'
+    },
     metaAdAccountId: {
         type: DataTypes.STRING,
         allowNull: true,
