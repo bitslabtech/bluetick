@@ -407,6 +407,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
     const activeCampaigns  = campaigns.filter(c => c.status === 'Active').length;
 
     return (
+        <>
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -730,6 +731,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                 </motion.div>
             )}
         </AnimatePresence>
+        </>
     );
 };
 
