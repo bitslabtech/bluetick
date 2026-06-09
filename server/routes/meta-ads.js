@@ -8,6 +8,23 @@ const AiTokenLog = require('../models/AiTokenLog');
 const axios = require('axios');
 const { Op } = require('sequelize');
 
+// Helper to retry axios post requests on 429 errors
+async function axiosPostWithRetry(url, payload, maxRetries = 3) {
+    for (let i = 0; i <= maxRetries; i++) {
+        try {
+            return await axios.post(url, payload);
+        } catch (error) {
+            if (error.response && error.response.status === 429 && i < maxRetries) {
+                const waitTime = Math.pow(2, i) * 1500 + Math.random() * 1000; // Exponential backoff with jitter
+                console.warn(`[AI-API] 429 Rate Limit hit. Retrying in ${Math.round(waitTime)}ms... (Attempt ${i + 1}/${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            } else {
+                throw error;
+            }
+        }
+    }
+}
+
 router.use(auth);
 
 // GET all campaigns (includes cached insights)
@@ -93,7 +110,7 @@ Schema:
             }
         };
 
-        const aiRes = await axios.post(url, payload);
+        const aiRes = await axiosPostWithRetry(url, payload);
         const candidate = aiRes.data.candidates?.[0];
         let replyText = candidate?.content?.parts?.[0]?.text || '';
         
@@ -208,7 +225,7 @@ Schema:
             }
         };
 
-        const aiRes = await axios.post(url, payload);
+        const aiRes = await axiosPostWithRetry(url, payload);
         const candidate = aiRes.data.candidates?.[0];
         let replyText = candidate?.content?.parts?.[0]?.text || '';
 
@@ -290,7 +307,7 @@ Business Info: ${businessDescription}`;
             }
         };
 
-        const aiRes = await axios.post(url, payload);
+        const aiRes = await axiosPostWithRetry(url, payload);
         const base64Image = aiRes.data.predictions?.[0]?.bytesBase64Encoded;
         
         if (!base64Image) {
@@ -346,6 +363,7 @@ router.post('/publish', async (req, res) => {
                         objective: objective || 'OUTCOME_ENGAGEMENT',
                         status: 'ACTIVE',
                         special_ad_categories: JSON.stringify([]),
+                        is_adset_budget_sharing_enabled: false,
                         access_token: token
                     }
                 });
