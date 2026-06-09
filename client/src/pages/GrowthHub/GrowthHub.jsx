@@ -1199,16 +1199,21 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
 
 // ── ROI Calculator Tab (Phase 6) ────────────────────────────────────────
 const RoiCalculatorTab = ({ ctwaData }) => {
+    const totalLeads = ctwaData?.totalLeads || 0;
+    const totalSpend = ctwaData?.totalSpend || 0;
+    const actualCpl = totalLeads > 0 && totalSpend > 0 ? totalSpend / totalLeads : 0;
+
     const [dealValue, setDealValue] = useState(5000);
     const [conversionRate, setConversionRate] = useState(15);
     const [dailyBudget, setDailyBudget] = useState(1000);
+    const [cpl, setCpl] = useState(actualCpl || 50);
 
-    const totalLeads = ctwaData?.totalLeads || 0;
-    const totalSpend = ctwaData?.totalSpend || 0;
-    const currentCpl = totalLeads > 0 && totalSpend > 0 ? totalSpend / totalLeads : 0;
+    useEffect(() => {
+        if (actualCpl > 0) setCpl(actualCpl);
+    }, [actualCpl]);
 
     // Calculations
-    const dailyLeads = dailyBudget > 0 && currentCpl > 0 ? Math.floor(dailyBudget / currentCpl) : 0;
+    const dailyLeads = dailyBudget > 0 && cpl > 0 ? Math.floor(dailyBudget / cpl) : 0;
     const dailyConversions = dailyLeads * (conversionRate / 100);
     const dailyRevenue = dailyConversions * dealValue;
     const monthlyRevenue = dailyRevenue * 30;
@@ -1238,7 +1243,7 @@ const RoiCalculatorTab = ({ ctwaData }) => {
                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">Your Current Performance</h4>
                         <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                             {totalLeads > 0
-                                ? `Based on ${totalLeads} leads at ₹${currentCpl.toFixed(2)} CPL from ₹${totalSpend.toFixed(0)} total spend.`
+                                ? `Based on ${totalLeads} leads at ₹${actualCpl.toFixed(2)} CPL from ₹${totalSpend.toFixed(0)} total spend.`
                                 : 'No campaign data yet. Enter manual values below to estimate ROI.'}
                         </p>
                     </div>
@@ -1296,6 +1301,24 @@ const RoiCalculatorTab = ({ ctwaData }) => {
                             />
                         </div>
                     </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex justify-between">
+                            <span>Cost Per Lead (CPL) [₹]</span>
+                            {actualCpl > 0 && <span className="text-xs text-primary font-bold">Using Real CPL</span>}
+                        </label>
+                        <div className="relative">
+                            <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input
+                                type="number"
+                                step="0.5"
+                                value={cpl}
+                                onChange={e => setCpl(Number(e.target.value))}
+                                className={`w-full bg-white dark:bg-white/5 border-2 ${actualCpl > 0 ? 'border-primary/40 bg-primary/5' : 'border-slate-100 dark:border-white/10'} rounded-2xl pl-12 pr-4 py-4 text-slate-900 dark:text-white outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono text-xl font-bold transition-all`}
+                            />
+                        </div>
+                        {actualCpl === 0 && <p className="text-[10px] text-slate-500 mt-1">Estimated CPL (since no campaigns are running)</p>}
+                    </div>
                 </div>
 
                 {/* Results Panel */}
@@ -1334,7 +1357,7 @@ const RoiCalculatorTab = ({ ctwaData }) => {
                                 <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider">Daily Leads</span>
                             </div>
                             <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{dailyLeads}</p>
-                            <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1 font-medium">@ ₹{(currentCpl || 50).toFixed(0)} CPL</p>
+                            <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1 font-medium">@ ₹{cpl.toFixed(0)} CPL</p>
                         </div>
                         <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl p-4 sm:p-5 shadow-sm">
                             <div className="flex items-center gap-1.5 sm:gap-2 mb-2">

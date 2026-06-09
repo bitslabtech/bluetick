@@ -451,7 +451,6 @@ const CTWADashboard = ({ onDisconnect }) => {
                     </div>
                 )}
             </div>
-        </div>
 
         {/* ── CAPI Configuration Panel ── */}
         <CAPIConfigPanel
