@@ -399,6 +399,35 @@ router.post('/', async (req, res) => {
     }
 });
 
+// PUT /api/settings — Partial update handler (e.g. for CTWA auto-reply config from GrowthHub)
+router.put('/', async (req, res) => {
+    try {
+        let settings = await Settings.findOne({ where: { userId: req.user.id } });
+        if (!settings) {
+            settings = await Settings.create({ userId: req.user.id });
+        }
+
+        // Only update the fields explicitly sent in the PUT body
+        const allowedFields = ['ctwaAutoReplyTemplate', 'whatsappAutomations', 'teamPolicy'];
+        let changed = false;
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                settings[field] = req.body[field];
+                settings.changed(field, true);
+                changed = true;
+            }
+        }
+
+        if (changed) await settings.save();
+
+        res.json({ success: true, message: 'Settings updated' });
+    } catch (err) {
+        console.error('[SETTINGS PUT] Error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 // POST /upload-whatsapp-profile-img — Upload WhatsApp business profile photo to Meta
 const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
 router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, res) => {

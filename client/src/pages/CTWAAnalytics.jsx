@@ -6,8 +6,9 @@ import {
     Megaphone, TrendingUp, MousePointerClick, Activity, Link2,
     CheckCircle2, ChevronRight, Loader2, RefreshCw, LogOut,
     DollarSign, Users, Eye, ArrowUpRight, AlertCircle, BarChart2,
-    ExternalLink, Image as ImageIcon
+    ExternalLink, Image as ImageIcon, Shield, FlaskConical, Save
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n, decimals = 0) => {
@@ -260,6 +261,14 @@ const CTWADashboard = ({ onDisconnect }) => {
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState('last_30d');
 
+    // ── CAPI Config state ────────────────────────────────────────────────────
+    const [capiPixelId, setCapiPixelId]           = useState('');
+    const [capiAccessToken, setCapiAccessToken]   = useState('');
+    const [capiTestCode, setCapiTestCode]         = useState('');
+    const [capiSaving, setCapiSaving]             = useState(false);
+    const [capiTesting, setCapiTesting]           = useState(false);
+    const [capiSaved, setCapiSaved]               = useState(false);
+
     const fetchDashboard = useCallback(async () => {
         try {
             setLoading(true);
@@ -275,6 +284,18 @@ const CTWADashboard = ({ onDisconnect }) => {
     }, [dateRange]);
 
     useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+
+    // Load existing CAPI config on mount
+    useEffect(() => {
+        axios.get('/api/ctwa/capi-config', { withCredentials: true })
+            .then(res => {
+                if (res.data.pixelId)     setCapiPixelId(res.data.pixelId);
+                if (res.data.accessToken) setCapiAccessToken('••••••••');
+                if (res.data.testEventCode) setCapiTestCode(res.data.testEventCode);
+                if (res.data.pixelId)     setCapiSaved(true);
+            })
+            .catch(() => {});
+    }, []);
 
     const handleDisconnect = async () => {
         if (!window.confirm('Disconnect your Facebook Ads account?')) return;
@@ -429,6 +450,142 @@ const CTWADashboard = ({ onDisconnect }) => {
                         </table>
                     </div>
                 )}
+            </div>
+        </div>
+
+        {/* ── CAPI Configuration Panel ── */}
+        <CAPIConfigPanel
+            pixelId={capiPixelId}       setPixelId={setCapiPixelId}
+            accessToken={capiAccessToken} setAccessToken={setCapiAccessToken}
+            testCode={capiTestCode}     setTestCode={setCapiTestCode}
+            saved={capiSaved}           setSaved={setCapiSaved}
+        />
+    </div>
+    );
+};
+
+// ── CAPI Config Panel (inside CTWADashboard, added before closing tag) ────────
+const CAPIConfigPanel = ({ pixelId, setPixelId, accessToken, setAccessToken, testCode, setTestCode, saved, setSaved }) => {
+    const [saving, setSaving] = useState(false);
+    const [testing, setTesting] = useState(false);
+
+    const handleSave = async () => {
+        if (!pixelId.trim()) return toast.error('Pixel ID is required');
+        if (!accessToken.trim() || accessToken === '••••••••') {
+            if (accessToken === '••••••••' && saved) {
+                return toast('Token unchanged — already saved ✅');
+            }
+            return toast.error('CAPI Access Token is required');
+        }
+        setSaving(true);
+        try {
+            await axios.post('/api/ctwa/capi-config', { pixelId, accessToken, testEventCode: testCode }, { withCredentials: true });
+            setSaved(true);
+            toast.success('✅ CAPI config saved! Purchases from your Online Store will now be tracked.');
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to save CAPI config');
+        } finally { setSaving(false); }
+    };
+
+    const handleTest = async () => {
+        setTesting(true);
+        try {
+            await axios.post('/api/ctwa/capi-test', {}, { withCredentials: true });
+            toast.success('✅ Test event sent to Meta! Check Events Manager to confirm.');
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Test failed — check Pixel ID and token');
+        } finally { setTesting(false); }
+    };
+
+    return (
+        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                        <Shield className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-slate-900 dark:text-white text-sm">Meta Conversions API (CAPI)</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Track Online Store purchases → attribute ROAS to your ad campaigns</p>
+                    </div>
+                </div>
+                {saved && (
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Active
+                    </span>
+                )}
+            </div>
+
+            <div className="p-5 space-y-4">
+                {/* Info Banner */}
+                <div className="flex items-start gap-3 p-3.5 bg-violet-50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-500/20 rounded-xl">
+                    <Shield className="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-violet-700 dark:text-violet-300 leading-relaxed">
+                        Once saved, every order placed in your Online Store will automatically fire
+                        <strong> InitiateCheckout</strong> and <strong>Purchase</strong> events to Meta — enabling
+                        accurate ROAS tracking and smarter ad optimization.
+                    </p>
+                </div>
+
+                {/* Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Meta Pixel ID <span className="text-red-500">*</span></label>
+                        <input
+                            type="text"
+                            value={pixelId}
+                            onChange={e => setPixelId(e.target.value)}
+                            placeholder="e.g. 1234567890123456"
+                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-violet-400/50 transition-all font-mono"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1">From Meta Business Manager → Events Manager → your Pixel</p>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">CAPI Access Token <span className="text-red-500">*</span></label>
+                        <input
+                            type="password"
+                            value={accessToken}
+                            onChange={e => setAccessToken(e.target.value)}
+                            placeholder="EAAxxxxxxxxxxxxxxx"
+                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-violet-400/50 transition-all font-mono"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1">Events Manager → your Pixel → Settings → Generate Access Token</p>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Test Event Code <span className="text-slate-400 normal-case font-normal">(optional)</span></label>
+                        <input
+                            type="text"
+                            value={testCode}
+                            onChange={e => setTestCode(e.target.value)}
+                            placeholder="TEST12345"
+                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-violet-400/50 transition-all font-mono"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1">From Meta Events Manager Test Events tab — remove before going live</p>
+                    </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-1">
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-50 shadow-lg shadow-violet-500/20"
+                    >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {saving ? 'Saving...' : 'Save CAPI Config'}
+                    </button>
+                    {saved && (
+                        <button
+                            onClick={handleTest}
+                            disabled={testing}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white font-bold rounded-xl text-sm transition-all disabled:opacity-50"
+                        >
+                            {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
+                            {testing ? 'Sending...' : 'Send Test Event'}
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );

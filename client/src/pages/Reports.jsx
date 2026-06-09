@@ -390,10 +390,12 @@ const MetaAdsTab = ({ ads }) => {
                                 <th className="px-4 py-3">Status</th>
                                 <th className="px-4 py-3 text-right">Budget/day</th>
                                 <th className="px-4 py-3 text-right">Impressions</th>
+                                <th className="px-4 py-3 text-right">Reach</th>
                                 <th className="px-4 py-3 text-right">Clicks</th>
                                 <th className="px-4 py-3 text-right">Spend</th>
                                 <th className="px-4 py-3 text-right">CTR</th>
                                 <th className="px-4 py-3 text-right">CPC</th>
+                                <th className="px-4 py-3 text-right">Freq.</th>
                             </tr>
                         </thead>
                         <tbody className="text-sm divide-y divide-slate-100 dark:divide-white/5">
@@ -418,6 +420,7 @@ const MetaAdsTab = ({ ads }) => {
                                     </td>
                                     <td className="px-4 py-4 text-right text-slate-600 dark:text-slate-300">${ad.dailyBudget}</td>
                                     <td className="px-4 py-4 text-right text-slate-700 dark:text-slate-200 font-medium">{fmtNum(ad.impressions)}</td>
+                                    <td className="px-4 py-4 text-right text-slate-700 dark:text-slate-200 font-medium">{fmtNum(ad.reach)}</td>
                                     <td className="px-4 py-4 text-right text-slate-700 dark:text-slate-200 font-medium">{fmtNum(ad.clicks)}</td>
                                     <td className="px-4 py-4 text-right font-semibold text-slate-800 dark:text-slate-200">{fmtCurrency(ad.spend)}</td>
                                     <td className="px-4 py-4 text-right">
@@ -426,6 +429,7 @@ const MetaAdsTab = ({ ads }) => {
                                         ) : <span className="text-slate-400">—</span>}
                                     </td>
                                     <td className="px-4 py-4 text-right text-slate-600 dark:text-slate-300">{fmtCurrency(ad.cpc)}</td>
+                                    <td className="px-4 py-4 text-right text-slate-500 dark:text-slate-400">{ad.frequency ?? '—'}</td>
                                 </tr>
                             ))}
                         </tbody>

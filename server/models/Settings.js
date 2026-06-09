@@ -106,6 +106,16 @@ const Settings = sequelize.define('Settings', {
             phonePrivacy: 'visible'       // 'visible' | 'blurred' | 'masked'
         }
     },
+    // CTWA Auto-Reply: Instantly send a template when a new lead clicks a CTWA ad
+    ctwaAutoReplyTemplate: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            enabled: false,
+            templateName: '',   // Must be an approved Meta template
+            language: 'en',     // Template language code (e.g. 'en', 'hi')
+            injectName: false    // If true, passes the contact's name as body variable {{1}}
+        }
+    },
     userId: {
         type: DataTypes.UUID,
         allowNull: false

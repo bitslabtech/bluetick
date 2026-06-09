@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const axios = require('axios');
 const { Sequelize } = require('sequelize');
 const { getIo } = require('../socket');
 const Conversation = require('../models/Conversation');
@@ -439,8 +440,49 @@ router.post('/:userId', (req, res, next) => {
                                             });
                                             if (referralData) {
                                                 console.log(`[WEBHOOK][CTWA] New contact ${contactWaId} attributed to Ad ID: ${referralData.source_id}`);
+
+                                                // ── CTWA AUTO-REPLY: Fire instant welcome message within the 72h free window ──
+                                                // If user has configured a ctwaAutoReplyTemplate in Settings, send it now
+                                                try {
+                                                    const ctwaTemplate = settings?.ctwaAutoReplyTemplate;
+                                                    if (ctwaTemplate && ctwaTemplate.enabled && ctwaTemplate.templateName && settings.metaAccessToken && settings.metaPhoneNumberId) {
+                                                        console.log(`[WEBHOOK][CTWA] Firing auto-reply template: "${ctwaTemplate.templateName}" to ${contactWaId}`);
+
+                                                        const templateComponents = [];
+                                                        // Inject contact name as header variable if configured
+                                                        if (ctwaTemplate.injectName) {
+                                                            templateComponents.push({
+                                                                type: 'body',
+                                                                parameters: [{ type: 'text', text: contactName || 'there' }]
+                                                            });
+                                                        }
+
+                                                        const ctwaAutoReplyPayload = {
+                                                            messaging_product: 'whatsapp',
+                                                            to: contactWaId,
+                                                            type: 'template',
+                                                            template: {
+                                                                name: ctwaTemplate.templateName,
+                                                                language: { code: ctwaTemplate.language || 'en' },
+                                                                ...(templateComponents.length > 0 ? { components: templateComponents } : {})
+                                                            }
+                                                        };
+
+                                                        const autoReplyRes = await axios.post(
+                                                            `https://graph.facebook.com/v22.0/${settings.metaPhoneNumberId}/messages`,
+                                                            ctwaAutoReplyPayload,
+                                                            { headers: { Authorization: `Bearer ${settings.metaAccessToken}`, 'Content-Type': 'application/json' } }
+                                                        );
+
+                                                        console.log(`[WEBHOOK][CTWA] Auto-reply sent. Message ID: ${autoReplyRes.data?.messages?.[0]?.id}`);
+                                                    }
+                                                } catch (ctwaAutoErr) {
+                                                    // Non-fatal — log but don't block the rest of message processing
+                                                    console.error('[WEBHOOK][CTWA] Auto-reply failed (non-critical):', ctwaAutoErr.response?.data?.error?.message || ctwaAutoErr.message);
+                                                }
                                             }
                                         }
+
 
                                     const runner = new FlowRunner(settings, conversation, userId, 'keyword');
 

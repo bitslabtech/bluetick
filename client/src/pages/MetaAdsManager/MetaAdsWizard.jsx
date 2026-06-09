@@ -1,15 +1,257 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Sparkles, Target, Type, CreditCard, ChevronRight, ChevronLeft, 
     CheckCircle2, AlertTriangle, Loader2, Megaphone, MapPin, 
     Users, Briefcase, Zap, Image, TrendingUp, ExternalLink, MoreVertical,
     Bot, MessageCircle, Mail, ArrowRight, Workflow, Radio, Globe,
-    PenLine, SlidersHorizontal, Hash, FileText, Plus, X, Tag
+    PenLine, SlidersHorizontal, Hash, FileText, Plus, X, Tag,
+    Search, Building2, Flag
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+
+// ── LocationSearchInput: Smart Meta Targeting Geo Search ──────────────────────────
+// Calls /api/meta-ads/location-search (Meta Graph API or curated fallback)
+// Accepts: selectedLocations (array of {key, name, type, countryName, region}), onChange
+const TYPE_ICON = {
+    country: '🌍',
+    region: '🗺️',
+    city: '🏙️',
+    zip: '📮',
+    geo_market: '📍',
+};
+const TYPE_LABEL = {
+    country: 'Country',
+    region: 'State / Region',
+    city: 'City',
+    zip: 'ZIP Code',
+    geo_market: 'Market Area',
+};
+
+function LocationSearchInput({ selectedLocations, onChange, placeholder = 'Search city, state, country...' }) {
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [activeIdx, setActiveIdx] = useState(-1);
+    const [source, setSource] = useState('local');
+    const wrapRef = useRef(null);
+    const inputRef = useRef(null);
+    const debounceRef = useRef(null);
+
+    // Close on outside click
+    useEffect(() => {
+        const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    // Debounced search
+    const doSearch = useCallback(async (q) => {
+        if (!q || q.length < 2) { setResults([]); setOpen(false); return; }
+        setLoading(true);
+        try {
+            const res = await axios.get(`/api/meta-ads/location-search?q=${encodeURIComponent(q)}`, { withCredentials: true });
+            setResults(res.data.locations || []);
+            setSource(res.data.source);
+            setOpen(true);
+            setActiveIdx(-1);
+        } catch {
+            setResults([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const handleInput = (e) => {
+        const v = e.target.value;
+        setQuery(v);
+        clearTimeout(debounceRef.current);
+        if (v.length >= 2) {
+            debounceRef.current = setTimeout(() => doSearch(v), 300);
+        } else {
+            setResults([]);
+            setOpen(false);
+        }
+    };
+
+    const addLocation = (loc) => {
+        const already = selectedLocations.some(l => l.key === loc.key);
+        if (!already) onChange([...selectedLocations, loc]);
+        setQuery('');
+        setResults([]);
+        setOpen(false);
+        inputRef.current?.focus();
+    };
+
+    const removeLocation = (key) => onChange(selectedLocations.filter(l => l.key !== key));
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') { setOpen(false); return; }
+        if (!open || results.length === 0) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, results.length - 1)); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
+        if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); addLocation(results[activeIdx]); }
+    };
+
+    return (
+        <div ref={wrapRef} className="space-y-2">
+            {/* Selected location tags */}
+            {selectedLocations.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {selectedLocations.map((loc) => (
+                        <motion.span
+                            key={loc.key}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="flex items-center gap-1.5 bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 px-3 py-1.5 rounded-full text-xs font-bold"
+                        >
+                            <span>{TYPE_ICON[loc.type] || '📍'}</span>
+                            <span>{loc.name}</span>
+                            {loc.type !== 'country' && loc.countryCode && (
+                                <span className="text-red-400 font-normal">({loc.countryCode})</span>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => removeLocation(loc.key)}
+                                className="ml-0.5 w-4 h-4 rounded-full bg-red-200 dark:bg-red-500/30 flex items-center justify-center hover:bg-red-300 transition-colors text-red-600 dark:text-red-300 text-[10px] font-black leading-none"
+                            >×</button>
+                        </motion.span>
+                    ))}
+                </div>
+            )}
+            {selectedLocations.length === 0 && (
+                <p className="text-xs text-slate-400 italic">No locations added yet. Search and select below.</p>
+            )}
+
+            {/* Search input + dropdown */}
+            <div className="relative">
+                <div className="relative flex items-center">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    {loading && <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin pointer-events-none" />}
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={query}
+                        onChange={handleInput}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => { if (results.length > 0) setOpen(true); }}
+                        placeholder={placeholder}
+                        className="w-full bg-white dark:bg-surface-dark border-2 border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-red-400 dark:focus:border-red-500 transition-all placeholder-slate-400"
+                        autoComplete="off"
+                    />
+                </div>
+
+                {/* Results dropdown */}
+                <AnimatePresence>
+                    {open && results.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl shadow-slate-900/10 overflow-hidden"
+                        >
+                            {source === 'meta' && (
+                                <div className="px-4 py-2 border-b border-slate-100 dark:border-white/5 flex items-center gap-2">
+                                    <Globe className="w-3.5 h-3.5 text-blue-500" />
+                                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Live from Meta Targeting Database</span>
+                                </div>
+                            )}
+                            <div className="max-h-64 overflow-y-auto">
+                                {results.map((loc, idx) => {
+                                    const isSelected = selectedLocations.some(l => l.key === loc.key);
+                                    return (
+                                        <button
+                                            key={loc.key}
+                                            type="button"
+                                            onMouseDown={(e) => { e.preventDefault(); addLocation(loc); }}
+                                            onMouseEnter={() => setActiveIdx(idx)}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                                                isSelected ? 'bg-red-50 dark:bg-red-500/10' :
+                                                activeIdx === idx ? 'bg-slate-50 dark:bg-white/5' : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                            }`}
+                                        >
+                                            <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-lg flex-shrink-0">
+                                                {TYPE_ICON[loc.type] || '📍'}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-sm font-bold truncate ${ isSelected ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white' }`}>
+                                                    {loc.name}
+                                                </p>
+                                                <p className="text-[11px] text-slate-400 truncate">
+                                                    {TYPE_LABEL[loc.type] || loc.type}
+                                                    {loc.region && ` · ${loc.region}`}
+                                                    {loc.countryName && ` · ${loc.countryName}`}
+                                                </p>
+                                            </div>
+                                            {isSelected ? (
+                                                <CheckCircle2 className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-slate-300 dark:text-white/20 flex-shrink-0">{loc.countryCode}</span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <div className="px-4 py-2 border-t border-slate-100 dark:border-white/5">
+                                <p className="text-[10px] text-slate-400">
+                                    {source === 'meta' ? '✅ Verified Meta targeting locations' : '📋 Curated location list (connect Meta Ads for live search)'}
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+                    {open && query.length >= 2 && results.length === 0 && !loading && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl px-5 py-5 text-center"
+                        >
+                            <MapPin className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                            <p className="text-sm font-semibold text-slate-500">No results for "{query}"</p>
+                            <p className="text-xs text-slate-400 mt-1">Try a different spelling or search for a nearby city</p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Quick picks */}
+            <div className="flex flex-wrap gap-1.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider self-center mr-1">Quick:</span>
+                {[
+                    { key: 'IN', name: 'India', type: 'country', countryCode: 'IN', countryName: 'India' },
+                    { key: 'Mumbai', name: 'Mumbai', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Maharashtra' },
+                    { key: 'Delhi', name: 'Delhi', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Delhi' },
+                    { key: 'Bangalore', name: 'Bangalore', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Karnataka' },
+                    { key: 'AE', name: 'UAE', type: 'country', countryCode: 'AE', countryName: 'UAE' },
+                    { key: 'US', name: 'USA', type: 'country', countryCode: 'US', countryName: 'United States' },
+                    { key: 'GB', name: 'UK', type: 'country', countryCode: 'GB', countryName: 'United Kingdom' },
+                ].map(loc => {
+                    const isSelected = selectedLocations.some(l => l.key === loc.key);
+                    return (
+                        <button
+                            key={loc.key}
+                            type="button"
+                            onClick={() => isSelected ? removeLocation(loc.key) : addLocation(loc)}
+                            className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${
+                                isSelected
+                                    ? 'border-red-400 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                                    : 'border-slate-200 dark:border-white/10 text-slate-500 hover:border-red-300 hover:text-red-600 dark:hover:border-red-500/40'
+                            }`}
+                        >
+                            {TYPE_ICON[loc.type]} {loc.name}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 
 const steps = [
     { id: 'business', title: 'Business Info', icon: Briefcase },
@@ -44,9 +286,8 @@ export default function MetaAdsWizard() {
 
     // Geography targeting — user controls this, not AI
     const [targetLocations, setTargetLocations] = useState([]);
-    const [locationInput, setLocationInput] = useState('');
+    // locationInput / manualLocationInput no longer needed — replaced by LocationSearchInput
 
-    // ── Manual Mode State ──
     const [manual, setManual] = useState({
         campaignName: '',
         objective: 'OUTCOME_ENGAGEMENT',
@@ -57,11 +298,20 @@ export default function MetaAdsWizard() {
         headline: '',
     });
     const [manualLocations, setManualLocations] = useState([]);
-    const [manualLocationInput, setManualLocationInput] = useState('');
     const [manualInterests, setManualInterests] = useState([]);
     const [manualInterestInput, setManualInterestInput] = useState('');
-    const manualLocationRef = useRef(null);
     const manualInterestRef = useRef(null);
+
+    // ── New Targeting State (shared between AI + Manual) ──
+    const [gender, setGender] = useState('all');              // 'all' | 'male' | 'female'
+    const [targetingLanguage, setTargetingLanguage] = useState('');  // Meta locale code e.g. 'hi', 'en'
+    const [placements, setPlacements] = useState(['facebook', 'instagram']); // platforms
+    const [schedulingStart, setSchedulingStart] = useState('');  // ISO date string
+    const [schedulingEnd, setSchedulingEnd] = useState('');
+
+    // ── UI State ──
+    const [showChecklist, setShowChecklist] = useState(false);   // prereq modal
+    const [showPreview, setShowPreview] = useState(false);        // ad preview modal
 
     // Phase 6: Multi-language + Industry Templates
     const [adLanguage, setAdLanguage] = useState('english');
@@ -86,6 +336,16 @@ export default function MetaAdsWizard() {
         { id: 'healthcare', icon: '🏥', label: 'Healthcare', name: 'Doctor Appointment', description: 'We are a multi-specialty hospital/clinic offering consultations with expert doctors. We want patients to book an appointment via WhatsApp. Target: adults aged 25-60 seeking medical care in [City].' },
         { id: 'fashion', icon: '👗', label: 'Fashion D2C', name: 'Exclusive Offer', description: 'We are a fashion brand selling trendy clothing/accessories online. We have an exclusive 30-50% off sale running. Target: fashion-conscious women/men aged 18-40 interested in online shopping across India.' },
         { id: 'automobile', icon: '🚗', label: 'Automobile', name: 'Book Test Drive', description: 'We are an authorized car/bike dealership. We want customers to book a free test drive of our latest models. Target: adults aged 25-55 interested in buying vehicles in [City].' },
+        { id: 'travel', icon: '✈️', label: 'Travel & Tours', name: 'Holiday Package', description: 'We are a travel agency offering customized holiday packages and honeymoon tours. We want users to inquire about trips via WhatsApp. Target: young couples and families aged 25-50.' },
+        { id: 'salon', icon: '✂️', label: 'Salon & Spa', name: 'Special Discount', description: 'We are a premium salon/spa offering hair, beauty, and relaxation services. We are running a 20% discount this weekend. Target: local women and men aged 18-45 in [City/Neighborhood].' },
+        { id: 'restaurant', icon: '🍽️', label: 'Restaurant', name: 'Table Reservation', description: 'We are a fine dining restaurant/cafe offering delicious multi-cuisine food. We want customers to reserve tables or order online. Target: foodies and young adults aged 18-40 in [City].' },
+        { id: 'b2b', icon: '🏢', label: 'B2B Services', name: 'Free Consultation', description: 'We are a B2B agency offering digital marketing/software/consulting services. We want to book discovery calls. Target: business owners, CEOs, and founders aged 30-55.' },
+        { id: 'fitness', icon: '💪', label: 'Gym & Fitness', name: '30-Day Challenge', description: 'We are a modern gym and fitness center offering personal training and group classes. We want leads for our 30-day weight loss challenge. Target: fitness enthusiasts aged 18-40 in [City].' },
+        { id: 'electronics', icon: '📱', label: 'Electronics', name: 'Gadget Sale', description: 'We are a retail electronics store selling smartphones, laptops, and accessories. We have a festive sale with up to 40% off. Target: tech-savvy individuals aged 18-45.' },
+        { id: 'furniture', icon: '🛋️', label: 'Furniture', name: 'Home Decor', description: 'We are a premium furniture and home decor brand. We want to showcase our new living room collection and get inquiries via WhatsApp. Target: homeowners and newlyweds aged 25-55.' },
+        { id: 'beauty', icon: '💄', label: 'Beauty & Cosmetics', name: 'Skincare Kit', description: 'We are a D2C beauty brand selling organic skincare and cosmetic products. We are launching a new summer glow kit. Target: beauty-conscious women aged 18-40.' },
+        { id: 'jewelry', icon: '💍', label: 'Jewelry', name: 'Bridal Collection', description: 'We are a luxury jewelry store offering gold, diamond, and silver collections. We want to promote our new bridal/festive range. Target: engaged couples and women aged 22-50.' },
+        { id: 'footwear', icon: '👟', label: 'Footwear', name: 'Sneaker Drop', description: 'We are a trendy footwear brand selling sneakers and activewear. We are dropping a new limited-edition sneaker collection. Target: youth and sneakerheads aged 16-35.' },
     ];
 
     // ── Phase 2: Automation Attachment State ──
@@ -137,7 +397,7 @@ export default function MetaAdsWizard() {
         try {
             const res = await axios.post('/api/meta-ads/ai-research', {
                 businessDescription: `Business Name: ${businessData.name}\n${businessData.description}`,
-                targetLocations: targetLocations.length > 0 ? targetLocations : undefined
+                targetLocations: targetLocations.length > 0 ? targetLocations.map(l => l.name) : undefined
             }, { withCredentials: true });
             
             setAudienceData(res.data.research);
@@ -187,31 +447,41 @@ export default function MetaAdsWizard() {
         }
     };
 
-    // Step 5: Publish
+    // Step 5: Publish (AI Mode)
     const handlePublish = async () => {
         const selectedCreative = creativeData[selectedCreativeIndex];
         setLoading(true);
         try {
-            const res = await axios.post('/api/meta-ads/publish', {
+            await axios.post('/api/meta-ads/publish', {
                 campaignName: `${businessData.name.replace(/\s+/g,'_')}_AI_Campaign`,
                 objective: budgetData.objective,
                 dailyBudget: budgetData.dailyBudget,
-                targeting: audienceData,
+                targeting: {
+                    ...(audienceData || {}),
+                    locations:       targetLocations.map(l => l.name || l),
+                    locationKeys:    targetLocations.map(l => l.key).filter(Boolean),
+                    locationObjects: targetLocations,
+                    gender,
+                    targetingLanguage: targetingLanguage || undefined,
+                    placements,
+                },
                 creatives: selectedCreative,
                 imageUrl: generatedImage,
-                // Phase 2: Automation data
+                scheduling: {
+                    startDate: schedulingStart || null,
+                    endDate:   schedulingEnd   || null,
+                },
                 automation: {
-                    type: automationType,
-                    flowId: automationType === 'flowbot' ? selectedFlowId : null,
+                    type:       automationType,
+                    flowId:     automationType === 'flowbot'  ? selectedFlowId    : null,
                     templateId: automationType === 'template' ? selectedTemplateId : null,
                     icebreaker: icebreaker || null,
                 }
             }, { withCredentials: true });
-            
-            toast.success("Campaign prepared successfully!");
+            toast.success('Campaign prepared successfully!');
             navigate('/growth-hub');
         } catch (err) {
-            toast.error(err.response?.data?.error || "Failed to publish." );
+            toast.error(err.response?.data?.error || 'Failed to publish.');
         } finally {
             setLoading(false);
         }
@@ -231,20 +501,26 @@ export default function MetaAdsWizard() {
                 objective: manual.objective,
                 dailyBudget: manual.dailyBudget,
                 targeting: {
-                    age_min: manual.ageMin,
-                    age_max: manual.ageMax,
-                    locations: manualLocations,
-                    interests: manualInterests,
+                    age_min:            manual.ageMin,
+                    age_max:            manual.ageMax,
+                    locations:          manualLocations.map(l => l.name || l),
+                    locationKeys:       manualLocations.map(l => l.key).filter(Boolean),
+                    locationObjects:    manualLocations,
+                    interests:          manualInterests,
+                    gender,
+                    targetingLanguage:  targetingLanguage || undefined,
+                    placements,
                 },
-                creatives: {
-                    primary_text: manual.primaryText,
-                    headline: manual.headline,
-                },
+                creatives: { primary_text: manual.primaryText, headline: manual.headline },
                 imageUrl: null,
+                scheduling: {
+                    startDate: schedulingStart || null,
+                    endDate:   schedulingEnd   || null,
+                },
                 automation: {
-                    type: automationType,
-                    flowId: automationType === 'flowbot' ? selectedFlowId : null,
-                    templateId: automationType === 'template' ? selectedTemplateId : null,
+                    type:       automationType,
+                    flowId:     automationType === 'flowbot'   ? selectedFlowId   : null,
+                    templateId: automationType === 'template'  ? selectedTemplateId : null,
                     icebreaker: icebreaker || null,
                 }
             }, { withCredentials: true });
@@ -271,11 +547,6 @@ export default function MetaAdsWizard() {
     };
 
     // ── Manual Form Tag Helper ──
-    const addManualLocation = () => {
-        const loc = manualLocationInput.trim().replace(/,$/, '');
-        if (loc && !manualLocations.includes(loc)) setManualLocations(p => [...p, loc]);
-        setManualLocationInput('');
-    };
     const addManualInterest = () => {
         const int = manualInterestInput.trim().replace(/,$/, '');
         if (int && !manualInterests.includes(int)) setManualInterests(p => [...p, int]);
@@ -292,7 +563,6 @@ export default function MetaAdsWizard() {
             { value: 'OUTCOME_TRAFFIC', label: 'Traffic', desc: 'Drive website visits', emoji: '🌐' },
             { value: 'OUTCOME_AWARENESS', label: 'Awareness', desc: 'Maximize brand reach', emoji: '📢' },
         ];
-        const QUICK_LOCATIONS = ['India', 'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Pune', 'UAE', 'USA', 'UK', 'Singapore'];
         const QUICK_INTERESTS = ['Small Business', 'E-commerce', 'Entrepreneurship', 'Digital Marketing', 'Online Shopping', 'Real Estate', 'Health & Fitness', 'Fashion', 'Technology', 'Education'];
 
         return (
@@ -415,29 +685,17 @@ export default function MetaAdsWizard() {
                             </div>
                         </div>
 
-                        {/* Locations */}
+                        {/* Locations — Smart Search */}
                         <div>
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                                 <MapPin className="w-3.5 h-3.5 text-red-400" /> Target Locations *
+                                <span className="ml-1 text-[10px] font-normal normal-case text-slate-400">— Only real places allowed</span>
                             </label>
-                            <div className="flex flex-wrap gap-2 mb-2 min-h-[32px]">
-                                {manualLocations.map((loc, i) => (
-                                    <span key={i} className="flex items-center gap-1.5 bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                                        📍 {loc}
-                                        <button onClick={() => setManualLocations(p => p.filter((_,idx) => idx!==i))} className="hover:text-red-900 transition-colors">×</button>
-                                    </span>
-                                ))}
-                                {manualLocations.length === 0 && <span className="text-xs text-slate-400 italic">No locations added yet...</span>}
-                            </div>
-                            <div className="flex gap-2">
-                                <input ref={manualLocationRef} type="text" className="flex-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-400/40 transition-all" placeholder="Type city/state/country..." value={manualLocationInput} onChange={e => setManualLocationInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addManualLocation(); }}} />
-                                <button type="button" onClick={addManualLocation} className="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-all"><Plus className="w-4 h-4" /></button>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                                {QUICK_LOCATIONS.map(s => (
-                                    <button key={s} type="button" onClick={() => { if (!manualLocations.includes(s)) setManualLocations(p => [...p, s]); }} className={`text-[10px] px-2 py-1 rounded-full border transition-all ${ manualLocations.includes(s) ? 'border-red-400 bg-red-50 dark:bg-red-500/10 text-red-600' : 'border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-400'}`}>{s}</button>
-                                ))}
-                            </div>
+                            <LocationSearchInput
+                                selectedLocations={manualLocations}
+                                onChange={setManualLocations}
+                                placeholder="Search city, state or country..."
+                            />
                         </div>
 
                         {/* Interests */}
@@ -467,7 +725,175 @@ export default function MetaAdsWizard() {
                     </div>
                 </div>
 
+                {/* ─ Section 3b: Advanced Targeting — Gender, Language, Placement ─ */}
+                <div>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
+                            <SlidersHorizontal className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Advanced Targeting</h3>
+                            <p className="text-xs text-slate-400">Gender, language, and where your ads appear</p>
+                        </div>
+                    </div>
+                    <div className="bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-5 space-y-6">
+
+                        {/* Gender */}
+                        <div>
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                                <Users className="w-3.5 h-3.5 text-violet-400" /> Gender Targeting
+                            </label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { value: 'all', label: 'All Genders', emoji: '👥' },
+                                    { value: 'male', label: 'Men Only', emoji: '👨' },
+                                    { value: 'female', label: 'Women Only', emoji: '👩' },
+                                ].map(g => (
+                                    <button
+                                        key={g.value}
+                                        type="button"
+                                        onClick={() => setGender(g.value)}
+                                        className={`flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border-2 transition-all text-center ${
+                                            gender === g.value
+                                                ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 shadow-lg shadow-violet-500/10'
+                                                : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark hover:border-violet-200'
+                                        }`}
+                                    >
+                                        <span className="text-2xl">{g.emoji}</span>
+                                        <span className={`text-xs font-bold ${gender === g.value ? 'text-violet-700 dark:text-violet-300' : 'text-slate-600 dark:text-slate-400'}`}>{g.label}</span>
+                                        {gender === g.value && <CheckCircle2 className="w-4 h-4 text-violet-500" />}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Language Targeting */}
+                        <div>
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                                <Globe className="w-3.5 h-3.5 text-blue-400" /> Language Targeting
+                                <span className="ml-1 text-[10px] font-normal normal-case text-slate-400">— Target users who browse in this language</span>
+                            </label>
+                            <select
+                                value={targetingLanguage}
+                                onChange={e => setTargetingLanguage(e.target.value)}
+                                className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50 transition-all"
+                            >
+                                <option value="">All Languages (no restriction)</option>
+                                <option value="en">🇬🇧 English</option>
+                                <option value="hi">🇮🇳 Hindi</option>
+                                <option value="mr">🇮🇳 Marathi</option>
+                                <option value="gu">🇮🇳 Gujarati</option>
+                                <option value="ta">🇮🇳 Tamil</option>
+                                <option value="te">🇮🇳 Telugu</option>
+                                <option value="kn">🇮🇳 Kannada</option>
+                                <option value="ml">🇮🇳 Malayalam</option>
+                                <option value="bn">🇮🇳 Bengali</option>
+                                <option value="pa">🇮🇳 Punjabi</option>
+                                <option value="ur">🇮🇳 Urdu</option>
+                                <option value="ar">🇸🇦 Arabic</option>
+                            </select>
+                        </div>
+
+                        {/* Placement Selection */}
+                        <div>
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                                <Radio className="w-3.5 h-3.5 text-pink-400" /> Ad Placements
+                                <span className="ml-1 text-[10px] font-normal normal-case text-slate-400">— Where your ads will appear</span>
+                            </label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                {[
+                                    { value: 'facebook', label: 'Facebook', sublabel: 'Feed + Reels', emoji: '📘', color: 'blue' },
+                                    { value: 'instagram', label: 'Instagram', sublabel: 'Feed + Reels', emoji: '📸', color: 'pink' },
+                                    { value: 'messenger', label: 'Messenger', sublabel: 'Inbox Ads', emoji: '💬', color: 'blue' },
+                                    { value: 'audience_network', label: 'Audience Network', sublabel: 'External apps', emoji: '🌐', color: 'slate' },
+                                ].map(p => {
+                                    const isSelected = placements.includes(p.value);
+                                    const colorMap = {
+                                        blue: isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark',
+                                        pink: isSelected ? 'border-pink-500 bg-pink-50 dark:bg-pink-500/10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark',
+                                        slate: isSelected ? 'border-slate-500 bg-slate-100 dark:bg-white/10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark',
+                                    };
+                                    return (
+                                        <button
+                                            key={p.value}
+                                            type="button"
+                                            onClick={() => setPlacements(prev =>
+                                                prev.includes(p.value)
+                                                    ? prev.filter(x => x !== p.value)
+                                                    : [...prev, p.value]
+                                            )}
+                                            className={`relative flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-xl border-2 transition-all text-center ${colorMap[p.color] || colorMap.slate}`}
+                                        >
+                                            {isSelected && (
+                                                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                                                    <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                                                </span>
+                                            )}
+                                            <span className="text-xl">{p.emoji}</span>
+                                            <span className={`text-[11px] font-bold ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>{p.label}</span>
+                                            <span className="text-[9px] text-slate-400">{p.sublabel}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {placements.length === 0 && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                                    <AlertTriangle className="w-3.5 h-3.5" /> Select at least one placement
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ─ Section 3c: Ad Scheduling ─ */}
+                <div>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                            <TrendingUp className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Ad Scheduling</h3>
+                            <p className="text-xs text-slate-400">Control when your campaign runs (optional)</p>
+                        </div>
+                    </div>
+                    <div className="bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-5">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Start Date</label>
+                                <input
+                                    type="datetime-local"
+                                    value={schedulingStart}
+                                    min={new Date().toISOString().slice(0, 16)}
+                                    onChange={e => setSchedulingStart(e.target.value)}
+                                    className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-400/50 transition-all"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Leave blank = starts immediately</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">End Date</label>
+                                <input
+                                    type="datetime-local"
+                                    value={schedulingEnd}
+                                    min={schedulingStart || new Date().toISOString().slice(0, 16)}
+                                    onChange={e => setSchedulingEnd(e.target.value)}
+                                    className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-400/50 transition-all"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Leave blank = runs until budget runs out</p>
+                            </div>
+                        </div>
+                        {schedulingStart && schedulingEnd && (
+                            <div className="mt-3 flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-2.5">
+                                <span className="text-amber-600 dark:text-amber-400 text-xs font-bold">📅 Campaign scheduled:</span>
+                                <span className="text-xs text-amber-700 dark:text-amber-300">
+                                    {new Date(schedulingStart).toLocaleString()} → {new Date(schedulingEnd).toLocaleString()}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 {/* ─ Section 4: Ad Creative ─ */}
+
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
@@ -623,76 +1049,18 @@ export default function MetaAdsWizard() {
                             <p className="text-[11px] text-slate-400 mt-1.5">AI will generate ad copy in this language. You can write your description in any language.</p>
                         </div>
 
-                        {/* Geography Targeting — User Controlled */}
+                        {/* Geography Targeting — Smart Search */}
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-red-500" /> Target Locations <span className="text-xs font-normal text-slate-400">(Where you want your ads to run)</span>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-red-500" /> Target Locations
+                                <span className="text-xs font-normal text-slate-400">(Where you want your ads to run)</span>
                             </label>
-                            {/* Tag display */}
-                            <div className="flex flex-wrap gap-2 mb-2">
-                                {targetLocations.map((loc, i) => (
-                                    <span key={i} className="flex items-center gap-1.5 bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300 px-3 py-1 rounded-full text-xs font-bold">
-                                        📍 {loc}
-                                        <button onClick={() => setTargetLocations(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-red-900 dark:hover:text-red-100 transition-colors ml-0.5 text-sm leading-none">×</button>
-                                    </span>
-                                ))}
-                                {targetLocations.length === 0 && (
-                                    <span className="text-xs text-slate-400 italic">No locations added — AI will suggest locations based on your description.</span>
-                                )}
-                            </div>
-                            {/* Input row */}
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    className="flex-1 bg-slate-50 dark:bg-surface-dark/50 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-red-400/50 transition-all"
-                                    placeholder="e.g. Mumbai, Delhi, Karnataka..."
-                                    value={locationInput}
-                                    onChange={(e) => setLocationInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if ((e.key === 'Enter' || e.key === ',') && locationInput.trim()) {
-                                            e.preventDefault();
-                                            const loc = locationInput.trim().replace(/,$/, '');
-                                            if (loc && !targetLocations.includes(loc)) {
-                                                setTargetLocations(prev => [...prev, loc]);
-                                            }
-                                            setLocationInput('');
-                                        }
-                                    }}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const loc = locationInput.trim().replace(/,$/, '');
-                                        if (loc && !targetLocations.includes(loc)) {
-                                            setTargetLocations(prev => [...prev, loc]);
-                                        }
-                                        setLocationInput('');
-                                    }}
-                                    className="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-all flex-shrink-0"
-                                >Add</button>
-                            </div>
-                            {/* Quick suggestions */}
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                                {['India', 'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'UAE', 'USA', 'UK'].map(suggestion => (
-                                    <button
-                                        key={suggestion}
-                                        type="button"
-                                        onClick={() => {
-                                            if (!targetLocations.includes(suggestion)) {
-                                                setTargetLocations(prev => [...prev, suggestion]);
-                                            }
-                                        }}
-                                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
-                                            targetLocations.includes(suggestion)
-                                                ? 'border-red-400 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
-                                                : 'border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                                        }`}
-                                    >
-                                        {suggestion}
-                                    </button>
-                                ))}
-                            </div>
-                            <p className="text-[11px] text-slate-400 mt-1.5">Press Enter or comma to add. Click quick-suggestions or type any city/country/state. These become hard rules for the AI.</p>
+                            <LocationSearchInput
+                                selectedLocations={targetLocations}
+                                onChange={setTargetLocations}
+                                placeholder="Search city, state or country..."
+                            />
+                            <p className="text-[11px] text-slate-400 mt-2">Only valid geographic locations accepted. These become hard targeting rules for the AI.</p>
                         </div>
 
                         {/* Phase 6: Industry Quick Templates */}
@@ -1281,14 +1649,252 @@ export default function MetaAdsWizard() {
     return (
         <div className="min-h-screen p-4 md:p-6 max-w-5xl mx-auto">
 
+            {/* ══ Prerequisite Checklist Modal ══ */}
+            <AnimatePresence>
+                {showChecklist && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowChecklist(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            transition={{ type: 'spring', damping: 20 }}
+                            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 max-w-lg w-full overflow-hidden"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 py-5">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-white font-bold text-lg">Before You Create an Ad</h2>
+                                        <p className="text-blue-200 text-sm mt-0.5">Make sure these are set up in Meta Business Manager</p>
+                                    </div>
+                                    <button onClick={() => setShowChecklist(false)} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Checklist Items */}
+                            <div className="p-6 space-y-4">
+                                {[
+                                    {
+                                        done: true,
+                                        icon: '📄',
+                                        title: 'Facebook Business Page',
+                                        desc: 'A verified Facebook Page for your business (not personal profile)',
+                                        link: 'https://www.facebook.com/pages/creation/',
+                                        linkLabel: 'Create Page →'
+                                    },
+                                    {
+                                        done: true,
+                                        icon: '🏢',
+                                        title: 'Meta Business Manager',
+                                        desc: 'Your business must be verified in Meta Business Suite',
+                                        link: 'https://business.facebook.com',
+                                        linkLabel: 'Open Business Manager →'
+                                    },
+                                    {
+                                        done: !!metaConnected,
+                                        icon: '💳',
+                                        title: 'Ad Account with Payment Method',
+                                        desc: 'Add a credit/debit card in your Meta Ad Account before ads can go live',
+                                        link: 'https://www.facebook.com/ads/manager/billing',
+                                        linkLabel: 'Add Payment →'
+                                    },
+                                    {
+                                        done: !!metaConnected,
+                                        icon: '📱',
+                                        title: 'WhatsApp Number Connected',
+                                        desc: 'Your WhatsApp Business API number must be linked to your Facebook Page',
+                                        link: '/ctwa-analytics',
+                                        linkLabel: 'Connect Meta Ads →',
+                                        internal: true
+                                    },
+                                ].map((item, i) => (
+                                    <div key={i} className={`flex items-start gap-4 p-4 rounded-2xl border-2 transition-all ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]'}`}>
+                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${item.done ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-slate-100 dark:bg-white/5'}`}>
+                                            {item.done ? '✅' : item.icon}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`font-bold text-sm ${item.done ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-800 dark:text-white'}`}>{item.title}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{item.desc}</p>
+                                            {!item.done && (
+                                                item.internal ? (
+                                                    <button onClick={() => { setShowChecklist(false); navigate(item.link); }} className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-1.5 hover:underline">{item.linkLabel}</button>
+                                                ) : (
+                                                    <a href={item.link} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-1.5 hover:underline">{item.linkLabel}</a>
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="px-6 pb-6">
+                                <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-2xl px-4 py-3 mb-4">
+                                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                                        💡 <strong>Meta handles all billing.</strong> You add your payment method directly in Meta Ad Account — your ad budget is charged by Meta, not by this platform.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowChecklist(false)}
+                                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25"
+                                >
+                                    Got it — Let's Create My Ad! 🚀
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ══ Ad Preview Modal ══ */}
+            <AnimatePresence>
+                {showPreview && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowPreview(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            transition={{ type: 'spring', damping: 20 }}
+                            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 max-w-md w-full overflow-hidden"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/5">
+                                <h2 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                                    <span>📱</span> Ad Preview
+                                </h2>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-full font-medium">Facebook Feed</span>
+                                    <button onClick={() => setShowPreview(false)} className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="p-5">
+                                {/* Facebook Ad Mockup */}
+                                <div className="bg-white dark:bg-[#242526] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-lg">
+                                    {/* Post Header */}
+                                    <div className="p-3 flex items-center gap-2.5">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                            {(manual.campaignName || businessData.name || 'B')[0].toUpperCase()}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-bold text-sm text-slate-900 dark:text-[#E4E6EB]">{manual.campaignName || businessData.name || 'Your Business'}</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-[10px] text-slate-400">Sponsored</span>
+                                                <span className="text-slate-300">·</span>
+                                                <span className="text-[10px] text-slate-400">🌍</span>
+                                            </div>
+                                        </div>
+                                        <MoreVertical className="w-4 h-4 text-slate-400" />
+                                    </div>
+                                    {/* Ad Body */}
+                                    <div className="px-3 pb-3">
+                                        <p className="text-sm text-slate-800 dark:text-[#E4E6EB] leading-relaxed">
+                                            {manual.primaryText || (creativeData?.[selectedCreativeIndex]?.primary_text) || 'Your ad copy will appear here. Write something compelling that makes people want to message you on WhatsApp!'}
+                                        </p>
+                                    </div>
+                                    {/* Ad Image Placeholder */}
+                                    <div className="mx-3 mb-3 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 aspect-square max-h-48 flex items-center justify-center relative">
+                                        {(generatedImage) ? (
+                                            <img src={generatedImage} alt="Ad" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="text-center">
+                                                <Image className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                                                <p className="text-xs text-slate-400 font-medium">1080 × 1080 px recommended</p>
+                                                <p className="text-[10px] text-slate-300 mt-0.5">Upload or generate an image</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* CTA Bar */}
+                                    <div className="bg-slate-50 dark:bg-[#3A3B3C] px-3 py-3 flex items-center justify-between">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">SEND MESSAGE ON WHATSAPP</p>
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate mt-0.5">
+                                                {manual.headline || (creativeData?.[selectedCreativeIndex]?.headline) || 'Chat with us now →'}
+                                            </p>
+                                        </div>
+                                        <div className="flex-shrink-0 ml-3 px-4 py-2 bg-[#25D366] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-green-500/25">
+                                            <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                                        </div>
+                                    </div>
+                                    {/* Reactions row */}
+                                    <div className="px-3 py-2.5 flex items-center justify-between border-t border-slate-100 dark:border-white/5">
+                                        <div className="flex items-center gap-0.5">
+                                            <span className="text-sm">👍</span><span className="text-sm">❤️</span><span className="text-sm">😮</span>
+                                            <span className="text-xs text-slate-400 ml-1.5">Be the first to react</span>
+                                        </div>
+                                        <span className="text-xs text-slate-400">0 Comments</span>
+                                    </div>
+                                </div>
+
+                                {/* Targeting Summary */}
+                                <div className="mt-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-2xl p-4 space-y-2.5">
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Targeting Summary</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-white dark:bg-white/5 rounded-xl p-2.5">
+                                            <p className="text-[9px] text-slate-400 uppercase tracking-wide">Age</p>
+                                            <p className="text-xs font-bold text-slate-800 dark:text-white">{manual.ageMin || 18}–{manual.ageMax || 55} yrs</p>
+                                        </div>
+                                        <div className="bg-white dark:bg-white/5 rounded-xl p-2.5">
+                                            <p className="text-[9px] text-slate-400 uppercase tracking-wide">Gender</p>
+                                            <p className="text-xs font-bold text-slate-800 dark:text-white capitalize">{gender === 'all' ? 'All Genders' : gender === 'male' ? '👨 Men' : '👩 Women'}</p>
+                                        </div>
+                                        <div className="bg-white dark:bg-white/5 rounded-xl p-2.5">
+                                            <p className="text-[9px] text-slate-400 uppercase tracking-wide">Locations</p>
+                                            <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                                                {(manualLocations.length > 0 ? manualLocations : targetLocations).map(l => l.name).join(', ') || 'India (default)'}
+                                            </p>
+                                        </div>
+                                        <div className="bg-white dark:bg-white/5 rounded-xl p-2.5">
+                                            <p className="text-[9px] text-slate-400 uppercase tracking-wide">Placements</p>
+                                            <p className="text-xs font-bold text-slate-800 dark:text-white">{placements.join(', ') || 'All'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* ══════════════════════════════════════════
                 MODE TOGGLE — Premium dual-mode selector
             ══════════════════════════════════════════ */}
             <div className="mb-8">
-                {/* Back link */}
-                <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors mb-6 group">
-                    <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to Meta Ads
-                </button>
+                {/* Back link + Prerequisite Check */}
+                <div className="flex items-center justify-between mb-6">
+                    <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors group">
+                        <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to Meta Ads
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowPreview(true)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 px-3 py-2 rounded-xl transition-all border border-slate-200 dark:border-white/10"
+                        >
+                            <ExternalLink className="w-3.5 h-3.5" /> Preview Ad
+                        </button>
+                        <button
+                            onClick={() => setShowChecklist(true)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 px-3 py-2 rounded-xl transition-all border border-blue-200 dark:border-blue-500/30"
+                        >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Setup Checklist
+                        </button>
+                    </div>
+                </div>
 
                 {/* Toggle Card */}
                 <div className="relative bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-2 shadow-xl shadow-black/5 dark:shadow-black/20 flex gap-2">
@@ -1302,8 +1908,8 @@ export default function MetaAdsWizard() {
                     >
                         <div className={`h-full w-full rounded-2xl shadow-lg ${
                             creationMode === 'ai'
-                                ? 'bg-gradient-to-br from-primary to-secondary'
-                                : 'bg-gradient-to-br from-violet-600 to-purple-700'
+                                ? 'bg-primary'
+                                : 'bg-violet-600'
                         }`} />
                     </motion.div>
 
@@ -1319,9 +1925,10 @@ export default function MetaAdsWizard() {
                         }`}>
                             <Sparkles className="w-5 h-5" />
                         </div>
-                        <div className="text-left">
-                            <p className={`font-bold text-sm transition-colors ${ creationMode === 'ai' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                        <div className="text-left flex-1">
+                            <p className={`font-bold text-sm transition-colors flex items-center gap-2 ${ creationMode === 'ai' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                                 AI-Assisted Wizard
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold ${ creationMode === 'ai' ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>Recommended</span>
                             </p>
                             <p className={`text-xs transition-colors ${ creationMode === 'ai' ? 'text-white/70' : 'text-slate-400'}`}>
                                 Let AI generate targeting & copy
@@ -1344,7 +1951,7 @@ export default function MetaAdsWizard() {
                         }`}>
                             <SlidersHorizontal className="w-5 h-5" />
                         </div>
-                        <div className="text-left">
+                        <div className="text-left flex-1">
                             <p className={`font-bold text-sm transition-colors ${ creationMode === 'manual' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                                 Manual Builder
                             </p>
@@ -1373,7 +1980,6 @@ export default function MetaAdsWizard() {
                                 <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
                                 <p className="text-sm text-slate-500 dark:text-slate-400">
                                     <strong className="text-slate-700 dark:text-slate-300">AI Wizard</strong> — Describe your business and AI will generate optimal audience targeting, ad copy, and strategy in seconds.
-                                    <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">~20–30 tokens used</span>
                                 </p>
                             </>
                         ) : (
@@ -1381,7 +1987,6 @@ export default function MetaAdsWizard() {
                                 <SlidersHorizontal className="w-4 h-4 text-violet-500 flex-shrink-0" />
                                 <p className="text-sm text-slate-500 dark:text-slate-400">
                                     <strong className="text-slate-700 dark:text-slate-300">Manual Builder</strong> — Set every parameter yourself. Ideal for experienced marketers who know exactly what they want.
-                                    <span className="ml-2 text-xs bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-semibold">0 tokens</span>
                                 </p>
                             </>
                         )}

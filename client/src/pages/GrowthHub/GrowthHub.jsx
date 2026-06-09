@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Rocket, BarChart3, Plus, TrendingUp, Users, DollarSign,
@@ -8,7 +8,9 @@ import {
     Filter, Search, Calendar, CheckCircle2, XCircle, Timer,
     Image as ImageIcon, LogOut, BarChart2, CreditCard, Phone, Mail,
     Tag, UserCheck, AlertCircle, Inbox, Send, Shield, Settings,
-    Radio, Copy, X, Hash, Calculator, IndianRupee, PieChart
+    Radio, Copy, X, Hash, Calculator, IndianRupee, PieChart,
+    Pause, Play, Trash2, Edit3, MoreVertical, Bot, Zap as ZapIcon,
+    ToggleLeft, ToggleRight, ChevronDown, Save
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -39,6 +41,7 @@ const TABS = [
     { id: 'analytics', label: 'Ad Analytics', icon: BarChart3 },
     { id: 'capi', label: 'CAPI', icon: Shield },
     { id: 'roi', label: 'ROI Calculator', icon: Calculator },
+    { id: 'ad-settings', label: 'Ad Settings', icon: Settings },
 ];
 
 const FunnelCard = ({ icon: Icon, label, value, subLabel, delay = 0 }) => (
@@ -305,7 +308,89 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected }) 
 };
 
 // ── Campaigns Tab ─────────────────────────────────────────────────────
-const CampaignsTab = ({ campaigns, loading, navigate, isDarkMode }) => {
+const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMode }) => {
+    const [campaigns, setCampaigns] = useState(initialCampaigns);
+    const [actionLoading, setActionLoading] = useState({}); // { [campaignId]: 'pause'|'resume'|'delete'|'duplicate' }
+    const [openMenu, setOpenMenu] = useState(null); // campaign id with open dropdown
+    const [editModal, setEditModal] = useState(null); // { campaign, newName, newBudget }
+    const menuRef = useRef(null);
+
+    // Sync when parent updates (e.g. refresh)
+    useEffect(() => { setCampaigns(initialCampaigns); }, [initialCampaigns]);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleOutside = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setOpenMenu(null); };
+        document.addEventListener('mousedown', handleOutside);
+        return () => document.removeEventListener('mousedown', handleOutside);
+    }, []);
+
+    const setLoading = (id, action) => setActionLoading(prev => ({ ...prev, [id]: action }));
+    const clearLoading = (id) => setActionLoading(prev => { const n = { ...prev }; delete n[id]; return n; });
+
+    const handleToggleStatus = async (campaign) => {
+        const action = campaign.status === 'Active' ? 'pause' : 'resume';
+        setLoading(campaign.id, action);
+        setOpenMenu(null);
+        try {
+            const res = await axios.patch(`/api/meta-ads/${campaign.id}/status`, { action }, { withCredentials: true });
+            setCampaigns(prev => prev.map(c => c.id === campaign.id ? { ...c, status: res.data.status } : c));
+            toast.success(`Campaign ${action === 'pause' ? 'paused' : 'resumed'} successfully`);
+        } catch (err) {
+            toast.error(err.response?.data?.error || `Failed to ${action} campaign`);
+        } finally {
+            clearLoading(campaign.id);
+        }
+    };
+
+    const handleDelete = async (campaign) => {
+        if (!window.confirm(`Delete "${campaign.campaignName}"? This will also archive it on Meta.`)) return;
+        setLoading(campaign.id, 'delete');
+        setOpenMenu(null);
+        try {
+            await axios.delete(`/api/meta-ads/${campaign.id}`, { withCredentials: true });
+            setCampaigns(prev => prev.filter(c => c.id !== campaign.id));
+            toast.success('Campaign deleted');
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to delete campaign');
+        } finally {
+            clearLoading(campaign.id);
+        }
+    };
+
+    const handleDuplicate = async (campaign) => {
+        setLoading(campaign.id, 'duplicate');
+        setOpenMenu(null);
+        try {
+            const res = await axios.post(`/api/meta-ads/duplicate/${campaign.id}`, {}, { withCredentials: true });
+            setCampaigns(prev => [res.data.campaign, ...prev]);
+            toast.success('Campaign duplicated as Draft');
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to duplicate campaign');
+        } finally {
+            clearLoading(campaign.id);
+        }
+    };
+
+    const handleEditSave = async () => {
+        if (!editModal) return;
+        const { campaign, newName, newBudget } = editModal;
+        setLoading(campaign.id, 'edit');
+        try {
+            const res = await axios.patch(`/api/meta-ads/${campaign.id}`, {
+                campaignName: newName,
+                dailyBudget: parseFloat(newBudget)
+            }, { withCredentials: true });
+            setCampaigns(prev => prev.map(c => c.id === campaign.id ? { ...c, ...res.data.campaign } : c));
+            toast.success('Campaign updated');
+            setEditModal(null);
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to update campaign');
+        } finally {
+            clearLoading(campaign.id);
+        }
+    };
+
     const statusColors = {
         Active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
         Paused: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
@@ -479,7 +564,7 @@ const CampaignsTab = ({ campaigns, loading, navigate, isDarkMode }) => {
                                         </div>
                                     </div>
 
-                                    {/* Budget Utilization Bar (only when we have spend data) */}
+                                    {/* Budget Utilization Bar + extra metrics */}
                                     {hasInsights && dailyBudget > 0 && (
                                         <div className="mt-3">
                                             <div className="flex justify-between items-center mb-1">
@@ -492,11 +577,82 @@ const CampaignsTab = ({ campaigns, loading, navigate, isDarkMode }) => {
                                                     style={{ width: `${Math.min(100, dailyBudget > 0 ? (spent / dailyBudget) * 100 : 0)}%` }}
                                                 />
                                             </div>
-                                            {reach > 0 && (
-                                                <p className="text-[10px] text-slate-400 mt-1">{fmt(reach)} people reached</p>
-                                            )}
+                                            <div className="flex gap-4 mt-2">
+                                                {reach > 0 && <span className="text-[10px] text-slate-400">👥 {fmt(reach)} reached</span>}
+                                                {campaign.cpc && <span className="text-[10px] text-slate-400">🖱️ CPC ₹{parseFloat(campaign.cpc).toFixed(2)}</span>}
+                                                {campaign.clicks > 0 && <span className="text-[10px] text-slate-400">🔗 {fmt(campaign.clicks)} clicks</span>}
+                                            </div>
                                         </div>
                                     )}
+
+                                    {/* Action buttons row */}
+                                    <div className="mt-4 flex items-center gap-2 justify-end" ref={openMenu === campaign.id ? menuRef : null}>
+                                        {/* Pause / Resume */}
+                                        {(campaign.status === 'Active' || campaign.status === 'Paused') && (
+                                            <button
+                                                onClick={() => handleToggleStatus(campaign)}
+                                                disabled={!!actionLoading[campaign.id]}
+                                                className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all ${
+                                                    campaign.status === 'Active'
+                                                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400'
+                                                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                                } disabled:opacity-50`}
+                                            >
+                                                {actionLoading[campaign.id] === 'pause' || actionLoading[campaign.id] === 'resume' ? (
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                ) : campaign.status === 'Active' ? (
+                                                    <><Pause className="w-3 h-3" /> Pause</>
+                                                ) : (
+                                                    <><Play className="w-3 h-3" /> Resume</>
+                                                )}
+                                            </button>
+                                        )}
+
+                                        {/* Edit button */}
+                                        <button
+                                            onClick={() => setEditModal({ campaign, newName: campaign.campaignName, newBudget: campaign.dailyBudget })}
+                                            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 transition-all"
+                                        >
+                                            <Edit3 className="w-3 h-3" /> Edit
+                                        </button>
+
+                                        {/* More menu */}
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setOpenMenu(openMenu === campaign.id ? null : campaign.id)}
+                                                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                            >
+                                                <MoreVertical className="w-4 h-4 text-slate-400" />
+                                            </button>
+                                            <AnimatePresence>
+                                                {openMenu === campaign.id && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                                                        transition={{ duration: 0.15 }}
+                                                        className="absolute right-0 bottom-8 z-20 w-44 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden"
+                                                    >
+                                                        <button
+                                                            onClick={() => handleDuplicate(campaign)}
+                                                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                                                        >
+                                                            {actionLoading[campaign.id] === 'duplicate' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                                                            Duplicate
+                                                        </button>
+                                                        <div className="h-px bg-slate-100 dark:bg-white/5 mx-3" />
+                                                        <button
+                                                            onClick={() => handleDelete(campaign)}
+                                                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                        >
+                                                            {actionLoading[campaign.id] === 'delete' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                            Delete
+                                                        </button>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         })}
@@ -504,6 +660,76 @@ const CampaignsTab = ({ campaigns, loading, navigate, isDarkMode }) => {
                 )}
             </div>
         </div>
+
+        {/* ── Edit Campaign Modal ─────────────────────────── */}
+        <AnimatePresence>
+            {editModal && (
+                <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+                    onClick={() => setEditModal(null)}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        onClick={e => e.stopPropagation()}
+                        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-md overflow-hidden"
+                    >
+                        <div className="p-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Edit3 className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white">Edit Campaign</h3>
+                                    <p className="text-xs text-slate-500">Changes sync to Meta in real-time</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setEditModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">
+                                <X className="w-5 h-5 text-slate-400" />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Campaign Name</label>
+                                <input
+                                    type="text"
+                                    value={editModal.newName}
+                                    onChange={e => setEditModal(prev => ({ ...prev, newName: e.target.value }))}
+                                    className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Daily Budget (₹)</label>
+                                <input
+                                    type="number"
+                                    min="100"
+                                    step="50"
+                                    value={editModal.newBudget}
+                                    onChange={e => setEditModal(prev => ({ ...prev, newBudget: e.target.value }))}
+                                    className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
+                                />
+                                <p className="text-xs text-slate-400 mt-1">Budget change takes effect on Meta within minutes</p>
+                            </div>
+                        </div>
+                        <div className="p-5 border-t border-slate-100 dark:border-white/5 flex justify-end gap-3">
+                            <button onClick={() => setEditModal(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 transition-colors">
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleEditSave}
+                                disabled={!!actionLoading[editModal.campaign.id]}
+                                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-md shadow-primary/20 transition-all text-sm disabled:opacity-50"
+                            >
+                                {actionLoading[editModal.campaign.id] === 'edit' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                Save Changes
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 };
 
@@ -1163,6 +1389,215 @@ const RoiCalculatorTab = ({ ctwaData }) => {
     );
 };
 
+// ── CTWA Ad Settings Tab ───────────────────────────────────────────────
+const CtwaAdSettingsTab = () => {
+    const [config, setConfig] = useState({ enabled: false, templateName: '', language: 'en', injectName: false });
+    const [templates, setTemplates] = useState([]);
+    const [saving, setSaving] = useState(false);
+    const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+    useEffect(() => {
+        // Load current ctwaAutoReplyTemplate setting
+        axios.get('/api/settings', { withCredentials: true })
+            .then(res => {
+                if (res.data?.ctwaAutoReplyTemplate) {
+                    setConfig(c => ({ ...c, ...res.data.ctwaAutoReplyTemplate }));
+                }
+            }).catch(() => {});
+
+        // Load approved templates
+        axios.get('/api/templates?status=APPROVED', { withCredentials: true })
+            .then(res => { setTemplates(res.data || []); })
+            .catch(() => {})
+            .finally(() => setLoadingTemplates(false));
+    }, []);
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await axios.put('/api/settings', { ctwaAutoReplyTemplate: config }, { withCredentials: true });
+            toast.success('CTWA auto-reply settings saved!');
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to save settings');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="space-y-8">
+            {/* Header */}
+            <div>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                        <Bot className="w-5 h-5 text-primary" />
+                    </div>
+                    CTWA Auto-Reply
+                </h2>
+                <p className="text-sm text-slate-500 font-medium mt-2 max-w-2xl">
+                    Automatically send a template message the moment a new lead clicks your Click-to-WhatsApp ad and starts a conversation. Engage them within the free 72-hour window before competitors do.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-7 space-y-6">
+                    {/* Enable Toggle */}
+                    <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl p-6 shadow-xl shadow-slate-200/40 dark:shadow-none">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-slate-900 dark:text-white text-base">Enable Auto-Reply</h3>
+                                <p className="text-sm text-slate-500 mt-0.5">Send a template automatically when a CTWA lead messages for the first time</p>
+                            </div>
+                            <button
+                                onClick={() => setConfig(c => ({ ...c, enabled: !c.enabled }))}
+                                className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none ${ config.enabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600' }`}
+                            >
+                                <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-sm transition-transform duration-300 ${ config.enabled ? 'translate-x-7' : 'translate-x-0' }`} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Template Selector */}
+                    <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl p-6 shadow-xl shadow-slate-200/40 dark:shadow-none space-y-5">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                            <Mail className="w-5 h-5 text-primary" /> Select Reply Template
+                        </h3>
+
+                        {loadingTemplates ? (
+                            <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+                                <Loader2 className="w-4 h-4 animate-spin" /> Loading approved templates...
+                            </div>
+                        ) : templates.length === 0 ? (
+                            <div className="text-center py-8 bg-slate-50 dark:bg-white/5 rounded-2xl">
+                                <Mail className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                <p className="font-semibold text-slate-600 dark:text-slate-400 text-sm">No Approved Templates Found</p>
+                                <p className="text-xs text-slate-400 mt-1">Create and get a template approved in Meta Business Suite first.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                {templates.map(tpl => (
+                                    <div
+                                        key={tpl.name}
+                                        onClick={() => setConfig(c => ({ ...c, templateName: tpl.name }))}
+                                        className={`flex items-center gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                                            config.templateName === tpl.name
+                                                ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                                                : 'border-slate-100 dark:border-white/5 hover:border-primary/30'
+                                        }`}
+                                    >
+                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${ config.templateName === tpl.name ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-400' }`}>
+                                            <Mail className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{tpl.name}</p>
+                                            <p className="text-[11px] text-slate-400">{tpl.category || 'MARKETING'} · {tpl.language || 'en'}</p>
+                                        </div>
+                                        {config.templateName === tpl.name && <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Language */}
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Template Language</label>
+                            <select
+                                value={config.language}
+                                onChange={e => setConfig(c => ({ ...c, language: e.target.value }))}
+                                className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
+                            >
+                                <option value="en">English (en)</option>
+                                <option value="en_US">English US (en_US)</option>
+                                <option value="hi">Hindi (hi)</option>
+                                <option value="mr">Marathi (mr)</option>
+                                <option value="gu">Gujarati (gu)</option>
+                                <option value="ta">Tamil (ta)</option>
+                                <option value="te">Telugu (te)</option>
+                                <option value="kn">Kannada (kn)</option>
+                                <option value="ml">Malayalam (ml)</option>
+                                <option value="bn">Bengali (bn)</option>
+                                <option value="ar">Arabic (ar)</option>
+                            </select>
+                        </div>
+
+                        {/* Inject Name Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl">
+                            <div>
+                                <p className="font-bold text-sm text-slate-900 dark:text-white">Personalize with Contact Name</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Passes the contact's name as body variable &#123;&#123;1&#125;&#125; (e.g. "Hi John!")</p>
+                            </div>
+                            <button
+                                onClick={() => setConfig(c => ({ ...c, injectName: !c.injectName }))}
+                                className={`relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none flex-shrink-0 ${ config.injectName ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600' }`}
+                            >
+                                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ${ config.injectName ? 'translate-x-6' : 'translate-x-0' }`} />
+                            </button>
+                        </div>
+
+                        {/* Save Button */}
+                        <button
+                            onClick={handleSave}
+                            disabled={saving || (config.enabled && !config.templateName)}
+                            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-4 rounded-xl font-bold shadow-md shadow-primary/20 transition-all text-sm disabled:opacity-50"
+                        >
+                            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            Save Auto-Reply Settings
+                        </button>
+                    </div>
+                </div>
+
+                {/* Info Panel */}
+                <div className="lg:col-span-5 space-y-5">
+                    <div className="bg-primary rounded-3xl p-6 text-white shadow-2xl shadow-primary/20 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                        <div className="relative z-10">
+                            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-4 border border-white/20">
+                                <Zap className="w-6 h-6 text-white" />
+                            </div>
+                            <h4 className="text-xl font-black mb-3">Why Auto-Reply Matters</h4>
+                            <p className="text-sm text-blue-50 leading-relaxed">
+                                When a lead clicks your CTWA ad, they start a fresh WhatsApp conversation. You have a <strong>72-hour free window</strong> to message them. An instant, personalized auto-reply dramatically increases conversion.
+                            </p>
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                <div className="bg-white/10 rounded-xl p-3 border border-white/20">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-blue-100 mb-1">Response Rate</p>
+                                    <p className="text-2xl font-black">3×</p>
+                                    <p className="text-[10px] text-blue-50">higher with instant reply</p>
+                                </div>
+                                <div className="bg-white/10 rounded-xl p-3 border border-white/20">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-blue-100 mb-1">Conversion</p>
+                                    <p className="text-2xl font-black">+40%</p>
+                                    <p className="text-[10px] text-blue-50">vs delayed follow-up</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl p-5 shadow-xl shadow-slate-200/40 dark:shadow-none">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-sm mb-4">How It Works</h3>
+                        <div className="space-y-3">
+                            {[
+                                { step: '1', text: 'Lead clicks your CTWA ad on Facebook/Instagram' },
+                                { step: '2', text: 'WhatsApp opens with a pre-filled message' },
+                                { step: '3', text: 'Lead sends first message — detected by our webhook' },
+                                { step: '4', text: 'Auto-reply template fires instantly (< 1 second)' },
+                                { step: '5', text: 'Lead attributed to ad, FlowBot can continue' },
+                            ].map(item => (
+                                <div key={item.step} className="flex items-start gap-3">
+                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <span className="text-[10px] font-black text-primary">{item.step}</span>
+                                    </div>
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{item.text}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ═══════════════════════════════════════════════════════════════════════
 //  MAIN GROWTH HUB COMPONENT
 // ═══════════════════════════════════════════════════════════════════════
@@ -1546,6 +1981,9 @@ export default function GrowthHub() {
                         <div className="relative z-10">
                             <RoiCalculatorTab ctwaData={ctwaData} />
                         </div>
+                    )}
+                    {activeTab === 'ad-settings' && (
+                        <CtwaAdSettingsTab />
                     )}
                 </motion.div>
             </AnimatePresence>

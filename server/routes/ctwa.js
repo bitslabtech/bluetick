@@ -176,15 +176,15 @@ router.get('/dashboard', auth, async (req, res) => {
         const { sequelize } = require('../config/database');
         const [localLeads] = await sequelize.query(`
             SELECT 
-                ctwa_source->>'source_id' AS ad_id,
-                ctwa_source->>'headline' AS headline,
-                ctwa_source->>'image_url' AS image_url,
-                ctwa_source->>'source_url' AS source_url,
+                "ctwaSource"->>'source_id' AS ad_id,
+                "ctwaSource"->>'headline' AS headline,
+                "ctwaSource"->>'image_url' AS image_url,
+                "ctwaSource"->>'source_url' AS source_url,
                 COUNT(*) AS lead_count
             FROM "Contacts"
             WHERE "userId" = :userId
-              AND ctwa_source IS NOT NULL
-              AND ctwa_source->>'source_id' IS NOT NULL
+              AND "ctwaSource" IS NOT NULL
+              AND "ctwaSource"->>'source_id' IS NOT NULL
             GROUP BY ad_id, headline, image_url, source_url
             ORDER BY lead_count DESC
         `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
@@ -322,11 +322,11 @@ router.get('/leads', auth, async (req, res) => {
             ];
         }
 
-        let queryWhere = `"userId" = :userId AND ctwa_source IS NOT NULL`;
+        let queryWhere = `"userId" = :userId AND "ctwaSource" IS NOT NULL`;
         const replacements = { userId, limit: parseInt(limit), offset };
 
         if (ad_id) {
-            queryWhere += ` AND ctwa_source->>'source_id' = :ad_id`;
+            queryWhere += ` AND "ctwaSource"->>'source_id' = :ad_id`;
             replacements.ad_id = ad_id;
         }
         if (search) {
@@ -346,7 +346,7 @@ router.get('/leads', auth, async (req, res) => {
         const [leads] = await sequelize.query(`
             SELECT 
                 id, name, phone, email, tags, labels, status,
-                ctwa_source AS "ctwaSource",
+                "ctwaSource",
                 "createdAt", "updatedAt"
             FROM "Contacts"
             WHERE ${queryWhere}
@@ -404,8 +404,8 @@ router.post('/retarget', auth, async (req, res) => {
         const [leads] = await sequelize.query(`
             SELECT phone, name FROM "Contacts"
             WHERE "userId" = :userId
-              AND ctwa_source IS NOT NULL
-              AND ctwa_source->>'source_id' = :adId
+              AND "ctwaSource" IS NOT NULL
+              AND "ctwaSource"->>'source_id' = :adId
         `, { replacements: { userId: req.user.id, adId } });
 
         if (!leads || leads.length === 0) {

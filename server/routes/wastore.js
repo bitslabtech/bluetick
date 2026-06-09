@@ -12,6 +12,70 @@ const axios = require('axios');
 const storageProvider = require('../utils/storageProvider');
 const { Op, fn, col, literal } = require('sequelize');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { fireCAPIEvent } = require('../utils/capi');
+
+// ── CAPI helper: build order contents array from items ───────────────────────
+const buildCAPIContents = (items = []) =>
+    items.map(i => ({
+        id: String(i.id || i.productId || ''),
+        quantity: i.qty || i.quantity || 1,
+        item_price: parseFloat(i.price || 0),
+        title: i.name || '',
+    }));
+
+// ── CAPI helper: fire InitiateCheckout for a newly created order ─────────────
+const fireCAPICheckout = async (store, order) => {
+    try {
+        const storeOwner = await User.findByPk(store.userId, { attributes: ['capiConfig', 'metaAdsToken'] });
+        if (!storeOwner) return;
+        const pixelId     = storeOwner.capiConfig?.pixelId;
+        const accessToken = storeOwner.capiConfig?.accessToken || storeOwner.metaAdsToken;
+        if (!pixelId || !accessToken) return;
+
+        await fireCAPIEvent({
+            pixelId,
+            accessToken,
+            eventName: 'InitiateCheckout',
+            sourceUrl: `${process.env.APP_URL || ''}/store/${store.slug}`,
+            userData: { phone: order.customerPhone, email: order.customerEmail },
+            testEventCode: storeOwner.capiConfig?.testEventCode,
+            eventData: {
+                value: parseFloat(order.total || order.subtotal || 0),
+                currency: order.currency || store.currency || 'INR',
+                num_items: (order.items || []).reduce((s, i) => s + (i.qty || 1), 0),
+                contents: buildCAPIContents(order.items),
+                order_id: order.orderNumber,
+            },
+        });
+    } catch (e) { console.warn('[CAPI][InitiateCheckout] Non-blocking error:', e.message); }
+};
+
+// ── CAPI helper: fire Purchase when order is confirmed ───────────────────────
+const fireCAPIPurchase = async (store, order) => {
+    try {
+        const storeOwner = await User.findByPk(store.userId, { attributes: ['capiConfig', 'metaAdsToken'] });
+        if (!storeOwner) return;
+        const pixelId     = storeOwner.capiConfig?.pixelId;
+        const accessToken = storeOwner.capiConfig?.accessToken || storeOwner.metaAdsToken;
+        if (!pixelId || !accessToken) return;
+
+        await fireCAPIEvent({
+            pixelId,
+            accessToken,
+            eventName: 'Purchase',
+            sourceUrl: `${process.env.APP_URL || ''}/store/${store.slug}`,
+            userData: { phone: order.customerPhone, email: order.customerEmail },
+            testEventCode: storeOwner.capiConfig?.testEventCode,
+            eventData: {
+                value: parseFloat(order.total || order.subtotal || 0),
+                currency: order.currency || store.currency || 'INR',
+                num_items: (order.items || []).reduce((s, i) => s + (i.qty || 1), 0),
+                contents: buildCAPIContents(order.items),
+                order_id: order.orderNumber,
+            },
+        });
+    } catch (e) { console.warn('[CAPI][Purchase] Non-blocking error:', e.message); }
+};
 
 // ==========================================
 // PUBLIC ROUTES
@@ -251,6 +315,9 @@ router.post('/orders', async (req, res) => {
         }
         }
 
+        // ── Fire CAPI InitiateCheckout (non-blocking) ─────────────────────────
+        fireCAPICheckout(store, order).catch(() => {});
+
         res.json({ order, orderNumber });
     } catch (error) {
         console.error('Create order error:', error);
@@ -465,6 +532,9 @@ router.post('/public/:slug/verify-payment', async (req, res) => {
                     const user = await User.findByPk(store.userId);
                     if (user) await sendWhatsAppInvoiceHelper(store, user, order, order.customerName, order.customerPhone);
                 }
+
+                // ── Fire CAPI Purchase event (non-blocking) ───────────────────
+                fireCAPIPurchase(store, order).catch(() => {});
                 
                 return res.json({ success: true, order });
             } else {
@@ -503,6 +573,9 @@ router.post('/public/:slug/verify-payment', async (req, res) => {
                      const user = await User.findByPk(store.userId);
                      if (user) await sendWhatsAppInvoiceHelper(store, user, order, order.customerName, order.customerPhone);
                  }
+
+                 // ── Fire CAPI Purchase event (non-blocking) ───────────────────
+                 fireCAPIPurchase(store, order).catch(() => {});
 
                  return res.json({ success: true, order });
              } else {
@@ -955,6 +1028,11 @@ router.patch('/:storeId/orders/:orderId', async (req, res) => {
             if (triggerKey) {
                 const user = await User.findByPk(req.user.id);
                 if (user) await sendOrderNotification(triggerKey, store, user, order);
+            }
+
+            // ── Fire CAPI Purchase when owner confirms an order ───────────────
+            if (status === 'confirmed' && prevStatus !== 'confirmed') {
+                fireCAPIPurchase(store, order).catch(() => {});
             }
         }
 

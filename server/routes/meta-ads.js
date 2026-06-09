@@ -323,11 +323,14 @@ Business Info: ${businessDescription}`;
 // POST save / publish ad campaign
 router.post('/publish', async (req, res) => {
     try {
-        const { campaignName, objective, dailyBudget, targeting, creatives, imageUrl, automation } = req.body;
+        const {
+            campaignName, objective, dailyBudget,
+            targeting, creatives, imageUrl, automation,
+            scheduling // { startDate, endDate }
+        } = req.body;
         const user = await User.findByPk(req.user.id);
         
         let fbStatus = 'Draft';
-        // Hoist so they're accessible when building the MetaAdCampaign record below
         let campRes = null;
         let adSetRes = null;
 
@@ -340,48 +343,112 @@ router.post('/publish', async (req, res) => {
                 campRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/campaigns`, null, {
                     params: {
                         name: campaignName,
-                        objective: objective || 'OUTCOME_ENGAGEMENT', // Bug 2 Fix: use user-supplied objective
+                        objective: objective || 'OUTCOME_ENGAGEMENT',
                         status: 'ACTIVE',
-                        special_ad_categories: [],
+                        special_ad_categories: JSON.stringify([]),
                         access_token: token
                     }
                 });
                 const campaignId = campRes.data.id;
 
-                // Bug 3 Fix: Map user locations to Meta geo_locations format
+                // ── Build geo_locations ────────────────────────────────
+                // Prefer Meta location keys (from LocationSearchInput) for exact matching
                 const userLocations = targeting?.locations || [];
-                const geoLocations = userLocations.length > 0
-                    ? { cities: userLocations.map(loc => ({ name: loc })) }
-                    : { countries: ['IN'] }; // Default to India if no locations provided
+                const locationKeys  = targeting?.locationKeys || [];
+
+                let geoLocations;
+                if (locationKeys.length > 0) {
+                    // Categorise keys by type from the stored location objects
+                    const locObjects = targeting?.locationObjects || [];
+                    const countries  = locObjects.filter(l => l.type === 'country').map(l => l.countryCode || l.key);
+                    const regions    = locObjects.filter(l => l.type === 'region').map(l => ({ key: l.key, name: l.name, country: l.countryCode }));
+                    const cities     = locObjects.filter(l => l.type === 'city').map(l => ({ key: l.key, name: l.name, country: l.countryCode, region: l.region }));
+                    const zips       = locObjects.filter(l => l.type === 'zip').map(l => ({ key: l.key }));
+
+                    geoLocations = {};
+                    if (countries.length > 0)  geoLocations.countries = countries;
+                    if (regions.length > 0)    geoLocations.regions   = regions;
+                    if (cities.length > 0)     geoLocations.cities    = cities;
+                    if (zips.length > 0)       geoLocations.zips      = zips;
+                    if (Object.keys(geoLocations).length === 0) geoLocations = { countries: ['IN'] };
+                } else if (userLocations.length > 0) {
+                    // Fallback: name-based (less precise)
+                    geoLocations = { cities: userLocations.map(loc => ({ name: typeof loc === 'string' ? loc : loc.name })) };
+                } else {
+                    geoLocations = { countries: ['IN'] };
+                }
+
+                // ── Build interests (flexible_spec) ───────────────────
+                const userInterests = targeting?.interests || [];
+                const flexibleSpec = userInterests.length > 0
+                    ? [{ interests: userInterests.map(name => ({ name })) }]
+                    : undefined;
+
+                // ── Build genders array (Meta: 1=male, 2=female, omit=all) ─
+                let gendersArr = undefined;
+                if (targeting?.gender === 'male')   gendersArr = [1];
+                if (targeting?.gender === 'female')  gendersArr = [2];
+
+                // ── Build locales (language targeting) ─────────────────
+                // Meta locale IDs — common ones
+                const LOCALE_MAP = { en: 6, hi: 23, mr: 45, gu: 20, ta: 57, te: 59, kn: 33, ml: 42, bn: 12, ar: 28, pa: 51, ur: 67 };
+                let localesArr = undefined;
+                if (targeting?.targetingLanguage && LOCALE_MAP[targeting.targetingLanguage]) {
+                    localesArr = [LOCALE_MAP[targeting.targetingLanguage]];
+                }
+
+                // ── Build placement (publisher_platforms) ──────────────
+                const placements = targeting?.placements || ['facebook', 'instagram'];
+                const publisherPlatforms = placements.filter(p => ['facebook', 'instagram', 'audience_network', 'messenger'].includes(p));
+                const facebookPositions  = placements.includes('facebook')   ? (targeting?.fbPositions   || ['feed', 'facebook_reels']) : undefined;
+                const instagramPositions = placements.includes('instagram')  ? (targeting?.igPositions   || ['stream', 'reels'])        : undefined;
+
+                // ── Build full targeting spec ─────────────────────────
+                const targetingSpec = {
+                    age_max: targeting?.age_max || 65,
+                    age_min: targeting?.age_min || 18,
+                    geo_locations: geoLocations,
+                    ...(gendersArr          && { genders: gendersArr }),
+                    ...(localesArr          && { locales: localesArr }),
+                    ...(flexibleSpec        && { flexible_spec: flexibleSpec }),
+                    ...(publisherPlatforms.length > 0 && { publisher_platforms: publisherPlatforms }),
+                    ...(facebookPositions   && { facebook_positions: facebookPositions }),
+                    ...(instagramPositions  && { instagram_positions: instagramPositions }),
+                };
+
+                // ── Build AdSet params ────────────────────────────────
+                const adSetParams = {
+                    name: `${campaignName} - AdSet`,
+                    campaign_id: campaignId,
+                    daily_budget: Math.round(dailyBudget * 100),
+                    billing_event: 'IMPRESSIONS',
+                    optimization_goal: 'REPLIES',
+                    promoted_object: JSON.stringify({ whatsapp_number: user.phone || '' }),
+                    targeting: JSON.stringify(targetingSpec),
+                    status: 'ACTIVE',
+                    access_token: token
+                };
+
+                // ── Ad Scheduling ──────────────────────────────────────
+                if (scheduling?.startDate) {
+                    adSetParams.start_time = Math.floor(new Date(scheduling.startDate).getTime() / 1000);
+                }
+                if (scheduling?.endDate) {
+                    adSetParams.end_time   = Math.floor(new Date(scheduling.endDate).getTime() / 1000);
+                }
 
                 // 2. Create AdSet
                 adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
-                    params: {
-                        name: `${campaignName} - AdSet`,
-                        campaign_id: campaignId,
-                        daily_budget: dailyBudget * 100, // Meta takes cents
-                        billing_event: 'IMPRESSIONS',
-                        optimization_goal: 'REPLIES',
-                        promoted_object: JSON.stringify({
-                            whatsapp_number: user.phone || 'UNKNOWN_PHONE'
-                        }),
-                        targeting: JSON.stringify({
-                            age_max: targeting?.age_max || 65,
-                            age_min: targeting?.age_min || 18,
-                            geo_locations: geoLocations
-                        }),
-                        status: 'ACTIVE',
-                        access_token: token
-                    }
+                    params: adSetParams
                 }).catch(e => {
-                    console.log('FB Graph Warning (AdSet missing WA config): ', e.response?.data?.error?.message);
+                    console.warn('[META-ADS] AdSet creation warning:', e.response?.data?.error?.message || e.message);
                     return { data: { id: null } };
                 });
 
                 fbStatus = adSetRes.data.id ? 'Active' : 'Draft';
             } catch (graphAPIError) {
-                console.error("Graph API Publish Error:", graphAPIError.response?.data || graphAPIError.message);
-                fbStatus = 'Error'; // Bug 4 Fix: 'Draft (API Error)' is not a valid ENUM value
+                console.error('Graph API Publish Error:', graphAPIError.response?.data || graphAPIError.message);
+                fbStatus = 'Error';
             }
         }
 
@@ -391,15 +458,15 @@ router.post('/publish', async (req, res) => {
             objective,
             dailyBudget,
             targeting,
-            creatives: { ...creatives, imageUrl, automation: automation || null }, 
+            creatives: { ...creatives, imageUrl, automation: automation || null },
             status: fbStatus,
-            metaCampaignId: fbStatus !== 'Draft' ? (campRes?.data?.id || null) : null,
-            metaAdsetId: fbStatus !== 'Draft' ? (adSetRes?.data?.id || null) : null
+            metaCampaignId: (fbStatus === 'Active' || fbStatus === 'Draft') ? (campRes?.data?.id || null) : null,
+            metaAdsetId:    (fbStatus === 'Active' || fbStatus === 'Draft') ? (adSetRes?.data?.id || null) : null
         });
 
         res.json({ success: true, campaign });
     } catch (err) {
-        console.error("Publish error:", err);
+        console.error('Publish error:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -410,7 +477,6 @@ router.get('/insights', async (req, res) => {
         const user = await User.findByPk(req.user.id);
         const { range = 'last_30d' } = req.query;
 
-        // Map our range to Facebook date presets
         const datePresetMap = {
             '1d': 'today',
             '7d': 'last_7d',
@@ -432,14 +498,13 @@ router.get('/insights', async (req, res) => {
             const plain = campaign.toJSON();
             let insights = plain.insights || {};
 
-            // If user has a token AND this campaign has a real Facebook ID, fetch live data
             if (hasToken && campaign.metaCampaignId) {
                 try {
                     const fbRes = await axios.get(
                         `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}/insights`,
                         {
                             params: {
-                                fields: 'impressions,clicks,spend,ctr,cpc,reach',
+                                fields: 'impressions,clicks,spend,ctr,cpc,reach,frequency',
                                 date_preset: datePreset,
                                 access_token: user.metaAdsToken
                             }
@@ -449,42 +514,41 @@ router.get('/insights', async (req, res) => {
                     const fbData = fbRes.data?.data?.[0] || {};
                     insights = {
                         impressions: parseInt(fbData.impressions || 0),
-                        clicks: parseInt(fbData.clicks || 0),
-                        spend: parseFloat(fbData.spend || 0),
-                        ctr: fbData.ctr ? parseFloat(fbData.ctr).toFixed(2) : '0.00',
-                        cpc: fbData.cpc ? parseFloat(fbData.cpc).toFixed(2) : '0.00',
-                        reach: parseInt(fbData.reach || 0),
-                        updatedAt: new Date().toISOString()
+                        clicks:      parseInt(fbData.clicks || 0),
+                        spend:       parseFloat(fbData.spend || 0),
+                        ctr:         fbData.ctr       ? parseFloat(fbData.ctr).toFixed(2)       : '0.00',
+                        cpc:         fbData.cpc       ? parseFloat(fbData.cpc).toFixed(2)       : '0.00',
+                        reach:       parseInt(fbData.reach || 0),
+                        frequency:   fbData.frequency ? parseFloat(fbData.frequency).toFixed(2) : '0.00',
+                        updatedAt:   new Date().toISOString()
                     };
 
-                    // Cache insights in DB
                     campaign.insights = insights;
                     await campaign.save();
                 } catch (fbErr) {
-                    console.error(`[META-ADS] Failed to fetch insights for campaign ${campaign.metaCampaignId}:`, fbErr.response?.data?.error?.message || fbErr.message);
-                    // Use cached insights if live fetch fails
+                    console.error(`[META-ADS] Insights fetch failed for ${campaign.metaCampaignId}:`, fbErr.response?.data?.error?.message || fbErr.message);
                 }
             }
 
             totalImpressions += parseInt(insights.impressions || 0);
-            totalClicks += parseInt(insights.clicks || 0);
-            totalSpend += parseFloat(insights.spend || 0);
+            totalClicks      += parseInt(insights.clicks || 0);
+            totalSpend       += parseFloat(insights.spend || 0);
 
             results.push({
-                id: plain.id,
-                campaignName: plain.campaignName,
-                objective: plain.objective,
-                dailyBudget: plain.dailyBudget,
-                status: plain.status,
-                metaCampaignId: plain.metaCampaignId,
-                createdAt: plain.createdAt,
-                // Insights
-                impressions: insights.impressions || null,
-                clicks: insights.clicks || null,
-                spend: insights.spend || null,
-                ctr: insights.ctr || null,
-                cpc: insights.cpc || null,
-                reach: insights.reach || null,
+                id:              plain.id,
+                campaignName:    plain.campaignName,
+                objective:       plain.objective,
+                dailyBudget:     plain.dailyBudget,
+                status:          plain.status,
+                metaCampaignId:  plain.metaCampaignId,
+                createdAt:       plain.createdAt,
+                impressions:     insights.impressions || null,
+                clicks:          insights.clicks      || null,
+                spend:           insights.spend       || null,
+                ctr:             insights.ctr         || null,
+                cpc:             insights.cpc         || null,
+                reach:           insights.reach       || null,
+                frequency:       insights.frequency   || null,
                 insightsUpdatedAt: insights.updatedAt || null
             });
         }
@@ -506,6 +570,317 @@ router.get('/insights', async (req, res) => {
         });
     } catch (err) {
         console.error('Meta Ads Insights Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/meta-ads/location-search?q=Mumbai&type=city
+// Proxy to Meta Targeting Search API — returns valid geo locations for ad targeting
+// Falls back to a curated list if no Meta token is configured
+// ─────────────────────────────────────────────────────────────────────────────
+const FALLBACK_LOCATIONS = [
+    // India — Tier 1
+    { key: 'IN', name: 'India', type: 'country', countryCode: 'IN', countryName: 'India' },
+    { key: 'Mumbai', name: 'Mumbai', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Maharashtra' },
+    { key: 'Delhi', name: 'Delhi', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Delhi' },
+    { key: 'Bangalore', name: 'Bangalore', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Karnataka' },
+    { key: 'Hyderabad', name: 'Hyderabad', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Telangana' },
+    { key: 'Chennai', name: 'Chennai', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Tamil Nadu' },
+    { key: 'Kolkata', name: 'Kolkata', type: 'city', countryCode: 'IN', countryName: 'India', region: 'West Bengal' },
+    { key: 'Pune', name: 'Pune', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Maharashtra' },
+    { key: 'Ahmedabad', name: 'Ahmedabad', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Gujarat' },
+    { key: 'Jaipur', name: 'Jaipur', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Rajasthan' },
+    { key: 'Surat', name: 'Surat', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Gujarat' },
+    { key: 'Lucknow', name: 'Lucknow', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Uttar Pradesh' },
+    { key: 'Kanpur', name: 'Kanpur', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Uttar Pradesh' },
+    { key: 'Nagpur', name: 'Nagpur', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Maharashtra' },
+    { key: 'Indore', name: 'Indore', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Madhya Pradesh' },
+    { key: 'Thane', name: 'Thane', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Maharashtra' },
+    { key: 'Bhopal', name: 'Bhopal', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Madhya Pradesh' },
+    { key: 'Visakhapatnam', name: 'Visakhapatnam', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Andhra Pradesh' },
+    { key: 'Patna', name: 'Patna', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Bihar' },
+    { key: 'Vadodara', name: 'Vadodara', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Gujarat' },
+    { key: 'Ghaziabad', name: 'Ghaziabad', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Uttar Pradesh' },
+    { key: 'Ludhiana', name: 'Ludhiana', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Punjab' },
+    { key: 'Agra', name: 'Agra', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Uttar Pradesh' },
+    { key: 'Nashik', name: 'Nashik', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Maharashtra' },
+    { key: 'Faridabad', name: 'Faridabad', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Haryana' },
+    { key: 'Rajkot', name: 'Rajkot', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Gujarat' },
+    { key: 'Meerut', name: 'Meerut', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Uttar Pradesh' },
+    { key: 'Varanasi', name: 'Varanasi', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Uttar Pradesh' },
+    { key: 'Srinagar', name: 'Srinagar', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Jammu & Kashmir' },
+    { key: 'Amritsar', name: 'Amritsar', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Punjab' },
+    { key: 'Jabalpur', name: 'Jabalpur', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Madhya Pradesh' },
+    { key: 'Coimbatore', name: 'Coimbatore', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Tamil Nadu' },
+    { key: 'Kochi', name: 'Kochi', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Kerala' },
+    { key: 'Guwahati', name: 'Guwahati', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Assam' },
+    { key: 'Chandigarh', name: 'Chandigarh', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Chandigarh' },
+    { key: 'Noida', name: 'Noida', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Uttar Pradesh' },
+    { key: 'Gurgaon', name: 'Gurgaon', type: 'city', countryCode: 'IN', countryName: 'India', region: 'Haryana' },
+    // India — States
+    { key: 'MH', name: 'Maharashtra', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'DL', name: 'Delhi', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'KA', name: 'Karnataka', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'TN', name: 'Tamil Nadu', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'TS', name: 'Telangana', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'GJ', name: 'Gujarat', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'RJ', name: 'Rajasthan', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'UP', name: 'Uttar Pradesh', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'WB', name: 'West Bengal', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'MP', name: 'Madhya Pradesh', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'KL', name: 'Kerala', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'PB', name: 'Punjab', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'HR', name: 'Haryana', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'BR', name: 'Bihar', type: 'region', countryCode: 'IN', countryName: 'India' },
+    { key: 'OR', name: 'Odisha', type: 'region', countryCode: 'IN', countryName: 'India' },
+    // Major World Countries
+    { key: 'US', name: 'United States', type: 'country', countryCode: 'US', countryName: 'United States' },
+    { key: 'GB', name: 'United Kingdom', type: 'country', countryCode: 'GB', countryName: 'United Kingdom' },
+    { key: 'AE', name: 'United Arab Emirates', type: 'country', countryCode: 'AE', countryName: 'UAE' },
+    { key: 'SA', name: 'Saudi Arabia', type: 'country', countryCode: 'SA', countryName: 'Saudi Arabia' },
+    { key: 'SG', name: 'Singapore', type: 'country', countryCode: 'SG', countryName: 'Singapore' },
+    { key: 'AU', name: 'Australia', type: 'country', countryCode: 'AU', countryName: 'Australia' },
+    { key: 'CA', name: 'Canada', type: 'country', countryCode: 'CA', countryName: 'Canada' },
+    { key: 'QA', name: 'Qatar', type: 'country', countryCode: 'QA', countryName: 'Qatar' },
+    { key: 'KW', name: 'Kuwait', type: 'country', countryCode: 'KW', countryName: 'Kuwait' },
+    { key: 'NZ', name: 'New Zealand', type: 'country', countryCode: 'NZ', countryName: 'New Zealand' },
+    { key: 'MY', name: 'Malaysia', type: 'country', countryCode: 'MY', countryName: 'Malaysia' },
+    { key: 'DE', name: 'Germany', type: 'country', countryCode: 'DE', countryName: 'Germany' },
+    { key: 'FR', name: 'France', type: 'country', countryCode: 'FR', countryName: 'France' },
+    { key: 'NL', name: 'Netherlands', type: 'country', countryCode: 'NL', countryName: 'Netherlands' },
+    { key: 'ZA', name: 'South Africa', type: 'country', countryCode: 'ZA', countryName: 'South Africa' },
+    { key: 'NG', name: 'Nigeria', type: 'country', countryCode: 'NG', countryName: 'Nigeria' },
+    { key: 'BD', name: 'Bangladesh', type: 'country', countryCode: 'BD', countryName: 'Bangladesh' },
+    { key: 'PK', name: 'Pakistan', type: 'country', countryCode: 'PK', countryName: 'Pakistan' },
+    { key: 'LK', name: 'Sri Lanka', type: 'country', countryCode: 'LK', countryName: 'Sri Lanka' },
+    { key: 'NP', name: 'Nepal', type: 'country', countryCode: 'NP', countryName: 'Nepal' },
+    // Major world cities
+    { key: 'Dubai', name: 'Dubai', type: 'city', countryCode: 'AE', countryName: 'UAE', region: 'Dubai' },
+    { key: 'London', name: 'London', type: 'city', countryCode: 'GB', countryName: 'United Kingdom', region: 'England' },
+    { key: 'New York', name: 'New York', type: 'city', countryCode: 'US', countryName: 'United States', region: 'New York' },
+    { key: 'Singapore City', name: 'Singapore', type: 'city', countryCode: 'SG', countryName: 'Singapore' },
+    { key: 'Sydney', name: 'Sydney', type: 'city', countryCode: 'AU', countryName: 'Australia', region: 'New South Wales' },
+    { key: 'Toronto', name: 'Toronto', type: 'city', countryCode: 'CA', countryName: 'Canada', region: 'Ontario' },
+    { key: 'Riyadh', name: 'Riyadh', type: 'city', countryCode: 'SA', countryName: 'Saudi Arabia' },
+    { key: 'Doha', name: 'Doha', type: 'city', countryCode: 'QA', countryName: 'Qatar' },
+    { key: 'Dhaka', name: 'Dhaka', type: 'city', countryCode: 'BD', countryName: 'Bangladesh' },
+    { key: 'Karachi', name: 'Karachi', type: 'city', countryCode: 'PK', countryName: 'Pakistan' },
+    { key: 'Colombo', name: 'Colombo', type: 'city', countryCode: 'LK', countryName: 'Sri Lanka' },
+    { key: 'Kathmandu', name: 'Kathmandu', type: 'city', countryCode: 'NP', countryName: 'Nepal' },
+    { key: 'Kuala Lumpur', name: 'Kuala Lumpur', type: 'city', countryCode: 'MY', countryName: 'Malaysia' },
+    { key: 'Abu Dhabi', name: 'Abu Dhabi', type: 'city', countryCode: 'AE', countryName: 'UAE' },
+];
+
+router.get('/location-search', async (req, res) => {
+    const q = (req.query.q || '').trim().toLowerCase();
+    if (!q || q.length < 1) return res.json({ locations: [], source: 'empty' });
+
+    try {
+        const user = await User.findByPk(req.user.id);
+        const token = user?.metaAdsToken;
+
+        if (token) {
+            // ── Try Meta Targeting Search API first ──────────────────
+            try {
+                const metaRes = await axios.get('https://graph.facebook.com/v22.0/search', {
+                    params: {
+                        type: 'adgeolocation',
+                        q: req.query.q.trim(),
+                        location_types: JSON.stringify(['country', 'city', 'region', 'zip']),
+                        access_token: token,
+                        limit: 15
+                    },
+                    timeout: 5000
+                });
+
+                const metaData = metaRes.data?.data || [];
+                const locations = metaData.map(loc => ({
+                    key: loc.key,
+                    name: loc.name,
+                    type: loc.type,
+                    countryCode: loc.country_code,
+                    countryName: loc.country_name,
+                    region: loc.region,
+                    supportsRegion: loc.supports_region,
+                    supportsCity: loc.supports_city,
+                }));
+
+                return res.json({ locations, source: 'meta' });
+            } catch (metaErr) {
+                console.warn('[LOCATION-SEARCH] Meta API failed, using fallback:', metaErr.response?.data?.error?.message || metaErr.message);
+                // Fall through to local search
+            }
+        }
+
+        // ── Fallback: filter local curated list ───────────────────────
+        const filtered = FALLBACK_LOCATIONS.filter(loc => {
+            const nameMatch = loc.name.toLowerCase().includes(q);
+            const regionMatch = loc.region?.toLowerCase().includes(q);
+            const countryMatch = loc.countryName?.toLowerCase().includes(q);
+            return nameMatch || regionMatch || countryMatch;
+        }).slice(0, 12);
+
+        res.json({ locations: filtered, source: 'local' });
+    } catch (err) {
+        console.error('[LOCATION-SEARCH] Error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/meta-ads/:id/status — Pause or Resume a live campaign
+// ─────────────────────────────────────────────────────────────────────────────
+router.patch('/:id/status', async (req, res) => {
+    try {
+        const { action } = req.body; // 'pause' | 'resume'
+        if (!['pause', 'resume'].includes(action)) {
+            return res.status(400).json({ error: 'action must be "pause" or "resume"' });
+        }
+
+        const campaign = await MetaAdCampaign.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+        const user = await User.findByPk(req.user.id);
+        const metaStatus = action === 'pause' ? 'PAUSED' : 'ACTIVE';
+        const localStatus = action === 'pause' ? 'Paused' : 'Active';
+
+        // Sync with Meta Graph API if we have a real campaign ID
+        if (campaign.metaCampaignId && user.metaAdsToken) {
+            try {
+                await axios.post(
+                    `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}`,
+                    null,
+                    { params: { status: metaStatus, access_token: user.metaAdsToken } }
+                );
+            } catch (fbErr) {
+                console.error('[META-ADS] Pause/Resume Graph API error:', fbErr.response?.data?.error?.message || fbErr.message);
+                return res.status(502).json({ error: 'Failed to update status on Meta: ' + (fbErr.response?.data?.error?.message || fbErr.message) });
+            }
+        }
+
+        campaign.status = localStatus;
+        await campaign.save();
+
+        res.json({ success: true, status: localStatus, campaign: campaign.toJSON() });
+    } catch (err) {
+        console.error('[META-ADS] Status update error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/meta-ads/:id — Edit campaign name or daily budget
+// ─────────────────────────────────────────────────────────────────────────────
+router.patch('/:id', async (req, res) => {
+    try {
+        const { campaignName, dailyBudget } = req.body;
+        const campaign = await MetaAdCampaign.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+        const user = await User.findByPk(req.user.id);
+        const updates = {};
+
+        // Update name on Meta
+        if (campaignName && campaignName !== campaign.campaignName) {
+            if (campaign.metaCampaignId && user.metaAdsToken) {
+                try {
+                    await axios.post(
+                        `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}`,
+                        null,
+                        { params: { name: campaignName, access_token: user.metaAdsToken } }
+                    );
+                } catch (fbErr) {
+                    console.warn('[META-ADS] Name update on Meta failed (non-critical):', fbErr.response?.data?.error?.message);
+                }
+            }
+            updates.campaignName = campaignName;
+        }
+
+        // Update budget on Meta AdSet
+        if (dailyBudget && dailyBudget !== campaign.dailyBudget) {
+            if (campaign.metaAdsetId && user.metaAdsToken) {
+                try {
+                    await axios.post(
+                        `https://graph.facebook.com/v22.0/${campaign.metaAdsetId}`,
+                        null,
+                        { params: { daily_budget: Math.round(dailyBudget * 100), access_token: user.metaAdsToken } }
+                    );
+                } catch (fbErr) {
+                    console.warn('[META-ADS] Budget update on Meta failed (non-critical):', fbErr.response?.data?.error?.message);
+                }
+            }
+            updates.dailyBudget = dailyBudget;
+        }
+
+        if (Object.keys(updates).length > 0) {
+            await campaign.update(updates);
+        }
+
+        res.json({ success: true, campaign: campaign.toJSON() });
+    } catch (err) {
+        console.error('[META-ADS] Edit campaign error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /api/meta-ads/:id — Delete / archive a campaign
+// ─────────────────────────────────────────────────────────────────────────────
+router.delete('/:id', async (req, res) => {
+    try {
+        const campaign = await MetaAdCampaign.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+        const user = await User.findByPk(req.user.id);
+
+        // Archive on Meta first (Meta requires DELETED status, not actual deletion)
+        if (campaign.metaCampaignId && user.metaAdsToken) {
+            try {
+                await axios.post(
+                    `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}`,
+                    null,
+                    { params: { status: 'DELETED', access_token: user.metaAdsToken } }
+                );
+            } catch (fbErr) {
+                console.warn('[META-ADS] Archive on Meta failed (still deleting locally):', fbErr.response?.data?.error?.message);
+            }
+        }
+
+        await campaign.destroy();
+        res.json({ success: true, message: 'Campaign deleted' });
+    } catch (err) {
+        console.error('[META-ADS] Delete campaign error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/meta-ads/duplicate/:id — Clone an existing campaign as Draft
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/duplicate/:id', async (req, res) => {
+    try {
+        const original = await MetaAdCampaign.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!original) return res.status(404).json({ error: 'Campaign not found' });
+
+        const clone = await MetaAdCampaign.create({
+            userId: req.user.id,
+            campaignName: `${original.campaignName} (Copy)`,
+            objective: original.objective,
+            dailyBudget: original.dailyBudget,
+            targeting: original.targeting,
+            creatives: original.creatives,
+            status: 'Draft',
+            metaCampaignId: null,
+            metaAdsetId: null,
+            metaAdId: null,
+            insights: {}
+        });
+
+        res.json({ success: true, campaign: clone.toJSON() });
+    } catch (err) {
+        console.error('[META-ADS] Duplicate campaign error:', err);
         res.status(500).json({ error: err.message });
     }
 });
