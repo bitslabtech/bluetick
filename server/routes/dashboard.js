@@ -289,6 +289,17 @@ router.get('/stats', async (req, res) => {
             }
         }
 
+        // WhatsApp Account Stats — enrich from User model fields (populated by status refresh)
+        // These are set on User model by /api/whatsapp/status regardless of setup path
+        const waQuality    = user.metaQualityRating || (isWhatsappConfigured ? 'GREEN' : 'UNKNOWN');
+        const waVerified   = !!(
+            user.metaNameStatus === 'APPROVED' ||
+            user.metaNameStatus === 'AVAILABLE' ||
+            user.metaNameStatus === 'approved'  ||
+            user.metaNameStatus === 'available' ||
+            user.metaVerifiedName
+        );
+
         res.json({
             contactsCount,
             templatesCount,
@@ -314,17 +325,11 @@ router.get('/stats', async (req, res) => {
             hasActiveBots,
             // WhatsApp Account Stats
             waAccountStatus: isWhatsappConfigured ? 'CONNECTED' : 'DISCONNECTED',
-            waAccountQuality: isWhatsappConfigured ? (user.metaQualityRating || 'GREEN') : 'UNKNOWN',
+            waAccountQuality: isWhatsappConfigured ? waQuality : 'UNKNOWN',
             waMessagingTier: isWhatsappConfigured ? parsedTier : 'N/A',
             waMessagingProgress: monthlyUsageCount,
             waMessagingThreshold: isWhatsappConfigured ? waMessagingThreshold : 0,
-            waBusinessVerified: isWhatsappConfigured ? (
-                user.metaNameStatus === 'APPROVED' || 
-                user.metaNameStatus === 'AVAILABLE' ||
-                user.metaNameStatus === 'approved' ||
-                user.metaNameStatus === 'available' ||
-                !!user.metaVerifiedName
-            ) : false
+            waBusinessVerified: isWhatsappConfigured ? waVerified : false
         });
     } catch (err) {
         console.error("Error fetching stats:", err);

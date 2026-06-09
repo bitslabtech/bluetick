@@ -56,6 +56,27 @@ router.post('/auth', auth, async (req, res) => {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/ctwa/save-page
+// Manually set the Facebook Page ID (fallback when auto-detection fails).
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/save-page', auth, async (req, res) => {
+    try {
+        const { pageId } = req.body;
+        if (!pageId || !/^\d+$/.test(pageId.trim())) {
+            return res.status(400).json({ error: 'A numeric Facebook Page ID is required.' });
+        }
+        const user = await User.findByPk(req.user.id);
+        user.metaPageId = pageId.trim();
+        await user.save();
+        console.log(`[CTWA] Page ID manually set to ${pageId} for user ${req.user.id}`);
+        res.json({ success: true, pageId: user.metaPageId });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to save Page ID.' });
+    }
+});
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/ctwa/ad-accounts
 // Lists all Ad Accounts the connected user owns/has access to.
 // User will select which account runs their CTWA campaigns.
@@ -127,13 +148,27 @@ router.get('/status', auth, async (req, res) => {
         const user = await User.findByPk(req.user.id);
         const hasMetaToken   = !!user.metaAdsToken;
         const hasAdAccount   = !!user.metaAdAccountId;
-        const hasWhatsApp    = !!(user.metaPhoneNumberId || user.wabaId);
-        const hasWabaSetup   = !!(user.fbAccessToken && user.wabaId);
+
+        // WhatsApp can be configured via two paths:
+        // 1. User model fields (set by whatsappAuth.js OAuth flow)
+        // 2. Settings model fields (set directly in WhatsApp Settings page)
+        const Settings = require('../models/Settings');
+        let hasWhatsApp = !!(user.metaPhoneNumberId || user.wabaId || user.fbAccessToken);
+        if (!hasWhatsApp) {
+            try {
+                const settings = await Settings.findOne({ where: { userId: req.user.id } });
+                hasWhatsApp = !!(settings?.metaPhoneNumberId && settings?.metaAccessToken);
+            } catch (e) {
+                // Settings table may not exist — non-fatal
+            }
+        }
+        const hasWabaSetup = !!(user.fbAccessToken && user.wabaId) || hasWhatsApp;
 
         res.json({
             // Simple boolean for legacy code
             connected: hasMetaToken,
             adAccountId: user.metaAdAccountId || null,
+            pageId: user.metaPageId || null,
             // Granular per-checklist-item validations
             checks: {
                 hasMetaToken,        // Facebook Login / Meta Ads connected

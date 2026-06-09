@@ -261,6 +261,30 @@ const CTWADashboard = ({ onDisconnect }) => {
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState('last_30d');
 
+    // ── Facebook Page ID (manual override) ──────────────────────────────────
+    const [pageId, setPageId]           = useState('');
+    const [pageIdInput, setPageIdInput] = useState('');
+    const [pageIdSaving, setPageIdSaving] = useState(false);
+
+    // Load page ID from status
+    useEffect(() => {
+        axios.get('/api/ctwa/status', { withCredentials: true }).then(res => {
+            if (res.data.pageId) { setPageId(res.data.pageId); setPageIdInput(res.data.pageId); }
+        }).catch(() => {});
+    }, []);
+
+    const handleSavePageId = async () => {
+        if (!pageIdInput.trim()) return toast.error('Enter your Facebook Page ID');
+        setPageIdSaving(true);
+        try {
+            const res = await axios.post('/api/ctwa/save-page', { pageId: pageIdInput.trim() }, { withCredentials: true });
+            setPageId(res.data.pageId);
+            toast.success('✅ Facebook Page ID saved!');
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to save Page ID');
+        } finally { setPageIdSaving(false); }
+    };
+
     // ── CAPI Config state ────────────────────────────────────────────────────
     const [capiPixelId, setCapiPixelId]           = useState('');
     const [capiAccessToken, setCapiAccessToken]   = useState('');
@@ -451,6 +475,55 @@ const CTWADashboard = ({ onDisconnect }) => {
                     </div>
                 )}
             </div>
+
+        {/* ── Facebook Page ID Panel ── */}
+        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-slate-900 dark:text-white text-sm">Facebook Page ID</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Required to create Click-to-WhatsApp ads. Auto-detected or set manually.</p>
+                    </div>
+                </div>
+                {pageId && (
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Configured
+                    </span>
+                )}
+            </div>
+            <div className="p-5">
+                {!pageId && (
+                    <div className="mb-4 p-3.5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-start gap-3">
+                        <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                            <strong>Page ID not set.</strong> If you see "No Facebook Page found" when creating ads, paste your Page ID below.
+                            {' '}<a href="https://www.facebook.com/help/1503421039731588" target="_blank" rel="noreferrer" className="underline font-bold">How to find your Page ID →</a>
+                        </p>
+                    </div>
+                )}
+                <div className="flex items-center gap-3">
+                    <input
+                        type="text"
+                        value={pageIdInput}
+                        onChange={e => setPageIdInput(e.target.value)}
+                        placeholder="e.g. 123456789012345"
+                        className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-400/50 transition-all font-mono"
+                    />
+                    <button
+                        onClick={handleSavePageId}
+                        disabled={pageIdSaving || !pageIdInput.trim() || pageIdInput.trim() === pageId}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-40 whitespace-nowrap"
+                    >
+                        {pageIdSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {pageIdSaving ? 'Saving...' : 'Save'}
+                    </button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2">Go to your Facebook Page → About → find "Page ID" at the bottom.</p>
+            </div>
+        </div>
 
         {/* ── CAPI Configuration Panel ── */}
         <CAPIConfigPanel

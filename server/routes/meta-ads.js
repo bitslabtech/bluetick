@@ -434,24 +434,93 @@ router.post('/publish', async (req, res) => {
                     ...(instagramPositions  && { instagram_positions: instagramPositions }),
                 };
 
-                // ── Build AdSet params ────────────────────────────────
-                let pageId = user.metaPageId;
+                // ── Build AdSet params — resolve Page ID (multi-strategy) ──
+                let pageId = user.metaPageId || req.body.fbPageId || null;
+
                 if (!pageId) {
-                    try {
-                        const pagesRes = await axios.get('https://graph.facebook.com/v22.0/me/accounts', {
-                            params: { access_token: token }
-                        });
-                        if (pagesRes.data && pagesRes.data.data && pagesRes.data.data.length > 0) {
-                            pageId = pagesRes.data.data[0].id;
-                            user.metaPageId = pageId;
-                            await user.save();
-                        } else {
-                            throw new Error('No Facebook Page found. A Facebook Page is required to run Click-to-WhatsApp ads.');
+                    console.log(`[META-ADS] Attempting to auto-resolve Facebook Page ID for user ${req.user.id}...`);
+                    let resolvedPageId = null;
+                    let resolveError = null;
+
+                    // Strategy 1: /me/accounts — personal pages
+                    if (!resolvedPageId) {
+                        try {
+                            const pagesRes = await axios.get('https://graph.facebook.com/v22.0/me/accounts', {
+                                params: { access_token: token, fields: 'id,name', limit: 10 }
+                            });
+                            if (pagesRes.data?.data?.length > 0) {
+                                resolvedPageId = pagesRes.data.data[0].id;
+                                console.log(`[META-ADS] Strategy 1 (me/accounts): Found page ${resolvedPageId}`);
+                            }
+                        } catch (e) {
+                            resolveError = e.response?.data?.error?.message || e.message;
+                            console.warn(`[META-ADS] Strategy 1 (me/accounts) failed: ${resolveError}`);
                         }
-                    } catch (err) {
-                        return res.status(400).json({ error: err.response?.data?.error?.message || err.message || 'Failed to fetch Facebook Page ID.' });
+                    }
+
+                    // Strategy 2: /me/businesses → owned_pages (Business Manager)
+                    if (!resolvedPageId) {
+                        try {
+                            const bizRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
+                                params: { access_token: token, fields: 'id,name', limit: 5 }
+                            });
+                            const businesses = bizRes.data?.data || [];
+                            for (const biz of businesses) {
+                                if (resolvedPageId) break;
+                                try {
+                                    const pagesRes = await axios.get(`https://graph.facebook.com/v22.0/${biz.id}/owned_pages`, {
+                                        params: { access_token: token, fields: 'id,name', limit: 5 }
+                                    });
+                                    if (pagesRes.data?.data?.length > 0) {
+                                        resolvedPageId = pagesRes.data.data[0].id;
+                                        console.log(`[META-ADS] Strategy 2 (Business Manager ${biz.id}): Found page ${resolvedPageId}`);
+                                    }
+                                } catch (e2) {
+                                    console.warn(`[META-ADS] Strategy 2 inner (biz ${biz.id}) failed:`, e2.message);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn(`[META-ADS] Strategy 2 (/me/businesses) failed:`, e.response?.data?.error?.message || e.message);
+                        }
+                    }
+
+                    // Strategy 3: Try via Ad Account → connected Facebook Page
+                    if (!resolvedPageId && user.metaAdAccountId) {
+                        try {
+                            const actRes = await axios.get(`https://graph.facebook.com/v22.0/${user.metaAdAccountId}`, {
+                                params: { access_token: token, fields: 'id,name,business' }
+                            });
+                            const businessId = actRes.data?.business?.id;
+                            if (businessId) {
+                                const pagesRes = await axios.get(`https://graph.facebook.com/v22.0/${businessId}/owned_pages`, {
+                                    params: { access_token: token, fields: 'id,name', limit: 5 }
+                                });
+                                if (pagesRes.data?.data?.length > 0) {
+                                    resolvedPageId = pagesRes.data.data[0].id;
+                                    console.log(`[META-ADS] Strategy 3 (Ad Account business): Found page ${resolvedPageId}`);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn(`[META-ADS] Strategy 3 (Ad Account business) failed:`, e.response?.data?.error?.message || e.message);
+                        }
+                    }
+
+                    if (resolvedPageId) {
+                        pageId = resolvedPageId;
+                        // Cache for future use
+                        user.metaPageId = pageId;
+                        await user.save();
+                    } else {
+                        // All strategies failed — surface a helpful message
+                        throw new Error(
+                            'No Facebook Page found on your account. Please ensure: ' +
+                            '(1) Your Meta token has pages_show_list permission, ' +
+                            '(2) You have admin access to a Facebook Page in your Business Manager, ' +
+                            'or (3) Provide your Page ID manually in Settings → Meta Ads.'
+                        );
                     }
                 }
+
 
                 const adSetParams = {
                     name: `${campaignName} - AdSet`,

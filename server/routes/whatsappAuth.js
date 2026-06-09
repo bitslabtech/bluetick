@@ -140,28 +140,80 @@ router.post('/exchange-token', auth, async (req, res) => {
 
 // GET /api/whatsapp/status
 // Fetches the latest tier and quality rating from Meta
+// Supports both setup paths:
+//   A) Embedded Signup (OAuth) → fbAccessToken + wabaId on User model
+//   B) Manual Settings page  → metaAccessToken + metaBusinessAccountId on Settings model
 router.get('/status', auth, async (req, res) => {
     try {
         const user = await User.findByPk(req.user.id);
-        if (!user || !user.fbAccessToken || !user.wabaId) {
-            return res.status(400).json({ error: 'WhatsApp is not fully connected' });
+        const Settings = require('../models/Settings');
+        const settings = await Settings.findOne({ where: { userId: req.user.id } });
+
+        // Determine which token + WABA ID to use
+        let accessToken = user.fbAccessToken;
+        let wabaId      = user.wabaId;
+
+        // Fallback: use Settings-based WhatsApp credentials
+        if (!accessToken || !wabaId) {
+            if (settings?.metaAccessToken && settings?.metaBusinessAccountId) {
+                accessToken = settings.metaAccessToken;
+                wabaId      = settings.metaBusinessAccountId;
+            } else if (settings?.metaAccessToken && settings?.metaPhoneNumberId) {
+                // Settings path without WABA ID — fetch phone number info directly
+                try {
+                    const phoneRes = await axios.get(`https://graph.facebook.com/v22.0/${settings.metaPhoneNumberId}`, {
+                        params: {
+                            fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
+                            access_token: settings.metaAccessToken
+                        }
+                    });
+                    const phoneData = phoneRes.data;
+                    if (phoneData && phoneData.id) {
+                        user.metaPhoneNumberId       = phoneData.id;
+                        user.metaDisplayPhoneNumber  = phoneData.display_phone_number;
+                        user.metaQualityRating        = phoneData.quality_rating;
+                        user.metaTier                 = phoneData.messaging_limit_tier;
+                        user.metaVerifiedName         = phoneData.verified_name;
+                        user.metaNameStatus           = phoneData.name_status;
+                        await user.save();
+                        return res.json({
+                            message: 'Status refreshed successfully',
+                            user: {
+                                wabaId: user.wabaId,
+                                metaPhoneNumberId: user.metaPhoneNumberId,
+                                metaDisplayPhoneNumber: user.metaDisplayPhoneNumber,
+                                metaQualityRating: user.metaQualityRating,
+                                metaTier: user.metaTier,
+                                metaVerifiedName: user.metaVerifiedName,
+                                metaNameStatus: user.metaNameStatus
+                            }
+                        });
+                    }
+                } catch (phoneErr) {
+                    console.error('[WA STATUS] Error fetching phone number directly:', phoneErr.response?.data || phoneErr.message);
+                }
+                return res.status(400).json({ error: 'WhatsApp Business Account ID (WABA ID) is not configured. Please re-connect via WhatsApp Settings.' });
+            } else {
+                return res.status(400).json({ error: 'WhatsApp is not fully connected. Please complete setup in WhatsApp Settings.' });
+            }
         }
 
-        const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${user.wabaId}/phone_numbers`, {
+        // Fetch phone numbers from WABA
+        const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}/phone_numbers`, {
             params: {
                 fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
-                access_token: user.fbAccessToken
+                access_token: accessToken
             }
         });
 
         if (phoneResponse.data?.data?.length > 0) {
             const phoneData = phoneResponse.data.data[0];
-            user.metaPhoneNumberId = phoneData.id;
+            user.metaPhoneNumberId      = phoneData.id;
             user.metaDisplayPhoneNumber = phoneData.display_phone_number;
-            user.metaQualityRating = phoneData.quality_rating;
-            user.metaTier = phoneData.messaging_limit_tier;
-            user.metaVerifiedName = phoneData.verified_name;
-            user.metaNameStatus = phoneData.name_status;
+            user.metaQualityRating       = phoneData.quality_rating;
+            user.metaTier                = phoneData.messaging_limit_tier;
+            user.metaVerifiedName        = phoneData.verified_name;
+            user.metaNameStatus          = phoneData.name_status;
             await user.save();
         }
 
@@ -183,6 +235,7 @@ router.get('/status', auth, async (req, res) => {
         res.status(500).json({ error: 'Failed to refresh WhatsApp status' });
     }
 });
+
 
 // DELETE /api/whatsapp/disconnect
 // Disconnects WhatsApp by clearing Meta tokens and WABA ID
