@@ -397,10 +397,39 @@ router.post('/publish', async (req, res) => {
                 }
 
                 // ── Build interests (flexible_spec) ───────────────────
+                // Meta requires each interest to have a numeric `id`. Resolve via Targeting Search API.
                 const userInterests = targeting?.interests || [];
-                const flexibleSpec = userInterests.length > 0
-                    ? [{ interests: userInterests.map(name => ({ name })) }]
-                    : undefined;
+                let flexibleSpec = undefined;
+                if (userInterests.length > 0) {
+                    const resolvedInterests = [];
+                    for (const interestName of userInterests) {
+                        try {
+                            const searchRes = await axios.get('https://graph.facebook.com/v22.0/search', {
+                                params: {
+                                    type: 'adinterest',
+                                    q: typeof interestName === 'string' ? interestName : interestName.name,
+                                    access_token: token,
+                                    limit: 1
+                                },
+                                timeout: 5000
+                            });
+                            const match = searchRes.data?.data?.[0];
+                            if (match && match.id) {
+                                resolvedInterests.push({ id: match.id, name: match.name });
+                            } else {
+                                console.warn(`[META-ADS] Interest not found on Meta: "${interestName}" — skipping`);
+                            }
+                        } catch (e) {
+                            console.warn(`[META-ADS] Interest lookup failed for "${interestName}": ${e.message}`);
+                        }
+                    }
+                    if (resolvedInterests.length > 0) {
+                        flexibleSpec = [{ interests: resolvedInterests }];
+                        console.log(`[META-ADS] Resolved ${resolvedInterests.length}/${userInterests.length} interests:`, resolvedInterests.map(i => `${i.name}(${i.id})`).join(', '));
+                    } else {
+                        console.warn('[META-ADS] No interests could be resolved — omitting flexible_spec entirely');
+                    }
+                }
 
                 // ── Build genders array (Meta: 1=male, 2=female, omit=all) ─
                 let gendersArr = undefined;
@@ -1140,8 +1169,37 @@ router.post('/:id/publish', async (req, res) => {
             geoLocations = { countries: ['IN'] };
         }
 
+        // Resolve interest names → Meta interest IDs (integers required by API)
         const userInterests = targeting?.interests || [];
-        const flexibleSpec = userInterests.length > 0 ? [{ interests: userInterests.map(name => ({ name })) }] : undefined;
+        let flexibleSpec = undefined;
+        if (userInterests.length > 0) {
+            const resolvedInterests = [];
+            for (const interestName of userInterests) {
+                try {
+                    const searchRes = await axios.get('https://graph.facebook.com/v22.0/search', {
+                        params: {
+                            type: 'adinterest',
+                            q: typeof interestName === 'string' ? interestName : interestName.name,
+                            access_token: token,
+                            limit: 1
+                        },
+                        timeout: 5000
+                    });
+                    const match = searchRes.data?.data?.[0];
+                    if (match && match.id) {
+                        resolvedInterests.push({ id: match.id, name: match.name });
+                    }
+                } catch (e) {
+                    console.warn(`[META-ADS] Interest lookup failed for "${interestName}": ${e.message}`);
+                }
+            }
+            if (resolvedInterests.length > 0) {
+                flexibleSpec = [{ interests: resolvedInterests }];
+                console.log(`[META-ADS] Draft-Publish: Resolved ${resolvedInterests.length}/${userInterests.length} interests`);
+            } else {
+                console.warn('[META-ADS] Draft-Publish: No interests resolved — omitting flexible_spec');
+            }
+        }
         let gendersArr = undefined;
         if (targeting?.gender === 'male') gendersArr = [1];
         if (targeting?.gender === 'female') gendersArr = [2];
