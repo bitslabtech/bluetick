@@ -529,6 +529,7 @@ router.post('/publish', async (req, res) => {
                     optimization_goal: 'REPLIES',
                     promoted_object: JSON.stringify({ page_id: pageId }),
                     targeting: JSON.stringify(targetingSpec),
+                    bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
                     status: 'ACTIVE',
                     access_token: token
                 };
@@ -558,7 +559,7 @@ router.post('/publish', async (req, res) => {
                 adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
                     params: adSetParams
                 }).catch(e => {
-                    console.warn('[META-ADS] AdSet creation warning:', e.response?.data?.error?.message || e.message);
+                    console.warn('[META-ADS] AdSet creation warning:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
                     return { data: { id: null } };
                 });
 
@@ -607,6 +608,7 @@ router.post('/publish', async (req, res) => {
                         const linkData = {
                             message: primaryText,
                             name:    headline,
+                            link:    `https://facebook.com/${pageId}`, // Required by Meta for link_data
                             call_to_action: {
                                 type:  'WHATSAPP_MESSAGE',
                                 value: { app_destination: 'WHATSAPP' }
@@ -633,7 +635,7 @@ router.post('/publish', async (req, res) => {
                             null,
                             { params: creativeParams }
                         ).catch(e => {
-                            console.warn('[META-ADS] AdCreative creation warning:', e.response?.data?.error?.message || e.message);
+                            console.warn('[META-ADS] AdCreative creation warning:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
                             return null;
                         });
 
@@ -655,13 +657,13 @@ router.post('/publish', async (req, res) => {
                                     }
                                 }
                             ).catch(e => {
-                                console.warn('[META-ADS] Ad creation warning:', e.response?.data?.error?.message || e.message);
+                                console.warn('[META-ADS] Ad creation warning:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
                                 return null;
                             });
                             console.log('[META-ADS] Ad ID:', adRes?.data?.id);
                         }
                     } catch (creativeErr) {
-                        console.warn('[META-ADS] Creative/Ad creation error (non-fatal):', creativeErr.response?.data || creativeErr.message);
+                        console.warn('[META-ADS] Creative/Ad creation error (non-fatal):', JSON.stringify(creativeErr.response?.data || creativeErr.message, null, 2));
                         // Don't fail the whole request — campaign and adset are still created
                     }
                 }
@@ -746,7 +748,15 @@ router.get('/insights', async (req, res) => {
                     campaign.insights = insights;
                     await campaign.save();
                 } catch (fbErr) {
-                    console.error(`[META-ADS] Insights fetch failed for ${campaign.metaCampaignId}:`, fbErr.response?.data?.error?.message || fbErr.message);
+                    const errorObj = fbErr.response?.data?.error || {};
+                    const msg = errorObj.message || fbErr.message;
+                    console.error(`[META-ADS] Insights fetch failed for ${campaign.metaCampaignId}:`, msg);
+                    
+                    // Safe Fallback: if Meta says it doesn't exist, mark as deleted locally
+                    if (errorObj.code === 100 || msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('invalid parameter')) {
+                        campaign.status = 'Deleted (Meta)';
+                        await campaign.save();
+                    }
                 }
             }
 
@@ -975,8 +985,18 @@ router.patch('/:id/status', async (req, res) => {
                     { params: { status: metaStatus, access_token: user.metaAdsToken } }
                 );
             } catch (fbErr) {
-                console.error('[META-ADS] Pause/Resume Graph API error:', fbErr.response?.data?.error?.message || fbErr.message);
-                return res.status(502).json({ error: 'Failed to update status on Meta: ' + (fbErr.response?.data?.error?.message || fbErr.message) });
+                const errorObj = fbErr.response?.data?.error || {};
+                const errMsg = JSON.stringify(errorObj, null, 2);
+                console.error('[META-ADS] Pause/Resume Graph API error:', errMsg);
+                
+                // Safe Fallback
+                if (errorObj.code === 100 || (errorObj.message || '').toLowerCase().includes('does not exist') || (errorObj.message || '').toLowerCase().includes('invalid parameter')) {
+                    campaign.status = 'Deleted (Meta)';
+                    await campaign.save();
+                    return res.status(400).json({ error: 'This campaign was deleted directly on Meta. It is now marked as Deleted in your dashboard.' });
+                }
+
+                return res.status(502).json({ error: 'Failed to update status on Meta: ' + errMsg });
             }
         }
 
@@ -1429,7 +1449,7 @@ router.get('/:id', async (req, res) => {
                     {
                         params: {
                             fields: 'impressions,clicks,spend,ctr,cpc,reach,frequency',
-                            date_preset: 'lifetime', // get all-time stats for this campaign
+                            date_preset: 'maximum', // get all-time stats for this campaign
                             access_token: user.metaAdsToken
                         }
                     }
@@ -1450,7 +1470,15 @@ router.get('/:id', async (req, res) => {
                 campaign.insights = insights;
                 await campaign.save();
             } catch (fbErr) {
-                console.warn(`[META-ADS] Insights single sync failed for ${campaign.metaCampaignId}:`, fbErr.response?.data?.error?.message || fbErr.message);
+                const errorObj = fbErr.response?.data?.error || {};
+                const msg = errorObj.message || fbErr.message;
+                console.warn(`[META-ADS] Insights single sync failed for ${campaign.metaCampaignId}:`, msg);
+                
+                // Safe Fallback
+                if (errorObj.code === 100 || msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('invalid parameter')) {
+                    campaign.status = 'Deleted (Meta)';
+                    await campaign.save();
+                }
             }
         }
 
