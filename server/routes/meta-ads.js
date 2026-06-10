@@ -526,7 +526,8 @@ router.post('/publish', async (req, res) => {
                     name: `${campaignName} - AdSet`,
                     campaign_id: campaignId,
                     billing_event: 'IMPRESSIONS',
-                    optimization_goal: 'LINK_CLICKS',
+                    optimization_goal: 'CONVERSATIONS',
+                    destination_type: 'WHATSAPP',
                     promoted_object: JSON.stringify({ page_id: pageId }),
                     targeting: JSON.stringify(targetingSpec),
                     status: 'ACTIVE',
@@ -551,11 +552,21 @@ router.post('/publish', async (req, res) => {
                     if (!isNaN(et)) adSetParams.end_time = et;
                 }
 
+                // Log outgoing params for debugging (redact token)
+                const debugParams = { ...adSetParams };
+                delete debugParams.access_token;
+                console.log('[META-ADS] AdSet params:', JSON.stringify(debugParams, null, 2));
+
                 // 2. Create AdSet
                 adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
                     params: adSetParams
                 }).catch(e => {
-                    console.warn('[META-ADS] AdSet creation warning:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
+                    const errData = e.response?.data?.error || e.message;
+                    console.error('[META-ADS] AdSet creation FAILED:', JSON.stringify(errData, null, 2));
+                    // Log blame_field_specs if available (tells us exactly which field is wrong)
+                    if (e.response?.data?.error?.error_data) {
+                        console.error('[META-ADS] blame_field_specs:', JSON.stringify(e.response.data.error.error_data, null, 2));
+                    }
                     return { data: { id: null } };
                 });
 
@@ -1160,7 +1171,8 @@ router.post('/:id/publish', async (req, res) => {
             name: `${stored.campaignName} - AdSet`,
             campaign_id: campaignId,
             billing_event: 'IMPRESSIONS',
-            optimization_goal: 'LINK_CLICKS',
+            optimization_goal: 'CONVERSATIONS',
+            destination_type: 'WHATSAPP',
             promoted_object: JSON.stringify({ page_id: pageId }),
             targeting: JSON.stringify(targetingSpec),
             status: 'ACTIVE',
@@ -1175,10 +1187,19 @@ router.post('/:id/publish', async (req, res) => {
             adSetParams.daily_budget = Math.round((Number(dailyBudget) || 500) * 100);
         }
 
+        // Log outgoing params for debugging (redact token)
+        const debugParams2 = { ...adSetParams };
+        delete debugParams2.access_token;
+        console.log('[META-ADS] Draft-Publish AdSet params:', JSON.stringify(debugParams2, null, 2));
+
         const adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
             params: adSetParams
         }).catch(e => {
-            console.warn('[META-ADS] AdSet creation:', e.response?.data?.error?.message || e.message);
+            const errData = e.response?.data?.error || e.message;
+            console.error('[META-ADS] AdSet creation FAILED:', JSON.stringify(errData, null, 2));
+            if (e.response?.data?.error?.error_data) {
+                console.error('[META-ADS] blame_field_specs:', JSON.stringify(e.response.data.error.error_data, null, 2));
+            }
             return { data: { id: null } };
         });
         const adSetId = adSetRes.data.id;
