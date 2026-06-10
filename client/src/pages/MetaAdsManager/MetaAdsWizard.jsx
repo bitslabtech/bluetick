@@ -478,6 +478,12 @@ export default function MetaAdsWizard() {
         if (budgetData.budgetType === 'lifetime' && (budgetData.lifetimeBudget || 0) < META_MIN_FIXED) {
             return toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
         }
+        if (!schedulingStart) {
+            return toast.error('Please select a Start Date for your ad schedule.');
+        }
+        if (!schedulingEnd) {
+            return toast.error('Please select an End Date for your ad schedule.');
+        }
         setLoading(true);
         try {
             await axios.post('/api/meta-ads/publish', {
@@ -532,6 +538,12 @@ export default function MetaAdsWizard() {
         }
         if (manual.budgetType === 'lifetime' && (manual.lifetimeBudget || 0) < META_MIN_FIXED) {
             return toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
+        }
+        if (!schedulingStart) {
+            return toast.error('Please select a Start Date for your ad schedule.');
+        }
+        if (!schedulingEnd) {
+            return toast.error('Please select an End Date for your ad schedule.');
         }
 
         setLoading(true);

@@ -536,23 +536,20 @@ router.post('/publish', async (req, res) => {
 
                 if (isLifetime) {
                     // Lifetime budget: fixed total, requires end_time
-                    adSetParams.lifetime_budget = Math.round((lifetimeBudget || 3000) * 100);
+                    adSetParams.lifetime_budget = Math.round((Number(lifetimeBudget) || 3000) * 100);
                 } else {
                     // Daily budget (default)
-                    adSetParams.daily_budget = Math.round(dailyBudget * 100);
+                    adSetParams.daily_budget = Math.round((Number(dailyBudget) || 500) * 100);
                 }
 
                 // ── Ad Scheduling ──────────────────────────────────────
                 if (scheduling?.startDate) {
-                    adSetParams.start_time = Math.floor(new Date(scheduling.startDate).getTime() / 1000);
+                    const st = Math.floor(new Date(scheduling.startDate).getTime() / 1000);
+                    if (!isNaN(st)) adSetParams.start_time = st;
                 }
                 if (scheduling?.endDate) {
-                    adSetParams.end_time = Math.floor(new Date(scheduling.endDate).getTime() / 1000);
-                } else if (isLifetime) {
-                    // Lifetime budget REQUIRES an end_time — default to 30 days from now
-                    const defaultEnd = new Date();
-                    defaultEnd.setDate(defaultEnd.getDate() + 30);
-                    adSetParams.end_time = Math.floor(defaultEnd.getTime() / 1000);
+                    const et = Math.floor(new Date(scheduling.endDate).getTime() / 1000);
+                    if (!isNaN(et)) adSetParams.end_time = et;
                 }
 
                 // 2. Create AdSet
@@ -752,9 +749,9 @@ router.get('/insights', async (req, res) => {
                     const msg = errorObj.message || fbErr.message;
                     console.error(`[META-ADS] Insights fetch failed for ${campaign.metaCampaignId}:`, msg);
                     
-                    // Safe Fallback: if Meta says it doesn't exist, mark as deleted locally
+                    // Safe Fallback: if Meta says it doesn't exist, mark as Error locally
                     if (errorObj.code === 100 || msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('invalid parameter')) {
-                        campaign.status = 'Deleted (Meta)';
+                        campaign.status = 'Error';
                         await campaign.save();
                     }
                 }
@@ -991,9 +988,9 @@ router.patch('/:id/status', async (req, res) => {
                 
                 // Safe Fallback
                 if (errorObj.code === 100 || (errorObj.message || '').toLowerCase().includes('does not exist') || (errorObj.message || '').toLowerCase().includes('invalid parameter')) {
-                    campaign.status = 'Deleted (Meta)';
+                    campaign.status = 'Error';
                     await campaign.save();
-                    return res.status(400).json({ error: 'This campaign was deleted directly on Meta. It is now marked as Deleted in your dashboard.' });
+                    return res.status(400).json({ error: 'This campaign was deleted directly on Meta. It is now marked as Error in your dashboard.' });
                 }
 
                 return res.status(502).json({ error: 'Failed to update status on Meta: ' + errMsg });
@@ -1476,7 +1473,7 @@ router.get('/:id', async (req, res) => {
                 
                 // Safe Fallback
                 if (errorObj.code === 100 || msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('invalid parameter')) {
-                    campaign.status = 'Deleted (Meta)';
+                    campaign.status = 'Error';
                     await campaign.save();
                 }
             }
