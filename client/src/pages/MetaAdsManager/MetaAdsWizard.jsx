@@ -311,6 +311,7 @@ export default function MetaAdsWizard() {
     const manualInterestRef = useRef(null);
     const [manualImage, setManualImage] = useState(null); // base64 data URL from upload
     const manualImageRef = useRef(null); // hidden <input type="file" />
+    const aiImageRef = useRef(null); // hidden <input type="file" /> for AI mode
     const [manualGeneratingImage, setManualGeneratingImage] = useState(false);
 
     // ── New Targeting State (shared between AI + Manual) ──
@@ -572,6 +573,17 @@ export default function MetaAdsWizard() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // ── AI Mode: handle image file upload ──
+    const handleAiImageUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) return toast.error('Please select a valid image file.');
+        if (file.size > 4 * 1024 * 1024) return toast.error('Image must be under 4MB.');
+        const reader = new FileReader();
+        reader.onload = (ev) => setGeneratedImage(ev.target.result);
+        reader.readAsDataURL(file);
     };
 
     // ── Manual: handle image file upload ──
@@ -1494,15 +1506,29 @@ export default function MetaAdsWizard() {
                                     <p className="text-xs text-slate-400">Without an image, your ad cannot appear in feeds</p>
                                 </div>
                             </div>
+                            
+                            <input
+                                ref={aiImageRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                className="hidden"
+                                onChange={handleAiImageUpload}
+                            />
+
                             {generatedImage ? (
                                 <div className="flex items-center gap-4">
                                     <img src={generatedImage} alt="Ad Image" className="w-24 h-24 object-cover rounded-xl border-2 border-blue-300 flex-shrink-0" />
                                     <div className="flex flex-col gap-2">
-                                        <button onClick={handleGenerateImage} disabled={generatingImage} className="flex items-center gap-2 text-xs font-bold bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition-all disabled:opacity-60">
-                                            {generatingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                            Regenerate AI Image
-                                        </button>
-                                        <button onClick={() => setGeneratedImage(null)} className="flex items-center gap-2 text-xs font-bold text-red-500 hover:text-red-600 transition-colors">
+                                        <div className="flex gap-2">
+                                            <button onClick={handleGenerateImage} disabled={generatingImage} className="flex items-center gap-2 text-xs font-bold bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition-all disabled:opacity-60">
+                                                {generatingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                                Regenerate AI Image
+                                            </button>
+                                            <button onClick={() => aiImageRef.current?.click()} className="flex items-center gap-2 text-xs font-bold bg-white text-slate-800 px-4 py-2 rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-all">
+                                                <UploadCloud className="w-3.5 h-3.5" /> Replace Upload
+                                            </button>
+                                        </div>
+                                        <button onClick={() => setGeneratedImage(null)} className="flex items-center gap-2 text-xs font-bold text-red-500 hover:text-red-600 transition-colors self-start mt-1">
                                             <Trash2 className="w-3.5 h-3.5" /> Remove image
                                         </button>
                                     </div>
@@ -1516,6 +1542,13 @@ export default function MetaAdsWizard() {
                                     >
                                         {generatingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                                         {generatingImage ? 'Generating image...' : '✨ Generate AI Image (recommended)'}
+                                    </button>
+                                    <button
+                                        onClick={() => aiImageRef.current?.click()}
+                                        className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white dark:bg-surface-dark border-2 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-sm"
+                                    >
+                                        <UploadCloud className="w-4 h-4" />
+                                        Upload your own image
                                     </button>
                                 </div>
                             )}
