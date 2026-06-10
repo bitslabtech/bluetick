@@ -14,7 +14,7 @@ const AdminAITokenUsers = () => {
     const [loading, setLoading] = useState(true);
 
     // Global Tokens State
-    const [globalTokens, setGlobalTokens] = useState({ ai_chatbot: 1, ai_form_generator: 1, ai_chat_drafter: 1, ai_chat_enhancer: 1, ai_template_draft: 1 });
+    const [globalTokens, setGlobalTokens] = useState({ ai_chatbot: 1, ai_form_generator: 1, ai_chat_drafter: 1, ai_chat_enhancer: 1, ai_template_draft: 1, ai_meta_ads_builder: 5, ai_media_generator: 5 });
     const [savingTokens, setSavingTokens] = useState(false);
     const [isTokenSettingsModalOpen, setIsTokenSettingsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -379,6 +379,58 @@ const AdminAITokenUsers = () => {
                                             className="w-full pl-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white rounded-xl py-3 pr-4 font-bold focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all outline-none"
                                             value={globalTokens.ai_template_draft ?? 1}
                                             onChange={(e) => setGlobalTokens({ ...globalTokens, ai_template_draft: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Meta Ads Builder Setting */}
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-bold text-slate-800 dark:text-slate-200">Meta Ads AI Builder Multiplier</h3>
+                                            <p className="text-sm text-slate-500 mt-1">Scales the base costs for Meta Ads AI generation (Research: 20, Copy: 10, Image: 50). Default is 5x.</p>
+                                        </div>
+                                        <div className="p-2 bg-pink-100 dark:bg-pink-500/10 rounded-lg">
+                                            <Sparkles className="w-5 h-5 text-pink-500" />
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <span className="text-slate-400 font-bold">x</span>
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            step="0.1" 
+                                            min="0"
+                                            className="w-full pl-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white rounded-xl py-3 pr-4 font-bold focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all outline-none"
+                                            value={globalTokens.ai_meta_ads_builder ?? 5}
+                                            onChange={(e) => setGlobalTokens({ ...globalTokens, ai_meta_ads_builder: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* AI Media Generator Setting */}
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-bold text-slate-800 dark:text-slate-200">Global AI Media Multiplier</h3>
+                                            <p className="text-sm text-slate-500 mt-1">Scales the base cost (50 tokens) for generating images across the platform (Meta Ads, etc).</p>
+                                        </div>
+                                        <div className="p-2 bg-emerald-100 dark:bg-emerald-500/10 rounded-lg">
+                                            <Sparkles className="w-5 h-5 text-emerald-500" />
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <span className="text-slate-400 font-bold">x</span>
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            step="0.1" 
+                                            min="0"
+                                            className="w-full pl-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white rounded-xl py-3 pr-4 font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none"
+                                            value={globalTokens.ai_media_generator ?? 5}
+                                            onChange={(e) => setGlobalTokens({ ...globalTokens, ai_media_generator: parseFloat(e.target.value) || 0 })}
                                         />
                                     </div>
                                 </div>

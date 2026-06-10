@@ -281,7 +281,7 @@ router.post('/ai-image', async (req, res) => {
 
         const user = await User.findByPk(req.user.id);
         const sysConfig = await SystemConfig.getConfig();
-        const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_meta_ads_builder ?? 5;
+        const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_media_generator ?? 5;
         const BASE_COST = 50; // Image generation is inherently more expensive
         const finalCost = Math.ceil(BASE_COST * multiplier);
 

@@ -468,6 +468,15 @@ export default function MetaAdsWizard() {
         if (!generatedImage) {
             return toast.error('Please generate or upload an ad image before publishing. Images are required for Meta ads to appear on Instagram & Facebook.');
         }
+        // Meta minimum budget validation
+        const META_MIN_DAILY = 100;   // ₹100/day minimum
+        const META_MIN_FIXED = 500;   // ₹500 minimum for fixed/lifetime budget
+        if (budgetData.budgetType === 'daily' && (budgetData.dailyBudget || 0) < META_MIN_DAILY) {
+            return toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
+        }
+        if (budgetData.budgetType === 'lifetime' && (budgetData.lifetimeBudget || 0) < META_MIN_FIXED) {
+            return toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
+        }
         setLoading(true);
         try {
             await axios.post('/api/meta-ads/publish', {
@@ -514,6 +523,15 @@ export default function MetaAdsWizard() {
         if (!manual.headline.trim()) return toast.error('Headline is required.');
         if (manualLocations.length === 0) return toast.error('Add at least one target location.');
         if (!manualImage) return toast.error('Please upload or generate an ad image. Images are required for Meta ads to appear on Instagram & Facebook.');
+        // Meta minimum budget validation
+        const META_MIN_DAILY = 100;
+        const META_MIN_FIXED = 500;
+        if (manual.budgetType === 'daily' && (manual.dailyBudget || 0) < META_MIN_DAILY) {
+            return toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
+        }
+        if (manual.budgetType === 'lifetime' && (manual.lifetimeBudget || 0) < META_MIN_FIXED) {
+            return toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
+        }
 
         setLoading(true);
         try {
@@ -722,7 +740,7 @@ export default function MetaAdsWizard() {
                                     onChange={e => setManual({...manual, dailyBudget: parseInt(e.target.value)})}
                                 />
                                 <div className="flex justify-between text-xs text-slate-400 mt-2">
-                                    <span>₹100 <span className="text-slate-300">(Min)</span></span>
+                                    <span>₹100 <span className="text-slate-300">(Meta Min)</span></span>
                                     <div className="flex gap-2">
                                         {[500, 1000, 5000, 10000].map(v => (
                                             <button key={v} type="button" onClick={() => setManual({...manual, dailyBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${ manual.dailyBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
@@ -741,7 +759,7 @@ export default function MetaAdsWizard() {
                                     onChange={e => setManual({...manual, lifetimeBudget: parseInt(e.target.value)})}
                                 />
                                 <div className="flex justify-between text-xs text-slate-400 mt-2">
-                                    <span>₹500 <span className="text-slate-300">(Min)</span></span>
+                                    <span>₹500 <span className="text-slate-300">(Meta Min)</span></span>
                                     <div className="flex gap-2">
                                         {[3000, 5000, 10000, 50000].map(v => (
                                             <button key={v} type="button" onClick={() => setManual({...manual, lifetimeBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${ manual.lifetimeBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
@@ -1878,7 +1896,7 @@ export default function MetaAdsWizard() {
                                                 onChange={(e) => setBudgetData({...budgetData, dailyBudget: parseInt(e.target.value)})}
                                             />
                                             <div className="flex justify-between text-xs text-slate-500 mt-2">
-                                                <span>₹100</span>
+                                                <span>₹100 <span className="text-slate-400 dark:text-slate-500">(Meta Min)</span></span>
                                                 <div className="flex gap-2">
                                                     {[500, 1000, 5000, 10000].map(v => (
                                                         <button key={v} type="button" onClick={() => setBudgetData({...budgetData, dailyBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${budgetData.dailyBudget === v ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
@@ -1900,7 +1918,7 @@ export default function MetaAdsWizard() {
                                                 onChange={(e) => setBudgetData({...budgetData, lifetimeBudget: parseInt(e.target.value)})}
                                             />
                                             <div className="flex justify-between text-xs text-slate-500 mt-2">
-                                                <span>₹500</span>
+                                                <span>₹500 <span className="text-slate-400 dark:text-slate-500">(Meta Min)</span></span>
                                                 <div className="flex gap-2">
                                                     {[3000, 5000, 10000, 50000].map(v => (
                                                         <button key={v} type="button" onClick={() => setBudgetData({...budgetData, lifetimeBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${budgetData.lifetimeBudget === v ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
