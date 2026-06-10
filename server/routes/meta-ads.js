@@ -343,7 +343,7 @@ router.post('/publish', async (req, res) => {
         const {
             campaignName, objective, dailyBudget,
             targeting, creatives, imageUrl, automation,
-            scheduling // { startDate, endDate }
+            scheduling, budgetType, lifetimeBudget
         } = req.body;
         const user = await User.findByPk(req.user.id);
         
@@ -520,9 +520,6 @@ router.post('/publish', async (req, res) => {
                         );
                     }
                 }
-
-
-                const { budgetType, lifetimeBudget } = req.body;
                 const isLifetime = budgetType === 'lifetime';
 
                 const adSetParams = {
