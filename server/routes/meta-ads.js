@@ -526,10 +526,9 @@ router.post('/publish', async (req, res) => {
                     name: `${campaignName} - AdSet`,
                     campaign_id: campaignId,
                     billing_event: 'IMPRESSIONS',
-                    optimization_goal: 'REPLIES',
+                    optimization_goal: 'LINK_CLICKS',
                     promoted_object: JSON.stringify({ page_id: pageId }),
                     targeting: JSON.stringify(targetingSpec),
-                    bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
                     status: 'ACTIVE',
                     access_token: token
                 };
@@ -605,7 +604,7 @@ router.post('/publish', async (req, res) => {
                         const linkData = {
                             message: primaryText,
                             name:    headline,
-                            link:    `https://facebook.com/${pageId}`, // Required by Meta for link_data
+                            link:    `https://www.facebook.com/${pageId}`, // Required by Meta for link_data
                             call_to_action: {
                                 type:  'WHATSAPP_MESSAGE',
                                 value: { app_destination: 'WHATSAPP' }
@@ -1161,19 +1160,19 @@ router.post('/:id/publish', async (req, res) => {
             name: `${stored.campaignName} - AdSet`,
             campaign_id: campaignId,
             billing_event: 'IMPRESSIONS',
-            optimization_goal: 'REPLIES',
+            optimization_goal: 'LINK_CLICKS',
             promoted_object: JSON.stringify({ page_id: pageId }),
             targeting: JSON.stringify(targetingSpec),
             status: 'ACTIVE',
             access_token: token
         };
         if (isLifetime) {
-            adSetParams.lifetime_budget = Math.round((lifetimeBudget || 3000) * 100);
+            adSetParams.lifetime_budget = Math.round((Number(lifetimeBudget) || 3000) * 100);
             const endDate = new Date();
             endDate.setDate(endDate.getDate() + 30);
             adSetParams.end_time = Math.floor(endDate.getTime() / 1000);
         } else {
-            adSetParams.daily_budget = Math.round(dailyBudget * 100);
+            adSetParams.daily_budget = Math.round((Number(dailyBudget) || 500) * 100);
         }
 
         const adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
@@ -1206,6 +1205,7 @@ router.post('/:id/publish', async (req, res) => {
                 const linkData = {
                     message: creatives.primary_text || '',
                     name: creatives.headline || '',
+                    link: `https://www.facebook.com/${pageId}`, // Required by Meta for link_data
                     call_to_action: { type: 'WHATSAPP_MESSAGE', value: { app_destination: 'WHATSAPP' } }
                 };
                 if (imageHash) linkData.image_hash = imageHash;
