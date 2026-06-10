@@ -6,7 +6,7 @@ import {
     Users, Briefcase, Zap, Image, TrendingUp, ExternalLink, MoreVertical,
     Bot, MessageCircle, Mail, ArrowRight, Workflow, Radio, Globe,
     PenLine, SlidersHorizontal, Hash, FileText, Plus, X, Tag,
-    Search, Building2, Flag
+    Search, Building2, Flag, UploadCloud, Trash2
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -309,6 +309,9 @@ export default function MetaAdsWizard() {
     const [manualInterests, setManualInterests] = useState([]);
     const [manualInterestInput, setManualInterestInput] = useState('');
     const manualInterestRef = useRef(null);
+    const [manualImage, setManualImage] = useState(null); // base64 data URL from upload
+    const manualImageRef = useRef(null); // hidden <input type="file" />
+    const [manualGeneratingImage, setManualGeneratingImage] = useState(false);
 
     // ── New Targeting State (shared between AI + Manual) ──
     const [gender, setGender] = useState('all');              // 'all' | 'male' | 'female'
@@ -440,10 +443,14 @@ export default function MetaAdsWizard() {
 
     // Step 4: Generate Image
     const handleGenerateImage = async () => {
+        const selectedCreative = creativeData?.[selectedCreativeIndex];
+        const imageContext = selectedCreative
+            ? `Business: ${businessData.name}. Ad headline: "${selectedCreative.headline}". Ad copy: "${selectedCreative.primary_text?.slice(0, 150)}"`
+            : `Business Name: ${businessData.name}\n${businessData.description}`;
         setGeneratingImage(true);
         try {
             const res = await axios.post('/api/meta-ads/ai-image', {
-                businessDescription: `Business Name: ${businessData.name}\n${businessData.description}`
+                businessDescription: imageContext
             }, { withCredentials: true });
             
             setGeneratedImage(res.data.imageUrl);
@@ -458,6 +465,9 @@ export default function MetaAdsWizard() {
     // Step 5: Publish (AI Mode)
     const handlePublish = async () => {
         const selectedCreative = creativeData[selectedCreativeIndex];
+        if (!generatedImage) {
+            return toast.error('Please generate or upload an ad image before publishing. Images are required for Meta ads to appear on Instagram & Facebook.');
+        }
         setLoading(true);
         try {
             await axios.post('/api/meta-ads/publish', {
@@ -503,6 +513,7 @@ export default function MetaAdsWizard() {
         if (!manual.primaryText.trim()) return toast.error('Ad primary text is required.');
         if (!manual.headline.trim()) return toast.error('Headline is required.');
         if (manualLocations.length === 0) return toast.error('Add at least one target location.');
+        if (!manualImage) return toast.error('Please upload or generate an ad image. Images are required for Meta ads to appear on Instagram & Facebook.');
 
         setLoading(true);
         try {
@@ -524,7 +535,7 @@ export default function MetaAdsWizard() {
                     placements,
                 },
                 creatives: { primary_text: manual.primaryText, headline: manual.headline },
-                imageUrl: null,
+                imageUrl: manualImage || null,
                 scheduling: {
                     startDate: schedulingStart || null,
                     endDate:   schedulingEnd   || null,
@@ -542,6 +553,34 @@ export default function MetaAdsWizard() {
             toast.error(err.response?.data?.error || 'Failed to save campaign.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // ── Manual: handle image file upload ──
+    const handleManualImageUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) return toast.error('Please select a valid image file.');
+        if (file.size > 4 * 1024 * 1024) return toast.error('Image must be under 4MB.');
+        const reader = new FileReader();
+        reader.onload = (ev) => setManualImage(ev.target.result);
+        reader.readAsDataURL(file);
+    };
+
+    // ── Manual: AI generate image (uses same backend as AI mode) ──
+    const handleManualGenerateImage = async () => {
+        const desc = manual.campaignName || manual.primaryText || 'Business advertisement';
+        setManualGeneratingImage(true);
+        try {
+            const res = await axios.post('/api/meta-ads/ai-image', {
+                businessDescription: desc
+            }, { withCredentials: true });
+            setManualImage(res.data.imageUrl);
+            toast.success(`AI Image generated! (${res.data.tokensDeducted} tokens used)`);
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to generate image.');
+        } finally {
+            setManualGeneratingImage(false);
         }
     };
 
@@ -1041,7 +1080,100 @@ export default function MetaAdsWizard() {
                     </div>
                 </div>
 
+                {/* ─ Section 4b: Ad Image (REQUIRED) ─ */}
+                <div>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                            <Image className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                                Ad Image <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400">Required</span>
+                            </h3>
+                            <p className="text-xs text-slate-400">Your ad will NOT show on Instagram or Facebook without an image</p>
+                        </div>
+                    </div>
+
+                    {/* Hidden file input */}
+                    <input
+                        ref={manualImageRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        className="hidden"
+                        onChange={handleManualImageUpload}
+                    />
+
+                    {manualImage ? (
+                        // ── Image Preview ──
+                        <div className="relative rounded-2xl overflow-hidden border-2 border-blue-400 dark:border-blue-500/50 shadow-lg">
+                            <img src={manualImage} alt="Ad preview" className="w-full max-h-64 object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => manualImageRef.current?.click()}
+                                    className="flex items-center gap-1.5 text-xs font-bold bg-white text-slate-800 px-4 py-2 rounded-xl shadow-lg hover:bg-slate-100 transition-all"
+                                >
+                                    <UploadCloud className="w-3.5 h-3.5" /> Replace
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleManualGenerateImage}
+                                    disabled={manualGeneratingImage}
+                                    className="flex items-center gap-1.5 text-xs font-bold bg-primary text-white px-4 py-2 rounded-xl shadow-lg hover:bg-primary/90 transition-all disabled:opacity-60"
+                                >
+                                    {manualGeneratingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                    Regenerate AI
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setManualImage(null)}
+                                    className="ml-auto flex items-center gap-1.5 text-xs font-bold bg-red-500 text-white px-3 py-2 rounded-xl shadow-lg hover:bg-red-600 transition-all"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        // ── Upload / Generate Options ──
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Upload your own */}
+                            <button
+                                type="button"
+                                onClick={() => manualImageRef.current?.click()}
+                                className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-slate-300 dark:border-white/15 rounded-2xl hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/5 transition-all group"
+                            >
+                                <div className="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <UploadCloud className="w-7 h-7 text-blue-500" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-bold text-sm text-slate-800 dark:text-white">Upload Your Image</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, WebP — max 4MB</p>
+                                    <p className="text-[10px] text-slate-400">Recommended: 1080×1080px (square)</p>
+                                </div>
+                            </button>
+
+                            {/* AI Generate */}
+                            <button
+                                type="button"
+                                onClick={handleManualGenerateImage}
+                                disabled={manualGeneratingImage}
+                                className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-violet-300 dark:border-violet-500/30 rounded-2xl hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/5 transition-all group disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                <div className="w-14 h-14 rounded-2xl bg-violet-100 dark:bg-violet-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    {manualGeneratingImage ? <Loader2 className="w-7 h-7 text-violet-500 animate-spin" /> : <Sparkles className="w-7 h-7 text-violet-500" />}
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-bold text-sm text-slate-800 dark:text-white">Generate with AI ✨</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">{manualGeneratingImage ? 'Creating your image...' : 'Auto-creates a professional ad image'}</p>
+                                    <p className="text-[10px] text-violet-500 mt-1 font-medium">Uses AI tokens</p>
+                                </div>
+                            </button>
+                        </div>
+                    )}
+                </div>
+
                 {/* ─ Section 5: Meta Connection Status ─ */}
+
                 {metaConnected === false && (
                     <div className="flex items-start gap-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl">
                         <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -1279,7 +1411,7 @@ export default function MetaAdsWizard() {
                                 <Type className="w-6 h-6 text-secondary" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Select AI Generating Copy</h3>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Select AI Generated Copy</h3>
                                 <p className="text-sm text-slate-500">Pick the variation that best fits your brand tone.</p>
                             </div>
                         </div>
@@ -1309,22 +1441,13 @@ export default function MetaAdsWizard() {
                                         <div className="px-4 pb-3">
                                             <p className="text-sm text-black dark:text-[#E4E6EB] whitespace-pre-wrap">{variation.primary_text}</p>
                                         </div>
-                                        <div className="w-full aspect-square bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative overflow-hidden flex-shrink-0 group">
+                                        <div className="w-full aspect-square bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative overflow-hidden flex-shrink-0">
                                             {generatedImage ? (
                                                 <img src={generatedImage} alt="AI Generated Ad" className="w-full h-full object-cover" />
                                             ) : (
-                                                <Image className="w-12 h-12 text-slate-300 dark:text-slate-600" />
-                                            )}
-                                            {selectedCreativeIndex === index && (
-                                                <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); handleGenerateImage(); }}
-                                                        disabled={generatingImage}
-                                                        className="bg-primary hover:bg-blue-600 text-white font-bold px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
-                                                    >
-                                                        {generatingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                                        {generatingImage ? 'Generating...' : (generatedImage ? 'Regenerate AI Image' : 'Generate AI Image')}
-                                                    </button>
+                                                <div className="flex flex-col items-center gap-2 text-slate-400">
+                                                    <Image className="w-10 h-10" />
+                                                    <p className="text-xs font-semibold">No image yet</p>
                                                 </div>
                                             )}
                                         </div>
@@ -1340,6 +1463,44 @@ export default function MetaAdsWizard() {
                                     </div>
                                 </motion.div>
                             ))}
+                        </div>
+
+                        {/* ── Ad Image Section (AI Mode) ── */}
+                        <div className="bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-2xl p-5">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                                    <Image className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">Ad Image <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400 ml-1">Required for Instagram & Facebook</span></h4>
+                                    <p className="text-xs text-slate-400">Without an image, your ad cannot appear in feeds</p>
+                                </div>
+                            </div>
+                            {generatedImage ? (
+                                <div className="flex items-center gap-4">
+                                    <img src={generatedImage} alt="Ad Image" className="w-24 h-24 object-cover rounded-xl border-2 border-blue-300 flex-shrink-0" />
+                                    <div className="flex flex-col gap-2">
+                                        <button onClick={handleGenerateImage} disabled={generatingImage} className="flex items-center gap-2 text-xs font-bold bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition-all disabled:opacity-60">
+                                            {generatingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                            Regenerate AI Image
+                                        </button>
+                                        <button onClick={() => setGeneratedImage(null)} className="flex items-center gap-2 text-xs font-bold text-red-500 hover:text-red-600 transition-colors">
+                                            <Trash2 className="w-3.5 h-3.5" /> Remove image
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <button
+                                        onClick={handleGenerateImage}
+                                        disabled={generatingImage}
+                                        className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold shadow-lg shadow-violet-500/20 hover:from-violet-600 hover:to-purple-700 transition-all disabled:opacity-60 text-sm"
+                                    >
+                                        {generatingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        {generatingImage ? 'Generating image...' : '✨ Generate AI Image (recommended)'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         <div className="pt-6 flex justify-between">

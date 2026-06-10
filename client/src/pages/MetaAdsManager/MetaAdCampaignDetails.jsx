@@ -20,6 +20,8 @@ export default function MetaAdCampaignDetails() {
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+    const [timeseries, setTimeseries] = useState([]);
+    const [timeseriesLoading, setTimeseriesLoading] = useState(false);
 
     const fetchCampaign = async (forceSync = false) => {
         try {
@@ -37,6 +39,24 @@ export default function MetaAdCampaignDetails() {
 
     useEffect(() => {
         fetchCampaign(true); // Auto-sync on initial load
+    }, [id]);
+
+    // Fetch real daily timeseries data for the chart
+    const fetchTimeseries = async () => {
+        setTimeseriesLoading(true);
+        try {
+            const res = await axios.get(`/api/meta-ads/${id}/timeseries`, { withCredentials: true });
+            setTimeseries(res.data.timeseries || []);
+        } catch (err) {
+            // Non-fatal — just show empty chart
+            setTimeseries([]);
+        } finally {
+            setTimeseriesLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (id) fetchTimeseries();
     }, [id]);
 
     const handleToggleStatus = async () => {
@@ -91,14 +111,14 @@ export default function MetaAdCampaignDetails() {
     const targeting = campaign.targeting || {};
     const isRunning = campaign.status === 'Active' || campaign.status === 'Published';
 
-    // Mock chart data for now since we don't store time-series insights yet.
-    // Ideally, we'd fetch historical insights from Meta, but this shows the structure.
-    const chartData = [
-        { name: 'Day 1', impressions: Math.floor(parseInt(insights.impressions||0)*0.1), clicks: Math.floor(parseInt(insights.clicks||0)*0.1) },
-        { name: 'Day 2', impressions: Math.floor(parseInt(insights.impressions||0)*0.3), clicks: Math.floor(parseInt(insights.clicks||0)*0.2) },
-        { name: 'Day 3', impressions: Math.floor(parseInt(insights.impressions||0)*0.6), clicks: Math.floor(parseInt(insights.clicks||0)*0.7) },
-        { name: 'Today', impressions: parseInt(insights.impressions||0), clicks: parseInt(insights.clicks||0) },
-    ];
+    // Use real timeseries from Meta API (last 30 days daily breakdown)
+    // Format dates for display
+    const chartData = timeseries.map(d => ({
+        name: new Date(d.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+        Impressions: d.impressions,
+        Clicks: d.clicks,
+        Spend: d.spend,
+    }));
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark font-display overflow-y-auto">
@@ -174,33 +194,56 @@ export default function MetaAdCampaignDetails() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Chart */}
+                    {/* Chart — Real Daily Timeseries from Meta */}
                     <div className="lg:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                            <BarChart2 className="w-4 h-4 text-primary" /> Performance Overview
-                        </h3>
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <BarChart2 className="w-4 h-4 text-primary" /> Performance — Last 30 Days
+                            </h3>
+                            <button
+                                onClick={fetchTimeseries}
+                                disabled={timeseriesLoading}
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                            >
+                                <RefreshCw className={`w-3 h-3 ${timeseriesLoading ? 'animate-spin' : ''}`} />
+                                Refresh
+                            </button>
+                        </div>
                         <div className="h-72 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                        </linearGradient>
-                                        <linearGradient id="colorClick" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12}} stroke="#64748b" />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} stroke="#64748b" />
-                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                    <Legend />
-                                    <Area type="monotone" dataKey="impressions" name="Impressions" stroke="#3b82f6" strokeWidth={3} fill="url(#colorImp)" />
-                                    <Area type="monotone" dataKey="clicks" name="Clicks" stroke="#a855f7" strokeWidth={3} fill="url(#colorClick)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                            {timeseriesLoading ? (
+                                <div className="flex items-center justify-center h-full text-slate-400 text-sm">Loading chart...</div>
+                            ) : chartData.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-3">
+                                    <BarChart2 className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+                                    <p className="text-sm text-slate-400 dark:text-slate-500 text-center">
+                                        {campaign.metaCampaignId
+                                            ? 'No data yet. Meta typically shows data within 24h of campaign going active.'
+                                            : 'Chart data is available after publishing to Meta.'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorClick" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 11}} stroke="#64748b" />
+                                        <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11}} stroke="#64748b" />
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                        <Legend />
+                                        <Area type="monotone" dataKey="Impressions" stroke="#3b82f6" strokeWidth={3} fill="url(#colorImp)" />
+                                        <Area type="monotone" dataKey="Clicks" stroke="#a855f7" strokeWidth={3} fill="url(#colorClick)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
                     </div>
 
@@ -214,7 +257,14 @@ export default function MetaAdCampaignDetails() {
                                 <div>
                                     <label className="text-xs text-slate-500 uppercase tracking-wider font-semibold block mb-1">Budget</label>
                                     <p className="text-sm font-medium text-slate-900 dark:text-white bg-slate-50 dark:bg-white/5 px-3 py-2 rounded-lg">
-                                        ₹{campaign.dailyBudget || (campaign.targeting?.lifetime_budget ? (campaign.targeting.lifetime_budget/100) + ' (Fixed)' : 0)} 
+                                        {(() => {
+                                            const budgetType = campaign.creatives?.budgetType || 'daily';
+                                            const lifetimeBudget = campaign.creatives?.lifetimeBudget;
+                                            if (budgetType === 'lifetime' && lifetimeBudget) {
+                                                return `₹${lifetimeBudget.toLocaleString()} Fixed Budget`;
+                                            }
+                                            return `₹${(campaign.dailyBudget || 0).toLocaleString()} / day`;
+                                        })()}
                                     </p>
                                 </div>
                                 <div>

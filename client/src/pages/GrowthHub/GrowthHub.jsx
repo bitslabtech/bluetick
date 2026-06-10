@@ -245,8 +245,8 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected, on
                                     <div 
                                         key={campaign.id} 
                                         className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors gap-2 sm:gap-0 cursor-pointer group"
-                                        onClick={() => onSwitchTab && onSwitchTab('campaigns')}
-                                        title="View all campaigns"
+                                        onClick={() => navigate(`/meta-ads/campaigns/${campaign.id}`)}
+                                        title="View campaign details"
                                     >
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
@@ -819,16 +819,32 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Daily Budget (₹)</label>
-                                <input
-                                    type="number"
-                                    min="100"
-                                    step="50"
-                                    value={editModal.newBudget}
-                                    onChange={e => setEditModal(prev => ({ ...prev, newBudget: e.target.value }))}
-                                    className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
-                                />
-                                <p className="text-xs text-slate-400 mt-1">Budget change takes effect on Meta within minutes</p>
+                                {/* Show correct label based on budget type stored in creatives */}
+                                {(() => {
+                                    const budgetType = editModal.campaign?.creatives?.budgetType || 'daily';
+                                    const isFixed = budgetType === 'lifetime';
+                                    return (
+                                        <>
+                                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                                {isFixed ? 'Fixed Budget (₹)' : 'Daily Budget (₹)'}
+                                                {isFixed && <span className="ml-2 text-xs font-normal text-amber-600 dark:text-amber-400">Fixed budget — total spend cap</span>}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="100"
+                                                step="50"
+                                                value={editModal.newBudget}
+                                                onChange={e => setEditModal(prev => ({ ...prev, newBudget: e.target.value }))}
+                                                className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
+                                            />
+                                            <p className="text-xs text-slate-400 mt-1">
+                                                {isFixed
+                                                    ? 'This is a fixed total budget. Changes sync to Meta within minutes.'
+                                                    : 'Budget change takes effect on Meta within minutes'}
+                                            </p>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
                         <div className="p-5 border-t border-slate-100 dark:border-white/5 flex justify-end gap-3">
@@ -1024,14 +1040,16 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
             const params = new URLSearchParams({ page, limit: 30 });
             if (searchQuery) params.append('search', searchQuery);
             if (filterAdId) params.append('ad_id', filterAdId);
+            if (filterWindow && filterWindow !== 'all') params.append('window_status', filterWindow);
 
             const res = await axios.get(`/api/ctwa/leads?${params.toString()}`, { withCredentials: true });
             let fetchedLeads = res.data.leads || [];
 
-            // Client-side window filter
-            if (filterWindow === 'active') {
+            // Server-side window filter is now passed as query param.
+            // Client-side fallback if backend doesn't support it yet:
+            if (filterWindow === 'active' && !params.has('window_status')) {
                 fetchedLeads = fetchedLeads.filter(l => l.windowStatus === 'active');
-            } else if (filterWindow === 'expired') {
+            } else if (filterWindow === 'expired' && !params.has('window_status')) {
                 fetchedLeads = fetchedLeads.filter(l => l.windowStatus === 'expired');
             }
 

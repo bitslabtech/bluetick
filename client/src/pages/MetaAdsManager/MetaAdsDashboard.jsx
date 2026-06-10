@@ -73,6 +73,12 @@ const MetaAdsDashboard = () => {
         Published: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
     };
 
+    // — Aggregate real stats from synced campaign insights —
+    const activeCampaigns = campaigns.filter(c => c.status === 'Active' || c.status === 'Published').length;
+    const totalSpend = campaigns.reduce((sum, c) => sum + parseFloat(c.spend || c.insights?.spend || 0), 0);
+    const totalClicks = campaigns.reduce((sum, c) => sum + parseInt(c.clicks || c.insights?.clicks || 0), 0);
+    const avgCPC = totalClicks > 0 && totalSpend > 0 ? (totalSpend / totalClicks) : 0;
+
     return (
         <div className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto space-y-8">
 
@@ -119,10 +125,10 @@ const MetaAdsDashboard = () => {
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard title="Active Ads" value={campaigns.filter(c => c.status === 'Active' || c.status === 'Published').length} icon={Zap} trend={12} colorClass="bg-gradient-to-br from-amber-400 to-amber-600" />
-                <StatCard title="Total Spend" value="$0.00" icon={DollarSign} trend={8} colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600" />
-                <StatCard title="Messages Started" value="0" icon={MessageCircle} trend={24} colorClass="bg-gradient-to-br from-blue-400 to-blue-600" />
-                <StatCard title="Cost Per Conv." value="$0.00" icon={TrendingUp} trend={-5} colorClass="bg-gradient-to-br from-purple-400 to-purple-600" />
+                <StatCard title="Active Ads" value={activeCampaigns} icon={Zap} colorClass="bg-gradient-to-br from-amber-400 to-amber-600" />
+                <StatCard title="Total Spend" value={totalSpend > 0 ? `₹${totalSpend.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} icon={DollarSign} colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600" />
+                <StatCard title="Total Clicks" value={totalClicks > 0 ? totalClicks.toLocaleString('en-IN') : '0'} icon={MessageCircle} colorClass="bg-gradient-to-br from-blue-400 to-blue-600" />
+                <StatCard title="Avg. CPC" value={avgCPC > 0 ? `₹${avgCPC.toFixed(2)}` : '—'} icon={TrendingUp} colorClass="bg-gradient-to-br from-purple-400 to-purple-600" />
             </div>
 
             {/* Campaigns List */}

@@ -565,11 +565,114 @@ router.post('/publish', async (req, res) => {
                     return { data: { id: null } };
                 });
 
-                fbStatus = adSetRes.data.id ? 'Active' : 'Draft';
+                const adSetId = adSetRes.data.id;
+                fbStatus = adSetId ? 'Active' : 'Draft';
+
+                // 3. Upload image to Meta (if provided) and create Ad Creative
+                if (adSetId) {
+                    try {
+                        let imageHash = null;
+
+                        // Upload image bytes if a base64 data URL is provided
+                        if (imageUrl && imageUrl.startsWith('data:image')) {
+                            // Extract base64 data from the data URL
+                            const base64Data = imageUrl.split(',')[1];
+                            if (base64Data) {
+                                const imgUploadRes = await axios.post(
+                                    `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
+                                    null,
+                                    {
+                                        params: {
+                                            bytes: base64Data,
+                                            access_token: token
+                                        }
+                                    }
+                                ).catch(e => {
+                                    console.warn('[META-ADS] Image upload warning:', e.response?.data?.error?.message || e.message);
+                                    return null;
+                                });
+                                // Meta returns { images: { <filename>: { hash, url } } }
+                                if (imgUploadRes?.data?.images) {
+                                    const firstKey = Object.keys(imgUploadRes.data.images)[0];
+                                    imageHash = imgUploadRes.data.images[firstKey]?.hash;
+                                    console.log('[META-ADS] Image uploaded, hash:', imageHash);
+                                }
+                            }
+                        } else if (imageUrl && imageUrl.startsWith('http')) {
+                            // External URL — use url_tags approach or just skip hash
+                            console.log('[META-ADS] External image URL provided, skipping hash upload');
+                        }
+
+                        // Build AdCreative spec (CTWA — Click-to-WhatsApp)
+                        const primaryText  = creatives?.primary_text || '';
+                        const headline     = creatives?.headline     || '';
+
+                        const linkData = {
+                            message: primaryText,
+                            name:    headline,
+                            call_to_action: {
+                                type:  'WHATSAPP_MESSAGE',
+                                value: { app_destination: 'WHATSAPP' }
+                            }
+                        };
+
+                        if (imageHash) {
+                            linkData.image_hash = imageHash;
+                        } else if (imageUrl && imageUrl.startsWith('http')) {
+                            linkData.picture = imageUrl;
+                        }
+
+                        const creativeParams = {
+                            name:               `${campaignName} - Creative`,
+                            object_story_spec:  JSON.stringify({
+                                page_id:   pageId,
+                                link_data: linkData
+                            }),
+                            access_token: token
+                        };
+
+                        const creativeRes = await axios.post(
+                            `https://graph.facebook.com/v22.0/${fbAdAccountId}/adcreatives`,
+                            null,
+                            { params: creativeParams }
+                        ).catch(e => {
+                            console.warn('[META-ADS] AdCreative creation warning:', e.response?.data?.error?.message || e.message);
+                            return null;
+                        });
+
+                        const creativeId = creativeRes?.data?.id;
+                        console.log('[META-ADS] AdCreative ID:', creativeId);
+
+                        // 4. Create the actual Ad
+                        if (creativeId) {
+                            const adRes = await axios.post(
+                                `https://graph.facebook.com/v22.0/${fbAdAccountId}/ads`,
+                                null,
+                                {
+                                    params: {
+                                        name:      `${campaignName} - Ad`,
+                                        adset_id:  adSetId,
+                                        creative:  JSON.stringify({ creative_id: creativeId }),
+                                        status:    'ACTIVE',
+                                        access_token: token
+                                    }
+                                }
+                            ).catch(e => {
+                                console.warn('[META-ADS] Ad creation warning:', e.response?.data?.error?.message || e.message);
+                                return null;
+                            });
+                            console.log('[META-ADS] Ad ID:', adRes?.data?.id);
+                        }
+                    } catch (creativeErr) {
+                        console.warn('[META-ADS] Creative/Ad creation error (non-fatal):', creativeErr.response?.data || creativeErr.message);
+                        // Don't fail the whole request — campaign and adset are still created
+                    }
+                }
             } catch (graphAPIError) {
                 console.error('Graph API Publish Error:', graphAPIError.response?.data || graphAPIError.message);
                 fbStatus = 'Error';
             }
+
         }
 
         const campaign = await MetaAdCampaign.create({
@@ -578,7 +681,7 @@ router.post('/publish', async (req, res) => {
             objective,
             dailyBudget,
             targeting,
-            creatives: { ...creatives, imageUrl, automation: automation || null },
+            creatives: { ...creatives, imageUrl, automation: automation || null, budgetType: budgetType || 'daily', lifetimeBudget: lifetimeBudget || null },
             status: fbStatus,
             metaCampaignId: (fbStatus === 'Active' || fbStatus === 'Draft') ? (campRes?.data?.id || null) : null,
             metaAdsetId:    (fbStatus === 'Active' || fbStatus === 'Draft') ? (adSetRes?.data?.id || null) : null
@@ -891,6 +994,261 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/meta-ads/:id/publish — Publish a Draft or Error campaign to Meta.
+// Reads stored campaign data and runs the full Meta Ad creation chain:
+// Campaign → AdSet → Image Upload → AdCreative → Ad
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/:id/publish', async (req, res) => {
+    let campaignRecord = null;
+    try {
+        campaignRecord = await MetaAdCampaign.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!campaignRecord) return res.status(404).json({ error: 'Campaign not found' });
+
+        if (campaignRecord.status === 'Active' || campaignRecord.status === 'Published') {
+            return res.status(400).json({ error: 'Campaign is already active on Meta.' });
+        }
+
+        const user = await User.findByPk(req.user.id);
+        if (!user.metaAdsToken || !user.metaAdAccountId) {
+            return res.status(400).json({
+                error: 'Meta Ads account not connected. Please connect via Settings → Meta Ads and then retry.'
+            });
+        }
+
+        const stored = campaignRecord.toJSON();
+        const creatives = stored.creatives || {};
+        const targeting = stored.targeting || {};
+        const imageUrl = creatives.imageUrl || null;
+        const budgetType = creatives.budgetType || 'daily';
+        const lifetimeBudget = creatives.lifetimeBudget || null;
+        const dailyBudget = stored.dailyBudget || 500;
+
+        const fbAdAccountId = user.metaAdAccountId;
+        const token = user.metaAdsToken;
+        const isLifetime = budgetType === 'lifetime';
+
+        // ── 1. Create Campaign ──
+        const campRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/campaigns`, null, {
+            params: {
+                name: stored.campaignName,
+                objective: stored.objective || 'OUTCOME_ENGAGEMENT',
+                status: 'ACTIVE',
+                special_ad_categories: JSON.stringify([]),
+                access_token: token
+            }
+        });
+        const campaignId = campRes.data.id;
+        if (!campaignId) throw new Error('Meta did not return a Campaign ID.');
+        console.log(`[META-ADS] Campaign created: ${campaignId}`);
+
+        // ── Resolve Page ID ──
+        let pageId = user.metaPageId || null;
+        if (!pageId) {
+            let resolvedPageId = null;
+            // Strategy 1: /me/accounts
+            try {
+                const pagesRes = await axios.get('https://graph.facebook.com/v22.0/me/accounts', {
+                    params: { access_token: token, fields: 'id,name', limit: 10 }
+                });
+                if (pagesRes.data?.data?.length > 0) resolvedPageId = pagesRes.data.data[0].id;
+            } catch (e) { console.warn('[META-ADS] me/accounts failed:', e.message); }
+
+            // Strategy 2: Business Manager
+            if (!resolvedPageId) {
+                try {
+                    const bizRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
+                        params: { access_token: token, fields: 'id,name', limit: 5 }
+                    });
+                    for (const biz of (bizRes.data?.data || [])) {
+                        if (resolvedPageId) break;
+                        try {
+                            const pr = await axios.get(`https://graph.facebook.com/v22.0/${biz.id}/owned_pages`, {
+                                params: { access_token: token, fields: 'id,name', limit: 5 }
+                            });
+                            if (pr.data?.data?.length > 0) resolvedPageId = pr.data.data[0].id;
+                        } catch (e2) { /* ignore */ }
+                    }
+                } catch (e) { console.warn('[META-ADS] BM page resolution failed:', e.message); }
+            }
+            // Strategy 3: Ad Account business
+            if (!resolvedPageId) {
+                try {
+                    const actRes = await axios.get(`https://graph.facebook.com/v22.0/${fbAdAccountId}`, {
+                        params: { access_token: token, fields: 'id,name,business' }
+                    });
+                    const businessId = actRes.data?.business?.id;
+                    if (businessId) {
+                        const pr = await axios.get(`https://graph.facebook.com/v22.0/${businessId}/owned_pages`, {
+                            params: { access_token: token, fields: 'id,name', limit: 5 }
+                        });
+                        if (pr.data?.data?.length > 0) resolvedPageId = pr.data.data[0].id;
+                    }
+                } catch (e) { console.warn('[META-ADS] Ad Account biz resolution failed:', e.message); }
+            }
+            if (resolvedPageId) {
+                pageId = resolvedPageId;
+                user.metaPageId = pageId;
+                await user.save();
+            } else {
+                throw new Error('No Facebook Page found. Please set your Page ID in Settings → Meta Ads.');
+            }
+        }
+
+        // ── Build geo_locations ──
+        const userLocations = targeting?.locations || [];
+        const locationKeys = targeting?.locationKeys || [];
+        let geoLocations;
+        if (locationKeys.length > 0) {
+            const locObjects = targeting?.locationObjects || [];
+            const countries = locObjects.filter(l => l.type === 'country').map(l => l.countryCode || l.key);
+            const regions = locObjects.filter(l => l.type === 'region').map(l => ({ key: l.key, name: l.name, country: l.countryCode }));
+            const cities = locObjects.filter(l => l.type === 'city').map(l => ({ key: l.key, name: l.name, country: l.countryCode, region: l.region }));
+            const zips = locObjects.filter(l => l.type === 'zip').map(l => ({ key: l.key }));
+            geoLocations = {};
+            if (countries.length > 0) geoLocations.countries = countries;
+            if (regions.length > 0) geoLocations.regions = regions;
+            if (cities.length > 0) geoLocations.cities = cities;
+            if (zips.length > 0) geoLocations.zips = zips;
+            if (Object.keys(geoLocations).length === 0) geoLocations = { countries: ['IN'] };
+        } else if (userLocations.length > 0) {
+            geoLocations = { cities: userLocations.map(loc => ({ name: typeof loc === 'string' ? loc : loc.name })) };
+        } else {
+            geoLocations = { countries: ['IN'] };
+        }
+
+        const userInterests = targeting?.interests || [];
+        const flexibleSpec = userInterests.length > 0 ? [{ interests: userInterests.map(name => ({ name })) }] : undefined;
+        let gendersArr = undefined;
+        if (targeting?.gender === 'male') gendersArr = [1];
+        if (targeting?.gender === 'female') gendersArr = [2];
+        const LOCALE_MAP = { en: 6, hi: 23, mr: 45, gu: 20, ta: 57, te: 59, kn: 33, ml: 42, bn: 12, ar: 28, pa: 51, ur: 67 };
+        let localesArr = undefined;
+        if (targeting?.targetingLanguage && LOCALE_MAP[targeting.targetingLanguage]) {
+            localesArr = [LOCALE_MAP[targeting.targetingLanguage]];
+        }
+        const placements = targeting?.placements || ['facebook', 'instagram'];
+        const publisherPlatforms = placements.filter(p => ['facebook', 'instagram', 'audience_network', 'messenger'].includes(p));
+        const facebookPositions = placements.includes('facebook') ? ['feed', 'facebook_reels'] : undefined;
+        const instagramPositions = placements.includes('instagram') ? ['stream', 'reels'] : undefined;
+        const targetingSpec = {
+            age_max: targeting?.age_max || 65,
+            age_min: targeting?.age_min || 18,
+            geo_locations: geoLocations,
+            ...(gendersArr && { genders: gendersArr }),
+            ...(localesArr && { locales: localesArr }),
+            ...(flexibleSpec && { flexible_spec: flexibleSpec }),
+            ...(publisherPlatforms.length > 0 && { publisher_platforms: publisherPlatforms }),
+            ...(facebookPositions && { facebook_positions: facebookPositions }),
+            ...(instagramPositions && { instagram_positions: instagramPositions }),
+        };
+
+        // ── 2. Create AdSet ──
+        const adSetParams = {
+            name: `${stored.campaignName} - AdSet`,
+            campaign_id: campaignId,
+            billing_event: 'IMPRESSIONS',
+            optimization_goal: 'REPLIES',
+            promoted_object: JSON.stringify({ page_id: pageId }),
+            targeting: JSON.stringify(targetingSpec),
+            status: 'ACTIVE',
+            access_token: token
+        };
+        if (isLifetime) {
+            adSetParams.lifetime_budget = Math.round((lifetimeBudget || 3000) * 100);
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + 30);
+            adSetParams.end_time = Math.floor(endDate.getTime() / 1000);
+        } else {
+            adSetParams.daily_budget = Math.round(dailyBudget * 100);
+        }
+
+        const adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
+            params: adSetParams
+        }).catch(e => {
+            console.warn('[META-ADS] AdSet creation:', e.response?.data?.error?.message || e.message);
+            return { data: { id: null } };
+        });
+        const adSetId = adSetRes.data.id;
+        console.log(`[META-ADS] AdSet created: ${adSetId}`);
+
+        // ── 3. Upload Image + Create AdCreative + Create Ad ──
+        if (adSetId) {
+            try {
+                let imageHash = null;
+                if (imageUrl && imageUrl.startsWith('data:image')) {
+                    const base64Data = imageUrl.split(',')[1];
+                    if (base64Data) {
+                        const imgRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`, null, {
+                            params: { bytes: base64Data, access_token: token }
+                        }).catch(e => { console.warn('[META-ADS] Image upload:', e.response?.data?.error?.message || e.message); return null; });
+                        if (imgRes?.data?.images) {
+                            const firstKey = Object.keys(imgRes.data.images)[0];
+                            imageHash = imgRes.data.images[firstKey]?.hash;
+                            console.log('[META-ADS] Image hash:', imageHash);
+                        }
+                    }
+                }
+
+                const linkData = {
+                    message: creatives.primary_text || '',
+                    name: creatives.headline || '',
+                    call_to_action: { type: 'WHATSAPP_MESSAGE', value: { app_destination: 'WHATSAPP' } }
+                };
+                if (imageHash) linkData.image_hash = imageHash;
+                else if (imageUrl?.startsWith('http')) linkData.picture = imageUrl;
+
+                const creativeRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adcreatives`, null, {
+                    params: {
+                        name: `${stored.campaignName} - Creative`,
+                        object_story_spec: JSON.stringify({ page_id: pageId, link_data: linkData }),
+                        access_token: token
+                    }
+                }).catch(e => { console.warn('[META-ADS] AdCreative:', e.response?.data?.error?.message || e.message); return null; });
+
+                const creativeId = creativeRes?.data?.id;
+                console.log('[META-ADS] AdCreative ID:', creativeId);
+
+                if (creativeId) {
+                    const adRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/ads`, null, {
+                        params: {
+                            name: `${stored.campaignName} - Ad`,
+                            adset_id: adSetId,
+                            creative: JSON.stringify({ creative_id: creativeId }),
+                            status: 'ACTIVE',
+                            access_token: token
+                        }
+                    }).catch(e => { console.warn('[META-ADS] Ad creation:', e.response?.data?.error?.message || e.message); return null; });
+                    console.log('[META-ADS] Ad ID:', adRes?.data?.id);
+                }
+            } catch (creativeErr) {
+                console.warn('[META-ADS] Creative/Ad chain:', creativeErr.response?.data || creativeErr.message);
+            }
+        }
+
+        // ── Update local record ──
+        campaignRecord.status = adSetId ? 'Active' : 'Error';
+        campaignRecord.metaCampaignId = campaignId;
+        campaignRecord.metaAdsetId = adSetId || null;
+        await campaignRecord.save();
+
+        console.log(`[META-ADS] Draft campaign ${req.params.id} published → status: ${campaignRecord.status}`);
+        res.json({
+            success: true,
+            status: campaignRecord.status,
+            metaCampaignId: campaignRecord.metaCampaignId,
+            campaign: campaignRecord.toJSON()
+        });
+    } catch (err) {
+        console.error('[META-ADS] Publish draft error:', err.response?.data || err.message);
+        if (campaignRecord) {
+            campaignRecord.status = 'Error';
+            await campaignRecord.save().catch(() => {});
+        }
+        res.status(500).json({ error: err.response?.data?.error?.message || err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/meta-ads/:id — Edit campaign name or daily budget
 // ─────────────────────────────────────────────────────────────────────────────
 router.patch('/:id', async (req, res) => {
@@ -918,20 +1276,26 @@ router.patch('/:id', async (req, res) => {
             updates.campaignName = campaignName;
         }
 
-        // Update budget on Meta AdSet
-        if (dailyBudget && dailyBudget !== campaign.dailyBudget) {
+        // Update budget on Meta AdSet — respect budget type (daily vs fixed/lifetime)
+        if (dailyBudget && Number(dailyBudget) !== Number(campaign.dailyBudget)) {
             if (campaign.metaAdsetId && user.metaAdsToken) {
                 try {
+                    const storedBudgetType = campaign.creatives?.budgetType || 'daily';
+                    const isFixed = storedBudgetType === 'lifetime';
+                    const budgetParam = isFixed
+                        ? { lifetime_budget: Math.round(Number(dailyBudget) * 100) }
+                        : { daily_budget: Math.round(Number(dailyBudget) * 100) };
                     await axios.post(
                         `https://graph.facebook.com/v22.0/${campaign.metaAdsetId}`,
                         null,
-                        { params: { daily_budget: Math.round(dailyBudget * 100), access_token: user.metaAdsToken } }
+                        { params: { ...budgetParam, access_token: user.metaAdsToken } }
                     );
+                    console.log(`[META-ADS] Budget updated on Meta AdSet ${campaign.metaAdsetId}: ${isFixed ? 'fixed' : 'daily'} = ₹${dailyBudget}`);
                 } catch (fbErr) {
                     console.warn('[META-ADS] Budget update on Meta failed (non-critical):', fbErr.response?.data?.error?.message);
                 }
             }
-            updates.dailyBudget = dailyBudget;
+            updates.dailyBudget = Number(dailyBudget);
         }
 
         if (Object.keys(updates).length > 0) {
@@ -1006,6 +1370,50 @@ router.post('/duplicate/:id', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/meta-ads/:id/timeseries — Fetch daily breakdown for chart
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/:id/timeseries', async (req, res) => {
+    try {
+        const campaign = await MetaAdCampaign.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+        const user = await User.findByPk(req.user.id);
+        if (!user.metaAdsToken || !campaign.metaCampaignId) {
+            return res.json({ timeseries: [] });
+        }
+
+        try {
+            const fbRes = await axios.get(
+                `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}/insights`,
+                {
+                    params: {
+                        fields: 'impressions,clicks,spend,reach',
+                        time_increment: 1,
+                        date_preset: 'last_30d',
+                        access_token: user.metaAdsToken
+                    }
+                }
+            );
+
+            const timeseries = (fbRes.data?.data || []).map(d => ({
+                date: d.date_start,
+                impressions: parseInt(d.impressions || 0),
+                clicks: parseInt(d.clicks || 0),
+                spend: parseFloat(d.spend || 0),
+                reach: parseInt(d.reach || 0)
+            }));
+
+            res.json({ timeseries });
+        } catch (fbErr) {
+            console.warn('[META-ADS] Timeseries fetch failed:', fbErr.response?.data?.error?.message || fbErr.message);
+            res.json({ timeseries: [] });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/meta-ads/:id — Get a single campaign (with optional live Meta sync)
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/:id', async (req, res) => {
@@ -1024,7 +1432,7 @@ router.get('/:id', async (req, res) => {
                     {
                         params: {
                             fields: 'impressions,clicks,spend,ctr,cpc,reach,frequency',
-                            date_preset: 'maximum', // get lifetime stats for this campaign
+                            date_preset: 'lifetime', // get all-time stats for this campaign
                             access_token: user.metaAdsToken
                         }
                     }
