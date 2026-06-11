@@ -267,7 +267,7 @@ export default function MetaAdsWizard() {
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [metaConnected, setMetaConnected] = useState(null); // null = checking
-    const [checklistChecks, setChecklistChecks] = useState({ hasMetaToken: false, hasAdAccount: false, hasWhatsApp: false, hasWabaSetup: false });
+    const [checklistChecks, setChecklistChecks] = useState({ hasMetaToken: false, hasAdAccount: false, hasWhatsApp: false, hasWabaSetup: false, hasPageWabaLink: false });
     const [checklistLoading, setChecklistLoading] = useState(false);
 
     const fetchStatus = async () => {
@@ -651,9 +651,9 @@ export default function MetaAdsWizard() {
     // ════════════════════════════════════════════════
     const renderManualForm = () => {
         const OBJECTIVES = [
-            { value: 'OUTCOME_ENGAGEMENT', label: 'Engagement', desc: 'Drive WhatsApp chats', emoji: '💬' },
+            { value: 'OUTCOME_ENGAGEMENT', label: 'Engagement', desc: 'Drive WhatsApp chats (CTWA)', emoji: '💬', ctwa: true },
+            { value: 'OUTCOME_TRAFFIC', label: 'Traffic', desc: 'Drive website/link clicks', emoji: '🌐' },
             { value: 'OUTCOME_LEADS', label: 'Lead Gen', desc: 'Collect qualified leads', emoji: '🎯' },
-            { value: 'OUTCOME_TRAFFIC', label: 'Traffic', desc: 'Drive website visits', emoji: '🌐' },
             { value: 'OUTCOME_AWARENESS', label: 'Awareness', desc: 'Maximize brand reach', emoji: '📢' },
         ];
         const QUICK_INTERESTS = ['Small Business', 'E-commerce', 'Entrepreneurship', 'Digital Marketing', 'Online Shopping', 'Real Estate', 'Health & Fitness', 'Fashion', 'Technology', 'Education'];
@@ -711,6 +711,23 @@ export default function MetaAdsWizard() {
                                 ))}
                             </div>
                         </div>
+
+                        {/* WABA link warning for Engagement/CTWA objective */}
+                        {manual.objective === 'OUTCOME_ENGAGEMENT' && !checklistChecks.hasPageWabaLink && (
+                            <div className="mt-3 flex items-start gap-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-3">
+                                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs font-bold text-amber-700 dark:text-amber-300">Page not linked to WhatsApp Business</p>
+                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 leading-relaxed">
+                                        Your Facebook Page isn't connected to a WhatsApp Business Account. CTWA ads will auto-fallback to standard engagement.
+                                        To enable Click-to-WhatsApp ads, link your Page in <strong>Meta Business Manager → Settings → WhatsApp Accounts</strong>.
+                                    </p>
+                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                                        Or select <strong>Traffic</strong> objective to create standard ads without WhatsApp.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -551,24 +551,37 @@ router.post('/publish', async (req, res) => {
                 }
                 const isLifetime = budgetType === 'lifetime';
 
+                // ── Build AdSet params based on campaign objective ──
+                // OUTCOME_ENGAGEMENT → CTWA (Click-to-WhatsApp) with fallback
+                // OUTCOME_TRAFFIC    → Link clicks (standard)
+                // OUTCOME_LEADS      → Lead generation
+                // OUTCOME_AWARENESS  → Reach / impressions
+                const isCTWA = (objective || 'OUTCOME_ENGAGEMENT') === 'OUTCOME_ENGAGEMENT';
+
+                const OBJECTIVE_CONFIG = {
+                    OUTCOME_ENGAGEMENT: { optimization_goal: 'CONVERSATIONS', destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS' },
+                    OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION' },
+                    OUTCOME_AWARENESS:  { optimization_goal: 'REACH' },
+                };
+                const objConfig = OBJECTIVE_CONFIG[objective] || OBJECTIVE_CONFIG.OUTCOME_ENGAGEMENT;
+
                 const adSetParams = {
                     name: `${campaignName} - AdSet`,
                     campaign_id: campaignId,
                     billing_event: 'IMPRESSIONS',
-                    optimization_goal: 'CONVERSATIONS',
-                    destination_type: 'WHATSAPP',
-                    bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
+                    optimization_goal: objConfig.optimization_goal,
                     promoted_object: JSON.stringify({ page_id: pageId }),
                     targeting: JSON.stringify(targetingSpec),
                     status: 'ACTIVE',
                     access_token: token
                 };
+                if (objConfig.destination_type) adSetParams.destination_type = objConfig.destination_type;
+                if (objConfig.bid_strategy) adSetParams.bid_strategy = objConfig.bid_strategy;
 
                 if (isLifetime) {
-                    // Lifetime budget: fixed total, requires end_time
                     adSetParams.lifetime_budget = Math.round((Number(lifetimeBudget) || 3000) * 100);
                 } else {
-                    // Daily budget (default)
                     adSetParams.daily_budget = Math.round((Number(dailyBudget) || 500) * 100);
                 }
 
@@ -585,17 +598,37 @@ router.post('/publish', async (req, res) => {
                 // Log outgoing params for debugging (redact token)
                 const debugParams = { ...adSetParams };
                 delete debugParams.access_token;
-                console.log('[META-ADS] AdSet params:', JSON.stringify(debugParams, null, 2));
+                console.log(`[META-ADS] AdSet params (${isCTWA ? 'CTWA' : 'Standard'}):`, JSON.stringify(debugParams, null, 2));
 
-                // 2. Create AdSet
+                // 2. Create AdSet — for CTWA, auto-fallback if Page not linked to WABA
                 adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
                     params: adSetParams
-                }).catch(e => {
-                    const errData = e.response?.data?.error || e.message;
-                    console.error('[META-ADS] AdSet creation FAILED:', JSON.stringify(errData, null, 2));
-                    // Log blame_field_specs if available (tells us exactly which field is wrong)
-                    if (e.response?.data?.error?.error_data) {
-                        console.error('[META-ADS] blame_field_specs:', JSON.stringify(e.response.data.error.error_data, null, 2));
+                }).catch(async (e) => {
+                    const errData = e.response?.data?.error || {};
+                    const errSubcode = errData.error_subcode;
+                    console.error('[META-ADS] AdSet creation failed:', JSON.stringify(errData, null, 2));
+
+                    // Only fallback for CTWA ads when Page isn't linked to WABA
+                    if (isCTWA && (errSubcode === 2446886 || errSubcode === 1885264 || (errData.message && errData.message.includes('WhatsApp')))) {
+                        console.log('[META-ADS] Page not linked to WABA — retrying as standard engagement ad...');
+                        delete adSetParams.destination_type;
+                        adSetParams.optimization_goal = 'LINK_CLICKS';
+                        delete adSetParams.bid_strategy;
+
+                        const debugRetry = { ...adSetParams };
+                        delete debugRetry.access_token;
+                        console.log('[META-ADS] AdSet params (fallback — standard):', JSON.stringify(debugRetry, null, 2));
+
+                        return axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
+                            params: adSetParams
+                        }).catch(e2 => {
+                            console.error('[META-ADS] Standard fallback also failed:', JSON.stringify(e2.response?.data?.error || e2.message, null, 2));
+                            return { data: { id: null } };
+                        });
+                    }
+
+                    if (errData.error_data) {
+                        console.error('[META-ADS] blame_field_specs:', JSON.stringify(errData.error_data, null, 2));
                     }
                     return { data: { id: null } };
                 });
@@ -1225,19 +1258,31 @@ router.post('/:id/publish', async (req, res) => {
             ...(instagramPositions && { instagram_positions: instagramPositions }),
         };
 
-        // ── 2. Create AdSet ──
+        // ── 2. Create AdSet — objective-based config ──
+        const storedObjective = stored.objective || 'OUTCOME_ENGAGEMENT';
+        const isCTWA2 = storedObjective === 'OUTCOME_ENGAGEMENT';
+
+        const OBJECTIVE_CONFIG2 = {
+            OUTCOME_ENGAGEMENT: { optimization_goal: 'CONVERSATIONS', destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+            OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS' },
+            OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION' },
+            OUTCOME_AWARENESS:  { optimization_goal: 'REACH' },
+        };
+        const objConfig2 = OBJECTIVE_CONFIG2[storedObjective] || OBJECTIVE_CONFIG2.OUTCOME_ENGAGEMENT;
+
         const adSetParams = {
             name: `${stored.campaignName} - AdSet`,
             campaign_id: campaignId,
             billing_event: 'IMPRESSIONS',
-            optimization_goal: 'CONVERSATIONS',
-            destination_type: 'WHATSAPP',
-            bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
+            optimization_goal: objConfig2.optimization_goal,
             promoted_object: JSON.stringify({ page_id: pageId }),
             targeting: JSON.stringify(targetingSpec),
             status: 'ACTIVE',
             access_token: token
         };
+        if (objConfig2.destination_type) adSetParams.destination_type = objConfig2.destination_type;
+        if (objConfig2.bid_strategy) adSetParams.bid_strategy = objConfig2.bid_strategy;
+
         if (isLifetime) {
             adSetParams.lifetime_budget = Math.round((Number(lifetimeBudget) || 3000) * 100);
             const endDate = new Date();
@@ -1247,19 +1292,31 @@ router.post('/:id/publish', async (req, res) => {
             adSetParams.daily_budget = Math.round((Number(dailyBudget) || 500) * 100);
         }
 
-        // Log outgoing params for debugging (redact token)
         const debugParams2 = { ...adSetParams };
         delete debugParams2.access_token;
-        console.log('[META-ADS] Draft-Publish AdSet params:', JSON.stringify(debugParams2, null, 2));
+        console.log(`[META-ADS] Draft-Publish AdSet params (${isCTWA2 ? 'CTWA' : 'Standard'}):`, JSON.stringify(debugParams2, null, 2));
 
         const adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
             params: adSetParams
-        }).catch(e => {
-            const errData = e.response?.data?.error || e.message;
-            console.error('[META-ADS] AdSet creation FAILED:', JSON.stringify(errData, null, 2));
-            if (e.response?.data?.error?.error_data) {
-                console.error('[META-ADS] blame_field_specs:', JSON.stringify(e.response.data.error.error_data, null, 2));
+        }).catch(async (e) => {
+            const errData = e.response?.data?.error || {};
+            const errSubcode = errData.error_subcode;
+            console.error('[META-ADS] Draft-Publish AdSet creation failed:', JSON.stringify(errData, null, 2));
+
+            if (isCTWA2 && (errSubcode === 2446886 || errSubcode === 1885264 || (errData.message && errData.message.includes('WhatsApp')))) {
+                console.log('[META-ADS] Page not linked to WABA — retrying as standard engagement ad...');
+                delete adSetParams.destination_type;
+                adSetParams.optimization_goal = 'LINK_CLICKS';
+                delete adSetParams.bid_strategy;
+
+                return axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
+                    params: adSetParams
+                }).catch(e2 => {
+                    console.error('[META-ADS] Standard fallback also failed:', JSON.stringify(e2.response?.data?.error || e2.message, null, 2));
+                    return { data: { id: null } };
+                });
             }
+
             return { data: { id: null } };
         });
         const adSetId = adSetRes.data.id;

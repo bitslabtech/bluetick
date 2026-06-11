@@ -164,6 +164,33 @@ router.get('/status', auth, async (req, res) => {
         }
         const hasWabaSetup = !!(user.fbAccessToken && user.wabaId) || hasWhatsApp;
 
+        // ── Check if the Facebook Page is linked to a WhatsApp Business Account ──
+        // This is required for CTWA (Click-to-WhatsApp) ads with destination_type='WHATSAPP'
+        let hasPageWabaLink = false;
+        const pageId = user.metaPageId;
+        if (hasMetaToken && pageId) {
+            try {
+                // Query the page's connected WhatsApp Business Account(s)
+                const wabaRes = await axios.get(`https://graph.facebook.com/v22.0/${pageId}`, {
+                    params: {
+                        fields: 'whatsapp_business_accounts{id,name}',
+                        access_token: user.metaAdsToken
+                    },
+                    timeout: 8000
+                });
+                const wabaAccounts = wabaRes.data?.whatsapp_business_accounts?.data || [];
+                hasPageWabaLink = wabaAccounts.length > 0;
+                if (hasPageWabaLink) {
+                    console.log(`[CTWA] Page ${pageId} linked to WABA: ${wabaAccounts.map(w => w.id).join(', ')}`);
+                } else {
+                    console.log(`[CTWA] Page ${pageId} has NO linked WhatsApp Business Account`);
+                }
+            } catch (e) {
+                // Non-fatal — if API call fails, we just can't confirm the link
+                console.warn(`[CTWA] Could not verify Page-WABA link: ${e.response?.data?.error?.message || e.message}`);
+            }
+        }
+
         res.json({
             // Simple boolean for legacy code
             connected: hasMetaToken,
@@ -175,6 +202,7 @@ router.get('/status', auth, async (req, res) => {
                 hasAdAccount,        // Ad account selected
                 hasWhatsApp,         // WhatsApp Business API number set up
                 hasWabaSetup,        // Full WhatsApp Business API + WABA configured
+                hasPageWabaLink,     // Page linked to WABA (required for CTWA ads)
             }
         });
     } catch (err) {
