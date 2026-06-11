@@ -6,7 +6,7 @@ import {
     Users, Briefcase, Zap, Image, TrendingUp, ExternalLink, MoreVertical,
     Bot, MessageCircle, Mail, ArrowRight, Workflow, Radio, Globe,
     PenLine, SlidersHorizontal, Hash, FileText, Plus, X, Tag,
-    Search, Building2, Flag, UploadCloud, Trash2
+    Search, Building2, Flag, UploadCloud, Trash2, Info
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
