@@ -408,6 +408,24 @@ const Dashboard = () => {
         return { label: 'Low', color: 'bg-red-500', text: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-500/10' };
     };
 
+    const getUpgradeCriteria = (threshold, isVerified) => {
+        if (threshold <= 250) {
+            return isVerified 
+                ? "Since you are verified, consistently send high-quality messages. Meta will automatically upgrade your limit to 1K soon based on volume."
+                : "To increase your limit to 1K, complete your Meta Business Profile Verification in the Facebook Business Manager. Otherwise, limits upgrade very slowly.";
+        }
+        if (threshold === 1000) {
+            return "To upgrade to the 10K limit, you must send messages to at least 500 unique customers within a rolling 7-day period while maintaining a Medium or High quality rating.";
+        }
+        if (threshold === 10000) {
+            return "To upgrade to the 100K limit, you must send messages to at least 5,000 unique customers within a rolling 7-day period while maintaining a Medium or High quality rating.";
+        }
+        if (threshold === 100000) {
+            return "To upgrade to Unlimited messaging, you must send messages to at least 50,000 unique customers within a rolling 7-day period while maintaining a Medium or High quality rating.";
+        }
+        return "You currently have the maximum messaging capacity (Unlimited).";
+    };
+
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
             <TopHeader
@@ -729,8 +747,21 @@ const Dashboard = () => {
 
                             {/* WhatsApp Account Stats (2x2) */}
                             <div className="flex flex-col gap-3">
-                                <h3 className="text-slate-900 dark:text-white text-lg font-bold">WhatsApp Stats</h3>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="flex items-center justify-between w-full">
+                                    <h3 className="text-slate-900 dark:text-white text-lg font-bold">WhatsApp Stats</h3>
+                                    <button 
+                                        onClick={handleRefreshWaStatus}
+                                        disabled={refreshingStatus}
+                                        className="text-primary hover:text-blue-600 bg-primary/10 hover:bg-primary/20 p-1.5 px-2 rounded-lg transition-colors flex items-center gap-1.5 text-[11px] font-bold"
+                                        title="Sync latest WhatsApp Status from Meta"
+                                    >
+                                        <svg className={`w-3 h-3 ${refreshingStatus ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        {refreshingStatus ? 'Syncing...' : 'Sync Meta'}
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
 
                                     {/* 1. Account Status */}
                                     <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
@@ -776,10 +807,30 @@ const Dashboard = () => {
                                         </div>
                                     </div>
 
-                                    {/* 3. Messaging Limit & Progress */}
-                                    <div className="col-span-2 flex flex-col p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
+                                    {/* 3. Business Verification */}
+                                    <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
+                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-purple-500/5 rounded-full blur-xl"></div>
+                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Verification</p>
+                                        <div className="flex items-center gap-2 mt-auto">
+                                            {stats.waBusinessVerified ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-md text-[11px] font-bold">
+                                                    <BadgeCheck className="w-3 h-3" /> Verified
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-md text-[11px] font-bold">
+                                                    <Info className="w-3 h-3" /> Unverified
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 4. Messaging Limit & Progress */}
+                                    <div className="col-span-3 flex flex-col p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
                                         <div className="flex justify-between items-start mb-2">
-                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider">Meta Messaging Limit (in 24 hrs)</p>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5 cursor-help" title={getUpgradeCriteria(stats.waMessagingThreshold, stats.waBusinessVerified)}>
+                                                Meta Messaging Limit (in 24 hrs)
+                                                <Info className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
+                                            </p>
                                             <span className="text-primary font-bold text-xs bg-primary/10 px-2 py-0.5 rounded-md">{stats.waMessagingTier}</span>
                                         </div>
                                         <div className="flex items-end justify-between mt-1 mb-2">
@@ -798,33 +849,6 @@ const Dashboard = () => {
                                         </div>
                                     </div>
 
-                                    {/* 4. Business Verification */}
-                                    <div className="col-span-2 flex items-center justify-between p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a]">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`p-1.5 rounded-lg ${stats.waAccountStatus === 'CONNECTED' && stats.waBusinessVerified ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`}>
-                                                <BadgeCheck className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <p className="text-slate-900 dark:text-white font-bold text-xs leading-tight">Meta Business Profile</p>
-                                                <p className="text-slate-500 dark:text-text-secondary text-[10px]">{stats.waAccountStatus === 'CONNECTED' ? (stats.waBusinessVerified ? 'Verified Account' : 'Unverified Account') : 'Not Connected'}</p>
-                                            </div>
-                                        </div>
-                                        {stats.waAccountStatus === 'CONNECTED' ? (
-                                            stats.waBusinessVerified ? (
-                                                <CheckCircle2 className="w-4 h-4 text-blue-500" />
-                                            ) : (
-                                                <button 
-                                                    onClick={handleRefreshWaStatus}
-                                                    disabled={refreshingStatus}
-                                                    className="text-[10px] font-bold bg-white dark:bg-surface-dark border border-slate-200 dark:border-[#2f455a] px-2 py-1 rounded shadow-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50"
-                                                >
-                                                    {refreshingStatus ? 'Syncing...' : 'Sync Status'}
-                                                </button>
-                                            )
-                                        ) : (
-                                            <span className="text-[10px] font-bold text-slate-400">N/A</span>
-                                        )}
-                                    </div>
 
                                 </div>
                             </div>

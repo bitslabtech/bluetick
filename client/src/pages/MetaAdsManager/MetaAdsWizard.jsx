@@ -2124,6 +2124,17 @@ export default function MetaAdsWizard() {
                                         linkLabel: 'Setup WhatsApp →',
                                         internal: true
                                     },
+                                    {
+                                        done: checklistChecks.hasPageWabaLink,
+                                        icon: '🔗',
+                                        title: 'Page Linked to WhatsApp',
+                                        desc: checklistChecks.hasPageWabaLink
+                                            ? 'Your Facebook Page is properly linked to your WhatsApp Business Account.'
+                                            : 'Your Facebook Page MUST be linked to your WhatsApp Business account in Meta Business settings to run Click-to-WhatsApp ads. If not linked, ads will fallback to standard website traffic ads.',
+                                        link: 'https://business.facebook.com/settings/whatsapp-business-accounts',
+                                        linkLabel: 'Link in Meta Business →',
+                                        internal: false
+                                    },
                                 ].map((item, i) => (
                                     <div key={i} className={`flex items-start gap-4 p-4 rounded-2xl border-2 transition-all ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]'}`}>
                                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${item.done ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-slate-100 dark:bg-white/5'}`}>
