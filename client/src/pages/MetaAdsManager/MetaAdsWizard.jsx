@@ -489,7 +489,7 @@ export default function MetaAdsWizard() {
         }
         setLoading(true);
         try {
-            await axios.post('/api/meta-ads/publish', {
+            const res = await axios.post('/api/meta-ads/publish', {
                 campaignName: `${businessData.name.replace(/\s+/g,'_')}_AI_Campaign`,
                 objective: budgetData.objective,
                 dailyBudget: budgetData.budgetType === 'daily' ? budgetData.dailyBudget : undefined,
@@ -517,7 +517,12 @@ export default function MetaAdsWizard() {
                     icebreaker: icebreaker || null,
                 }
             }, { withCredentials: true });
-            toast.success('Campaign prepared successfully!');
+            
+            if (res.data?.adWarning) {
+                toast.warning(`Campaign saved, but there was an issue: ${res.data.adWarning}`, { duration: 8000 });
+            } else {
+                toast.success('Campaign prepared successfully!');
+            }
             navigate('/growth-hub');
         } catch (err) {
             toast.error(err.response?.data?.error || 'Failed to publish.');
@@ -554,7 +559,7 @@ export default function MetaAdsWizard() {
 
         setLoading(true);
         try {
-            await axios.post('/api/meta-ads/publish', {
+            const res = await axios.post('/api/meta-ads/publish', {
                 campaignName: manual.campaignName,
                 objective: manual.objective,
                 dailyBudget: manual.budgetType === 'daily' ? manual.dailyBudget : undefined,
@@ -584,7 +589,12 @@ export default function MetaAdsWizard() {
                     icebreaker: icebreaker || null,
                 }
             }, { withCredentials: true });
-            toast.success('Campaign saved successfully!');
+
+            if (res.data?.adWarning) {
+                toast.warning(`Campaign saved, but there was an issue: ${res.data.adWarning}`, { duration: 8000 });
+            } else {
+                toast.success('Campaign saved successfully!');
+            }
             navigate('/growth-hub');
         } catch (err) {
             toast.error(err.response?.data?.error || 'Failed to save campaign.');

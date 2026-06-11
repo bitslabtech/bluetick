@@ -687,14 +687,33 @@ router.post('/publish', async (req, res) => {
                         const primaryText  = creatives?.primary_text || '';
                         const headline     = creatives?.headline     || '';
 
+                        // Resolve user's WhatsApp display phone number (required for CTWA CTA)
+                        let waPhoneNumber = user.metaDisplayPhoneNumber || null;
+                        if (!waPhoneNumber) {
+                            try {
+                                const Settings = require('../models/Settings');
+                                const settings = await Settings.findOne({ where: { userId: req.user.id } });
+                                if (settings?.metaPhoneNumberId) {
+                                    const phoneRes = await axios.get(`https://graph.facebook.com/v22.0/${settings.metaPhoneNumberId}`, {
+                                        params: { fields: 'display_phone_number', access_token: settings.metaAccessToken },
+                                        timeout: 5000
+                                    }).catch(() => null);
+                                    waPhoneNumber = phoneRes?.data?.display_phone_number || null;
+                                }
+                            } catch (e) { /* non-fatal */ }
+                        }
+                        // Strip spaces/dashes — Meta needs digits + country code e.g. +919876543210
+                        const waPhoneClean = waPhoneNumber ? waPhoneNumber.replace(/[\s\-().]/g, '') : null;
+                        console.log(`[META-ADS] WhatsApp number for CTWA: ${waPhoneClean || '(not found)'}`);
+
+                        const ctaValue = { app_destination: 'WHATSAPP' };
+                        if (waPhoneClean) ctaValue.whatsapp_number = waPhoneClean;
+
                         const linkData = {
                             message: primaryText,
                             name:    headline,
-                            link:    `https://www.facebook.com/${pageId}`, // Required by Meta for link_data
-                            call_to_action: {
-                                type:  'WHATSAPP_MESSAGE',
-                                value: { app_destination: 'WHATSAPP' }
-                            }
+                            link:    `https://www.facebook.com/${pageId}`,
+                            call_to_action: { type: 'WHATSAPP_MESSAGE', value: ctaValue }
                         };
 
                         if (imageHash) {
@@ -712,19 +731,22 @@ router.post('/publish', async (req, res) => {
                             access_token: token
                         };
 
+                        let creativeErrMsg = null;
                         const creativeRes = await axios.post(
                             `https://graph.facebook.com/v22.0/${fbAdAccountId}/adcreatives`,
                             null,
                             { params: creativeParams }
                         ).catch(e => {
-                            console.warn('[META-ADS] AdCreative creation warning:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
+                            creativeErrMsg = e.response?.data?.error?.message || e.message;
+                            console.error('[META-ADS] ❌ AdCreative creation FAILED:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
                             return null;
                         });
 
                         const creativeId = creativeRes?.data?.id;
-                        console.log('[META-ADS] AdCreative ID:', creativeId);
+                        console.log('[META-ADS] AdCreative ID:', creativeId || `(failed: ${creativeErrMsg})`);
 
                         // 4. Create the actual Ad
+                        let adErrMsg = null;
                         if (creativeId) {
                             const adRes = await axios.post(
                                 `https://graph.facebook.com/v22.0/${fbAdAccountId}/ads`,
@@ -739,14 +761,25 @@ router.post('/publish', async (req, res) => {
                                     }
                                 }
                             ).catch(e => {
-                                console.warn('[META-ADS] Ad creation warning:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
+                                adErrMsg = e.response?.data?.error?.message || e.message;
+                                console.error('[META-ADS] ❌ Ad creation FAILED:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
                                 return null;
                             });
-                            console.log('[META-ADS] Ad ID:', adRes?.data?.id);
+                            if (adRes?.data?.id) {
+                                console.log('[META-ADS] ✅ Ad created successfully. Ad ID:', adRes.data.id);
+                            }
+                        }
+
+                        // Track ad-level errors to return in response
+                        if (creativeErrMsg || adErrMsg) {
+                            fbStatus = 'AdError';
+                            req._adWarning = creativeErrMsg || adErrMsg;
                         }
                     } catch (creativeErr) {
-                        console.warn('[META-ADS] Creative/Ad creation error (non-fatal):', JSON.stringify(creativeErr.response?.data || creativeErr.message, null, 2));
-                        // Don't fail the whole request — campaign and adset are still created
+                        const msg = creativeErr.response?.data?.error?.message || creativeErr.message;
+                        console.error('[META-ADS] ❌ Creative/Ad creation error:', msg);
+                        req._adWarning = msg;
+                        fbStatus = 'AdError';
                     }
                 }
             } catch (graphAPIError) {
@@ -764,11 +797,15 @@ router.post('/publish', async (req, res) => {
             targeting,
             creatives: { ...creatives, imageUrl, automation: automation || null, budgetType: budgetType || 'daily', lifetimeBudget: lifetimeBudget || null },
             status: fbStatus,
-            metaCampaignId: (fbStatus === 'Active' || fbStatus === 'Draft') ? (campRes?.data?.id || null) : null,
-            metaAdsetId:    (fbStatus === 'Active' || fbStatus === 'Draft') ? (adSetRes?.data?.id || null) : null
+            metaCampaignId: campRes?.data?.id || null,
+            metaAdsetId:    adSetRes?.data?.id || null
         });
 
-        res.json({ success: true, campaign });
+        res.json({
+            success: true,
+            campaign,
+            ...(req._adWarning ? { adWarning: `Campaign & AdSet created, but Ad creative failed: ${req._adWarning}` } : {})
+        });
     } catch (err) {
         console.error('Publish error:', err);
         res.status(500).json({ error: err.message });
