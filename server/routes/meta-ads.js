@@ -578,14 +578,6 @@ router.post('/publish', async (req, res) => {
                 };
                 const objConfig = OBJECTIVE_CONFIG[objective] || OBJECTIVE_CONFIG.OUTCOME_ENGAGEMENT;
 
-                // Build promoted_object — for CTWA include whatsapp_phone_number_id if available
-                const promotedObject = { page_id: pageId };
-                const waPhoneNumberIdForPromo = user.metaPhoneNumberId || null;
-                if (isCTWA && waPhoneNumberIdForPromo) {
-                    promotedObject.whatsapp_phone_number_id = waPhoneNumberIdForPromo;
-                    console.log(`[META-ADS] promoted_object includes whatsapp_phone_number_id: ${waPhoneNumberIdForPromo}`);
-                }
-
                 const adSetParams = {
                     name: `${campaignName} - AdSet`,
                     campaign_id: campaignId,
@@ -594,7 +586,7 @@ router.post('/publish', async (req, res) => {
                     // Always explicitly set bid_strategy to avoid inheriting account-level BID_CAP
                     // which would require a bid_amount we don't send (error_subcode 2490487)
                     bid_strategy: objConfig.bid_strategy || 'LOWEST_COST_WITHOUT_CAP',
-                    promoted_object: JSON.stringify(promotedObject),
+                    promoted_object: JSON.stringify({ page_id: pageId }),
                     targeting: JSON.stringify(targetingSpec),
                     status: 'ACTIVE',
                     access_token: token
