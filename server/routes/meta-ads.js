@@ -370,6 +370,7 @@ router.post('/publish', async (req, res) => {
                         objective: campaignObjective,
                         status: 'ACTIVE',
                         special_ad_categories: JSON.stringify([]),
+                        is_adset_budget_sharing_enabled: false,
                         access_token: token
                     }
                 });
