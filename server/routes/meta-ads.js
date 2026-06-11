@@ -358,12 +358,12 @@ router.post('/publish', async (req, res) => {
 
                 // 1. Create Campaign
                 // Meta API campaign objective mapping:
-                // OUTCOME_MESSAGES   → Click-to-WhatsApp (CTWA) / Conversations
-                // OUTCOME_ENGAGEMENT → Post engagement (likes/comments) — NOT for CTWA
-                // OUTCOME_TRAFFIC    → Website link clicks
-                // OUTCOME_LEADS      → Lead generation
-                // OUTCOME_AWARENESS  → Brand reach/impressions
-                const campaignObjective = objective || 'OUTCOME_MESSAGES';
+                // OUTCOME_ENGAGEMENT  → CTWA (Click-to-WhatsApp) — campaign obj + CONVERSATIONS adset goal
+                // OUTCOME_TRAFFIC     → Website link clicks
+                // OUTCOME_LEADS       → Lead generation
+                // OUTCOME_AWARENESS   → Brand reach/impressions
+                // NOTE: OUTCOME_MESSAGES does NOT exist in Meta's API — OUTCOME_ENGAGEMENT is correct for CTWA
+                const campaignObjective = objective || 'OUTCOME_ENGAGEMENT';
                 campRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/campaigns`, null, {
                     params: {
                         name: campaignName,
@@ -562,21 +562,21 @@ router.post('/publish', async (req, res) => {
                 const isLifetime = budgetType === 'lifetime';
 
                 // ── Build AdSet params based on campaign objective ──
-                // OUTCOME_MESSAGES   → CTWA (Click-to-WhatsApp) with CONVERSATIONS goal
-                // OUTCOME_ENGAGEMENT → Post engagement (likes/comments) — legacy, not CTWA
-                // OUTCOME_TRAFFIC    → Link clicks (standard)
+                // OUTCOME_ENGAGEMENT → CTWA (Click-to-WhatsApp): campaign obj + CONVERSATIONS adset goal + WHATSAPP destination
+                // OUTCOME_TRAFFIC    → Link clicks
                 // OUTCOME_LEADS      → Lead generation
-                // OUTCOME_AWARENESS  → Reach / impressions
-                const isCTWA = (objective || 'OUTCOME_MESSAGES') === 'OUTCOME_MESSAGES';
+                // OUTCOME_AWARENESS  → Reach/impressions
+                // NOTE: OUTCOME_MESSAGES is NOT a valid Meta campaign objective.
+                //       OUTCOME_ENGAGEMENT + optimization_goal:CONVERSATIONS + destination_type:WHATSAPP = CTWA
+                const isCTWA = (objective || 'OUTCOME_ENGAGEMENT') === 'OUTCOME_ENGAGEMENT';
 
                 const OBJECTIVE_CONFIG = {
-                    OUTCOME_MESSAGES:   { optimization_goal: 'CONVERSATIONS',   destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-                    OUTCOME_ENGAGEMENT: { optimization_goal: 'POST_ENGAGEMENT',                               bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-                    OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS',                                    bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-                    OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION',                               bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-                    OUTCOME_AWARENESS:  { optimization_goal: 'REACH',                                         bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_ENGAGEMENT: { optimization_goal: 'CONVERSATIONS',   destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS',      bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION',  bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_AWARENESS:  { optimization_goal: 'REACH',            bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
                 };
-                const objConfig = OBJECTIVE_CONFIG[objective] || OBJECTIVE_CONFIG.OUTCOME_MESSAGES;
+                const objConfig = OBJECTIVE_CONFIG[objective] || OBJECTIVE_CONFIG.OUTCOME_ENGAGEMENT;
 
                 const adSetParams = {
                     name: `${campaignName} - AdSet`,
