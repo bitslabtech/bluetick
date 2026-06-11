@@ -570,11 +570,11 @@ router.post('/publish', async (req, res) => {
                 const isCTWA = (objective || 'OUTCOME_MESSAGES') === 'OUTCOME_MESSAGES';
 
                 const OBJECTIVE_CONFIG = {
-                    OUTCOME_MESSAGES:   { optimization_goal: 'CONVERSATIONS', destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-                    OUTCOME_ENGAGEMENT: { optimization_goal: 'POST_ENGAGEMENT' },
-                    OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS' },
-                    OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION' },
-                    OUTCOME_AWARENESS:  { optimization_goal: 'REACH' },
+                    OUTCOME_MESSAGES:   { optimization_goal: 'CONVERSATIONS',   destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_ENGAGEMENT: { optimization_goal: 'POST_ENGAGEMENT',                               bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS',                                    bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION',                               bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_AWARENESS:  { optimization_goal: 'REACH',                                         bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
                 };
                 const objConfig = OBJECTIVE_CONFIG[objective] || OBJECTIVE_CONFIG.OUTCOME_MESSAGES;
 
@@ -583,13 +583,15 @@ router.post('/publish', async (req, res) => {
                     campaign_id: campaignId,
                     billing_event: 'IMPRESSIONS',
                     optimization_goal: objConfig.optimization_goal,
+                    // Always explicitly set bid_strategy to avoid inheriting account-level BID_CAP
+                    // which would require a bid_amount we don't send (error_subcode 2490487)
+                    bid_strategy: objConfig.bid_strategy || 'LOWEST_COST_WITHOUT_CAP',
                     promoted_object: JSON.stringify({ page_id: pageId }),
                     targeting: JSON.stringify(targetingSpec),
                     status: 'ACTIVE',
                     access_token: token
                 };
                 if (objConfig.destination_type) adSetParams.destination_type = objConfig.destination_type;
-                if (objConfig.bid_strategy) adSetParams.bid_strategy = objConfig.bid_strategy;
 
                 if (isLifetime) {
                     adSetParams.lifetime_budget = Math.round((Number(lifetimeBudget) || 3000) * 100);
