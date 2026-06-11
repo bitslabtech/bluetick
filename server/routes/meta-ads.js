@@ -461,6 +461,9 @@ router.post('/publish', async (req, res) => {
                     ...(publisherPlatforms.length > 0 && { publisher_platforms: publisherPlatforms }),
                     ...(facebookPositions   && { facebook_positions: facebookPositions }),
                     ...(instagramPositions  && { instagram_positions: instagramPositions }),
+                    // Required by Meta API: explicitly disable Advantage Audience (AI-override)
+                    // so our manual interest/age/location targeting is preserved as-is.
+                    targeting_automation: { advantage_audience: 0 },
                 };
 
                 // ── Build AdSet params — resolve Page ID (multi-strategy) ──

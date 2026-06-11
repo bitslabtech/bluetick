@@ -484,6 +484,9 @@ export default function MetaAdsWizard() {
         if (!schedulingEnd) {
             return toast.error('Please select an End Date for your ad schedule.');
         }
+        if (new Date(schedulingEnd).getTime() <= new Date(schedulingStart).getTime()) {
+            return toast.error('The End Time must be strictly after the Start Time.');
+        }
         setLoading(true);
         try {
             await axios.post('/api/meta-ads/publish', {
@@ -544,6 +547,9 @@ export default function MetaAdsWizard() {
         }
         if (!schedulingEnd) {
             return toast.error('Please select an End Date for your ad schedule.');
+        }
+        if (new Date(schedulingEnd).getTime() <= new Date(schedulingStart).getTime()) {
+            return toast.error('The End Time must be strictly after the Start Time.');
         }
 
         setLoading(true);
@@ -1026,7 +1032,21 @@ export default function MetaAdsWizard() {
                     </div>
                 </div>
 
+                {/* ─ Meta Advantage Audience Notice ─ */}
+                <div className="flex items-start gap-3 p-3.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl">
+                    <div className="shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
+                        <Info className="w-3.5 h-3.5 text-blue-500" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-blue-700 dark:text-blue-300 mb-0.5">Manual Targeting Active — Meta Advantage Audience is Off</p>
+                        <p className="text-[11px] text-blue-600/80 dark:text-blue-300/70 leading-relaxed">
+                            Your campaign will use <strong>exactly the interests, age range, gender, language, and locations you set above</strong>. Meta's Advantage Audience feature (which auto-expands your audience with AI) is disabled — giving you full control over who sees your ad.
+                        </p>
+                    </div>
+                </div>
+
                 {/* ─ Section 3c: Ad Scheduling ─ */}
+
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
