@@ -288,7 +288,7 @@ export default function MetaAdsWizard() {
     const [selectedCreativeIndex, setSelectedCreativeIndex] = useState(0);
     const [generatedImage, setGeneratedImage] = useState(null);
     const [generatingImage, setGeneratingImage] = useState(false);
-    const [budgetData, setBudgetData] = useState({ budgetType: 'daily', dailyBudget: 500, lifetimeBudget: 3000, objective: 'OUTCOME_ENGAGEMENT' });
+    const [budgetData, setBudgetData] = useState({ budgetType: 'daily', dailyBudget: 500, lifetimeBudget: 3000, objective: 'OUTCOME_MESSAGES' });
 
     // Geography targeting — user controls this, not AI
     const [targetLocations, setTargetLocations] = useState([]);
@@ -296,7 +296,7 @@ export default function MetaAdsWizard() {
 
     const [manual, setManual] = useState({
         campaignName: '',
-        objective: 'OUTCOME_ENGAGEMENT',
+        objective: 'OUTCOME_MESSAGES',
         budgetType: 'daily',
         dailyBudget: 500,
         lifetimeBudget: 3000,
@@ -657,10 +657,10 @@ export default function MetaAdsWizard() {
     // ════════════════════════════════════════════════
     const renderManualForm = () => {
         const OBJECTIVES = [
-            { value: 'OUTCOME_ENGAGEMENT', label: 'Engagement', desc: 'Drive WhatsApp chats (CTWA)', emoji: '💬', ctwa: true },
-            { value: 'OUTCOME_TRAFFIC', label: 'Traffic', desc: 'Drive website/link clicks', emoji: '🌐' },
-            { value: 'OUTCOME_LEADS', label: 'Lead Gen', desc: 'Collect qualified leads', emoji: '🎯' },
-            { value: 'OUTCOME_AWARENESS', label: 'Awareness', desc: 'Maximize brand reach', emoji: '📢' },
+            { value: 'OUTCOME_MESSAGES',   label: 'Engagement', desc: 'Drive WhatsApp chats (CTWA)', emoji: '💬', ctwa: true },
+            { value: 'OUTCOME_TRAFFIC',    label: 'Traffic',    desc: 'Drive website/link clicks',  emoji: '🌐' },
+            { value: 'OUTCOME_LEADS',      label: 'Lead Gen',   desc: 'Collect qualified leads',     emoji: '🎯' },
+            { value: 'OUTCOME_AWARENESS',  label: 'Awareness',  desc: 'Maximize brand reach',        emoji: '📢' },
         ];
         const QUICK_INTERESTS = ['Small Business', 'E-commerce', 'Entrepreneurship', 'Digital Marketing', 'Online Shopping', 'Real Estate', 'Health & Fitness', 'Fashion', 'Technology', 'Education'];
 
@@ -719,7 +719,7 @@ export default function MetaAdsWizard() {
                         </div>
 
                         {/* WABA link warning for Engagement/CTWA objective */}
-                        {manual.objective === 'OUTCOME_ENGAGEMENT' && !checklistChecks.hasPageWabaLink && (
+                        {manual.objective === 'OUTCOME_MESSAGES' && !checklistChecks.hasPageWabaLink && (
                             <div className="mt-3 flex items-start gap-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-3">
                                 <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                                 <div>

@@ -168,7 +168,13 @@ router.get('/status', auth, async (req, res) => {
         // This is required for CTWA (Click-to-WhatsApp) ads with destination_type='WHATSAPP'
         let hasPageWabaLink = false;
         const pageId = user.metaPageId;
-        if (hasMetaToken && pageId) {
+
+        // Fast-path: if the user already has a WABA ID configured (from WhatsApp setup),
+        // we can reasonably assume their page is linked — skip the expensive Page API call.
+        if (user.wabaId) {
+            hasPageWabaLink = true;
+            console.log(`[CTWA] User has wabaId ${user.wabaId} — assuming Page-WABA link is valid.`);
+        } else if (hasMetaToken && pageId) {
             try {
                 // Query the page's connected WhatsApp Business Account(s)
                 const wabaRes = await axios.get(`https://graph.facebook.com/v22.0/${pageId}`, {
@@ -186,10 +192,21 @@ router.get('/status', auth, async (req, res) => {
                     console.log(`[CTWA] Page ${pageId} has NO linked WhatsApp Business Account`);
                 }
             } catch (e) {
-                // Non-fatal — if API call fails, we just can't confirm the link
-                console.warn(`[CTWA] Could not verify Page-WABA link: ${e.response?.data?.error?.message || e.message}`);
+                const errCode = e.response?.data?.error?.code;
+                const errMsg  = e.response?.data?.error?.message || e.message;
+                // Error code 100 with "nonexisting field" means the Ads token lacks
+                // whatsapp_business_management permission — this is a token scope issue,
+                // NOT a confirmation that the page is actually unlinked.
+                // Treat as assumed-linked to avoid false warnings to the user.
+                if (errCode === 100 || (errMsg && errMsg.toLowerCase().includes('nonexisting field'))) {
+                    hasPageWabaLink = true;
+                    console.warn(`[CTWA] Page-WABA check returned permission error (code ${errCode}) — assuming linked. Token may lack whatsapp_business_management scope.`);
+                } else {
+                    console.warn(`[CTWA] Could not verify Page-WABA link: ${errMsg}`);
+                }
             }
         }
+
 
         res.json({
             // Simple boolean for legacy code

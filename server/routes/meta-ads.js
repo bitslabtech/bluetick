@@ -357,10 +357,17 @@ router.post('/publish', async (req, res) => {
                 const token = user.metaAdsToken;
 
                 // 1. Create Campaign
+                // Meta API campaign objective mapping:
+                // OUTCOME_MESSAGES   → Click-to-WhatsApp (CTWA) / Conversations
+                // OUTCOME_ENGAGEMENT → Post engagement (likes/comments) — NOT for CTWA
+                // OUTCOME_TRAFFIC    → Website link clicks
+                // OUTCOME_LEADS      → Lead generation
+                // OUTCOME_AWARENESS  → Brand reach/impressions
+                const campaignObjective = objective || 'OUTCOME_MESSAGES';
                 campRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/campaigns`, null, {
                     params: {
                         name: campaignName,
-                        objective: objective || 'OUTCOME_ENGAGEMENT',
+                        objective: campaignObjective,
                         status: 'ACTIVE',
                         special_ad_categories: JSON.stringify([]),
                         is_adset_budget_sharing_enabled: false,
@@ -555,19 +562,21 @@ router.post('/publish', async (req, res) => {
                 const isLifetime = budgetType === 'lifetime';
 
                 // ── Build AdSet params based on campaign objective ──
-                // OUTCOME_ENGAGEMENT → CTWA (Click-to-WhatsApp) with fallback
+                // OUTCOME_MESSAGES   → CTWA (Click-to-WhatsApp) with CONVERSATIONS goal
+                // OUTCOME_ENGAGEMENT → Post engagement (likes/comments) — legacy, not CTWA
                 // OUTCOME_TRAFFIC    → Link clicks (standard)
                 // OUTCOME_LEADS      → Lead generation
                 // OUTCOME_AWARENESS  → Reach / impressions
-                const isCTWA = (objective || 'OUTCOME_ENGAGEMENT') === 'OUTCOME_ENGAGEMENT';
+                const isCTWA = (objective || 'OUTCOME_MESSAGES') === 'OUTCOME_MESSAGES';
 
                 const OBJECTIVE_CONFIG = {
-                    OUTCOME_ENGAGEMENT: { optimization_goal: 'CONVERSATIONS', destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_MESSAGES:   { optimization_goal: 'CONVERSATIONS', destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
+                    OUTCOME_ENGAGEMENT: { optimization_goal: 'POST_ENGAGEMENT' },
                     OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS' },
                     OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION' },
                     OUTCOME_AWARENESS:  { optimization_goal: 'REACH' },
                 };
-                const objConfig = OBJECTIVE_CONFIG[objective] || OBJECTIVE_CONFIG.OUTCOME_ENGAGEMENT;
+                const objConfig = OBJECTIVE_CONFIG[objective] || OBJECTIVE_CONFIG.OUTCOME_MESSAGES;
 
                 const adSetParams = {
                     name: `${campaignName} - AdSet`,
