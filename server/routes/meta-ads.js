@@ -458,6 +458,7 @@ router.post('/publish', async (req, res) => {
                 const instagramPositions = placements.includes('instagram')  ? (targeting?.igPositions   || ['stream', 'reels'])        : undefined;
 
                 // ── Build full targeting spec ─────────────────────────
+                // NOTE: targeting_automation goes on the AdSet params directly, NOT inside this JSON
                 const targetingSpec = {
                     age_max: targeting?.age_max || 65,
                     age_min: targeting?.age_min || 18,
@@ -468,9 +469,6 @@ router.post('/publish', async (req, res) => {
                     ...(publisherPlatforms.length > 0 && { publisher_platforms: publisherPlatforms }),
                     ...(facebookPositions   && { facebook_positions: facebookPositions }),
                     ...(instagramPositions  && { instagram_positions: instagramPositions }),
-                    // Required by Meta API: explicitly disable Advantage Audience (AI-override)
-                    // so our manual interest/age/location targeting is preserved as-is.
-                    targeting_automation: { advantage_audience: 0 },
                 };
 
                 // ── Build AdSet params — resolve Page ID (multi-strategy) ──
@@ -592,6 +590,9 @@ router.post('/publish', async (req, res) => {
                     access_token: token
                 };
                 if (objConfig.destination_type) adSetParams.destination_type = objConfig.destination_type;
+                // targeting_automation must be a TOP-LEVEL AdSet field, not inside the targeting JSON
+                // Setting advantage_audience:0 prevents Meta from overriding our manual targeting
+                adSetParams.targeting_automation = JSON.stringify({ advantage_audience: 0 });
 
                 if (isLifetime) {
                     adSetParams.lifetime_budget = Math.round((Number(lifetimeBudget) || 3000) * 100);
@@ -627,7 +628,8 @@ router.post('/publish', async (req, res) => {
                         console.log('[META-ADS] Page not linked to WABA — retrying as standard engagement ad...');
                         delete adSetParams.destination_type;
                         adSetParams.optimization_goal = 'LINK_CLICKS';
-                        delete adSetParams.bid_strategy;
+                        // Keep bid_strategy — removing it causes error_subcode 2490487 (bid amount required)
+                        adSetParams.bid_strategy = 'LOWEST_COST_WITHOUT_CAP';
 
                         const debugRetry = { ...adSetParams };
                         delete debugRetry.access_token;
