@@ -369,8 +369,7 @@ router.post('/publish', async (req, res) => {
                         name: campaignName,
                         objective: campaignObjective,
                         status: 'ACTIVE',
-                        special_ad_categories: JSON.stringify([]),
-                        is_adset_budget_sharing_enabled: false,
+                        special_ad_categories: [],
                         access_token: token
                     }
                 });
@@ -458,7 +457,8 @@ router.post('/publish', async (req, res) => {
                 const instagramPositions = placements.includes('instagram')  ? (targeting?.igPositions   || ['stream', 'reels'])        : undefined;
 
                 // ── Build full targeting spec ─────────────────────────
-                // NOTE: targeting_automation goes on the AdSet params directly, NOT inside this JSON
+                // targeting_automation MUST be inside the targeting JSON (confirmed by Meta error_subcode 1870227)
+                // Setting advantage_audience:0 keeps our manual targeting; Meta won't override it with AI.
                 const targetingSpec = {
                     age_max: targeting?.age_max || 65,
                     age_min: targeting?.age_min || 18,
@@ -469,6 +469,7 @@ router.post('/publish', async (req, res) => {
                     ...(publisherPlatforms.length > 0 && { publisher_platforms: publisherPlatforms }),
                     ...(facebookPositions   && { facebook_positions: facebookPositions }),
                     ...(instagramPositions  && { instagram_positions: instagramPositions }),
+                    targeting_automation: { advantage_audience: 0 },
                 };
 
                 // ── Build AdSet params — resolve Page ID (multi-strategy) ──
@@ -576,6 +577,14 @@ router.post('/publish', async (req, res) => {
                 };
                 const objConfig = OBJECTIVE_CONFIG[objective] || OBJECTIVE_CONFIG.OUTCOME_ENGAGEMENT;
 
+                // Build promoted_object — for CTWA include whatsapp_phone_number_id if available
+                const promotedObject = { page_id: pageId };
+                const waPhoneNumberIdForPromo = user.metaPhoneNumberId || null;
+                if (isCTWA && waPhoneNumberIdForPromo) {
+                    promotedObject.whatsapp_phone_number_id = waPhoneNumberIdForPromo;
+                    console.log(`[META-ADS] promoted_object includes whatsapp_phone_number_id: ${waPhoneNumberIdForPromo}`);
+                }
+
                 const adSetParams = {
                     name: `${campaignName} - AdSet`,
                     campaign_id: campaignId,
@@ -584,15 +593,12 @@ router.post('/publish', async (req, res) => {
                     // Always explicitly set bid_strategy to avoid inheriting account-level BID_CAP
                     // which would require a bid_amount we don't send (error_subcode 2490487)
                     bid_strategy: objConfig.bid_strategy || 'LOWEST_COST_WITHOUT_CAP',
-                    promoted_object: JSON.stringify({ page_id: pageId }),
+                    promoted_object: JSON.stringify(promotedObject),
                     targeting: JSON.stringify(targetingSpec),
                     status: 'ACTIVE',
                     access_token: token
                 };
                 if (objConfig.destination_type) adSetParams.destination_type = objConfig.destination_type;
-                // targeting_automation must be a TOP-LEVEL AdSet field, not inside the targeting JSON
-                // Setting advantage_audience:0 prevents Meta from overriding our manual targeting
-                adSetParams.targeting_automation = JSON.stringify({ advantage_audience: 0 });
 
                 if (isLifetime) {
                     adSetParams.lifetime_budget = Math.round((Number(lifetimeBudget) || 3000) * 100);
@@ -710,13 +716,31 @@ router.post('/publish', async (req, res) => {
                         const waPhoneClean = waPhoneNumber ? waPhoneNumber.replace(/[\s\-().]/g, '') : null;
                         console.log(`[META-ADS] WhatsApp number for CTWA: ${waPhoneClean || '(not found)'}`);
 
-                        const ctaValue = { app_destination: 'WHATSAPP' };
+                        // CTA value — page_id and whatsapp_number are required for CTWA
+                        const ctaValue = {
+                            app_destination: 'WHATSAPP',
+                            page_id: pageId,                          // Required per Meta docs
+                        };
                         if (waPhoneClean) ctaValue.whatsapp_number = waPhoneClean;
+
+                        // page_welcome_message — pre-fills WhatsApp chat, improves conversion
+                        const welcomeMsg = JSON.stringify({
+                            landing_screen_type: 'welcome_message',
+                            media_type: 'text',
+                            text_format: {
+                                customer_action_type: 'AUTOFILL_MESSAGE',
+                                message: {
+                                    autofill_message: { content: 'Hi, I saw your ad and I\'m interested!' },
+                                    text: 'Hi, I\'m interested! Can you tell me more?'
+                                }
+                            }
+                        });
 
                         const linkData = {
                             message: primaryText,
                             name:    headline,
                             link:    `https://www.facebook.com/${pageId}`,
+                            page_welcome_message: welcomeMsg,
                             call_to_action: { type: 'WHATSAPP_MESSAGE', value: ctaValue }
                         };
 
