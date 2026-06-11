@@ -369,7 +369,7 @@ router.post('/publish', async (req, res) => {
                         name: campaignName,
                         objective: campaignObjective,
                         status: 'ACTIVE',
-                        special_ad_categories: [],
+                        special_ad_categories: JSON.stringify([]),
                         access_token: token
                     }
                 });
