@@ -725,31 +725,20 @@ router.post('/publish', async (req, res) => {
                         const waPhoneClean = waPhoneNumber ? waPhoneNumber.replace(/[\s\-().]/g, '') : null;
                         console.log(`[META-ADS] WhatsApp number for CTWA: ${waPhoneClean || '(not found)'}`);
 
-                        // CTA value — page_id and whatsapp_number are required for CTWA
-                        const ctaValue = {
-                            app_destination: 'WHATSAPP',
-                            page_id: pageId,                          // Required per Meta docs
-                        };
+                        // CTA value for CTWA.
+                        // IMPORTANT: app_destination, page_id, and page_welcome_message in the
+                        // CTA value all require the Facebook Page to be FULLY linked to a WABA.
+                        // The log shows a Page-WABA permission error (code 100), meaning this
+                        // link is absent. Including those fields causes OAuthException code 1.
+                        // Safe approach: only include whatsapp_number — Meta accepts this even
+                        // when the Page is not formally linked to WABA.
+                        const ctaValue = {};
                         if (waPhoneClean) ctaValue.whatsapp_number = waPhoneClean;
-
-                        // page_welcome_message — pre-fills WhatsApp chat, improves conversion
-                        const welcomeMsg = JSON.stringify({
-                            landing_screen_type: 'welcome_message',
-                            media_type: 'text',
-                            text_format: {
-                                customer_action_type: 'AUTOFILL_MESSAGE',
-                                message: {
-                                    autofill_message: { content: 'Hi, I saw your ad and I\'m interested!' },
-                                    text: 'Hi, I\'m interested! Can you tell me more?'
-                                }
-                            }
-                        });
 
                         const linkData = {
                             message: primaryText,
                             name:    headline,
                             link:    `https://www.facebook.com/${pageId}`,
-                            page_welcome_message: welcomeMsg,
                             call_to_action: { type: 'WHATSAPP_MESSAGE', value: ctaValue }
                         };
 
@@ -781,20 +770,29 @@ router.post('/publish', async (req, res) => {
                             }
                         }
 
-                        const creativeParams = {
-                            name:               `${campaignName} - Creative`,
-                            object_story_spec:  JSON.stringify({
-                                page_id:   pageId,
-                                link_data: linkData
-                            }),
-                            access_token: token
-                        };
+                        const objectStorySpec = JSON.stringify({
+                            page_id:   pageId,
+                            link_data: linkData
+                        });
+
+                        // Log creative payload for debugging (without token)
+                        console.log('[META-ADS] AdCreative object_story_spec:', objectStorySpec);
+
+                        // IMPORTANT: Send as form-encoded POST body, NOT URL query params.
+                        // Sending large/nested JSON as URL params causes Meta to silently
+                        // reject the request with OAuthException code 1 "unknown error".
+                        const qsCreative = require('querystring');
+                        const creativeBody = qsCreative.stringify({
+                            name:              `${campaignName} - Creative`,
+                            object_story_spec: objectStorySpec,
+                            access_token:      token
+                        });
 
                         let creativeErrMsg = null;
                         const creativeRes = await axios.post(
                             `https://graph.facebook.com/v22.0/${fbAdAccountId}/adcreatives`,
-                            null,
-                            { params: creativeParams }
+                            creativeBody,
+                            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
                         ).catch(e => {
                             creativeErrMsg = e.response?.data?.error?.message || e.message;
                             console.error('[META-ADS] ❌ AdCreative creation FAILED:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
@@ -1437,9 +1435,12 @@ router.post('/:id/publish', async (req, res) => {
                 if (imageUrl && imageUrl.startsWith('data:image')) {
                     const base64Data = imageUrl.split(',')[1];
                     if (base64Data) {
-                        const imgRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`, null, {
-                            params: { bytes: base64Data, access_token: token }
-                        }).catch(e => { console.warn('[META-ADS] Image upload:', e.response?.data?.error?.message || e.message); return null; });
+                        const qsLib = require('querystring');
+                        const imgRes = await axios.post(
+                            `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
+                            qsLib.stringify({ bytes: base64Data, access_token: token }),
+                            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, maxBodyLength: Infinity }
+                        ).catch(e => { console.warn('[META-ADS] Image upload:', e.response?.data?.error?.message || e.message); return null; });
                         if (imgRes?.data?.images) {
                             const firstKey = Object.keys(imgRes.data.images)[0];
                             imageHash = imgRes.data.images[firstKey]?.hash;
@@ -1451,19 +1452,23 @@ router.post('/:id/publish', async (req, res) => {
                 const linkData = {
                     message: creatives.primary_text || '',
                     name: creatives.headline || '',
-                    link: `https://www.facebook.com/${pageId}`, // Required by Meta for link_data
-                    call_to_action: { type: 'WHATSAPP_MESSAGE', value: { app_destination: 'WHATSAPP' } }
+                    link: `https://www.facebook.com/${pageId}`,
+                    // NOTE: app_destination requires Page fully linked to WABA.
+                    // Omit it to avoid OAuthException code 1 when that link is absent.
+                    call_to_action: { type: 'WHATSAPP_MESSAGE', value: {} }
                 };
                 if (imageHash) linkData.image_hash = imageHash;
                 else if (imageUrl?.startsWith('http')) linkData.picture = imageUrl;
 
-                const creativeRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adcreatives`, null, {
-                    params: {
-                        name: `${stored.campaignName} - Creative`,
-                        object_story_spec: JSON.stringify({ page_id: pageId, link_data: linkData }),
-                        access_token: token
-                    }
-                }).catch(e => { console.warn('[META-ADS] AdCreative:', e.response?.data?.error?.message || e.message); return null; });
+                const objectStorySpec2 = JSON.stringify({ page_id: pageId, link_data: linkData });
+                console.log('[META-ADS] Draft-Publish AdCreative object_story_spec:', objectStorySpec2);
+
+                const qsLib2 = require('querystring');
+                const creativeRes = await axios.post(
+                    `https://graph.facebook.com/v22.0/${fbAdAccountId}/adcreatives`,
+                    qsLib2.stringify({ name: `${stored.campaignName} - Creative`, object_story_spec: objectStorySpec2, access_token: token }),
+                    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+                ).catch(e => { console.warn('[META-ADS] AdCreative:', e.response?.data?.error?.message || e.message); return null; });
 
                 const creativeId = creativeRes?.data?.id;
                 console.log('[META-ADS] AdCreative ID:', creativeId);
