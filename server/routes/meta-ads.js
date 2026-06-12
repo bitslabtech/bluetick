@@ -657,18 +657,20 @@ router.post('/publish', async (req, res) => {
                         let imageHash = null;
 
                         // Upload image bytes if a base64 data URL is provided
+                        // NOTE: Meta /adimages requires `bytes` in the POST body (form-encoded),
+                        // NOT as a URL query param — large base64 strings exceed URL length limits.
                         if (imageUrl && imageUrl.startsWith('data:image')) {
                             // Extract base64 data from the data URL
                             const base64Data = imageUrl.split(',')[1];
                             if (base64Data) {
+                                const qs = require('querystring');
                                 const imgUploadRes = await axios.post(
                                     `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
-                                    null,
+                                    qs.stringify({ bytes: base64Data, access_token: token }),
                                     {
-                                        params: {
-                                            bytes: base64Data,
-                                            access_token: token
-                                        }
+                                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                        maxBodyLength: Infinity,
+                                        maxContentLength: Infinity
                                     }
                                 ).catch(e => {
                                     console.warn('[META-ADS] Image upload warning:', e.response?.data?.error?.message || e.message);
@@ -682,8 +684,22 @@ router.post('/publish', async (req, res) => {
                                 }
                             }
                         } else if (imageUrl && imageUrl.startsWith('http')) {
-                            // External URL — use url_tags approach or just skip hash
-                            console.log('[META-ADS] External image URL provided, skipping hash upload');
+                            // External URL — upload via URL fetch so we get a hash
+                            console.log('[META-ADS] External image URL provided, uploading by URL...');
+                            const qs = require('querystring');
+                            const imgUploadRes = await axios.post(
+                                `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
+                                qs.stringify({ url: imageUrl, access_token: token }),
+                                { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+                            ).catch(e => {
+                                console.warn('[META-ADS] External image upload warning:', e.response?.data?.error?.message || e.message);
+                                return null;
+                            });
+                            if (imgUploadRes?.data?.images) {
+                                const firstKey = Object.keys(imgUploadRes.data.images)[0];
+                                imageHash = imgUploadRes.data.images[firstKey]?.hash;
+                                console.log('[META-ADS] External image uploaded, hash:', imageHash);
+                            }
                         }
 
                         // Build AdCreative spec (CTWA — Click-to-WhatsApp)
@@ -741,6 +757,28 @@ router.post('/publish', async (req, res) => {
                             linkData.image_hash = imageHash;
                         } else if (imageUrl && imageUrl.startsWith('http')) {
                             linkData.picture = imageUrl;
+                        } else {
+                            // Meta AdCreative requires at least an image. Upload a minimal 1×1
+                            // transparent PNG so the creative doesn't fail with code 1.
+                            const PLACEHOLDER_B64 =
+                                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==';
+                            const qs = require('querystring');
+                            const phRes = await axios.post(
+                                `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
+                                qs.stringify({ bytes: PLACEHOLDER_B64, access_token: token }),
+                                { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+                            ).catch(e => {
+                                console.warn('[META-ADS] Placeholder image upload warning:', e.response?.data?.error?.message || e.message);
+                                return null;
+                            });
+                            if (phRes?.data?.images) {
+                                const firstKey = Object.keys(phRes.data.images)[0];
+                                imageHash = phRes.data.images[firstKey]?.hash;
+                                if (imageHash) {
+                                    linkData.image_hash = imageHash;
+                                    console.log('[META-ADS] Placeholder image uploaded, hash:', imageHash);
+                                }
+                            }
                         }
 
                         const creativeParams = {
