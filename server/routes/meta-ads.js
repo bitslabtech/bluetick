@@ -793,14 +793,14 @@ router.post('/publish', async (req, res) => {
 
                         // Track ad-level errors to return in response
                         if (creativeErrMsg || adErrMsg) {
-                            fbStatus = 'AdError';
+                            fbStatus = 'Error';
                             req._adWarning = creativeErrMsg || adErrMsg;
                         }
                     } catch (creativeErr) {
                         const msg = creativeErr.response?.data?.error?.message || creativeErr.message;
                         console.error('[META-ADS] ❌ Creative/Ad creation error:', msg);
                         req._adWarning = msg;
-                        fbStatus = 'AdError';
+                        fbStatus = 'Error';
                     }
                 }
             } catch (graphAPIError) {
