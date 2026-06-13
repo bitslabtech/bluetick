@@ -2168,7 +2168,7 @@ export default function MetaAdsWizard() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-                        onClick={() => setShowChecklist(false)}
+                        onClick={() => { if (Object.values(checklistChecks).every(Boolean)) setShowChecklist(false); }}
                     >
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -2185,9 +2185,11 @@ export default function MetaAdsWizard() {
                                         <h2 className="text-white font-bold text-lg">Before You Create an Ad</h2>
                                         <p className="text-blue-200 text-sm mt-0.5">Make sure these are set up in Meta Business Manager</p>
                                     </div>
-                                    <button onClick={() => setShowChecklist(false)} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-                                        <X className="w-4 h-4" />
-                                    </button>
+                                    {Object.values(checklistChecks).every(Boolean) && (
+                                        <button onClick={() => setShowChecklist(false)} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -2384,12 +2386,21 @@ export default function MetaAdsWizard() {
                                         💡 <strong>Meta handles all billing.</strong> You add your payment method directly in Meta Ad Account — your ad budget is charged by Meta, not by this platform.
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => setShowChecklist(false)}
-                                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25"
-                                >
-                                    Got it — Let's Create My Ad! 🚀
-                                </button>
+                                {Object.values(checklistChecks).every(Boolean) ? (
+                                    <button
+                                        onClick={() => setShowChecklist(false)}
+                                        className="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-2xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-500/25"
+                                    >
+                                        All Set! Let's Create My Ad 🚀
+                                    </button>
+                                ) : (
+                                    <button
+                                        disabled
+                                        className="w-full py-3 bg-slate-100 dark:bg-white/5 text-slate-400 font-bold rounded-2xl cursor-not-allowed"
+                                    >
+                                        Please complete all steps above first
+                                    </button>
+                                )}
                             </div>
                         </motion.div>
                     </motion.div>

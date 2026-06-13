@@ -96,7 +96,7 @@ router.post('/invite', auth, async (req, res) => {
         const jwt = require('jsonwebtoken');
         const token = jwt.sign(
             { parentId: req.user.id, role, permissions, teamPolicy },
-            process.env.JWT_SECRET || 'fallback_secret',
+            process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
@@ -122,7 +122,7 @@ router.post('/join', auth, async (req, res) => {
 
         let decoded;
         try {
-            decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
         } catch (e) {
             return res.status(400).json({ error: 'Invalid or expired invite token.' });
         }

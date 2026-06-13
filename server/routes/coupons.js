@@ -54,7 +54,11 @@ router.put('/:id', checkAdmin, async (req, res) => {
         const coupon = await Coupon.findByPk(req.params.id);
         if (!coupon) return res.status(404).json({ error: 'Coupon not found.' });
 
-        await coupon.update(req.body);
+        const updates = { ...req.body };
+        delete updates.id;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+        await coupon.update(updates);
         res.json(coupon);
     } catch (err) {
         if (err.name === 'SequelizeUniqueConstraintError') {

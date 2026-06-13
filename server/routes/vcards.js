@@ -417,7 +417,11 @@ router.put('/:id', async (req, res) => {
             }
         }
 
-        await vcard.update(req.body);
+        const updates = { ...req.body };
+        delete updates.id;
+        delete updates.userId;
+        delete updates.views;
+        await vcard.update(updates);
         res.json(vcard);
     } catch (error) {
         console.error("Update vCard error:", error);

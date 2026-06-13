@@ -341,7 +341,11 @@ router.put('/blogs/:id', [auth, admin], async (req, res) => {
             }
         }
 
-        await blog.update(req.body);
+        const updates = { ...req.body };
+        delete updates.id;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+        await blog.update(updates);
         res.json(blog);
     } catch (err) {
         console.error(err);

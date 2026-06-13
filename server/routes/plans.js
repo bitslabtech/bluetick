@@ -164,7 +164,11 @@ router.put('/:id', async (req, res) => {
             );
         }
 
-        await plan.update(req.body);
+        const updates = { ...req.body };
+        delete updates.id;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+        await plan.update(updates);
 
         // Sync core features across all plans
         if (req.body.coreFeatures && Array.isArray(req.body.coreFeatures)) {

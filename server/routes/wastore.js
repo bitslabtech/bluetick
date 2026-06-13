@@ -795,7 +795,12 @@ router.put('/:id', async (req, res) => {
             }
         }
 
-        await store.update(req.body);
+        const updates = { ...req.body };
+        delete updates.id;
+        delete updates.userId;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+        await store.update(updates);
         res.json(store);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update store' });

@@ -55,7 +55,11 @@ router.put('/:id', async (req, res) => {
         const item = await StoreItem.findByPk(req.params.id);
         if (!item) return res.status(404).json({ error: 'Store item not found.' });
 
-        await item.update(req.body);
+        const updates = { ...req.body };
+        delete updates.id;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+        await item.update(updates);
         res.json(item);
     } catch (err) {
         res.status(500).json({ error: err.message });

@@ -201,7 +201,11 @@ router.put('/kb/:id', async (req, res) => {
         const article = await Article.findByPk(req.params.id);
         if (!article) return res.status(404).json({ error: 'Article not found' });
 
-        await article.update(req.body);
+        const updates = { ...req.body };
+        delete updates.id;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+        await article.update(updates);
 
         // Log
         await logActivity(req, 'KB Article Updated', `Admin updated KB article: ${article.title}`);
@@ -337,7 +341,11 @@ router.put('/kb/categories/:id', async (req, res) => {
     try {
         const category = await KBCategory.findByPk(req.params.id);
         if (!category) return res.status(404).json({ error: 'Not found' });
-        await category.update(req.body);
+        const updates = { ...req.body };
+        delete updates.id;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+        await category.update(updates);
 
         // Log
         await logActivity(req, 'KB Category Updated', `Admin updated KB category: ${category.name}`);

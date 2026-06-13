@@ -347,6 +347,26 @@ router.post('/publish', async (req, res) => {
         } = req.body;
         const user = await User.findByPk(req.user.id);
         
+        // ── STRICT PREREQUISITE CHECKS (BACKEND ENFORCEMENT) ──
+        if (!user.metaAdsToken || !user.metaAdAccountId) {
+            return res.status(403).json({ error: 'Missing Meta Ads prerequisites: Connect Meta Ads and select an Ad Account first.' });
+        }
+        const campaignObjective = objective || 'OUTCOME_ENGAGEMENT';
+        if (campaignObjective === 'OUTCOME_ENGAGEMENT') {
+            const Settings = require('../models/Settings');
+            let hasWhatsApp = !!(user.metaPhoneNumberId || user.wabaId || user.fbAccessToken);
+            if (!hasWhatsApp) {
+                try {
+                    const settings = await Settings.findOne({ where: { userId: req.user.id } });
+                    hasWhatsApp = !!(settings?.metaPhoneNumberId && settings?.metaAccessToken);
+                } catch (e) {}
+            }
+            if (!hasWhatsApp) {
+                return res.status(403).json({ error: 'Missing Meta Ads prerequisites: Set up WhatsApp Business API first to run Click-to-WhatsApp ads.' });
+            }
+        }
+        // ────────────────────────────────────────────────────────
+
         let fbStatus = 'Draft';
         let campRes = null;
         let adSetRes = null;
@@ -1230,11 +1250,25 @@ router.post('/:id/publish', async (req, res) => {
         }
 
         const user = await User.findByPk(req.user.id);
+        // ── STRICT PREREQUISITE CHECKS (BACKEND ENFORCEMENT) ──
         if (!user.metaAdsToken || !user.metaAdAccountId) {
-            return res.status(400).json({
-                error: 'Meta Ads account not connected. Please connect via Settings → Meta Ads and then retry.'
-            });
+            return res.status(403).json({ error: 'Missing Meta Ads prerequisites: Connect Meta Ads and select an Ad Account first.' });
         }
+        const storedObjective = campaignRecord.objective || 'OUTCOME_ENGAGEMENT';
+        if (storedObjective === 'OUTCOME_ENGAGEMENT') {
+            const Settings = require('../models/Settings');
+            let hasWhatsApp = !!(user.metaPhoneNumberId || user.wabaId || user.fbAccessToken);
+            if (!hasWhatsApp) {
+                try {
+                    const settings = await Settings.findOne({ where: { userId: req.user.id } });
+                    hasWhatsApp = !!(settings?.metaPhoneNumberId && settings?.metaAccessToken);
+                } catch (e) {}
+            }
+            if (!hasWhatsApp) {
+                return res.status(403).json({ error: 'Missing Meta Ads prerequisites: Set up WhatsApp Business API first to run Click-to-WhatsApp ads.' });
+            }
+        }
+        // ────────────────────────────────────────────────────────
 
         const stored = campaignRecord.toJSON();
         const creatives = stored.creatives || {};

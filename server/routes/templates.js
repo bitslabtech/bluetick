@@ -10,8 +10,12 @@ const { getIo } = require('../socket');
 const { getUserPlanLimits, checkLimit, getTemplateCount } = require('../utils/planLimits');
 
 // Memory storage for temporary file buffer before piping to Meta
-const upload = multer({ storage: multer.memoryStorage() });
-
+const { whatsappMediaFilter } = require('../utils/storageProvider');
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB max
+    fileFilter: whatsappMediaFilter
+});
 // Apply auth middleware
 router.use(auth);
 

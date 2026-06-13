@@ -6,7 +6,12 @@ const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const User = require('../models/User');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const { generalImageFilter } = require('../utils/storageProvider');
+const upload = multer({ 
+    dest: 'uploads/', 
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: generalImageFilter
+});
 const fs = require('fs');
 
 // ── Security: Mask sensitive values before sending to client ──
