@@ -332,6 +332,13 @@ export default function MetaAdsWizard() {
     const [schedulingStart, setSchedulingStart] = useState('');  // ISO date string
     const [schedulingEnd, setSchedulingEnd] = useState('');
 
+    // Auto-remove invalid placements when CTWA (Engagement) objective is selected
+    useEffect(() => {
+        if (manual.objective === 'OUTCOME_ENGAGEMENT') {
+            setPlacements(prev => prev.filter(p => p === 'facebook' || p === 'instagram'));
+        }
+    }, [manual.objective]);
+
     // ── UI State ──
     // Phase 6: Multi-language + Industry Templates
     const [adLanguage, setAdLanguage] = useState('english');
@@ -1034,35 +1041,44 @@ export default function MetaAdsWizard() {
                                 {[
                                     { value: 'facebook', label: 'Facebook', sublabel: 'Feed + Reels', emoji: '📘', color: 'blue' },
                                     { value: 'instagram', label: 'Instagram', sublabel: 'Feed + Reels', emoji: '📸', color: 'pink' },
-                                    { value: 'messenger', label: 'Messenger', sublabel: 'Inbox Ads', emoji: '💬', color: 'blue' },
-                                    { value: 'audience_network', label: 'Audience Network', sublabel: 'External apps', emoji: '🌐', color: 'slate' },
+                                    { value: 'messenger', label: 'Messenger', sublabel: 'Inbox Ads', emoji: '💬', color: 'blue', disabledForCTWA: true },
+                                    { value: 'audience_network', label: 'Audience Network', sublabel: 'External apps', emoji: '🌐', color: 'slate', disabledForCTWA: true },
                                 ].map(p => {
-                                    const isSelected = placements.includes(p.value);
+                                    const isCTWA = manual.objective === 'OUTCOME_ENGAGEMENT';
+                                    const isDisabled = isCTWA && p.disabledForCTWA;
+                                    const isSelected = placements.includes(p.value) && !isDisabled;
                                     const colorMap = {
                                         blue: isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark',
                                         pink: isSelected ? 'border-pink-500 bg-pink-50 dark:bg-pink-500/10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark',
                                         slate: isSelected ? 'border-slate-500 bg-slate-100 dark:bg-white/10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark',
                                     };
                                     return (
-                                        <button
-                                            key={p.value}
-                                            type="button"
-                                            onClick={() => setPlacements(prev =>
-                                                prev.includes(p.value)
-                                                    ? prev.filter(x => x !== p.value)
-                                                    : [...prev, p.value]
+                                        <div key={p.value} className="relative group">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPlacements(prev =>
+                                                    prev.includes(p.value)
+                                                        ? prev.filter(x => x !== p.value)
+                                                        : [...prev, p.value]
+                                                )}
+                                                disabled={isDisabled}
+                                                className={`w-full relative flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-xl border-2 transition-all text-center ${colorMap[p.color] || colorMap.slate} ${isDisabled ? 'opacity-40 cursor-not-allowed grayscale' : ''}`}
+                                            >
+                                                {isSelected && (
+                                                    <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                                                        <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                                                    </span>
+                                                )}
+                                                <span className="text-xl">{p.emoji}</span>
+                                                <span className={`text-[11px] font-bold ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>{p.label}</span>
+                                                <span className="text-[9px] text-slate-400">{p.sublabel}</span>
+                                            </button>
+                                            {isDisabled && (
+                                                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none shadow-lg">
+                                                    Not supported for WhatsApp ads
+                                                </div>
                                             )}
-                                            className={`relative flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-xl border-2 transition-all text-center ${colorMap[p.color] || colorMap.slate}`}
-                                        >
-                                            {isSelected && (
-                                                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
-                                                    <CheckCircle2 className="w-2.5 h-2.5 text-white" />
-                                                </span>
-                                            )}
-                                            <span className="text-xl">{p.emoji}</span>
-                                            <span className={`text-[11px] font-bold ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>{p.label}</span>
-                                            <span className="text-[9px] text-slate-400">{p.sublabel}</span>
-                                        </button>
+                                        </div>
                                     );
                                 })}
                             </div>
