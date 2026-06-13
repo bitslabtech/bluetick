@@ -208,6 +208,25 @@ router.get('/status', auth, async (req, res) => {
         }
 
 
+        // ── Check Payment Method ──
+        let hasValidPaymentMethod = false;
+        if (hasMetaToken && user.metaAdAccountId) {
+            try {
+                const accRes = await axios.get(`https://graph.facebook.com/v22.0/${user.metaAdAccountId}`, {
+                    params: {
+                        fields: 'funding_source_details',
+                        access_token: user.metaAdsToken
+                    },
+                    timeout: 5000
+                });
+                if (accRes.data && accRes.data.funding_source_details) {
+                    hasValidPaymentMethod = true;
+                }
+            } catch (e) {
+                console.warn(`[CTWA] Could not verify payment method:`, e.response?.data?.error?.message || e.message);
+            }
+        }
+
         res.json({
             // Simple boolean for legacy code
             connected: hasMetaToken,
@@ -220,6 +239,7 @@ router.get('/status', auth, async (req, res) => {
                 hasWhatsApp,         // WhatsApp Business API number set up
                 hasWabaSetup,        // Full WhatsApp Business API + WABA configured
                 hasPageWabaLink,     // Page linked to WABA (required for CTWA ads)
+                hasValidPaymentMethod, // Meta Ad Account has a payment method
             }
         });
     } catch (err) {
@@ -367,12 +387,25 @@ router.get('/dashboard', auth, async (req, res) => {
             };
         });
 
+        // ── Step 4: Fetch actual currency from Meta Ad Account ──
+        let accountCurrency = 'INR';
+        try {
+            const accRes = await axios.get(`https://graph.facebook.com/v22.0/${user.metaAdAccountId}`, {
+                params: { fields: 'currency', access_token: user.metaAdsToken }
+            });
+            if (accRes.data && accRes.data.currency) {
+                accountCurrency = accRes.data.currency;
+            }
+        } catch (e) {
+            console.error('[CTWA DASHBOARD] Failed to fetch currency:', e.message);
+        }
+
         res.json({
             ads,
             totalLeads,
             totalSpend: parseFloat(totalSpend.toFixed(2)),
             adAccountId: user.metaAdAccountId,
-            currency: 'USD' // TODO: fetch from ad account details
+            currency: accountCurrency
         });
 
     } catch (err) {

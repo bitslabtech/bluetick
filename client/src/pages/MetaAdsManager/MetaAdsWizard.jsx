@@ -6,7 +6,7 @@ import {
     Users, Briefcase, Zap, Image, TrendingUp, ExternalLink, MoreVertical,
     Bot, MessageCircle, Mail, ArrowRight, Workflow, Radio, Globe,
     PenLine, SlidersHorizontal, Hash, FileText, Plus, X, Tag,
-    Search, Building2, Flag, UploadCloud, Trash2, Info
+    Search, Building2, Flag, UploadCloud, Trash2, Info, ChevronDown
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -267,19 +267,29 @@ export default function MetaAdsWizard() {
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [metaConnected, setMetaConnected] = useState(null); // null = checking
-    const [checklistChecks, setChecklistChecks] = useState({ hasMetaToken: false, hasAdAccount: false, hasWhatsApp: false, hasWabaSetup: false, hasPageWabaLink: false });
+    const [checklistChecks, setChecklistChecks] = useState({ hasMetaToken: false, hasAdAccount: false, hasWhatsApp: false, hasWabaSetup: false, hasPageWabaLink: false, hasValidPaymentMethod: false });
     const [checklistLoading, setChecklistLoading] = useState(false);
+    const [expandedCheck, setExpandedCheck] = useState(null);
+    const [hasAttemptedAutoOpen, setHasAttemptedAutoOpen] = useState(false);
+    const [showChecklist, setShowChecklist] = useState(false);   // prereq modal
+    const [showPreview, setShowPreview] = useState(false);        // ad preview modal
 
-    const fetchStatus = async () => {
+    const fetchStatus = async (autoOpen = false) => {
         try {
             const res = await axios.get('/api/ctwa/status', { withCredentials: true });
             setMetaConnected(res.data.connected);
-            if (res.data.checks) setChecklistChecks(res.data.checks);
+            if (res.data.checks) {
+                setChecklistChecks(res.data.checks);
+                const checksFailed = Object.values(res.data.checks).some(v => !v);
+                if (checksFailed && autoOpen) {
+                    setShowChecklist(true);
+                }
+            }
         } catch { setMetaConnected(false); }
     };
 
     // Check Meta connection on mount
-    useEffect(() => { fetchStatus(); }, []);
+    useEffect(() => { fetchStatus(true); }, []);
 
     // Form State
     const [businessData, setBusinessData] = useState({ name: '', description: '' });
@@ -318,13 +328,11 @@ export default function MetaAdsWizard() {
     const [gender, setGender] = useState('all');              // 'all' | 'male' | 'female'
     const [targetingLanguage, setTargetingLanguage] = useState('');  // Meta locale code e.g. 'hi', 'en'
     const [placements, setPlacements] = useState(['facebook', 'instagram']); // platforms
+    const [messengerPositions, setMessengerPositions] = useState(['messenger_home', 'messenger_story']); // Inbox/Story
     const [schedulingStart, setSchedulingStart] = useState('');  // ISO date string
     const [schedulingEnd, setSchedulingEnd] = useState('');
 
     // ── UI State ──
-    const [showChecklist, setShowChecklist] = useState(false);   // prereq modal
-    const [showPreview, setShowPreview] = useState(false);        // ad preview modal
-
     // Phase 6: Multi-language + Industry Templates
     const [adLanguage, setAdLanguage] = useState('english');
     const LANGUAGES = [
@@ -465,6 +473,11 @@ export default function MetaAdsWizard() {
 
     // Step 5: Publish (AI Mode)
     const handlePublish = async () => {
+        const c = checklistChecks;
+        if (!c.hasMetaToken || !c.hasAdAccount || !c.hasWhatsApp || !c.hasWabaSetup || !c.hasPageWabaLink || !c.hasValidPaymentMethod) {
+            setShowChecklist(true);
+            return toast.error('Please complete all mandatory setup steps in the Checklist before publishing.');
+        }
         const selectedCreative = creativeData[selectedCreativeIndex];
         if (!generatedImage) {
             return toast.error('Please generate or upload an ad image before publishing. Images are required for Meta ads to appear on Instagram & Facebook.');
@@ -473,19 +486,27 @@ export default function MetaAdsWizard() {
         const META_MIN_DAILY = 100;   // ₹100/day minimum
         const META_MIN_FIXED = 500;   // ₹500 minimum for fixed/lifetime budget
         if (budgetData.budgetType === 'daily' && (budgetData.dailyBudget || 0) < META_MIN_DAILY) {
-            return toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
+            toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
         }
         if (budgetData.budgetType === 'lifetime' && (budgetData.lifetimeBudget || 0) < META_MIN_FIXED) {
-            return toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
+            toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
         }
         if (!schedulingStart) {
             return toast.error('Please select a Start Date for your ad schedule.');
         }
-        if (!schedulingEnd) {
-            return toast.error('Please select an End Date for your ad schedule.');
+        // For lifetime/fixed budget, an end date is required
+        if (budgetData.budgetType === 'lifetime' && !schedulingEnd) {
+            return toast.error('Fixed budget campaigns require an End Date.');
         }
-        if (new Date(schedulingEnd).getTime() <= new Date(schedulingStart).getTime()) {
-            return toast.error('The End Time must be strictly after the Start Time.');
+        if (schedulingEnd && new Date(schedulingEnd).getTime() <= new Date(schedulingStart).getTime()) {
+            return toast.error('The End Time must be after the Start Time.');
+        }
+        // Meta rule: daily budget ad sets must run for at least 24 hours
+        if (schedulingEnd) {
+            const durationHours = (new Date(schedulingEnd).getTime() - new Date(schedulingStart).getTime()) / 3600000;
+            if (budgetData.budgetType === 'daily' && durationHours < 24) {
+                return toast.error('Daily budget campaigns must run for at least 24 hours. Please extend your end date/time by at least ' + Math.ceil(24 - durationHours) + ' hour(s), or leave End Date blank to run indefinitely.');
+            }
         }
         setLoading(true);
         try {
@@ -503,6 +524,7 @@ export default function MetaAdsWizard() {
                     gender,
                     targetingLanguage: targetingLanguage || undefined,
                     placements,
+                    messengerPositions,
                 },
                 creatives: selectedCreative,
                 imageUrl: generatedImage,
@@ -533,6 +555,11 @@ export default function MetaAdsWizard() {
 
     // ── Manual Publish Handler ──
     const handleManualPublish = async () => {
+        const c = checklistChecks;
+        if (!c.hasMetaToken || !c.hasAdAccount || !c.hasWhatsApp || !c.hasWabaSetup || !c.hasPageWabaLink || !c.hasValidPaymentMethod) {
+            setShowChecklist(true);
+            return toast.error('Please complete all mandatory setup steps in the Checklist before publishing.');
+        }
         if (!manual.campaignName.trim()) return toast.error('Campaign name is required.');
         if (!manual.primaryText.trim()) return toast.error('Ad primary text is required.');
         if (!manual.headline.trim()) return toast.error('Headline is required.');
@@ -542,10 +569,10 @@ export default function MetaAdsWizard() {
         const META_MIN_DAILY = 100;
         const META_MIN_FIXED = 500;
         if (manual.budgetType === 'daily' && (manual.dailyBudget || 0) < META_MIN_DAILY) {
-            return toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
+            toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
         }
         if (manual.budgetType === 'lifetime' && (manual.lifetimeBudget || 0) < META_MIN_FIXED) {
-            return toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
+            toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
         }
         if (!schedulingStart) {
             return toast.error('Please select a Start Date for your ad schedule.');
@@ -554,7 +581,12 @@ export default function MetaAdsWizard() {
             return toast.error('Please select an End Date for your ad schedule.');
         }
         if (new Date(schedulingEnd).getTime() <= new Date(schedulingStart).getTime()) {
-            return toast.error('The End Time must be strictly after the Start Time.');
+            return toast.error('The End Time must be after the Start Time.');
+        }
+        // Meta rule: daily budget ad sets must run for at least 24 hours
+        const durationHoursManual = (new Date(schedulingEnd).getTime() - new Date(schedulingStart).getTime()) / 3600000;
+        if (manual.budgetType === 'daily' && durationHoursManual < 24) {
+            return toast.error('Daily budget campaigns must run for at least 24 hours. Please set end date/time at least ' + Math.ceil(24 - durationHoursManual) + ' hour(s) later.');
         }
 
         setLoading(true);
@@ -575,6 +607,7 @@ export default function MetaAdsWizard() {
                     gender,
                     targetingLanguage:  targetingLanguage || undefined,
                     placements,
+                    messengerPositions,
                 },
                 creatives: { primary_text: manual.primaryText, headline: manual.headline },
                 imageUrl: manualImage || null,
@@ -1033,6 +1066,30 @@ export default function MetaAdsWizard() {
                                     );
                                 })}
                             </div>
+                            {placements.includes('messenger') && (
+                                <div className="mt-3 p-3 bg-blue-50/50 dark:bg-blue-500/5 rounded-xl border border-blue-100 dark:border-white/5 flex gap-6">
+                                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                                        <input type="checkbox" className="rounded text-blue-500 w-4 h-4 cursor-pointer" 
+                                            checked={messengerPositions.includes('messenger_home')} 
+                                            onChange={(e) => {
+                                                if (e.target.checked) setMessengerPositions(p => [...p, 'messenger_home']);
+                                                else setMessengerPositions(p => p.filter(x => x !== 'messenger_home'));
+                                            }} 
+                                        />
+                                        Messenger Inbox
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                                        <input type="checkbox" className="rounded text-blue-500 w-4 h-4 cursor-pointer" 
+                                            checked={messengerPositions.includes('messenger_story')} 
+                                            onChange={(e) => {
+                                                if (e.target.checked) setMessengerPositions(p => [...p, 'messenger_story']);
+                                                else setMessengerPositions(p => p.filter(x => x !== 'messenger_story'));
+                                            }} 
+                                        />
+                                        Messenger Stories
+                                    </label>
+                                </div>
+                            )}
                             {placements.length === 0 && (
                                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
                                     <AlertTriangle className="w-3.5 h-3.5" /> Select at least one placement
@@ -1092,14 +1149,24 @@ export default function MetaAdsWizard() {
                                 <p className="text-[10px] text-slate-400 mt-1">Leave blank = runs until budget runs out</p>
                             </div>
                         </div>
-                        {schedulingStart && schedulingEnd && (
-                            <div className="mt-3 flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-2.5">
-                                <span className="text-amber-600 dark:text-amber-400 text-xs font-bold">📅 Campaign scheduled:</span>
-                                <span className="text-xs text-amber-700 dark:text-amber-300">
-                                    {new Date(schedulingStart).toLocaleString()} → {new Date(schedulingEnd).toLocaleString()}
-                                </span>
-                            </div>
-                        )}
+                        {schedulingStart && schedulingEnd && (() => {
+                            const durationH = Math.round((new Date(schedulingEnd) - new Date(schedulingStart)) / 3600000);
+                            const tooShort = durationH < 24;
+                            return (
+                                <div className={`mt-3 flex items-center gap-2 border rounded-xl px-4 py-2.5 ${
+                                    tooShort
+                                        ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30'
+                                        : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30'
+                                }`}>
+                                    <span className={`text-xs font-bold ${tooShort ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                        {tooShort ? '⚠️ Too short! Min 24h required:' : '📅 Campaign scheduled:'}
+                                    </span>
+                                    <span className={`text-xs ${tooShort ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                                        {new Date(schedulingStart).toLocaleString()} → {new Date(schedulingEnd).toLocaleString()} ({durationH}h)
+                                    </span>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
 
@@ -1281,7 +1348,7 @@ export default function MetaAdsWizard() {
                     <button onClick={() => navigate(-1)} className="px-5 py-3.5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-sm">Cancel</button>
                     <button
                         onClick={handleManualPublish}
-                        disabled={loading}
+                        disabled={loading || !Object.values(checklistChecks).every(Boolean)}
                         className={`flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all text-sm ${
                             metaConnected
                                 ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-violet-500/25'
@@ -2058,12 +2125,12 @@ export default function MetaAdsWizard() {
                             <button onClick={() => setCurrentStep(3)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium px-4 py-2 border border-slate-200 dark:border-white/10 rounded-xl">Back to Automation</button>
                             <button 
                                 onClick={handlePublish}
-                                disabled={loading}
+                                disabled={loading || !Object.values(checklistChecks).every(Boolean)}
                                 className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold shadow-lg transition-all w-full justify-center ml-4 ${
                                     metaConnected
                                         ? 'bg-primary hover:bg-primary/90 shadow-md text-white'
                                         : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25 text-white'
-                                }`}
+                                } disabled:opacity-60 disabled:cursor-not-allowed`}
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Megaphone className="w-5 h-5" />}
                                 {metaConnected ? 'Publish Ad Campaign' : 'Save as Draft'}
@@ -2112,81 +2179,174 @@ export default function MetaAdsWizard() {
                             <div className="p-6 space-y-4">
                                 {[
                                     {
+                                        id: 'page',
                                         done: checklistChecks.hasWabaSetup || checklistChecks.hasWhatsApp,
                                         icon: '📄',
                                         title: 'Facebook Business Page',
                                         desc: checklistChecks.hasWabaSetup || checklistChecks.hasWhatsApp
                                             ? 'Your WhatsApp Business Account is connected — a Facebook Page is confirmed.'
                                             : 'A verified Facebook Page linked to your WhatsApp Business Account is required.',
+                                        steps: [
+                                            'Open your Facebook Pages screen.',
+                                            'Click "Create New Page" if you do not have one.',
+                                            'Fill out the required information and save.',
+                                            'Return here and click "Re-check my setup".'
+                                        ],
                                         link: 'https://www.facebook.com/pages/creation/',
                                         linkLabel: 'Create Page →'
                                     },
                                     {
+                                        id: 'meta_token',
                                         done: checklistChecks.hasMetaToken,
                                         icon: '🏢',
                                         title: 'Meta Business Manager Connected',
                                         desc: checklistChecks.hasMetaToken
                                             ? 'Your Facebook Ads account is connected to BlueTick.'
                                             : 'Connect your Meta Ads account via Facebook Login so we can create campaigns on your behalf.',
+                                        steps: [
+                                            'Go to CTWA Analytics.',
+                                            'Click the "Connect Meta Ads" button.',
+                                            'Log in to Facebook and grant the required permissions.',
+                                            'Return here and click "Re-check my setup".'
+                                        ],
                                         link: '/ctwa-analytics',
                                         linkLabel: 'Connect Meta Ads →',
                                         internal: true
                                     },
                                     {
+                                        id: 'ad_account',
                                         done: checklistChecks.hasAdAccount,
                                         icon: '💳',
-                                        title: 'Ad Account with Payment Method',
+                                        title: 'Ad Account Selected',
                                         desc: checklistChecks.hasAdAccount
-                                            ? `Ad account ${checklistChecks.hasAdAccount ? 'selected' : ''} — ensure a payment method is added in Meta Ad Manager.`
-                                            : 'Select an Ad Account and add a credit/debit card in Meta Ad Manager before ads can go live.',
-                                        link: 'https://www.facebook.com/ads/manager/billing',
-                                        linkLabel: 'Add Payment →',
-                                        extraLink: checklistChecks.hasMetaToken && !checklistChecks.hasAdAccount ? { label: 'Select Ad Account →', to: '/ctwa-analytics', internal: true } : null
+                                            ? 'Ad account is selected.'
+                                            : 'Select an Ad Account in CTWA Analytics before ads can go live.',
+                                        steps: [
+                                            'Go to CTWA Analytics.',
+                                            'Select an Ad Account from the dropdown list.',
+                                            'Click "Save".',
+                                            'Return here and click "Re-check my setup".'
+                                        ],
+                                        link: '/ctwa-analytics',
+                                        linkLabel: 'Select Ad Account →',
+                                        internal: true
                                     },
                                     {
+                                        id: 'payment',
+                                        done: checklistChecks.hasValidPaymentMethod,
+                                        icon: '💸',
+                                        title: 'Valid Payment Method',
+                                        desc: checklistChecks.hasValidPaymentMethod
+                                            ? 'Your Ad Account has an active payment method.'
+                                            : 'Meta requires a valid credit card on file before you can publish ads.',
+                                        steps: [
+                                            'Go to your Meta Billing Settings.',
+                                            'Click "Payment Settings" in the top right.',
+                                            'Click "Add Payment Method" and enter your card details.',
+                                            'Once verified by Meta, return here and click "Re-check my setup".'
+                                        ],
+                                        link: 'https://www.facebook.com/ads/manager/billing',
+                                        linkLabel: 'Add Payment →'
+                                    },
+                                    {
+                                        id: 'whatsapp',
                                         done: checklistChecks.hasWhatsApp,
                                         icon: '📱',
                                         title: 'WhatsApp Number Connected',
                                         desc: checklistChecks.hasWhatsApp
                                             ? 'Your WhatsApp Business API number is configured and ready.'
                                             : 'Your WhatsApp Business API number must be set up and linked to your Facebook Page.',
+                                        steps: [
+                                            'Go to BlueTick Settings.',
+                                            'Under WhatsApp Configuration, follow the embedded setup.',
+                                            'Ensure your number is successfully verified.',
+                                            'Return here and click "Re-check my setup".'
+                                        ],
                                         link: '/settings',
                                         linkLabel: 'Setup WhatsApp →',
                                         internal: true
                                     },
                                     {
+                                        id: 'page_waba',
                                         done: checklistChecks.hasPageWabaLink,
                                         icon: '🔗',
                                         title: 'Page Linked to WhatsApp',
                                         desc: checklistChecks.hasPageWabaLink
                                             ? 'Your Facebook Page is properly linked to your WhatsApp Business Account.'
                                             : 'Your Facebook Page MUST be linked to your WhatsApp Business account in Meta Business settings to run Click-to-WhatsApp ads. If not linked, ads will fallback to standard website traffic ads.',
+                                        steps: [
+                                            'Open your Facebook Page Settings.',
+                                            'On the left sidebar, click "Linked Accounts" then "WhatsApp".',
+                                            'Enter your WhatsApp number and verify the OTP.',
+                                            'Return here and click "Re-check my setup".'
+                                        ],
                                         link: 'https://business.facebook.com/settings/whatsapp-business-accounts',
                                         linkLabel: 'Link in Meta Business →',
                                         internal: false
                                     },
-                                ].map((item, i) => (
-                                    <div key={i} className={`flex items-start gap-4 p-4 rounded-2xl border-2 transition-all ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]'}`}>
-                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${item.done ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-slate-100 dark:bg-white/5'}`}>
-                                            {item.done ? '✅' : item.icon}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`font-bold text-sm ${item.done ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-800 dark:text-white'}`}>{item.title}</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{item.desc}</p>
-                                            {!item.done && (
-                                                <div className="flex flex-wrap gap-3 mt-1.5">
-                                                    {item.internal
-                                                        ? <button onClick={() => { setShowChecklist(false); navigate(item.link); }} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{item.linkLabel}</button>
-                                                        : <a href={item.link} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{item.linkLabel}</a>
-                                                    }
-                                                    {item.extraLink && (
-                                                        item.extraLink.internal
-                                                            ? <button onClick={() => { setShowChecklist(false); navigate(item.extraLink.to); }} className="text-xs font-bold text-indigo-500 dark:text-indigo-400 hover:underline">{item.extraLink.label}</button>
-                                                            : <a href={item.extraLink.to} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-500 dark:text-indigo-400 hover:underline">{item.extraLink.label}</a>
-                                                    )}
+                                ].map((item, i) => {
+                                    const isExpanded = expandedCheck === item.id;
+                                    return (
+                                    <div key={item.id} className={`flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5'}`} onClick={() => !item.done && setExpandedCheck(isExpanded ? null : item.id)}>
+                                        <div className="flex items-start gap-4">
+                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${item.done ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-amber-100 dark:bg-amber-500/20 shadow-sm'}`}>
+                                                {item.done ? '✅' : item.icon}
+                                            </div>
+                                            <div className="flex-1 min-w-0 flex items-center justify-between">
+                                                <div>
+                                                    <p className={`font-bold text-sm ${item.done ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'}`}>{item.title}</p>
+                                                    {!item.done && <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">Click to view fix instructions</p>}
                                                 </div>
-                                            )}
+                                                {!item.done && (
+                                                    <ChevronDown className={`w-5 h-5 text-amber-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                                )}
+                                            </div>
                                         </div>
+                                        
+                                        <AnimatePresence>
+                                            {!item.done && isExpanded && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    className="pt-4 overflow-hidden"
+                                                >
+                                                    <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-inner border border-amber-100 dark:border-amber-500/20">
+                                                        <p className="text-xs text-slate-600 dark:text-slate-300 mb-3 font-medium">{item.desc}</p>
+                                                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">How to fix this:</p>
+                                                        <ol className="list-decimal pl-5 text-xs text-slate-600 dark:text-slate-400 space-y-2">
+                                                            {item.steps.map((step, idx) => (
+                                                                <li key={idx} className="flex items-start gap-2">
+                                                                    <div dangerouslySetInnerHTML={{__html: step}} />
+                                                                </li>
+                                                            ))}
+                                                        </ol>
+                                                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex gap-3">
+                                                            {item.link && (
+                                                                item.internal ? (
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); setShowChecklist(false); navigate(item.link); }} 
+                                                                        className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors inline-flex items-center gap-1"
+                                                                    >
+                                                                        {item.linkLabel}
+                                                                    </button>
+                                                                ) : (
+                                                                    <a 
+                                                                        href={item.link} 
+                                                                        target="_blank" 
+                                                                        rel="noreferrer" 
+                                                                        onClick={e => e.stopPropagation()} 
+                                                                        className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors inline-flex items-center gap-1"
+                                                                    >
+                                                                        {item.linkLabel}
+                                                                    </a>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 ))}
 

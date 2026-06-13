@@ -456,6 +456,7 @@ router.post('/publish', async (req, res) => {
                 const publisherPlatforms = placements.filter(p => ['facebook', 'instagram', 'audience_network', 'messenger'].includes(p));
                 const facebookPositions  = placements.includes('facebook')   ? (targeting?.fbPositions   || ['feed', 'facebook_reels']) : undefined;
                 const instagramPositions = placements.includes('instagram')  ? (targeting?.igPositions   || ['stream', 'reels'])        : undefined;
+                const messengerPositions = placements.includes('messenger')  ? (targeting?.messengerPositions || ['messenger_home', 'messenger_story']) : undefined;
 
                 // ── Build full targeting spec ─────────────────────────
                 // targeting_automation MUST be inside the targeting JSON (confirmed by Meta error_subcode 1870227)
@@ -470,6 +471,7 @@ router.post('/publish', async (req, res) => {
                     ...(publisherPlatforms.length > 0 && { publisher_platforms: publisherPlatforms }),
                     ...(facebookPositions   && { facebook_positions: facebookPositions }),
                     ...(instagramPositions  && { instagram_positions: instagramPositions }),
+                    ...(messengerPositions  && { messenger_positions: messengerPositions }),
                     targeting_automation: { advantage_audience: 0 },
                 };
 
@@ -600,13 +602,39 @@ router.post('/publish', async (req, res) => {
                 }
 
                 // ── Ad Scheduling ──────────────────────────────────────
-                if (scheduling?.startDate) {
-                    const st = Math.floor(new Date(scheduling.startDate).getTime() / 1000);
-                    if (!isNaN(st)) adSetParams.start_time = st;
+                // Meta rules:
+                //  • start_time is optional (defaults to now)
+                //  • For DAILY budget: end_time is optional and should be omitted for
+                //    indefinite campaigns. If provided, the gap MUST be >= 24 hours.
+                //  • For LIFETIME budget: end_time is required.
+                const schedStart = scheduling?.startDate ? Math.floor(new Date(scheduling.startDate).getTime() / 1000) : null;
+                const schedEnd   = scheduling?.endDate   ? Math.floor(new Date(scheduling.endDate).getTime()   / 1000) : null;
+
+                if (schedStart && !isNaN(schedStart)) {
+                    adSetParams.start_time = schedStart;
                 }
-                if (scheduling?.endDate) {
-                    const et = Math.floor(new Date(scheduling.endDate).getTime() / 1000);
-                    if (!isNaN(et)) adSetParams.end_time = et;
+
+                if (isLifetime) {
+                    // Lifetime budget REQUIRES an end_time
+                    if (schedEnd && !isNaN(schedEnd)) {
+                        adSetParams.end_time = schedEnd;
+                    } else {
+                        // Default: 30 days from now
+                        adSetParams.end_time = Math.floor(Date.now() / 1000) + (30 * 24 * 3600);
+                    }
+                } else {
+                    // Daily budget: only set end_time if provided AND gap is at least 24h
+                    if (schedEnd && !isNaN(schedEnd)) {
+                        const effectiveStart = schedStart || Math.floor(Date.now() / 1000);
+                        const gapSeconds = schedEnd - effectiveStart;
+                        if (gapSeconds < 24 * 3600) {
+                            return res.status(400).json({
+                                error: `Ad schedule is too short (${Math.round(gapSeconds / 3600)} hour(s)). Daily budget campaigns must run for at least 24 hours. Please extend the end date or leave it blank to run the campaign indefinitely.`
+                            });
+                        }
+                        adSetParams.end_time = schedEnd;
+                    }
+                    // If no end date provided for daily budget → omit end_time (runs until paused)
                 }
 
                 // Log outgoing params for debugging (redact token)

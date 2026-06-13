@@ -19,9 +19,24 @@ const fmt = (n, decimals = 0) => {
     });
 };
 
-const fmtCurrency = (n) => {
+const fmtCurrency = (n, currencyCode = 'INR') => {
     if (n === null || n === undefined) return '—';
-    return `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    
+    // Choose appropriate locale based on currency for native formatting
+    const locales = {
+        INR: 'en-IN',
+        USD: 'en-US',
+        EUR: 'de-DE', 
+        GBP: 'en-GB'
+    };
+    const locale = locales[currencyCode] || 'en-US';
+
+    return new Intl.NumberFormat(locale, { 
+        style: 'currency', 
+        currency: currencyCode,
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+    }).format(Number(n));
 };
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
@@ -364,12 +379,12 @@ const CTWADashboard = ({ onDisconnect }) => {
             {/* Summary Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard icon={Users} label="Total CTWA Leads" value={loading ? '—' : fmt(data?.totalLeads)} color="indigo" />
-                <StatCard icon={DollarSign} label="Total Ad Spend" value={loading ? '—' : fmtCurrency(data?.totalSpend)} color="rose" />
+                <StatCard icon={DollarSign} label="Total Ad Spend" value={loading ? '—' : fmtCurrency(data?.totalSpend, data?.currency)} color="rose" />
                 <StatCard
                     icon={MousePointerClick}
                     label="Avg. Cost Per Lead"
                     value={loading ? '—' : (data?.totalLeads > 0 && data?.totalSpend > 0
-                        ? fmtCurrency(data.totalSpend / data.totalLeads)
+                        ? fmtCurrency(data.totalSpend / data.totalLeads, data?.currency)
                         : '—')}
                     color="amber"
                 />
@@ -439,12 +454,12 @@ const CTWADashboard = ({ onDisconnect }) => {
                                         </td>
                                         <td className="flex sm:table-cell justify-between items-center sm:justify-end px-0 sm:px-4 py-2 sm:py-4 border-t border-slate-100/50 sm:border-0 dark:border-white/5 sm:text-right font-semibold text-slate-800 dark:text-slate-200">
                                             <span className="sm:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider">Spend</span>
-                                            <span>{fmtCurrency(ad.spend)}</span>
+                                            <span>{fmtCurrency(ad.spend, data?.currency)}</span>
                                         </td>
                                         <td className="flex sm:table-cell justify-between items-center sm:justify-end px-0 sm:px-4 py-2 sm:py-4 border-t border-slate-100/50 sm:border-0 dark:border-white/5 sm:text-right">
                                             <span className="sm:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider">CPL</span>
                                             <span>{ad.costPerLead !== null ? (
-                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{fmtCurrency(ad.costPerLead)}</span>
+                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{fmtCurrency(ad.costPerLead, data?.currency)}</span>
                                             ) : <span className="text-slate-400">—</span>}</span>
                                         </td>
                                         <td className="flex sm:table-cell justify-between items-center sm:justify-end px-0 sm:px-4 py-2 sm:py-4 border-t border-slate-100/50 sm:border-0 dark:border-white/5 sm:text-right text-slate-600 dark:text-slate-300">
