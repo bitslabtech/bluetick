@@ -622,7 +622,7 @@ export default function WaStoreSettings() {
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
                                     <input type="number" min="0" value={checkoutConfig?.freeShippingThreshold || 0} onChange={e => setCheckoutConfig(p => ({...p, freeShippingThreshold: Number(e.target.value)}))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
                                 </div>
-                                <p className="text-[10px] text-slate-500 mt-1">Waive fee if cart > this amount. (0 to disable)</p>
+                                <p className="text-[10px] text-slate-500 mt-1">Waive fee if cart &gt; this amount. (0 to disable)</p>
                             </div>
                         </div>
                     </div>

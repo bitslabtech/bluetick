@@ -2364,7 +2364,8 @@ export default function MetaAdsWizard() {
                                             )}
                                         </AnimatePresence>
                                     </div>
-                                ))}
+                                    );
+                                })}
 
                                 {/* Re-check my setup */}
                                 <button
