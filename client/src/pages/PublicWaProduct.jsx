@@ -236,7 +236,7 @@ export default function PublicWaProduct({ customSlug }) {
         <div className="h-screen flex flex-col items-center justify-center bg-gray-50 space-y-4">
             <ShoppingBag className="w-16 h-16 text-gray-300" />
             <h1 className="text-2xl font-semibold text-gray-900">Product Not Found</h1>
-            <button onClick={() => navigate(`/store/${slug}`)} className="text-black font-medium hover:underline flex items-center gap-2">
+            <button onClick={() => navigate(`/store/${slug}`)} className={`${theme.text} font-medium hover:underline flex items-center gap-2`}>
                 <ArrowLeft className="w-4 h-4" /> Back to Store
             </button>
         </div>
@@ -276,7 +276,7 @@ export default function PublicWaProduct({ customSlug }) {
                         <li>
                             <button
                                 onClick={() => navigate(`/store/${slug}`)}
-                                className={`flex items-center gap-1 hover:text-black transition-colors ${theme.textMuted}`}
+                                className={`flex items-center gap-1 hover:opacity-80 transition-opacity ${theme.textMuted}`}
                             >
                                 <Home className="w-3.5 h-3.5" />
                                 <span>{store.name}</span>
@@ -288,7 +288,7 @@ export default function PublicWaProduct({ customSlug }) {
                                 <li>
                                     <button
                                         onClick={() => navigate(`/store/${slug}?cat=${encodeURIComponent(product.category)}`)}
-                                        className={`hover:text-black transition-colors ${theme.textMuted}`}
+                                        className={`hover:opacity-80 transition-opacity ${theme.textMuted}`}
                                     >
                                         {product.category}
                                     </button>
@@ -297,7 +297,7 @@ export default function PublicWaProduct({ customSlug }) {
                         )}
                         <li className={theme.textMuted}><ChevronRight className="w-3 h-3" /></li>
                         <li>
-                            <span className={`text-black font-bold line-clamp-1 normal-case capitalize tracking-normal`}>{product.name}</span>
+                            <span className={`${theme.text} font-bold line-clamp-1 normal-case capitalize tracking-normal`}>{product.name}</span>
                         </li>
                     </ol>
                 </nav>
@@ -469,13 +469,13 @@ export default function PublicWaProduct({ customSlug }) {
                                     {product.category}
                                 </span>
                             )}
-                            <h1 className="text-3xl lg:text-4xl font-normal tracking-tight text-black leading-tight mb-3 capitalize">
+                            <h1 className={`text-3xl lg:text-4xl font-normal tracking-tight ${theme.text} leading-tight mb-3 capitalize`}>
                                 {product.name}
                             </h1>
                             
                             {/* Pricing & Savings & Status */}
                             <div className="flex flex-wrap items-center gap-4">
-                                <span className="text-2xl font-semibold text-black">
+                                <span className={`text-2xl font-semibold ${theme.text}`}>
                                     {getCurrencySymbol(store.currency)}{getDisplayPrice(product.price, product).toFixed(2)}
                                 </span>
                                 {product.compareAtPrice && (
@@ -524,7 +524,7 @@ export default function PublicWaProduct({ customSlug }) {
                             <div className="py-6 border-b border-gray-100 space-y-5">
                                 {product.options.map((option, idx) => (
                                     <div key={idx} className="flex flex-col">
-                                        <h3 className="text-xs font-bold uppercase tracking-wider text-black mb-2.5">{option.name}</h3>
+                                        <h3 className={`text-xs font-bold uppercase tracking-wider ${theme.text} mb-2.5`}>{option.name}</h3>
                                         <div className="flex flex-wrap gap-2">
                                             {option.values.map(val => {
                                                 const isActive = selectedVariants[option.name] === val;
@@ -551,7 +551,7 @@ export default function PublicWaProduct({ customSlug }) {
                         {/* Quantity & Actions */}
                         <div className="hidden md:block py-6 space-y-4 max-w-[280px]">
                             <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold uppercase tracking-wider text-black">Quantity</span>
+                                <span className={`text-xs font-bold uppercase tracking-wider ${theme.text}`}>Quantity</span>
                                 <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl p-1 shrink-0">
                                     <button 
                                         onClick={() => setQty(Math.max(1, qty - 1))} 
@@ -559,7 +559,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     >
                                         <Minus className="w-3.5 h-3.5" />
                                     </button>
-                                    <span className="w-10 text-center font-bold text-sm text-black">{qty}</span>
+                                    <span className={`w-10 text-center font-bold text-sm ${theme.text}`}>{qty}</span>
                                     <button 
                                         onClick={() => setQty(qty + 1)} 
                                         className="w-8 h-8 flex items-center justify-center hover:bg-white text-gray-500 rounded-lg transition-all"
@@ -605,7 +605,7 @@ export default function PublicWaProduct({ customSlug }) {
                             <div className="border-b border-gray-100">
                                 <button
                                     onClick={() => toggleAccordion('description')}
-                                    className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider text-black py-3"
+                                    className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider ${theme.text} py-3`}
                                 >
                                     <span>Product Description</span>
                                     {openAccordions.description ? <Minus className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
@@ -618,7 +618,7 @@ export default function PublicWaProduct({ customSlug }) {
                                         width: '100%',
                                     }}
                                 >
-                                    <div className="pb-4 text-sm leading-relaxed text-gray-600 whitespace-pre-line" style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
+                                    <div className={`pb-4 text-sm leading-relaxed ${theme.textMuted} whitespace-pre-line`} style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
                                         {product.description || 'This product does not have a description yet. Contact the store for more details.'}
                                     </div>
                                 </div>
@@ -628,7 +628,7 @@ export default function PublicWaProduct({ customSlug }) {
                             <div className="border-b border-gray-100">
                                 <button
                                     onClick={() => toggleAccordion('delivery')}
-                                    className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider text-black py-3"
+                                    className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider ${theme.text} py-3`}
                                 >
                                     <span>WhatsApp Delivery</span>
                                     {openAccordions.delivery ? <Minus className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
@@ -641,7 +641,7 @@ export default function PublicWaProduct({ customSlug }) {
                                         width: '100%',
                                     }}
                                 >
-                                    <div className="pb-4 text-sm leading-relaxed text-gray-600 space-y-2" style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
+                                    <div className={`pb-4 text-sm leading-relaxed ${theme.textMuted} space-y-2`} style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
                                         <p>We process all orders directly through WhatsApp to provide a customized shipping quote and confirm product availability.</p>
                                         <ul className="list-disc pl-4 space-y-1 mt-2">
                                             <li>Direct chat with the merchant</li>
@@ -656,7 +656,7 @@ export default function PublicWaProduct({ customSlug }) {
                             <div className="border-b border-gray-100">
                                 <button
                                     onClick={() => toggleAccordion('details')}
-                                    className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider text-black py-3"
+                                    className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider ${theme.text} py-3`}
                                 >
                                     <span>Secure Checkout & Support</span>
                                     {openAccordions.details ? <Minus className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
@@ -669,7 +669,7 @@ export default function PublicWaProduct({ customSlug }) {
                                         width: '100%',
                                     }}
                                 >
-                                    <div className="pb-4 text-sm leading-relaxed text-gray-600 space-y-2" style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
+                                    <div className={`pb-4 text-sm leading-relaxed ${theme.textMuted} space-y-2`} style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
                                         <p>Shop with confidence. Your messages are encrypted and payment/delivery details are processed securely and manually verified.</p>
                                         <p>Need support or looking for a customization? Just proceed to checkout and chat with us.</p>
                                     </div>
@@ -715,11 +715,10 @@ export default function PublicWaProduct({ customSlug }) {
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
-                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
-                            className="w-full max-w-md bg-white h-full relative z-10 flex flex-col shadow-2xl"
+                            className={`w-full max-w-md ${theme.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
                         >
                             
-                            <div className={`px-6 py-5 border-b border-gray-100 flex items-center justify-between ${theme.pageBg}`}>
+                            <div className={`px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between ${theme.pageBg}`}>
                                 <h2 className={`text-lg font-semibold flex items-center gap-2 ${theme.text}`}>
                                     <ShoppingBag className="w-5 h-5" /> Your Cart
                                 </h2>
@@ -754,7 +753,7 @@ export default function PublicWaProduct({ customSlug }) {
                                                     <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
-                                                            <span className="w-8 text-center text-xs font-semibold">{item.qty}</span>
+                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900">{item.qty}</span>
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                         {item.qty > 1 && (
@@ -771,8 +770,8 @@ export default function PublicWaProduct({ customSlug }) {
                             </div>
 
                             {cart.length > 0 && (
-                                <div className={`p-6 ${theme.pageBg} border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]`}>
-                                    <div className="flex justify-between items-center mb-6">
+                                <div className={`p-6 ${theme.pageBg} border-t border-black/5 dark:border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]`}>
+                                    <div className="flex justify-between items-center mb-6 pt-2 border-t border-black/5 dark:border-white/10">
                                         <span className={theme.textMuted}>Subtotal</span>
                                         <span className={`text-xl font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
                                     </div>

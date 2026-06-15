@@ -313,10 +313,9 @@ export default function PublicWaStoreCategory({ customSlug }) {
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
-                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
-                            className="w-full max-w-md bg-white h-full relative z-10 flex flex-col shadow-2xl"
+                            className={`w-full max-w-md ${theme.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
                         >
-                            <div className={`px-6 py-5 border-b border-gray-100 flex items-center justify-between ${theme.pageBg}`}>
+                            <div className={`px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between ${theme.pageBg}`}>
                                 <h2 className={`text-lg font-semibold flex items-center gap-2 ${theme.text}`}>
                                     <ShoppingBag className="w-5 h-5" /> Your Cart
                                 </h2>
@@ -344,7 +343,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                                                     <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
-                                                            <span className="w-8 text-center text-xs font-semibold">{item.qty}</span>
+                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900">{item.qty}</span>
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                         {item.qty > 1 && (
@@ -361,7 +360,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                             </div>
 
                             {cart.length > 0 && (
-                                <div className={`p-6 ${theme.pageBg} border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]`}>
+                                <div className={`p-6 ${theme.pageBg} border-t border-black/5 dark:border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]`}>
                                     <div className="flex justify-between items-center mb-2">
                                         <span className={theme.textMuted}>Subtotal</span>
                                         <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartSubtotal.toFixed(2)}</span>

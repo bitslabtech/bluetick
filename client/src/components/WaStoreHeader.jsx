@@ -179,19 +179,23 @@ export default function WaStoreHeader({
                     </div>
                 ) : theme.id === 'glow' ? (
                     /* ── GLOW: Single Row Header ── Logo | Menu | Search+Cart */
-                    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-6">
-                        {/* LEFT: Logo only (or store name fallback if no logo) */}
-                        <div className="flex items-center shrink-0">
+                    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between md:gap-6 relative">
+                        {/* LEFT: Mobile Menu Button (hidden on desktop) */}
+                        <div className="flex items-center shrink-0 w-1/3 md:w-auto md:hidden">
                             <button 
                                 onClick={() => setIsMobileMenuOpen(true)}
-                                className={`md:hidden p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors mr-2`}
+                                className={`p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors mr-2`}
                             >
                                 <Menu className="w-6 h-6" />
                             </button>
+                        </div>
+
+                        {/* MIDDLE/LEFT: Logo (Centered on mobile, Left on desktop) */}
+                        <div className="flex items-center justify-center md:justify-start shrink-0 w-1/3 md:w-auto">
                             {store.logo ? (
-                                <img src={imgUrl(store.logo)} alt={store.name} className="w-auto h-12 object-contain cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
+                                <img src={imgUrl(store.logo)} alt={store.name} className="w-auto h-10 md:h-12 object-contain cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
                             ) : (
-                                <span className={`font-semibold text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
+                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
                             )}
                         </div>
 
@@ -254,7 +258,7 @@ export default function WaStoreHeader({
                         </div>
 
                         {/* RIGHT: Search Bar & Cart */}
-                        <div className="flex items-center gap-4 shrink-0">
+                        <div className="flex items-center justify-end gap-2 md:gap-4 shrink-0 w-1/3 md:w-auto">
                             {/* Mobile Search Icon */}
                             <button 
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -305,55 +309,62 @@ export default function WaStoreHeader({
                     </div>
                 ) : (
                     /* ── DEFAULT layout for all other themes ── */
-                    <div className={theme.headerWrapper || "max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between"}>
-                        {/* Logo & Store Name */}
-                        <div className={`flex items-center gap-3 ${theme.logoWrapper || ''}`}>
+                    <div className={theme.headerWrapper || "max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative"}>
+                        {/* LEFT: Mobile Menu Button */}
+                        <div className="flex items-center shrink-0 w-1/3 md:w-auto md:hidden">
                             <button 
                                 onClick={() => setIsMobileMenuOpen(true)}
-                                className={`md:hidden p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors`}
+                                className={`p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors`}
                             >
                                 <Menu className="w-6 h-6" />
                             </button>
-                            {store.logo && (
-                                <img src={imgUrl(store.logo)} alt={store.name} className="w-12 h-12 object-contain rounded-md cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
-                            )}
-                            <span className={`font-semibold text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
-                            
-                            {/* Desktop Search */}
-                            <div className="hidden md:block flex-1 max-w-md mx-8 relative">
-                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search products..." 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 text-black py-2 pl-9 pr-8 rounded-full outline-none focus:border-black transition-colors text-sm"
-                                />
-                                {searchQuery && (
-                                    <button 
-                                        onClick={() => setSearchQuery('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black p-1"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                                {/* Results */}
-                                {searchQuery.trim().length > 0 && (
-                                    <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
-                                        {renderSearchResults()}
-                                    </div>
-                                )}
-                            </div>
                         </div>
 
-                        {/* Right side: Search(mobile) & Cart */}
-                        <div className="flex items-center gap-2">
+                        {/* MIDDLE: Logo (Centered on mobile and desktop) */}
+                        <div className={`flex items-center justify-center shrink-0 w-1/3 md:w-auto md:absolute md:left-1/2 md:-translate-x-1/2 ${theme.logoWrapper || ''}`}>
+                            {store.logo ? (
+                                <img src={imgUrl(store.logo)} alt={store.name} className="w-auto h-10 md:h-12 object-contain rounded-md cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
+                            ) : (
+                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
+                            )}
+                        </div>
+
+                        {/* RIGHT: Search Bar & Cart */}
+                        <div className="flex items-center justify-end gap-2 md:gap-4 shrink-0 w-1/3 md:w-full">
+                            {/* Mobile Search Icon */}
                             <button 
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
                                 className={`md:hidden p-2 rounded-full transition-colors ${theme.textMuted} hover:${theme.text} flex items-center justify-center`}
                             >
                                 <Search className="w-6 h-6 stroke-[1.5]" />
                             </button>
+                            
+                            {/* Desktop Search */}
+                            <div className="hidden md:block w-48 lg:w-64 relative">
+                                <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${theme.textMuted || 'text-gray-400'}`} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search products..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className={`w-full py-2 pl-9 pr-8 rounded-full outline-none transition-colors text-sm ${theme.headerSearch || 'bg-black/5 dark:bg-white/5 border border-transparent hover:border-gray-200 dark:hover:border-white/10 focus:border-gray-300 dark:focus:border-white/20 text-current'}`}
+                                />
+                                {searchQuery && (
+                                    <button 
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-current p-1"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                                {/* Results */}
+                                {searchQuery.trim().length > 0 && (
+                                    <div className="absolute right-0 w-80 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto text-black">
+                                        {renderSearchResults()}
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Cart Button */}
                             <button 
                                 onClick={() => setIsCartOpen(true)}

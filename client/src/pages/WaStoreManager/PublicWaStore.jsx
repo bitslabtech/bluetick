@@ -560,7 +560,7 @@ export default function PublicWaStore() {
                                                     <div className="flex items-center gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                                                             <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
-                                                            <span className="w-8 text-center text-xs font-semibold">{item.qty}</span>
+                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900">{item.qty}</span>
                                                             <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                     </div>

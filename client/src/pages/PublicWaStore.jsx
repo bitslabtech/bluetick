@@ -331,7 +331,7 @@ export default function PublicWaStore({ customSlug }) {
                         <h2 className={`text-2xl font-bold mb-2 sm:mb-4 text-center ${theme.text}`}>Products Category</h2>
 
                         {theme.id === 'vogue' ? (
-                            <div className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 px-4 -mx-4 snap-x">
+                            <div className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 px-4 -mx-4 snap-x md:justify-center">
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -348,17 +348,17 @@ export default function PublicWaStore({ customSlug }) {
                                     return (
                                         <button
                                             key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
-                                            className="flex flex-col items-center gap-2 sm:gap-4 shrink-0 group w-[72px] sm:w-36 snap-start"
+                                            className="flex flex-col items-center gap-2 sm:gap-4 shrink-0 group w-24 sm:w-44 snap-start"
                                         >
-                                            <div className={`w-[72px] h-[72px] sm:w-36 sm:h-36 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
+                                            <div className={`w-24 h-24 sm:w-44 sm:h-44 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
                                                 {catImage ? (
                                                     <img src={imgUrl(catImage)} alt={cat} className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-100 group-hover:scale-105`} />
                                                 ) : (
-                                                    <span className="text-4xl font-thin text-zinc-400 dark:text-zinc-600">{cat.substring(0, 1)}</span>
+                                                    <span className="text-xl sm:text-4xl font-thin text-zinc-400 dark:text-zinc-600">{cat.substring(0, 1)}</span>
                                                 )}
                                                 <div className={`absolute inset-0 transition-opacity duration-500 bg-transparent group-hover:bg-black/10`}></div>
                                             </div>
-                                            <span className={`text-sm tracking-[0.15em] uppercase text-center font-light text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white`}>
+                                            <span className={`text-sm sm:text-lg tracking-[0.15em] uppercase text-center font-light text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white`}>
                                                 {cat}
                                             </span>
                                         </button>
@@ -366,7 +366,7 @@ export default function PublicWaStore({ customSlug }) {
                                 })}
                             </div>
                         ) : (
-                            <div className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 px-4 -mx-4">
+                            <div className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 px-4 -mx-4 md:justify-center">
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -383,16 +383,16 @@ export default function PublicWaStore({ customSlug }) {
                                     return (
                                         <button
                                             key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
-                                            className="flex flex-col items-center gap-2 sm:gap-3 shrink-0 group w-[72px] sm:w-24"
+                                            className="flex flex-col items-center gap-2 sm:gap-4 shrink-0 group w-24 sm:w-44"
                                         >
-                                            <div className={`w-[72px] h-[72px] sm:w-24 sm:h-24 rounded-full overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
+                                            <div className={`w-24 h-24 sm:w-44 sm:h-44 ${theme.categoryImageShape || 'rounded-full'} overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
                                                 {catImage ? (
                                                     <img src={imgUrl(catImage)} alt={cat} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <span className={`text-xl sm:text-2xl font-bold uppercase ${theme.textMuted}`}>{cat.substring(0, 2)}</span>
+                                                    <span className={`text-xl sm:text-4xl font-bold uppercase ${theme.textMuted}`}>{cat.substring(0, 2)}</span>
                                                 )}
                                             </div>
-                                            <span className={`text-sm font-semibold text-center leading-tight ${theme.textMuted}`}>{cat}</span>
+                                            <span className={`text-sm sm:text-lg font-semibold text-center leading-tight ${theme.textMuted}`}>{cat}</span>
                                         </button>
                                     );
                                 })}
@@ -588,11 +588,10 @@ export default function PublicWaStore({ customSlug }) {
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
-                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
-                            className="w-full max-w-md bg-white h-full relative z-10 flex flex-col shadow-2xl"
+                            className={`w-full max-w-md ${theme.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
                         >
 
-                            <div className={`px-6 py-5 border-b border-gray-100 flex items-center justify-between ${theme.pageBg}`}>
+                            <div className={`px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between ${theme.pageBg}`}>
                                 <h2 className={`text-lg font-semibold flex items-center gap-2 ${theme.text}`}>
                                     <ShoppingBag className="w-5 h-5" /> Your Cart
                                 </h2>
@@ -627,7 +626,7 @@ export default function PublicWaStore({ customSlug }) {
                                                     <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
-                                                            <span className="w-8 text-center text-xs font-semibold">{item.qty}</span>
+                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900">{item.qty}</span>
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                         {item.qty > 1 && (
@@ -644,7 +643,7 @@ export default function PublicWaStore({ customSlug }) {
                             </div>
 
                             {cart.length > 0 && (
-                                <div className={`p-6 ${theme.pageBg} border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]`}>
+                                <div className={`p-6 ${theme.pageBg} border-t border-black/5 dark:border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]`}>
                                     <div className="flex justify-between items-center mb-2">
                                         <span className={theme.textMuted}>Subtotal</span>
                                         <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartSubtotal.toFixed(2)}</span>
@@ -655,7 +654,7 @@ export default function PublicWaStore({ customSlug }) {
                                             <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{shippingCost.toFixed(2)}</span>
                                         </div>
                                     )}
-                                    <div className="flex justify-between items-center mb-6 pt-2 border-t border-gray-100">
+                                    <div className="flex justify-between items-center mb-6 pt-2 border-t border-black/5 dark:border-white/10">
                                         <span className={theme.textMuted}>Total</span>
                                         <span className={`text-xl font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
                                     </div>

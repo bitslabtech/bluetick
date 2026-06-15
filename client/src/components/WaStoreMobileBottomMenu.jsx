@@ -77,14 +77,14 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
 
     return (
         <nav 
-            className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-black border-t border-gray-200 dark:border-white/10 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.05)] ${theme?.pageBg || ''}`}
+            className={`md:hidden fixed bottom-0 left-0 right-0 z-40 ${theme?.pageBg || 'bg-white'} border-t border-black/5 dark:border-white/10 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.05)]`}
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
             {enabledItems.map((item) => (
                 <button
                     key={item.id}
                     onClick={() => handleAction(item.id)}
-                    className={`flex flex-col items-center justify-center py-2.5 px-2 w-full transition-colors ${theme?.textMuted || 'text-gray-500'} hover:text-indigo-600 dark:hover:text-indigo-400`}
+                    className={`flex flex-col items-center justify-center py-2.5 px-2 w-full transition-colors ${theme?.textMuted || 'text-gray-500'} hover:opacity-70`}
                 >
                     {getIcon(item.id)}
                     <span className="text-[10px] font-semibold mt-1">{getLabel(item.id)}</span>
