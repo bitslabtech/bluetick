@@ -332,11 +332,9 @@ export default function MetaAdsWizard() {
     const [schedulingStart, setSchedulingStart] = useState('');  // ISO date string
     const [schedulingEnd, setSchedulingEnd] = useState('');
 
-    // Auto-remove invalid placements when CTWA (Engagement) objective is selected
+    // Auto-remove invalid placements since Click-to-WhatsApp ads only support FB/IG
     useEffect(() => {
-        if (manual.objective === 'OUTCOME_ENGAGEMENT') {
-            setPlacements(prev => prev.filter(p => p === 'facebook' || p === 'instagram'));
-        }
+        setPlacements(prev => prev.filter(p => p === 'facebook' || p === 'instagram'));
     }, [manual.objective]);
 
     // ── UI State ──
@@ -1044,8 +1042,7 @@ export default function MetaAdsWizard() {
                                     { value: 'messenger', label: 'Messenger', sublabel: 'Inbox Ads', emoji: '💬', color: 'blue', disabledForCTWA: true },
                                     { value: 'audience_network', label: 'Audience Network', sublabel: 'External apps', emoji: '🌐', color: 'slate', disabledForCTWA: true },
                                 ].map(p => {
-                                    const isCTWA = manual.objective === 'OUTCOME_ENGAGEMENT';
-                                    const isDisabled = isCTWA && p.disabledForCTWA;
+                                    const isDisabled = p.disabledForCTWA; // All ads in this wizard are CTWA
                                     const isSelected = placements.includes(p.value) && !isDisabled;
                                     const colorMap = {
                                         blue: isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark',
