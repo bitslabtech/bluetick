@@ -8,9 +8,6 @@ export default defineConfig({
     react(),
     viteCompression({ algorithm: 'gzip', ext: '.gz' })
   ],
-  optimizeDeps: {
-    force: true
-  },
   build: {
     rollupOptions: {
       output: {
