@@ -155,6 +155,7 @@ const Dashboard = () => {
             await axios.get(`${import.meta.env.VITE_API_URL}/api/whatsapp/status`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            localStorage.setItem('lastWaStatusSync', Date.now().toString());
             showToast({ type: 'success', title: 'WhatsApp', message: 'Status refreshed from Meta successfully' });
             fetchStats(); // re-fetch stats to update UI
         } catch (err) {
@@ -194,6 +195,25 @@ const Dashboard = () => {
 
     useEffect(() => {
         fetchStats();
+
+        // Auto-sync WA status once every 24 hours
+        const autoSyncWaStatus = async () => {
+            const lastSync = localStorage.getItem('lastWaStatusSync');
+            const now = Date.now();
+            if (!lastSync || now - parseInt(lastSync) > 24 * 60 * 60 * 1000) {
+                try {
+                    const token = localStorage.getItem('token');
+                    await axios.get(`${import.meta.env.VITE_API_URL}/api/whatsapp/status`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    localStorage.setItem('lastWaStatusSync', now.toString());
+                    fetchStats(); // Re-fetch stats after silent background sync
+                } catch (err) {
+                    console.error('Silent auto-sync of WA status failed:', err);
+                }
+            }
+        };
+        autoSyncWaStatus();
     }, [fetchStats]);
 
     useEffect(() => {
@@ -411,17 +431,17 @@ const Dashboard = () => {
     const getUpgradeCriteria = (threshold, isVerified) => {
         if (threshold <= 250) {
             return isVerified 
-                ? "Since you are verified, consistently send high-quality messages. Meta will automatically upgrade your limit to 1K soon based on volume."
-                : "To increase your limit to 1K, complete your Meta Business Profile Verification in the Facebook Business Manager. Otherwise, limits upgrade very slowly.";
+                ? "Your Meta Business Page is verified. To reach the 1K limit, simply continue sending messages. Meta will automatically upgrade your limit based on quality and volume."
+                : "To increase your limit to 1K, you MUST complete Meta Business Verification in your Facebook Business Manager. Until then, you are restricted to 250 messages per 24 hours.";
         }
         if (threshold === 1000) {
-            return "To upgrade to the 10K limit, you must send messages to at least 500 unique customers within a rolling 7-day period while maintaining a Medium or High quality rating.";
+            return "To upgrade to the 10K limit, you must send messages to at least 500 unique customers within a rolling 7-day period while maintaining a High or Medium quality rating.";
         }
         if (threshold === 10000) {
-            return "To upgrade to the 100K limit, you must send messages to at least 5,000 unique customers within a rolling 7-day period while maintaining a Medium or High quality rating.";
+            return "To upgrade to the 100K limit, you must send messages to at least 5,000 unique customers within a rolling 7-day period while maintaining a High or Medium quality rating.";
         }
         if (threshold === 100000) {
-            return "To upgrade to Unlimited messaging, you must send messages to at least 50,000 unique customers within a rolling 7-day period while maintaining a Medium or High quality rating.";
+            return "To upgrade to Unlimited messaging, you must send messages to at least 50,000 unique customers within a rolling 7-day period while maintaining a High or Medium quality rating.";
         }
         return "You currently have the maximum messaging capacity (Unlimited).";
     };
@@ -810,7 +830,7 @@ const Dashboard = () => {
                                     {/* 3. Business Verification */}
                                     <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
                                         <div className="absolute -right-4 -top-4 w-16 h-16 bg-purple-500/5 rounded-full blur-xl"></div>
-                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Verification</p>
+                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Meta Business Page</p>
                                         <div className="flex items-center gap-2 mt-auto">
                                             {stats.waBusinessVerified ? (
                                                 <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-md text-[11px] font-bold">

@@ -53,8 +53,8 @@ export const THEMES = {
     glow: {
         id: 'glow',
         pageBg: 'bg-rose-50/50',
-        text: 'text-rose-950',
-        textMuted: 'text-rose-400',
+        text: 'text-stone-700',
+        textMuted: 'text-stone-500',
         header: 'bg-white/70 backdrop-blur-xl border-b border-rose-100',
         headerWrapper: 'max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between', // Centered max-w
         headerLogo: 'text-rose-600',

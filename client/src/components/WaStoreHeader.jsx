@@ -177,6 +177,132 @@ export default function WaStoreHeader({
                             </button>
                         </div>
                     </div>
+                ) : theme.id === 'glow' ? (
+                    /* ── GLOW: Single Row Header ── Logo | Menu | Search+Cart */
+                    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-6">
+                        {/* LEFT: Logo only (or store name fallback if no logo) */}
+                        <div className="flex items-center shrink-0">
+                            <button 
+                                onClick={() => setIsMobileMenuOpen(true)}
+                                className={`md:hidden p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors mr-2`}
+                            >
+                                <Menu className="w-6 h-6" />
+                            </button>
+                            {store.logo ? (
+                                <img src={imgUrl(store.logo)} alt={store.name} className="w-auto h-12 object-contain cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
+                            ) : (
+                                <span className={`font-semibold text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
+                            )}
+                        </div>
+
+                        {/* MIDDLE: Desktop Mega Menu */}
+                        <div className="hidden md:flex flex-1 justify-center">
+                            {store.megaMenu && store.megaMenu.length > 0 && (
+                                <ul className="flex items-center space-x-8">
+                                    {store.megaMenu.map((menuItem) => (
+                                        <li key={menuItem.id} className="relative group">
+                                            <a 
+                                                href={menuItem.link || '#'} 
+                                                onClick={(e) => {
+                                                    if (!menuItem.link) e.preventDefault();
+                                                    else if (menuItem.link.startsWith('/?cat=')) {
+                                                        e.preventDefault();
+                                                        navigate(`/store/${slug}/category/${encodeURIComponent(menuItem.link.split('=')[1])}`);
+                                                    } else if (menuItem.link.startsWith('/')) {
+                                                        e.preventDefault();
+                                                        navigate(menuItem.link);
+                                                    }
+                                                }}
+                                                className="flex items-center text-[13px] font-bold tracking-[0.1em] hover:opacity-70 transition-opacity uppercase"
+                                            >
+                                                {menuItem.title}
+                                                {menuItem.children && menuItem.children.length > 0 && (
+                                                    <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-50 transition-transform group-hover:rotate-180" />
+                                                )}
+                                            </a>
+                                            {/* Dropdown */}
+                                            {menuItem.children && menuItem.children.length > 0 && (
+                                                <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-56 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-2xl rounded-xl py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top translate-y-2 group-hover:translate-y-0 z-50">
+                                                    <ul className="flex flex-col">
+                                                        {menuItem.children.map(child => (
+                                                            <li key={child.id}>
+                                                                <a 
+                                                                    href={child.link || '#'}
+                                                                    onClick={(e) => {
+                                                                        if (!child.link) e.preventDefault();
+                                                                        else if (child.link.startsWith('/?cat=')) {
+                                                                            e.preventDefault();
+                                                                            navigate(`/store/${slug}/category/${encodeURIComponent(child.link.split('=')[1])}`);
+                                                                        } else if (child.link.startsWith('/')) {
+                                                                            e.preventDefault();
+                                                                            navigate(child.link);
+                                                                        }
+                                                                    }}
+                                                                    className="block px-5 py-2.5 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                                                >
+                                                                    {child.title}
+                                                                </a>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+
+                        {/* RIGHT: Search Bar & Cart */}
+                        <div className="flex items-center gap-4 shrink-0">
+                            {/* Mobile Search Icon */}
+                            <button 
+                                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                                className={`md:hidden p-2 rounded-full transition-colors ${theme.textMuted} hover:${theme.text} flex items-center justify-center`}
+                            >
+                                <Search className="w-6 h-6 stroke-[1.5]" />
+                            </button>
+                            
+                            {/* Desktop Search */}
+                            <div className="hidden md:block w-48 lg:w-64 relative">
+                                <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${theme.textMuted || 'text-gray-400'}`} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search products..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full bg-black/5 dark:bg-white/5 border border-transparent hover:border-gray-200 dark:hover:border-white/10 focus:border-gray-300 dark:focus:border-white/20 text-current py-2 pl-9 pr-8 rounded-full outline-none transition-colors text-sm"
+                                />
+                                {searchQuery && (
+                                    <button 
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-current p-1"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                                {/* Results */}
+                                {searchQuery.trim().length > 0 && (
+                                    <div className="absolute right-0 w-80 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto text-black">
+                                        {renderSearchResults()}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Cart Button */}
+                            <button 
+                                onClick={() => setIsCartOpen(true)}
+                                className={`relative p-2 ${theme.cartButton} rounded-full transition-colors flex items-center justify-center ${theme.cartWrapper || ''}`}
+                            >
+                                <ShoppingCart className="w-6 h-6 stroke-[1.5]" />
+                                {cartCount > 0 && (
+                                    <span className={`absolute -top-1 -right-1 ${theme.cartBadge} text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--glow-bg,white)] shadow-sm`}>
+                                        {cartCount}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 ) : (
                     /* ── DEFAULT layout for all other themes ── */
                     <div className={theme.headerWrapper || "max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between"}>
@@ -284,7 +410,7 @@ export default function WaStoreHeader({
                 </AnimatePresence>
 
                 {/* ─── MEGA MENU ─── */}
-                {store.megaMenu && store.megaMenu.length > 0 && (
+                {store.megaMenu && store.megaMenu.length > 0 && theme.id !== 'glow' && (
                     <div className="w-full border-t border-gray-200/50 hidden md:block">
                         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
                             <ul className="flex items-center justify-center space-x-10 h-12">

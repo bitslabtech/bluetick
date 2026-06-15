@@ -612,7 +612,7 @@ export default function PublicWaStore({ customSlug }) {
                                             <div key={item.cartItemId || item.id} className="flex gap-4 items-start">
                                                 <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
                                                     {item.imageUrls && item.imageUrls[0] && (
-                                                        <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-cover" />
+                                                        <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-contain" />
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-1">
