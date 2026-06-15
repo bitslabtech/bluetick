@@ -1427,7 +1427,6 @@ router.post('/:id/publish', async (req, res) => {
         };
 
         // ── 2. Create AdSet — objective-based config ──
-        const storedObjective = stored.objective || 'OUTCOME_ENGAGEMENT';
         const isCTWA2 = storedObjective === 'OUTCOME_ENGAGEMENT';
 
         const OBJECTIVE_CONFIG2 = {
