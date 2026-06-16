@@ -715,6 +715,7 @@ export default function PublicWaProduct({ customSlug }) {
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
+                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
                             className={`w-full max-w-md ${theme.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
                         >
                             

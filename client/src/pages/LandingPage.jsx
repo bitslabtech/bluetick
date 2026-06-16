@@ -1877,7 +1877,7 @@ export default function LandingPage() {
 
     return (
         <div className={isDark ? 'dark' : ''}>
-            <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-clip selection:bg-indigo-500/30 transition-colors duration-300">
+            <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-hidden selection:bg-indigo-500/30 transition-colors duration-300">
 
                 <LazyMotion features={domAnimation}>
                     {/* 1. NAVBAR */}

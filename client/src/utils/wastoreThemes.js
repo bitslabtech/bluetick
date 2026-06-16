@@ -55,6 +55,7 @@ export const THEMES = {
     glow: {
         id: 'glow',
         pageBg: 'bg-rose-50/50',
+        mobileNavBg: 'bg-rose-50',
         text: 'text-stone-700',
         textMuted: 'text-stone-500',
         header: 'bg-white/70 backdrop-blur-xl border-b border-rose-100',

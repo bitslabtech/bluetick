@@ -328,13 +328,16 @@ export default function MetaAdsWizard() {
     const [gender, setGender] = useState('all');              // 'all' | 'male' | 'female'
     const [targetingLanguage, setTargetingLanguage] = useState('');  // Meta locale code e.g. 'hi', 'en'
     const [placements, setPlacements] = useState(['facebook', 'instagram']); // platforms
-    const [messengerPositions, setMessengerPositions] = useState(['messenger_home', 'messenger_story']); // Inbox/Story
+    const [messengerPositions, setMessengerPositions] = useState(['messenger_story']); // Stories only (messenger_home deprecated Nov 2025)
     const [schedulingStart, setSchedulingStart] = useState('');  // ISO date string
     const [schedulingEnd, setSchedulingEnd] = useState('');
 
-    // Auto-remove invalid placements since Click-to-WhatsApp ads only support FB/IG
+    // Auto-remove messenger/audience_network when switching to CTWA (Engagement)
+    // For other objectives (Traffic, Leads, Awareness) these placements are allowed by Meta
     useEffect(() => {
-        setPlacements(prev => prev.filter(p => p === 'facebook' || p === 'instagram'));
+        if (manual.objective === 'OUTCOME_ENGAGEMENT') {
+            setPlacements(prev => prev.filter(p => p === 'facebook' || p === 'instagram'));
+        }
     }, [manual.objective]);
 
     // ── UI State ──
@@ -1039,10 +1042,13 @@ export default function MetaAdsWizard() {
                                 {[
                                     { value: 'facebook', label: 'Facebook', sublabel: 'Feed + Reels', emoji: '📘', color: 'blue' },
                                     { value: 'instagram', label: 'Instagram', sublabel: 'Feed + Reels', emoji: '📸', color: 'pink' },
-                                    { value: 'messenger', label: 'Messenger', sublabel: 'Inbox Ads', emoji: '💬', color: 'blue', disabledForCTWA: true },
+                                    { value: 'messenger', label: 'Messenger', sublabel: 'Stories Only', emoji: '💬', color: 'blue', disabledForCTWA: true },
                                     { value: 'audience_network', label: 'Audience Network', sublabel: 'External apps', emoji: '🌐', color: 'slate', disabledForCTWA: true },
                                 ].map(p => {
-                                    const isDisabled = p.disabledForCTWA; // All ads in this wizard are CTWA
+                                    // Messenger & Audience Network are only blocked for CTWA (Engagement) — Meta policy
+                                    // For Traffic, Leads, Awareness these are valid placements
+                                    const isCTWAObjective = manual.objective === 'OUTCOME_ENGAGEMENT';
+                                    const isDisabled = p.disabledForCTWA && isCTWAObjective;
                                     const isSelected = placements.includes(p.value) && !isDisabled;
                                     const colorMap = {
                                         blue: isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark',
@@ -1072,7 +1078,7 @@ export default function MetaAdsWizard() {
                                             </button>
                                             {isDisabled && (
                                                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none shadow-lg">
-                                                    Not supported for WhatsApp ads
+                                                    Not supported for Click-to-WhatsApp ads
                                                 </div>
                                             )}
                                         </div>
@@ -1080,17 +1086,11 @@ export default function MetaAdsWizard() {
                                 })}
                             </div>
                             {placements.includes('messenger') && (
-                                <div className="mt-3 p-3 bg-blue-50/50 dark:bg-blue-500/5 rounded-xl border border-blue-100 dark:border-white/5 flex gap-6">
-                                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
-                                        <input type="checkbox" className="rounded text-blue-500 w-4 h-4 cursor-pointer" 
-                                            checked={messengerPositions.includes('messenger_home')} 
-                                            onChange={(e) => {
-                                                if (e.target.checked) setMessengerPositions(p => [...p, 'messenger_home']);
-                                                else setMessengerPositions(p => p.filter(x => x !== 'messenger_home'));
-                                            }} 
-                                        />
-                                        Messenger Inbox
-                                    </label>
+                                <div className="mt-3 p-3 bg-blue-50/50 dark:bg-blue-500/5 rounded-xl border border-blue-100 dark:border-white/5 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Messenger Position</span>
+                                        <span className="text-[9px] bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-semibold">Mobile Only</span>
+                                    </div>
                                     <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
                                         <input type="checkbox" className="rounded text-blue-500 w-4 h-4 cursor-pointer" 
                                             checked={messengerPositions.includes('messenger_story')} 
@@ -1101,6 +1101,17 @@ export default function MetaAdsWizard() {
                                         />
                                         Messenger Stories
                                     </label>
+                                    <p className="text-[9px] text-slate-400 leading-relaxed">
+                                        ℹ️ Messenger Inbox ads were discontinued by Meta (Nov 2025). Only Stories placement is available.
+                                    </p>
+                                </div>
+                            )}
+                            {placements.includes('audience_network') && !placements.includes('facebook') && !placements.includes('instagram') && (
+                                <div className="mt-2 flex items-start gap-2 p-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                                        <strong>Audience Network requires Facebook or Instagram.</strong> Please also select Facebook or Instagram — Meta does not allow Audience Network as the only placement.
+                                    </p>
                                 </div>
                             )}
                             {placements.length === 0 && (

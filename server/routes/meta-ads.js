@@ -473,10 +473,31 @@ router.post('/publish', async (req, res) => {
 
                 // ── Build placement (publisher_platforms) ──────────────
                 const placements = targeting?.placements || ['facebook', 'instagram'];
-                const publisherPlatforms = placements.filter(p => ['facebook', 'instagram', 'audience_network', 'messenger'].includes(p));
+                let publisherPlatforms = placements.filter(p => ['facebook', 'instagram', 'audience_network', 'messenger'].includes(p));
+
+                // Meta compliance: CTWA (Engagement) does NOT support messenger or audience_network
+                // — these require a WhatsApp deep-link which neither placement can deliver
+                if ((objective || 'OUTCOME_ENGAGEMENT') === 'OUTCOME_ENGAGEMENT') {
+                    publisherPlatforms = publisherPlatforms.filter(p => p !== 'messenger' && p !== 'audience_network');
+                }
+
+                // Meta compliance: Audience Network cannot be the sole placement
+                // — must be paired with facebook or instagram
+                if (publisherPlatforms.includes('audience_network') &&
+                    !publisherPlatforms.includes('facebook') &&
+                    !publisherPlatforms.includes('instagram')) {
+                    publisherPlatforms.push('facebook');
+                    console.log('[META-ADS] Audience Network requires a paired platform — auto-added facebook');
+                }
+
                 const facebookPositions  = placements.includes('facebook')   ? (targeting?.fbPositions   || ['feed', 'facebook_reels']) : undefined;
                 const instagramPositions = placements.includes('instagram')  ? (targeting?.igPositions   || ['stream', 'reels'])        : undefined;
-                const messengerPositions = placements.includes('messenger')  ? (targeting?.messengerPositions || ['messenger_home', 'messenger_story']) : undefined;
+                // messenger_home deprecated by Meta Nov 2025 — only messenger_story is valid
+                // Filter out messenger_home from any incoming messengerPositions as a safety net
+                const rawMessengerPos    = (targeting?.messengerPositions || ['messenger_story']).filter(pos => pos !== 'messenger_home');
+                const messengerPositions = placements.includes('messenger') && publisherPlatforms.includes('messenger')
+                    ? (rawMessengerPos.length > 0 ? rawMessengerPos : ['messenger_story'])
+                    : undefined;
 
                 // ── Build full targeting spec ─────────────────────────
                 // targeting_automation MUST be inside the targeting JSON (confirmed by Meta error_subcode 1870227)
@@ -1411,9 +1432,27 @@ router.post('/:id/publish', async (req, res) => {
             localesArr = [LOCALE_MAP[targeting.targetingLanguage]];
         }
         const placements = targeting?.placements || ['facebook', 'instagram'];
-        const publisherPlatforms = placements.filter(p => ['facebook', 'instagram', 'audience_network', 'messenger'].includes(p));
+        let publisherPlatforms = placements.filter(p => ['facebook', 'instagram', 'audience_network', 'messenger'].includes(p));
+
+        // Meta compliance: CTWA (Engagement) does NOT support messenger or audience_network
+        if (storedObjective === 'OUTCOME_ENGAGEMENT') {
+            publisherPlatforms = publisherPlatforms.filter(p => p !== 'messenger' && p !== 'audience_network');
+        }
+
+        // Meta compliance: Audience Network cannot be the sole placement
+        if (publisherPlatforms.includes('audience_network') &&
+            !publisherPlatforms.includes('facebook') &&
+            !publisherPlatforms.includes('instagram')) {
+            publisherPlatforms.push('facebook');
+        }
+
         const facebookPositions = placements.includes('facebook') ? ['feed', 'facebook_reels'] : undefined;
         const instagramPositions = placements.includes('instagram') ? ['stream', 'reels'] : undefined;
+        // messenger_home deprecated by Meta Nov 2025 — strip it as safety net
+        const rawMessengerPos2 = (targeting?.messengerPositions || ['messenger_story']).filter(pos => pos !== 'messenger_home');
+        const messengerPositions2 = placements.includes('messenger') && publisherPlatforms.includes('messenger')
+            ? (rawMessengerPos2.length > 0 ? rawMessengerPos2 : ['messenger_story'])
+            : undefined;
         const targetingSpec = {
             age_max: targeting?.age_max || 65,
             age_min: targeting?.age_min || 18,
@@ -1424,6 +1463,7 @@ router.post('/:id/publish', async (req, res) => {
             ...(publisherPlatforms.length > 0 && { publisher_platforms: publisherPlatforms }),
             ...(facebookPositions && { facebook_positions: facebookPositions }),
             ...(instagramPositions && { instagram_positions: instagramPositions }),
+            ...(messengerPositions2 && { messenger_positions: messengerPositions2 }),
         };
 
         // ── 2. Create AdSet — objective-based config ──

@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import {
     Tag, Plus, Trash2, Edit2, Check, X, AlertCircle,
-    Image as ImageIcon, Loader2, Upload, Camera
+    Image as ImageIcon, Loader2, Upload, Camera, RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -231,6 +231,7 @@ export default function WaStoreCategories() {
     const [categoryImages, setCategoryImages] = useState({});
     const [hiddenCategories, setHiddenCategories] = useState([]);
     const [categoryDetails, setCategoryDetails] = useState({});
+    const [categoryAutoplay, setCategoryAutoplay] = useState(false);
     const [productCounts, setProductCounts] = useState({});
     const [loading, setLoading]             = useState(true);
     const [saving, setSaving]               = useState(false);
@@ -262,6 +263,7 @@ export default function WaStoreCategories() {
                 if (typeof loadedDetails === 'string') {
                     try { loadedDetails = JSON.parse(loadedDetails); } catch { loadedDetails = {}; }
                 }
+                const loadedAutoplay = myStore?.categoryAutoplay === true || myStore?.categoryAutoplay === 'true';
 
                 // Count products per category
                 const counts = {};
@@ -284,6 +286,7 @@ export default function WaStoreCategories() {
                 setCategoryImages(loadedImages);
                 setHiddenCategories(loadedHidden);
                 setCategoryDetails(loadedDetails);
+                setCategoryAutoplay(loadedAutoplay);
                 setProductCounts(counts);
             } catch {
                 toast.error('Failed to load categories');
@@ -294,18 +297,25 @@ export default function WaStoreCategories() {
         fetchData();
     }, [storeId]);
 
-    const persist = async (newList, newImages, newHidden, newDetails) => {
+    const persist = async (newList, newImages, newHidden, newDetails, autoplay = categoryAutoplay) => {
         setSaving(true);
         try {
             await axios.put(
                 `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`,
-                { categories: newList, categoryImages: newImages, hiddenCategories: newHidden, categoryDetails: newDetails }
+                { categories: newList, categoryImages: newImages, hiddenCategories: newHidden, categoryDetails: newDetails, categoryAutoplay: autoplay }
             );
         } catch {
             toast.error('Failed to save categories');
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleAutoplayToggle = async () => {
+        const newVal = !categoryAutoplay;
+        setCategoryAutoplay(newVal);
+        await persist(categories, categoryImages, hiddenCategories, categoryDetails, newVal);
+        toast.success(newVal ? 'Autoplay enabled on mobile' : 'Autoplay disabled');
     };
 
     const handleSaveModal = ({ name, image, description, metaTitle, metaDesc }) => {
@@ -432,6 +442,33 @@ export default function WaStoreCategories() {
                 >
                     <Plus className="w-4 h-4" /> Add Category
                 </button>
+            </div>
+
+            {/* ─── AUTOPLAY TOGGLE ─── */}
+            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 md:px-6 py-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${categoryAutoplay ? 'bg-indigo-100 dark:bg-indigo-900/40' : 'bg-slate-100 dark:bg-white/5'}`}>
+                            <RefreshCw className={`w-5 h-5 ${categoryAutoplay ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-slate-900 dark:text-white text-sm">Category Autoplay</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Auto-scroll categories on mobile every 3.5 seconds</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleAutoplayToggle}
+                        disabled={saving}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${
+                            categoryAutoplay ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-white/10'
+                        }`}
+                        title={categoryAutoplay ? 'Click to disable autoplay' : 'Click to enable autoplay'}
+                    >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                            categoryAutoplay ? 'translate-x-6' : 'translate-x-1'
+                        }`} />
+                    </button>
+                </div>
             </div>
 
             {/* Category List */}

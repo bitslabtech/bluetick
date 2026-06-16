@@ -313,6 +313,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
+                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
                             className={`w-full max-w-md ${theme.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
                         >
                             <div className={`px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between ${theme.pageBg}`}>

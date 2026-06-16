@@ -56,6 +56,10 @@ export default function PublicWaStore({ customSlug }) {
     const [sliderPaused, setSliderPaused] = useState(false);
     const sliderTimer = useRef(null);
 
+    // Category Autoplay
+    const categoryScrollRef = useRef(null);
+    const categoryAutoplayTimer = useRef(null);
+
     const slides = useMemo(() => {
         const heroSlides = store?.heroSlides || [];
         return heroSlides.filter(s => s.imageUrl);
@@ -70,6 +74,46 @@ export default function PublicWaStore({ customSlug }) {
         sliderTimer.current = setInterval(nextSlide, 3500);
         return () => clearInterval(sliderTimer.current);
     }, [slides.length, sliderPaused, nextSlide]);
+
+    // Category autoplay — mobile only, 3.5s scroll loop
+    useEffect(() => {
+        const el = categoryScrollRef.current;
+        if (!el || !store?.categoryAutoplay) return;
+        if (window.innerWidth > 768) return; // desktop: no autoplay
+
+        const scrollNext = () => {
+            if (!categoryScrollRef.current) return;
+            const container = categoryScrollRef.current;
+            const itemWidth = container.querySelector('button')?.offsetWidth || 112;
+            const gap = 12;
+            const step = itemWidth + gap;
+            const maxScroll = container.scrollWidth - container.clientWidth;
+
+            if (container.scrollLeft + step >= maxScroll - 1) {
+                // Reached end — scroll back to start smoothly
+                container.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                container.scrollBy({ left: step, behavior: 'smooth' });
+            }
+        };
+
+        categoryAutoplayTimer.current = setInterval(scrollNext, 3500);
+
+        // Pause on user touch
+        const pause = () => {
+            clearInterval(categoryAutoplayTimer.current);
+            // Resume after 6s of inactivity
+            setTimeout(() => {
+                categoryAutoplayTimer.current = setInterval(scrollNext, 3500);
+            }, 6000);
+        };
+        el.addEventListener('touchstart', pause, { passive: true });
+
+        return () => {
+            clearInterval(categoryAutoplayTimer.current);
+            el.removeEventListener('touchstart', pause);
+        };
+    }, [store?.categoryAutoplay, store]);
 
     useEffect(() => {
         const fetchStore = async () => {
@@ -331,7 +375,10 @@ export default function PublicWaStore({ customSlug }) {
                         <h2 className={`text-2xl font-bold mb-2 sm:mb-4 text-center ${theme.text}`}>Products Category</h2>
 
                         {theme.id === 'vogue' ? (
-                            <div className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 px-4 -mx-4 snap-x md:justify-center">
+                            <div
+                                ref={categoryScrollRef}
+                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 px-4 -mx-4 snap-x md:justify-center"
+                            >
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -366,7 +413,10 @@ export default function PublicWaStore({ customSlug }) {
                                 })}
                             </div>
                         ) : (
-                            <div className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 px-4 -mx-4 md:justify-center">
+                            <div
+                                ref={categoryScrollRef}
+                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 px-4 -mx-4 md:justify-center"
+                            >
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -588,6 +638,7 @@ export default function PublicWaStore({ customSlug }) {
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
+                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
                             className={`w-full max-w-md ${theme.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
                         >
 
