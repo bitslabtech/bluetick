@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.local
+.env.*
+*.log
+.DS_Store
+Thumbs.db
+fix_mobile.cjs
+optimize.cjs
+remove-tokens.cjs
+remove_tokens.cjs

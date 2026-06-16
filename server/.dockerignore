@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.env.local
+.env.*
+*.log
+logs/
+public/uploads/
+uploads/
+.DS_Store
+Thumbs.db
+crash.log
+debug_*
+test_*
+check_*

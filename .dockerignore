@@ -1,0 +1,46 @@
+# Dependencies (installed during build)
+node_modules
+client/node_modules
+server/node_modules
+
+# Git
+.git
+.gitignore
+
+# Build outputs (rebuilt during Docker build)
+client/dist
+client/build
+server/dist
+
+# Environment files (injected at runtime by Railway)
+.env
+client/.env
+server/.env
+*.env.local
+
+# Logs and debug files
+*.log
+logs/
+server/logs/
+
+# User uploads (runtime data, not part of build)
+server/public/uploads/
+server/uploads/
+
+# Dev/editor files
+.vscode
+.idea
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# Test / debug scripts
+server/debug_*
+server/test_*
+server/check_*
+server/dump_*
+
+# README and docs
+README.md
+DEPLOYMENT-GUIDE.md
+competitor_analysis_pygmy.md

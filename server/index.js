@@ -116,6 +116,22 @@ app.use('/uploads', (req, res, next) => {
     next();
 }, express.static(path.join(__dirname, 'public/uploads')));
 
+// Serve built React frontend (only if dist exists — i.e. in Docker/production build)
+const distPath = path.join(__dirname, 'public/dist');
+const distIndex = path.join(distPath, 'index.html');
+const fs = require('fs');
+if (fs.existsSync(distIndex)) {
+    app.use(express.static(distPath, {
+        maxAge: '1y',
+        setHeaders: (res, filePath) => {
+            // Don't cache index.html so updates always reach the user
+            if (filePath.endsWith('index.html')) {
+                res.setHeader('Cache-Control', 'no-store, no-cache');
+            }
+        }
+    }));
+}
+
 // System Protection Middleware
 app.use('/api', require('./middleware/systemCheck'));
 
@@ -176,9 +192,22 @@ app.use('/api/webhook', require('./routes/webhook')); // NEW
 // Public pages (Privacy Policy, Terms) — no auth required, for Meta App Live Mode
 app.use('/', require('./routes/privacy'));
 
+// Health check endpoint for Railway / Docker healthcheck
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.get('/', (req, res) => {
     res.send('Bluetick Backend Running (PostgreSQL)');
 });
+
+// SPA catch-all — serve React index.html for all non-API routes (enables React Router)
+// This MUST come after all API routes
+if (fs.existsSync(distIndex)) {
+    app.get('*', (req, res) => {
+        res.sendFile(distIndex);
+    });
+}
 
 // Global Error Handler — always returns JSON, never raw HTML
 // MUST be registered after all routes
