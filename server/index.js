@@ -206,10 +206,62 @@ app.get('/', (req, res) => {
 // SPA catch-all — serve React index.html for all non-API routes (enables React Router)
 // This MUST come after all API routes
 if (fs.existsSync(distIndex)) {
+    // ── /store/:slug — inject LCP preload + OG meta so the hero image is discoverable ──
+    // Lighthouse flags "Request is not discoverable in initial document" because React renders
+    // the hero slide image via JS. This route reads the store from the DB and injects a
+    // <link rel="preload"> in the <head> BEFORE serving the HTML, so the browser's preload
+    // scanner finds the image in the raw HTML response.
+    app.get('/store/:slug', async (req, res) => {
+        try {
+            const WaStore = require('./models/WaStore');
+            const store = await WaStore.findOne({
+                where: { slug: req.params.slug, isActive: true },
+                attributes: ['name', 'description', 'logo', 'heroSlides', 'coverImage', 'currency']
+            });
+
+            let html = fs.readFileSync(distIndex, 'utf8');
+
+            if (store) {
+                const injections = [];
+
+                // LCP preload — first hero slide image
+                const slides = Array.isArray(store.heroSlides) ? store.heroSlides : [];
+                const lcpImageUrl = slides[0]?.imageUrl || store.coverImage || store.logo;
+                if (lcpImageUrl) {
+                    injections.push(`<link rel="preload" as="image" href="${lcpImageUrl}" fetchpriority="high">`);
+                }
+
+                // OG / SEO meta tags for social sharing & search engines
+                const title = store.name ? `${store.name} | Shop Online` : 'Online Store';
+                const desc  = store.description || `Shop at ${store.name || 'our store'} — fast checkout via WhatsApp.`;
+                const ogImg = store.logo || lcpImageUrl || '';
+
+                injections.push(`<title>${title}</title>`);
+                injections.push(`<meta name="description" content="${desc.replace(/"/g, '&quot;').substring(0, 160)}">`);
+                injections.push(`<meta property="og:title" content="${title}">`);
+                injections.push(`<meta property="og:description" content="${desc.replace(/"/g, '&quot;').substring(0, 200)}">`);
+                if (ogImg) injections.push(`<meta property="og:image" content="${ogImg}">`);
+                injections.push(`<meta property="og:type" content="website">`);
+
+                // Inject everything just before </head>
+                html = html.replace('</head>', `${injections.join('\n  ')}\n</head>`);
+            }
+
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.set('Cache-Control', 'no-store'); // Don't cache — store data changes
+            res.send(html);
+        } catch (err) {
+            console.error('[Store SSR Preload] Error:', err.message);
+            res.sendFile(distIndex); // Fallback to plain SPA
+        }
+    });
+
+    // General SPA catch-all for all other routes
     app.get('*', (req, res) => {
         res.sendFile(distIndex);
     });
 }
+
 
 // Global Error Handler — always returns JSON, never raw HTML
 // MUST be registered after all routes
