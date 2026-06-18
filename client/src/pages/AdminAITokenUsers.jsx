@@ -434,6 +434,58 @@ const AdminAITokenUsers = () => {
                                         />
                                     </div>
                                 </div>
+
+                                {/* AI Template Enhancer Setting */}
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-bold text-slate-800 dark:text-slate-200">AI Template Enhancer Multiplier</h3>
+                                            <p className="text-sm text-slate-500 mt-1">Scales the base cost (5 tokens) for the AI rewrite/enhance button on existing template body text.</p>
+                                        </div>
+                                        <div className="p-2 bg-violet-100 dark:bg-violet-500/10 rounded-lg">
+                                            <Sparkles className="w-5 h-5 text-violet-500" />
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <span className="text-slate-400 font-bold">x</span>
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            step="0.1" 
+                                            min="0"
+                                            className="w-full pl-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white rounded-xl py-3 pr-4 font-bold focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all outline-none"
+                                            value={globalTokens.ai_template_enhancer ?? 1}
+                                            onChange={(e) => setGlobalTokens({ ...globalTokens, ai_template_enhancer: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* AI WaStore Product Description Setting */}
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-bold text-slate-800 dark:text-slate-200">Online Store AI Multiplier</h3>
+                                            <p className="text-sm text-slate-500 mt-1">Scales the base cost (5 tokens) for AI product description and "Create with AI" template generation in the Online Store.</p>
+                                        </div>
+                                        <div className="p-2 bg-teal-100 dark:bg-teal-500/10 rounded-lg">
+                                            <Sparkles className="w-5 h-5 text-teal-500" />
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <span className="text-slate-400 font-bold">x</span>
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            step="0.1" 
+                                            min="0"
+                                            className="w-full pl-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white rounded-xl py-3 pr-4 font-bold focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
+                                            value={globalTokens.ai_wastore ?? 3}
+                                            onChange={(e) => setGlobalTokens({ ...globalTokens, ai_wastore: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

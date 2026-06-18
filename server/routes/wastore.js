@@ -318,6 +318,11 @@ router.post('/orders', async (req, res) => {
         // ── Fire CAPI InitiateCheckout (non-blocking) ─────────────────────────
         fireCAPICheckout(store, order).catch(() => {});
 
+        // ── Fire order_placed notification (non-blocking) ─────────────────────
+        User.findByPk(store.userId).then(storeUser => {
+            if (storeUser) sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
+        }).catch(() => {});
+
         res.json({ order, orderNumber });
     } catch (error) {
         console.error('Create order error:', error);
@@ -383,62 +388,84 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
 }
 
 // ── Order Notification Helper ─────────────────────────────────────────────────
-// Fires the configured notification template/text for a given trigger key.
+// Fires the configured approved template notification for a given trigger key.
+// Variable mapping (positional): the template is expected to use {{1}}, {{2}}, etc.
+// The order of values injected matches the TRIGGERS definition in WaStoreNotifications.jsx:
+//   order_placed/payment_received: name, orderNum, storeName, total
+//   order_confirmed/processing/delivered/cancelled: name, orderNum, storeName
+//   order_shipped: name, orderNum, storeName, trackingProvider, trackingUrl
 async function sendOrderNotification(triggerKey, store, user, order, extras = {}) {
     try {
         const notifConfig = store.notificationTemplates?.[triggerKey];
         if (!notifConfig?.enabled) return;
+        if (!notifConfig?.templateId) return; // must have a template selected
         if (!order.customerPhone) return;
         if (!user?.fbAccessToken || !user?.metaPhoneNumberId) return;
 
+        // Validate and normalize phone — must have at least 7 digits
         const phone = order.customerPhone.replace(/\D/g, '');
+        if (phone.length < 7) {
+            console.warn(`[OrderNotif] Skipping ${triggerKey}: invalid phone "${order.customerPhone}"`);
+            return;
+        }
+
         const customerName = order.customerName || 'Customer';
         const storeName = store.name || 'Our Store';
-        const orderNumber = order.orderNumber;
-        const orderTotal = order.subtotal ? `${order.currency || ''} ${Number(order.subtotal).toFixed(2)}` : '';
+        const orderNumber = order.orderNumber || '';
+        const orderTotal = order.total != null
+            ? `${order.currency || ''} ${Number(order.total).toFixed(2)}`.trim()
+            : (order.subtotal != null ? `${order.currency || ''} ${Number(order.subtotal).toFixed(2)}`.trim() : '');
         const trackingProvider = extras.trackingProvider || order.trackingProvider || '';
         const trackingUrl = extras.trackingUrl || order.trackingUrl || '';
 
-        const interpolate = (str) => (str || '')
-            .replace(/{{customer_name}}/g, customerName)
-            .replace(/{{order_number}}/g, orderNumber)
-            .replace(/{{store_name}}/g, storeName)
-            .replace(/{{order_total}}/g, orderTotal)
-            .replace(/{{tracking_provider}}/g, trackingProvider)
-            .replace(/{{tracking_url}}/g, trackingUrl);
+        // Map trigger → ordered list of positional variable values ({{1}}, {{2}}, ...)
+        const variableMap = {
+            order_placed:      [customerName, orderNumber, storeName, orderTotal],
+            order_confirmed:   [customerName, orderNumber, storeName],
+            order_processing:  [customerName, orderNumber, storeName],
+            order_shipped:     [customerName, orderNumber, storeName, trackingProvider, trackingUrl],
+            order_delivered:   [customerName, orderNumber, storeName],
+            order_cancelled:   [customerName, orderNumber, storeName],
+            payment_received:  [customerName, orderNumber, storeName, orderTotal],
+        };
+        const variableValues = variableMap[triggerKey] || [customerName, orderNumber, storeName];
 
-        const mode = notifConfig.mode || 'template';
-
-        if (mode === 'template' && notifConfig.templateId) {
-            const Template = require('../models/Template');
-            const tmpl = await Template.findByPk(notifConfig.templateId);
-            if (!tmpl || tmpl.status !== 'APPROVED') return;
-
-            await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
-                messaging_product: 'whatsapp',
-                recipient_type: 'individual',
-                to: phone,
-                type: 'template',
-                template: {
-                    name: tmpl.name,
-                    language: { code: tmpl.language || 'en_US' },
-                    components: []
-                }
-            }, {
-                headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
-            });
-        } else if (mode === 'text' && notifConfig.customMessage) {
-            const body = interpolate(notifConfig.customMessage);
-            await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
-                messaging_product: 'whatsapp',
-                recipient_type: 'individual',
-                to: phone,
-                type: 'text',
-                text: { preview_url: false, body }
-            }, {
-                headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
-            });
+        const Template = require('../models/Template');
+        const tmpl = await Template.findByPk(notifConfig.templateId);
+        if (!tmpl || tmpl.status !== 'APPROVED') {
+            console.warn(`[OrderNotif] Template ${notifConfig.templateId} not found or not APPROVED for trigger ${triggerKey}`);
+            return;
         }
+
+        // Build body component parameters from template content variables ({{1}}, {{2}}, ...)
+        // We count how many positional variables exist in the template content
+        const variableMatches = (tmpl.content || '').match(/\{\{\d+\}\}/g) || [];
+        const numVars = variableMatches.length;
+
+        const components = [];
+        if (numVars > 0) {
+            const parameters = variableValues.slice(0, numVars).map(val => ({
+                type: 'text',
+                text: String(val || '')
+            }));
+            components.push({ type: 'body', parameters });
+        }
+
+        await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: phone,
+            type: 'template',
+            template: {
+                name: tmpl.name,
+                language: { code: tmpl.language || 'en_US' },
+                components
+            }
+        }, {
+            headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
+        });
+
+        console.log(`[OrderNotif] Sent ${triggerKey} notification to ${phone} (template: ${tmpl.name})`);
     } catch (err) {
         console.error(`[OrderNotif] Failed to send ${triggerKey} notification:`, err.response?.data || err.message);
     }
@@ -528,9 +555,13 @@ router.post('/public/:slug/verify-payment', async (req, res) => {
                 order.notes = (order.notes ? order.notes + '\n' : '') + `Payment ID: ${razorpay_payment_id}`;
                 await order.save();
 
-                if (store.taxConfig?.autoSendInvoice) {
-                    const user = await User.findByPk(store.userId);
-                    if (user) await sendWhatsAppInvoiceHelper(store, user, order, order.customerName, order.customerPhone);
+                const storeUser = await User.findByPk(store.userId);
+                if (storeUser) {
+                    if (store.taxConfig?.autoSendInvoice) {
+                        await sendWhatsAppInvoiceHelper(store, storeUser, order, order.customerName, order.customerPhone);
+                    }
+                    // ── Fire payment_received notification (non-blocking) ─────
+                    sendOrderNotification('payment_received', store, storeUser, order).catch(() => {});
                 }
 
                 // ── Fire CAPI Purchase event (non-blocking) ───────────────────
@@ -569,9 +600,13 @@ router.post('/public/:slug/verify-payment', async (req, res) => {
                  order.notes = (order.notes ? order.notes + '\n' : '') + `PhonePe Txn: ${response.data.data.transactionId}`;
                  await order.save();
 
-                 if (store.taxConfig?.autoSendInvoice) {
-                     const user = await User.findByPk(store.userId);
-                     if (user) await sendWhatsAppInvoiceHelper(store, user, order, order.customerName, order.customerPhone);
+                 const storeUser = await User.findByPk(store.userId);
+                 if (storeUser) {
+                     if (store.taxConfig?.autoSendInvoice) {
+                         await sendWhatsAppInvoiceHelper(store, storeUser, order, order.customerName, order.customerPhone);
+                     }
+                     // ── Fire payment_received notification (non-blocking) ─────
+                     sendOrderNotification('payment_received', store, storeUser, order).catch(() => {});
                  }
 
                  // ── Fire CAPI Purchase event (non-blocking) ───────────────────

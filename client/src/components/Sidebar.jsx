@@ -230,6 +230,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     const [changelogLoading, setChangelogLoading] = useState(false);
     const [hasNewVersion, setHasNewVersion] = useState(false);
     const [unreadContactMsgs, setUnreadContactMsgs] = useState(0);
+    const [unreadSupportTickets, setUnreadSupportTickets] = useState(0);
 
     // Fetch latest version on mount
     useEffect(() => {
@@ -259,6 +260,19 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             const interval = setInterval(fetchContactCount, 60000); // 1 min poll
             return () => clearInterval(interval);
         }
+    }, [user]);
+
+    // Fetch unread support ticket count for both users and admins (sidebar red dot)
+    useEffect(() => {
+        if (!user) return;
+        const fetchSupportUnread = () => {
+            axios.get(`${import.meta.env.VITE_API_URL}/api/support/tickets/unread-count`)
+                .then(res => setUnreadSupportTickets(res.data.count || 0))
+                .catch(() => {}); // silently fail
+        };
+        fetchSupportUnread();
+        const interval = setInterval(fetchSupportUnread, 60000); // 1 min poll
+        return () => clearInterval(interval);
     }, [user]);
 
     const openChangelog = async () => {
@@ -396,7 +410,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                             item={item}
                             location={location}
                             setIsOpen={setIsOpen}
-                            unreadCount={item.path === '/superadmin/messages' ? unreadContactMsgs : null}
+                            unreadCount={
+                                item.path === '/superadmin/messages'
+                                    ? unreadContactMsgs
+                                    : (item.path === '/support' || item.path === '/superadmin/support')
+                                        ? unreadSupportTickets
+                                        : null
+                            }
                         />
                     ))}
                 </nav>

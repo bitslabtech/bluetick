@@ -34,6 +34,15 @@ const Ticket = sequelize.define('Ticket', {
     lastReplyAt: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
+    },
+    // Unread flags — used for sidebar red dot indicators
+    hasUnreadAdminReply: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false // true = admin replied, user hasn't read it yet
+    },
+    hasUnreadUserReply: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false // true = user replied, admin hasn't read it yet
     }
 }, {
     timestamps: true

@@ -81,7 +81,17 @@ const SystemConfig = sequelize.define('SystemConfig', {
                 windowMs: 15 * 60 * 1000, // 15 minutes
                 maxRequests: 1000 // Limit each IP to 1000 requests per `window`
             },
-            aiTokenMultipliers: { ai_chatbot: 1, ai_form_generator: 1, ai_meta_ads_builder: 5, ai_media_generator: 5 },
+            aiTokenMultipliers: {
+                ai_chatbot: 1,
+                ai_chat_drafter: 1,
+                ai_chat_enhancer: 1,
+                ai_template_draft: 1,
+                ai_template_enhancer: 1,
+                ai_form_generator: 1,
+                ai_wastore: 3,
+                ai_meta_ads_builder: 5,
+                ai_media_generator: 5
+            },
             aiModel: 'gemini-2.0-flash',
             showLockedMenus: true, // Upsell mode by default
             storage: {

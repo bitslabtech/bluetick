@@ -146,6 +146,15 @@ const AdminSupport = () => {
 const TicketManager = ({ tickets, refresh, showToast }) => {
     const [selectedTicket, setSelectedTicket] = useState(null);
 
+    // Mark ticket as read when admin opens it (clears red dot on sidebar)
+    const openTicket = (ticket) => {
+        setSelectedTicket(ticket);
+        if (ticket.hasUnreadUserReply) {
+            axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${ticket.id}/mark-read`)
+                .catch(() => {}); // silently fail
+        }
+    };
+
     return (
         <>
             <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col h-full">
@@ -174,11 +183,20 @@ const TicketManager = ({ tickets, refresh, showToast }) => {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {tickets.map(t => (
-                                <tr key={t.id} onClick={() => setSelectedTicket(t)} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer text-sm">
+                                <tr key={t.id} onClick={() => openTicket(t)} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer text-sm">
                                     <td className="px-4 md:px-6 py-4 font-medium text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                                                <Ticket className="w-4 h-4" />
+                                            <div className="relative">
+                                                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                                    <Ticket className="w-4 h-4" />
+                                                </div>
+                                                {/* Unread user reply dot */}
+                                                {t.hasUnreadUserReply && (
+                                                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                                                    </span>
+                                                )}
                                             </div>
                                             {t.subject}
                                         </div>

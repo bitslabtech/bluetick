@@ -126,6 +126,11 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     const [cardParams, setCardParams] = useState({});
     // Actual File objects for upload, keyed by card index
     const [cardFiles, setCardFiles] = useState({});
+    // Object URL previews for carousel card images, keyed by card index
+    const [cardPreviewUrls, setCardPreviewUrls] = useState({});
+    // Header media for standard (non-carousel) image/video templates
+    const [headerFile, setHeaderFile] = useState(null);
+    const [headerPreviewUrl, setHeaderPreviewUrl] = useState(null);
 
     const selectedTemplate = data.template || {};
     const isCarousel = selectedTemplate.archetype === 'carousel' && Array.isArray(selectedTemplate.cards) && selectedTemplate.cards.length > 0;
@@ -231,6 +236,18 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         if (file) {
             setCardFiles(prev => ({ ...prev, [cardIndex]: file }));
             setCardParams(prev => ({ ...prev, [`__file_${cardIndex}`]: { name: file.name } }));
+            // Create an object URL for live preview
+            const url = URL.createObjectURL(file);
+            setCardPreviewUrls(prev => ({ ...prev, [cardIndex]: url }));
+        }
+    };
+
+    const handleHeaderFileChange = (file) => {
+        if (file) {
+            setHeaderFile(file);
+            if (headerPreviewUrl) URL.revokeObjectURL(headerPreviewUrl);
+            const url = URL.createObjectURL(file);
+            setHeaderPreviewUrl(url);
         }
     };
 
@@ -248,8 +265,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         fd.append('file', file);
         const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload-message-media`, fd, {
             headers: {
-                'Content-Type': 'multipart/form-data',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'multipart/form-data'
             }
         });
         // Return both mediaId (for Meta API) and localUrl (for inbox image display)
@@ -277,8 +293,16 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                 throw new Error('Please select at least one recipient group or enter manual recipients.');
             }
 
-            // --- Handle Carousel card media uploads ---
+            // --- Handle standard header media upload (non-carousel IMAGE/VIDEO templates) ---
             let resolvedCardParams = { ...cardParams };
+            if (!isCarousel && headerFile && (selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE' || selectedTemplate.type === 'VIDEO' || selectedTemplate.headerType === 'VIDEO')) {
+                showModal({ type: 'info', title: 'Uploading', message: 'Uploading header media...' });
+                const { mediaId, localUrl } = await uploadMedia(headerFile);
+                resolvedCardParams['headerMediaId'] = mediaId;
+                if (localUrl) resolvedCardParams['headerLocalUrl'] = localUrl;
+            }
+
+            // --- Handle Carousel card media uploads ---
             if (isCarousel) {
                 // Validation: Ensure all required media for cards are uploaded before proceeding
                 for (let i = 0; i < selectedTemplate.cards.length; i++) {
@@ -590,8 +614,27 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                         <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
                                             {selectedTemplate.cards.map((card, idx) => (
                                                 <div key={idx} className="flex-shrink-0 w-36 bg-white dark:bg-[#202c33] rounded-2xl shadow-sm border border-slate-100 dark:border-white/5 overflow-hidden flex flex-col">
-                                                    <div className="h-20 bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center relative">
-                                                        <ImageIcon className="w-6 h-6 text-white/50" />
+                                                    <div className="h-20 relative overflow-hidden flex-shrink-0">
+                                                        {cardPreviewUrls[idx] ? (
+                                                            card.headerType === 'VIDEO' ? (
+                                                                <video
+                                                                    src={cardPreviewUrls[idx]}
+                                                                    className="w-full h-full object-cover"
+                                                                    muted
+                                                                    playsInline
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src={cardPreviewUrls[idx]}
+                                                                    alt={`Card ${idx + 1}`}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            )
+                                                        ) : (
+                                                            <div className="w-full h-full bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center">
+                                                                <ImageIcon className="w-6 h-6 text-white/50" />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="p-2 flex flex-col flex-1">
                                                         <p className="text-[11px] font-medium text-slate-800 dark:text-[#e9edef] leading-snug line-clamp-2">{card.content}</p>
@@ -613,8 +656,77 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                             <path d="M1.533,3.568L8,12.193V1H2.812C1.042,1,0.474,2.156,1.533,3.568z"></path>
                                         </svg>
                                         {(selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE') && (
-                                            <div className="w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2">
-                                                <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400" alt="Header" />
+                                            <div className="w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2 relative">
+                                                {headerPreviewUrl ? (
+                                                    <img className="w-full h-full object-cover" src={headerPreviewUrl} alt="Header" />
+                                                ) : (
+                                                    <label
+                                                        htmlFor="header-img-upload"
+                                                        className="absolute inset-0 flex flex-col items-center justify-center gap-1 cursor-pointer bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20 transition-all group"
+                                                    >
+                                                        <ImageIcon className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
+                                                        <span className="text-[9px] text-slate-400 group-hover:text-primary font-medium transition-colors">Upload image</span>
+                                                        <input
+                                                            id="header-img-upload"
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={(e) => handleHeaderFileChange(e.target.files[0])}
+                                                        />
+                                                    </label>
+                                                )}
+                                                {headerPreviewUrl && (
+                                                    <label
+                                                        htmlFor="header-img-upload"
+                                                        className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded cursor-pointer hover:bg-black/80 transition-colors"
+                                                    >
+                                                        Change
+                                                        <input
+                                                            id="header-img-upload"
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={(e) => handleHeaderFileChange(e.target.files[0])}
+                                                        />
+                                                    </label>
+                                                )}
+                                            </div>
+                                        )}
+                                        {(selectedTemplate.type === 'VIDEO' || selectedTemplate.headerType === 'VIDEO') && (
+                                            <div className="w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2 relative">
+                                                {headerPreviewUrl ? (
+                                                    <video className="w-full h-full object-cover" src={headerPreviewUrl} muted playsInline />
+                                                ) : (
+                                                    <label
+                                                        htmlFor="header-vid-upload"
+                                                        className="absolute inset-0 flex flex-col items-center justify-center gap-1 cursor-pointer bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20 transition-all group"
+                                                    >
+                                                        <ImageIcon className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
+                                                        <span className="text-[9px] text-slate-400 group-hover:text-primary font-medium transition-colors">Upload video</span>
+                                                        <input
+                                                            id="header-vid-upload"
+                                                            type="file"
+                                                            accept="video/*"
+                                                            className="hidden"
+                                                            onChange={(e) => handleHeaderFileChange(e.target.files[0])}
+                                                        />
+                                                    </label>
+                                                )}
+                                                {headerPreviewUrl && (
+                                                    <label
+                                                        htmlFor="header-vid-upload"
+                                                        className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded cursor-pointer hover:bg-black/80 transition-colors"
+                                                    >
+                                                        Change
+                                                        <input
+                                                            id="header-vid-upload"
+                                                            type="file"
+                                                            accept="video/*"
+                                                            className="hidden"
+                                                            onChange={(e) => handleHeaderFileChange(e.target.files[0])}
+                                                        />
+                                                    </label>
+                                                )}
                                             </div>
                                         )}
                                         <div className="px-1.5 pb-1 pt-0.5">

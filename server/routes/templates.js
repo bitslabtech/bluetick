@@ -641,8 +641,21 @@ router.post('/draft-ai', async (req, res) => {
         const user = await User.findByPk(req.user.id);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
+        // ── Check template plan limit FIRST — before spending any AI tokens ──
+        const limits = await getUserPlanLimits(req.user.id);
+        const currentTemplateCount = await getTemplateCount(req.user.id);
+        const tmplCheck = checkLimit(currentTemplateCount, limits.templateLimit);
+        if (!tmplCheck.allowed) {
+            return res.status(429).json({
+                error: `Template limit reached (${tmplCheck.used}/${tmplCheck.limit}). Upgrade your plan to create more templates.`,
+                code: 'TEMPLATE_LIMIT_REACHED',
+                used: tmplCheck.used,
+                limit: tmplCheck.limit
+            });
+        }
+
         const sysConfig = await SystemConfig.getConfig();
-        const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_template_enhancer ?? 1;
+        const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_template_draft ?? 1;
         const BASE_COST = 10;
         const finalCost = Math.ceil(BASE_COST * multiplier);
 

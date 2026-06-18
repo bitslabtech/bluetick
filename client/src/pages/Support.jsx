@@ -552,6 +552,15 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [replyMessage, setReplyMessage] = useState('');
 
+    // Mark ticket as read when user opens it (clears red dot on sidebar)
+    const openTicket = (ticket) => {
+        setSelectedTicket(ticket);
+        if (ticket.hasUnreadAdminReply) {
+            axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${ticket.id}/mark-read`)
+                .catch(() => {}); // silently fail
+        }
+    };
+
     const handleCreate = async () => {
         if (!subject.trim() || !message.trim()) return alert("Please fill in all details");
         setIsSubmitting(true);
@@ -648,7 +657,14 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                     ) : (
                         <div className="grid gap-4">
                             {tickets.map(t => (
-                                <div key={t.id} onClick={() => setSelectedTicket(t)} className="group bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-indigo-500/50 hover:shadow-md transition-all cursor-pointer">
+                                <div key={t.id} onClick={() => openTicket(t)} className="group bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-indigo-500/50 hover:shadow-md transition-all cursor-pointer relative">
+                                    {/* Unread admin reply indicator */}
+                                    {t.hasUnreadAdminReply && (
+                                        <span className="absolute top-4 right-4 flex h-2.5 w-2.5">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                                        </span>
+                                    )}
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-3">
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                                             <h3 className="font-bold text-slate-900 dark:text-white text-lg group-hover:text-indigo-600 transition-colors">{t.subject}</h3>

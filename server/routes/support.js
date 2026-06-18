@@ -16,6 +16,56 @@ router.use(auth);
 
 // --- TICKETS ---
 
+// GET Unread Ticket Count (for sidebar red dot)
+// Admin sees count of tickets where user replied (hasUnreadUserReply)
+// User sees count of tickets where admin replied (hasUnreadAdminReply)
+router.get('/tickets/unread-count', async (req, res) => {
+    try {
+        const isAdmin = req.user.isAdmin;
+        let where = {};
+
+        if (isAdmin) {
+            // Admin: tickets where a user has replied and admin hasn't read yet
+            where.hasUnreadUserReply = true;
+        } else {
+            // User: their own tickets where admin has replied and they haven't read yet
+            where.userId = req.user.id;
+            where.hasUnreadAdminReply = true;
+        }
+
+        const count = await Ticket.count({ where });
+        res.json({ count });
+    } catch (err) {
+        console.error('Ticket Unread Count Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// POST Mark ticket as read (clears the unread flag for current viewer)
+router.post('/tickets/:id/mark-read', async (req, res) => {
+    try {
+        const ticket = await Ticket.findByPk(req.params.id);
+        if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+        // Permission check
+        if (!req.user.isAdmin && ticket.userId !== req.user.id) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        if (req.user.isAdmin) {
+            ticket.hasUnreadUserReply = false;
+        } else {
+            ticket.hasUnreadAdminReply = false;
+        }
+
+        await ticket.save();
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Mark Read Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // GET My Tickets (User) or All Tickets (Admin)
 router.get('/tickets', async (req, res) => {
     try {
@@ -56,6 +106,7 @@ router.get('/tickets', async (req, res) => {
         res.status(500).json({ error: 'Server Error' });
     }
 });
+
 
 // POST Create Ticket
 router.post('/tickets', async (req, res) => {
@@ -120,6 +171,15 @@ router.post('/tickets/:id/reply', async (req, res) => {
         const updatedMessages = [...ticket.messages, newMessage];
         ticket.messages = updatedMessages;
         ticket.lastReplyAt = new Date();
+
+        // Set unread flag for the OTHER party, clear it for the replier
+        if (req.user.isAdmin) {
+            ticket.hasUnreadAdminReply = true;  // user will see red dot
+            ticket.hasUnreadUserReply = false;  // admin just read/replied, clear their flag
+        } else {
+            ticket.hasUnreadUserReply = true;   // admin will see red dot
+            ticket.hasUnreadAdminReply = false; // user just replied, clear their flag
+        }
 
         // Check previous status vs new status
         const previousStatus = ticket.status;
