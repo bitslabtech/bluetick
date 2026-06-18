@@ -820,4 +820,184 @@ router.get('/ai-tokens', async (req, res) => {
     }
 });
 
+// ─── POST /api/admin/migrate/webp ─────────────────────────────────────────────
+// One-time migration: converts existing PNG/JPEG images in the store folders
+// of Cloudflare R2 / S3 / local disk to WebP in-place (same key, no DB changes).
+//
+// Body params (all optional):
+//   dryRun    boolean  – true = preview only, false = actually convert (default: true)
+//   quality   number   – WebP quality 1-100 (default: 80)
+//   folder    string   – only process this folder (e.g. "wastore-products")
+router.post('/migrate/webp', async (req, res) => {
+    const { dryRun = true, quality = 80, folder: folderFilter = null } = req.body;
+
+    const STORE_FOLDERS = [
+        'wastore-logos', 'wastore-covers', 'wastore-seo',
+        'wastore-slides', 'wastore-products', 'wastore-categories',
+    ];
+    const CONVERTIBLE_EXT = new Set(['.jpg', '.jpeg', '.png']);
+    const path = require('path');
+    const fs = require('fs');
+
+    let sharp;
+    try { sharp = require('sharp'); } catch (e) {
+        return res.status(500).json({ error: 'Sharp is not installed on the server.' });
+    }
+
+    const SystemConfig = require('../models/SystemConfig');
+    const { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+
+    const fmtBytes = (b) => b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(2)} MB`;
+
+    const streamToBuffer = (stream) => new Promise((resolve, reject) => {
+        const chunks = [];
+        stream.on('data', c => chunks.push(c));
+        stream.on('end', () => resolve(Buffer.concat(chunks)));
+        stream.on('error', reject);
+    });
+
+    const config = await SystemConfig.getCachedConfig();
+    const storageType = config?.settings?.storage?.type || 'local';
+    const foldersToProcess = folderFilter ? [folderFilter] : STORE_FOLDERS;
+
+    const log = [];         // Per-file results
+    const stats = { converted: 0, skipped: 0, errors: 0, totalSaved: 0 };
+
+    const processBuffer = async (key, inputBuffer) => {
+        try {
+            const outputBuffer = await sharp(inputBuffer, { failOn: 'none' })
+                .rotate()
+                .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
+                .webp({ quality })
+                .toBuffer();
+            const saved = inputBuffer.length - outputBuffer.length;
+            return { outputBuffer, saved };
+        } catch (err) {
+            throw new Error(`Sharp failed: ${err.message}`);
+        }
+    };
+
+    try {
+        if (storageType === 'r2' || storageType === 's3') {
+            const storConf = config.settings.storage[storageType];
+            const bucket = storConf.bucket;
+            let s3Client, endpoint;
+
+            if (storageType === 'r2') {
+                endpoint = `https://${storConf.accountId}.r2.cloudflarestorage.com`;
+                s3Client = new S3Client({
+                    region: 'auto',
+                    credentials: { accessKeyId: storConf.accessKeyId, secretAccessKey: storConf.secretAccessKey },
+                    endpoint, forcePathStyle: true,
+                });
+            } else {
+                endpoint = storConf.endpoint
+                    ? (storConf.endpoint.startsWith('http') ? storConf.endpoint : `https://${storConf.endpoint}`)
+                    : undefined;
+                s3Client = new S3Client({
+                    region: storConf.region || 'us-east-1',
+                    credentials: { accessKeyId: storConf.accessKeyId, secretAccessKey: storConf.secretAccessKey },
+                    ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
+                });
+            }
+
+            for (const folder of foldersToProcess) {
+                // List all objects in folder
+                let continuationToken;
+                const objects = [];
+                do {
+                    const listResp = await s3Client.send(new ListObjectsV2Command({
+                        Bucket: bucket, Prefix: `${folder}/`, ContinuationToken: continuationToken,
+                    }));
+                    if (listResp.Contents) objects.push(...listResp.Contents);
+                    continuationToken = listResp.IsTruncated ? listResp.NextContinuationToken : null;
+                } while (continuationToken);
+
+                const images = objects.filter(o => CONVERTIBLE_EXT.has(path.extname(o.Key || '').toLowerCase()));
+
+                for (const obj of images) {
+                    const key = obj.Key;
+                    if (dryRun) {
+                        log.push({ key, status: 'would-convert', originalSize: fmtBytes(obj.Size || 0) });
+                        stats.converted++;
+                        continue;
+                    }
+                    try {
+                        const getResp = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+                        const inputBuffer = await streamToBuffer(getResp.Body);
+                        const { outputBuffer, saved } = await processBuffer(key, inputBuffer);
+
+                        if (saved <= 0) {
+                            log.push({ key, status: 'skipped', reason: 'already optimal' });
+                            stats.skipped++;
+                            continue;
+                        }
+
+                        await s3Client.send(new PutObjectCommand({
+                            Bucket: bucket, Key: key, Body: outputBuffer,
+                            ContentType: 'image/webp',
+                            Metadata: { 'x-converted-by': 'webp-migration' },
+                        }));
+
+                        log.push({ key, status: 'converted', saved: fmtBytes(saved), from: fmtBytes(inputBuffer.length), to: fmtBytes(outputBuffer.length) });
+                        stats.converted++;
+                        stats.totalSaved += saved;
+                    } catch (err) {
+                        log.push({ key, status: 'error', error: err.message });
+                        stats.errors++;
+                    }
+                }
+            }
+
+        } else {
+            // Local disk
+            const uploadsDir = path.join(__dirname, '../public/uploads');
+            for (const folder of foldersToProcess) {
+                const folderPath = path.join(uploadsDir, folder);
+                if (!fs.existsSync(folderPath)) continue;
+                const files = fs.readdirSync(folderPath).filter(f => CONVERTIBLE_EXT.has(path.extname(f).toLowerCase()));
+
+                for (const file of files) {
+                    const filePath = path.join(folderPath, file);
+                    const key = `${folder}/${file}`;
+                    if (dryRun) {
+                        const size = fs.statSync(filePath).size;
+                        log.push({ key, status: 'would-convert', originalSize: fmtBytes(size) });
+                        stats.converted++;
+                        continue;
+                    }
+                    try {
+                        const inputBuffer = fs.readFileSync(filePath);
+                        const { outputBuffer, saved } = await processBuffer(key, inputBuffer);
+                        if (saved <= 0) { log.push({ key, status: 'skipped', reason: 'already optimal' }); stats.skipped++; continue; }
+                        fs.writeFileSync(filePath, outputBuffer);
+                        log.push({ key, status: 'converted', saved: fmtBytes(saved) });
+                        stats.converted++;
+                        stats.totalSaved += saved;
+                    } catch (err) {
+                        log.push({ key, status: 'error', error: err.message });
+                        stats.errors++;
+                    }
+                }
+            }
+        }
+
+        return res.json({
+            dryRun,
+            storageType,
+            summary: {
+                converted: stats.converted,
+                skipped: stats.skipped,
+                errors: stats.errors,
+                totalSaved: fmtBytes(stats.totalSaved),
+            },
+            files: log,
+        });
+
+    } catch (err) {
+        console.error('[WebP Migration] Fatal error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
