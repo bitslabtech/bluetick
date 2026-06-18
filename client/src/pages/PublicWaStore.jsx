@@ -36,9 +36,14 @@ export default function PublicWaStore({ customSlug }) {
     const slug = customSlug || params.slug;
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const [store, setStore] = useState(null);
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
+
+    // Use server-embedded data if available — eliminates the API round-trip on first load,
+    // which is the main cause of the 2,600ms+ LCP "resource load delay" on mobile.
+    const preloaded = typeof window !== 'undefined' ? window.__STORE_INITIAL_DATA__ : null;
+
+    const [store, setStore] = useState(preloaded?.store || null);
+    const [products, setProducts] = useState(preloaded?.products || []);
+    const [loading, setLoading] = useState(!preloaded?.store);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [cart, setCart] = useState(() => {
         const saved = localStorage.getItem(`wa_cart_${slug}`);
@@ -116,7 +121,7 @@ export default function PublicWaStore({ customSlug }) {
     }, [store?.categoryAutoplay, store]);
 
     useEffect(() => {
-        const fetchStore = async () => {
+        const fetchStore = async (isSilent = false) => {
             try {
                 const timestamp = new Date().getTime();
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}?t=${timestamp}`);
@@ -124,21 +129,41 @@ export default function PublicWaStore({ customSlug }) {
                 setProducts(res.data.products);
 
                 // Track view once per browser session
-                const sessionKey = `wastore_viewed_${slug}`;
-                if (!sessionStorage.getItem(sessionKey)) {
-                    sessionStorage.setItem(sessionKey, '1');
-                    axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}/view`).catch(() => { });
+                if (!isSilent) {
+                    const sessionKey = `wastore_viewed_${slug}`;
+                    if (!sessionStorage.getItem(sessionKey)) {
+                        sessionStorage.setItem(sessionKey, '1');
+                        axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}/view`).catch(() => { });
+                    }
                 }
             } catch (error) {
-                toast.error("Failed to load store");
+                if (!isSilent) toast.error("Failed to load store");
             } finally {
-                setLoading(false);
+                if (!isSilent) setLoading(false);
             }
         };
-        fetchStore();
-        // Cleanup all injected SEO tags on unmount
+
+        if (preloaded?.store) {
+            // Data already embedded in HTML — no loading spinner needed.
+            // Track the view and silently refresh data in the background after initial render.
+            setLoading(false);
+            const sessionKey = `wastore_viewed_${slug}`;
+            if (!sessionStorage.getItem(sessionKey)) {
+                sessionStorage.setItem(sessionKey, '1');
+                axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}/view`).catch(() => {});
+            }
+            // Background refresh after 1.5s — updates data without blocking LCP
+            const t = setTimeout(() => fetchStore(true), 1500);
+            // Clear the embedded data so it doesn't persist on SPA navigation
+            if (window.__STORE_INITIAL_DATA__) delete window.__STORE_INITIAL_DATA__;
+            return () => { clearTimeout(t); cleanupStoreSeo(); };
+        } else {
+            fetchStore();
+        }
+
         return () => cleanupStoreSeo();
     }, [slug]);
+
 
 
 
