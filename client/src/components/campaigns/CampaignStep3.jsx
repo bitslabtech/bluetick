@@ -4,7 +4,7 @@ import { useUI } from '../../context/UIContext';
 import {
     FileText, User, ChevronDown, Clock, Send, Signal, Wifi, Battery,
     CheckCheck, Check, ArrowLeft, Calendar, Zap, Sparkles,
-    Image as ImageIcon, Link2, Phone, CreditCard, Layers
+    Image as ImageIcon, Link2, Phone, CreditCard, Layers, AlertTriangle, Users, Type
 } from 'lucide-react';
 
 // ─── Carousel Card Config Panel ───────────────────────────────────────────────
@@ -131,6 +131,10 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     // Header media for standard (non-carousel) image/video templates
     const [headerFile, setHeaderFile] = useState(null);
     const [headerPreviewUrl, setHeaderPreviewUrl] = useState(null);
+    // Body parameter personalisation state
+    const [paramModes, setParamModes] = useState({});      // 'static' | 'contact_column'
+    const [paramFallbacks, setParamFallbacks] = useState({});
+    const [fieldCoverage, setFieldCoverage] = useState({});
 
     const selectedTemplate = data.template || {};
     const isCarousel = selectedTemplate.archetype === 'carousel' && Array.isArray(selectedTemplate.cards) && selectedTemplate.cards.length > 0;
@@ -223,10 +227,59 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     const estCost = `~ ${currencySymbol}${estCostNum.toFixed(2)}`;
     const totalEst = `${totalRecipientsCount} Contact${totalRecipientsCount !== 1 ? 's' : ''}`;
 
+    const CONTACT_COLUMNS = [
+        { colKey: 'name',       label: '👤 Contact Name',   desc: 'Full name saved in this app' },
+        { colKey: 'first_name', label: '✨ First Name Only', desc: 'Auto first word of name' },
+        { colKey: 'phone',      label: '📱 Phone Number',   desc: 'Always available for everyone' },
+        { colKey: 'email',      label: '✉️ Email Address',   desc: 'May be missing for some contacts' },
+        { colKey: 'tags',       label: '🏷️ First Group/Tag', desc: 'First tag on the contact' },
+    ];
+
     const handleParamChange = (variable, value) => {
         const newParams = { ...data.params, [variable]: value };
         updateData({ params: newParams });
     };
+
+    const fetchFieldCoverage = async (varName, colKey) => {
+        if (!colKey || colKey === 'phone') {
+            setFieldCoverage(prev => ({ ...prev, [varName]: { total: 0, missing: 0, loading: false } }));
+            return;
+        }
+        setFieldCoverage(prev => ({ ...prev, [varName]: { ...(prev[varName] || {}), loading: true } }));
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/contacts/field-coverage`, {
+                recipients: data.recipients || [],
+                field: colKey
+            });
+            setFieldCoverage(prev => ({ ...prev, [varName]: { ...res.data, loading: false } }));
+        } catch {
+            setFieldCoverage(prev => ({ ...prev, [varName]: { total: 0, missing: 0, loading: false } }));
+        }
+    };
+
+    const handleParamModeChange = (varName, mode) => {
+        setParamModes(prev => ({ ...prev, [varName]: mode }));
+        if (mode === 'static') {
+            handleParamChange(varName, '');
+            setFieldCoverage(prev => ({ ...prev, [varName]: null }));
+        } else {
+            handleParamChange(varName, '__col__name');
+            fetchFieldCoverage(varName, 'name');
+        }
+    };
+
+    const handleColumnChange = (varName, colKey) => {
+        handleParamChange(varName, `__col__${colKey}`);
+        fetchFieldCoverage(varName, colKey);
+    };
+
+    const handleFallbackChange = (varName, value) => {
+        setParamFallbacks(prev => ({ ...prev, [varName]: value }));
+        const newParams = { ...data.params, [`__fallback__${varName}`]: value };
+        updateData({ params: newParams });
+    };
+
+
 
     const handleCardParamChange = (cardIndex, key, value) => {
         setCardParams(prev => ({ ...prev, [`card_${cardIndex}_${key}`]: value }));
@@ -254,8 +307,17 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     const getPreviewText = () => {
         let text = selectedTemplate.content || '';
         variables.forEach(v => {
-            const val = data.params?.[v] || `{{${v}}}`;
-            text = text.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), val);
+            const raw = data.params?.[v] || '';
+            let display;
+            if (raw.startsWith('__col__')) {
+                const colKey = raw.replace('__col__', '');
+                const col = CONTACT_COLUMNS.find(c => c.colKey === colKey);
+                const fallback = paramFallbacks[v] || 'Customer';
+                display = col ? `[${col.colKey === 'first_name' ? 'First Name' : col.label.replace(/^\S+\s/, '')} or "${fallback}"]` : `[${colKey}]`;
+            } else {
+                display = raw || `{{${v}}}`;
+            }
+            text = text.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), display);
         });
         return text;
     };
@@ -406,37 +468,116 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                         </div>
                     </div>
 
-                    {/* ── Standard Body Parameters (non-carousel or master body) ── */}
+                    {/* ── Body Parameters (fully dynamic) ── */}
                     {variables.length > 0 && (
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
                             <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
-                                <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400">
-                                    <User className="w-5 h-5" />
+                                <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400"><User className="w-5 h-5" /></div>
+                                <div>
+                                    <h3 className="text-slate-900 dark:text-white font-bold text-lg leading-tight">Body Parameters</h3>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Send the same text to everyone, or personalise each variable from contact data</p>
                                 </div>
-                                <h3 className="text-slate-900 dark:text-white font-bold text-lg">Body Parameters</h3>
                             </div>
-                            <div className="p-4 md:p-6 space-y-6">
-                                {variables.map((variable, idx) => (
-                                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start border-b border-slate-100 dark:border-white/5 pb-5 last:border-0 last:pb-0">
-                                        <div className="md:col-span-4">
-                                            <label className="block text-sm font-bold text-slate-900 dark:text-white mb-1">Variable {'{{'}{variable}{'}}'}</label>
-                                            <span className="text-xs text-slate-500 dark:text-text-secondary block">Replace with...</span>
+                            <div className="p-4 md:p-6 space-y-4">
+                                {variables.map((variable, idx) => {
+                                    const mode = paramModes[variable] || 'static';
+                                    const rawVal = data.params?.[variable] || '';
+                                    const selectedColKey = rawVal.startsWith('__col__') ? rawVal.replace('__col__', '') : 'name';
+                                    const coverage = fieldCoverage[variable];
+                                    const fallback = paramFallbacks[variable] || '';
+                                    return (
+                                        <div key={idx} className="rounded-2xl border border-slate-100 dark:border-white/8 overflow-hidden">
+                                            {/* Row header: var badge + mode toggle */}
+                                            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800">{`{{${variable}}}`}</span>
+                                                    <span className="text-xs text-slate-400">replace with →</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 bg-slate-200 dark:bg-background-dark rounded-xl p-1">
+                                                    <button onClick={() => handleParamModeChange(variable, 'static')}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                            mode === 'static' ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                                                        }`}>
+                                                        <Type className="w-3 h-3" />Fixed Text
+                                                    </button>
+                                                    <button onClick={() => handleParamModeChange(variable, 'contact_column')}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                            mode === 'contact_column' ? 'bg-white dark:bg-surface-dark text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                                                        }`}>
+                                                        <Users className="w-3 h-3" />From Contact
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="p-4 space-y-3">
+                                                {mode === 'static' ? (
+                                                    <div>
+                                                        <input
+                                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                                            type="text"
+                                                            placeholder={`E.g. "Dear Customer", "Sale ends today!"`}
+                                                            value={rawVal.startsWith('__col__') ? '' : rawVal}
+                                                            onChange={(e) => handleParamChange(variable, e.target.value)}
+                                                        />
+                                                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">This exact text will be sent to <strong>every</strong> recipient.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        {/* Column picker */}
+                                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Pick a contact field</label>
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                                                            {CONTACT_COLUMNS.map(col => (
+                                                                <button key={col.colKey}
+                                                                    onClick={() => handleColumnChange(variable, col.colKey)}
+                                                                    className={`flex flex-col items-start gap-0.5 p-3 rounded-xl border text-left transition-all ${
+                                                                        selectedColKey === col.colKey
+                                                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/60'
+                                                                            : 'bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-white/10 hover:border-blue-300'
+                                                                    }`}>
+                                                                    <span className={`text-xs font-bold leading-tight ${ selectedColKey === col.colKey ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-white' }`}>{col.label}</span>
+                                                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-snug mt-0.5">{col.desc}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        {/* Coverage badge */}
+                                                        {coverage?.loading && (
+                                                            <div className="flex items-center gap-2 text-xs text-slate-400"><div className="w-3 h-3 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />Checking coverage across your audience...</div>
+                                                        )}
+                                                        {coverage && !coverage.loading && coverage.total > 0 && (
+                                                            <div className={`flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 text-xs ${
+                                                                coverage.missing === 0
+                                                                    ? 'bg-green-50 dark:bg-green-900/15 border border-green-200 dark:border-green-700/40'
+                                                                    : 'bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-700/40'
+                                                            }`}>
+                                                                {coverage.missing === 0 ? (
+                                                                    <><span className="text-green-500 font-bold mt-0.5">✓</span><span className="text-green-700 dark:text-green-300">All <strong>{coverage.total}</strong> contacts have this field — no fallback needed.</span></>
+                                                                ) : (
+                                                                    <><AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" /><span className="text-amber-700 dark:text-amber-300"><strong>{coverage.missing}</strong> of <strong>{coverage.total}</strong> contacts are missing this field — they will receive your fallback text instead.</span></>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {/* Fallback input */}
+                                                        <div>
+                                                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                                                Fallback — if field is empty
+                                                                {coverage?.missing > 0 && <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md font-bold">{coverage.missing} contacts affected</span>}
+                                                            </label>
+                                                            <input
+                                                                className="w-full bg-slate-50 dark:bg-background-dark border border-amber-200 dark:border-amber-700/40 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40 outline-none transition-colors placeholder-slate-400"
+                                                                type="text"
+                                                                placeholder='E.g. "Customer", "Friend", "there"'
+                                                                value={fallback}
+                                                                onChange={(e) => handleFallbackChange(variable, e.target.value)}
+                                                            />
+                                                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                                                                Used when a contact has no {CONTACT_COLUMNS.find(c => c.colKey === selectedColKey)?.label?.replace(/^\S+\s/, '') || 'value'} saved.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="md:col-span-8 flex gap-3">
-                                            <select className="bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-3 text-slate-900 dark:text-white text-sm focus:border-primary outline-none w-1/3 cursor-pointer">
-                                                <option value="static">Static Text</option>
-                                                <option value="column">Contact Column</option>
-                                            </select>
-                                            <input
-                                                className="flex-1 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                                                type="text"
-                                                placeholder={`Value for {{${variable}}}`}
-                                                value={data.params?.[variable] || ''}
-                                                onChange={(e) => handleParamChange(variable, e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

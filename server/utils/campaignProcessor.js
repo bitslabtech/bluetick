@@ -38,13 +38,13 @@ const processCampaign = async (campaignId) => {
         if (contactIds === 'all') {
             contacts = await Contact.findAll({
                 where: { userId, status: { [require('sequelize').Op.or]: [{ [require('sequelize').Op.ne]: 'Invalid' }, { [require('sequelize').Op.is]: null }] } },
-                attributes: ['id', 'name', 'phone'],
+                attributes: ['id', 'name', 'phone', 'email', 'tags'],
                 raw: true
             });
         } else if (Array.isArray(contactIds) && contactIds.length > 0) {
             contacts = await Contact.findAll({
                 where: { id: contactIds, userId, status: { [require('sequelize').Op.or]: [{ [require('sequelize').Op.ne]: 'Invalid' }, { [require('sequelize').Op.is]: null }] } },
-                attributes: ['id', 'name', 'phone'],
+                attributes: ['id', 'name', 'phone', 'email', 'tags'],
                 raw: true
             });
         }
@@ -88,6 +88,29 @@ const processCampaign = async (campaignId) => {
         const variables = variableMatches.map(v => v.replace(/\{\{|\}\}/g, ''));
         const userParams = params || {};
 
+        // ── Dynamic field resolver ─────────────────────────────────────────────
+        // If a param value starts with "__col__" it means the user picked a
+        // contact column. The suffix is the field name. A matching
+        // "__fallback__<varName>" key holds the text to use when the field is
+        // blank for a given contact.
+        const resolveParam = (varName, contact) => {
+            const raw = userParams[varName] || '';
+            if (!raw.startsWith('__col__')) return raw; // static text — pass through
+
+            const colKey = raw.replace('__col__', '');
+            const fallback = userParams[`__fallback__${varName}`] || 'Customer';
+
+            let resolved = '';
+            if (colKey === 'name')       resolved = contact.name || '';
+            else if (colKey === 'first_name') resolved = (contact.name || '').split(' ')[0] || '';
+            else if (colKey === 'phone') resolved = contact.phone || '';
+            else if (colKey === 'email') resolved = contact.email || '';
+            else if (colKey === 'tags')  resolved = (contact.tags || [])[0] || '';
+
+            return resolved.trim() || fallback;
+        };
+        // ──────────────────────────────────────────────────────────────────────
+
         const limit = pLimit(5);
 
         const CHUNK_SIZE = 100;
@@ -98,13 +121,10 @@ const processCampaign = async (campaignId) => {
                 try {
                     let phone = contact.phone.replace(/\D/g, '');
 
-                    const bodyParameters = variables.map(v => {
-                        let value = userParams[v] || '';
-                        if (value.includes('{{name}}') || value.toLowerCase() === 'name') {
-                            value = contact.name || 'Customer';
-                        }
-                        return { type: "text", text: value };
-                    });
+                    const bodyParameters = variables.map(v => ({
+                        type: "text",
+                        text: resolveParam(v, contact)
+                    }));
 
                     const payload = {
                         messaging_product: "whatsapp",
@@ -191,9 +211,60 @@ const processCampaign = async (campaignId) => {
                         payload.template.components = components;
 
                     } else {
-                        // Standard template
+                        // ── Standard template — build all applicable components ──────────────
+                        const components = [];
+
+                        // 1. Header component (IMAGE / VIDEO / DOCUMENT)
+                        //    The frontend uploads the file and stores the media ID in
+                        //    params['headerMediaId']. Documents also carry a filename.
+                        const stdHeaderType = (template.headerType || '').toUpperCase();
+                        const stdHeaderMediaId = userParams['headerMediaId'];
+                        if (stdHeaderMediaId && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(stdHeaderType)) {
+                            const mediaType = stdHeaderType.toLowerCase(); // 'image' | 'video' | 'document'
+                            const mediaParam = { id: stdHeaderMediaId };
+                            if (mediaType === 'document') {
+                                // filename is optional but helpful; fall back to template name
+                                mediaParam.filename = userParams['headerFilename'] || template.name || 'document';
+                            }
+                            components.push({
+                                type: 'header',
+                                parameters: [{ type: mediaType, [mediaType]: mediaParam }]
+                            });
+                        }
+
+                        // 2. Body component
                         if (bodyParameters.length > 0) {
-                            payload.template.components = [{ type: "body", parameters: bodyParameters }];
+                            components.push({ type: 'body', parameters: bodyParameters });
+                        }
+
+                        // 3. Button components (URL dynamic suffix / QUICK_REPLY payload)
+                        if (Array.isArray(template.buttons) && template.buttons.length > 0) {
+                            template.buttons.forEach((btn, btnIdx) => {
+                                if (btn.type === 'URL') {
+                                    // Only include if a dynamic URL suffix was provided
+                                    const overrideUrl = userParams[`btn_${btnIdx}_url`];
+                                    if (overrideUrl) {
+                                        components.push({
+                                            type: 'button',
+                                            sub_type: 'url',
+                                            index: String(btnIdx),
+                                            parameters: [{ type: 'text', text: overrideUrl }]
+                                        });
+                                    }
+                                } else if (btn.type === 'QUICK_REPLY') {
+                                    components.push({
+                                        type: 'button',
+                                        sub_type: 'quick_reply',
+                                        index: String(btnIdx),
+                                        parameters: [{ type: 'payload', payload: btn.text || 'reply' }]
+                                    });
+                                }
+                                // PHONE_NUMBER / COPY_CODE buttons need no runtime parameters
+                            });
+                        }
+
+                        if (components.length > 0) {
+                            payload.template.components = components;
                         }
                     }
 
@@ -237,10 +308,7 @@ const processCampaign = async (campaignId) => {
                             // Render full content by replacing variables
                             let fullBody = template.content;
                             variables.forEach(variableName => {
-                                let val = userParams[variableName] || '';
-                                if (val.includes('{{name}}') || val.toLowerCase() === 'name') {
-                                    val = contact.name || 'Customer';
-                                }
+                                const val = resolveParam(variableName, contact);
                                 fullBody = fullBody.replace(new RegExp(`\\{\\{${variableName}\\}\\}`, 'g'), val);
                             });
 
@@ -291,7 +359,15 @@ const processCampaign = async (campaignId) => {
                                             let cardBody = card.content;
                                             const cardVars = (card.content.match(/\{\{([^}]+)\}\}/g) || []).map(v => v.replace(/\{\{|\}\}/g, ''));
                                             cardVars.forEach(varName => {
-                                                const val = userParams[`card_${cardIndex}_var_${varName}`] || varName;
+                                                const cardParamKey = `card_${cardIndex}_var_${varName}`;
+                                                const raw = userParams[cardParamKey] || '';
+                                                const fallback = userParams[`__fallback__${cardParamKey}`] || varName;
+                                                let val = raw;
+                                                if (raw.startsWith('__col__')) {
+                                                    val = resolveParam(cardParamKey, contact) || fallback;
+                                                } else {
+                                                    val = raw || fallback;
+                                                }
                                                 cardBody = cardBody.replace(new RegExp(`\\{\\{${varName}\\}\\}`, 'g'), val);
                                             });
                                             cardComps.push({ type: 'BODY', text: cardBody });

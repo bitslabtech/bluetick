@@ -10,6 +10,7 @@ const SystemConfig = require('../models/SystemConfig');
 const auth = require('../middleware/auth');
 const axios = require('axios');
 const storageProvider = require('../utils/storageProvider');
+const { deleteStorageFile } = require('../utils/storageProvider');
 const { Op, fn, col, literal } = require('sequelize');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { fireCAPIEvent } = require('../utils/capi');
@@ -835,6 +836,54 @@ router.put('/:id', async (req, res) => {
         delete updates.userId;
         delete updates.createdAt;
         delete updates.updatedAt;
+
+        // ── Delete replaced store-level images from storage (fire-and-forget) ──
+
+        // Logo replaced or removed
+        if (store.logo && updates.logo !== undefined && updates.logo !== store.logo) {
+            deleteStorageFile(store.logo).catch(() => {});
+        }
+        // Cover image replaced or removed
+        if (store.coverImage && updates.coverImage !== undefined && updates.coverImage !== store.coverImage) {
+            deleteStorageFile(store.coverImage).catch(() => {});
+        }
+        // SEO og:image replaced or removed
+        if (store.seoImage && updates.seoImage !== undefined && updates.seoImage !== store.seoImage) {
+            deleteStorageFile(store.seoImage).catch(() => {});
+        }
+
+        // Hero slides — find slide imageUrls that were removed or replaced
+        if (updates.heroSlides !== undefined) {
+            try {
+                const oldSlides = Array.isArray(store.heroSlides) ? store.heroSlides : [];
+                const newSlides = Array.isArray(updates.heroSlides) ? updates.heroSlides : [];
+                const newUrls = new Set(newSlides.map(s => s?.imageUrl).filter(Boolean));
+                oldSlides.forEach(slide => {
+                    if (slide?.imageUrl && !newUrls.has(slide.imageUrl)) {
+                        deleteStorageFile(slide.imageUrl).catch(() => {});
+                    }
+                });
+            } catch (e) {}
+        }
+
+        // Category images — find image URLs that were removed or replaced
+        if (updates.categoryImages !== undefined) {
+            try {
+                const parseImgs = (val) => {
+                    if (!val) return {};
+                    return typeof val === 'string' ? JSON.parse(val) : val;
+                };
+                const oldCatImgs = parseImgs(store.categoryImages);
+                const newCatImgs = parseImgs(updates.categoryImages);
+                const newUrlSet = new Set(Object.values(newCatImgs).filter(Boolean));
+                Object.values(oldCatImgs).forEach(url => {
+                    if (url && !newUrlSet.has(url)) {
+                        deleteStorageFile(url).catch(() => {});
+                    }
+                });
+            } catch (e) {}
+        }
+
         await store.update(updates);
         res.json(store);
     } catch (error) {
@@ -850,9 +899,32 @@ router.delete('/:id', async (req, res) => {
         });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
+        // ── Collect all product images and delete from storage (fire-and-forget) ──
+        const allProducts = await WaProduct.findAll({ where: { storeId: store.id } });
+        allProducts.forEach(product => {
+            const imageUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
+            imageUrls.forEach(url => deleteStorageFile(url).catch(() => {}));
+        });
+
+        // ── Delete store-level images from storage (fire-and-forget) ──
+        if (store.logo)       deleteStorageFile(store.logo).catch(() => {});
+        if (store.coverImage) deleteStorageFile(store.coverImage).catch(() => {});
+
+        // Hero slide images
+        const heroSlides = Array.isArray(store.heroSlides) ? store.heroSlides : [];
+        heroSlides.forEach(slide => { if (slide?.imageUrl) deleteStorageFile(slide.imageUrl).catch(() => {}); });
+
+        // Category images (stored as object { categoryName: url })
+        try {
+            const catImgs = typeof store.categoryImages === 'string'
+                ? JSON.parse(store.categoryImages)
+                : (store.categoryImages || {});
+            Object.values(catImgs).forEach(url => { if (url) deleteStorageFile(url).catch(() => {}); });
+        } catch (e) {}
+
         // Delete all products first
         await WaProduct.destroy({ where: { storeId: store.id } });
-        
+
         await store.destroy();
         res.json({ success: true, message: 'Store deleted' });
     } catch (error) {
@@ -914,6 +986,14 @@ router.put('/products/:productId', async (req, res) => {
         if (payload.wholesalePrice === '') payload.wholesalePrice = null;
         if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
 
+        // ── Delete images that were removed or replaced (fire-and-forget) ──
+        if (Array.isArray(payload.imageUrls)) {
+            const oldUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
+            const newUrlSet = new Set(payload.imageUrls);
+            const removedUrls = oldUrls.filter(url => !newUrlSet.has(url));
+            removedUrls.forEach(url => deleteStorageFile(url).catch(() => {}));
+        }
+
         await product.update(payload);
         res.json(product);
     } catch (error) {
@@ -930,6 +1010,10 @@ router.delete('/products/:productId', async (req, res) => {
 
         const store = await WaStore.findOne({ where: { id: product.storeId, userId: req.user.id } });
         if (!store) return res.status(403).json({ error: 'Unauthorized' });
+
+        // ── Delete all product images from storage (fire-and-forget) ──
+        const imageUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
+        imageUrls.forEach(url => deleteStorageFile(url).catch(() => {}));
 
         await product.destroy();
         res.json({ success: true, message: 'Product deleted' });

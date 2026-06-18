@@ -638,8 +638,57 @@ class FlowRunner {
                             components.push({ type: 'carousel', cards: carouselCardComponents });
                             payload.template.components = components;
                         } else {
+                            // ── Standard template — build all applicable components ──────────
+                            const components = [];
+
+                            // 1. Header component (IMAGE / VIDEO / DOCUMENT)
+                            //    cardParams in the flow node may carry a pre-uploaded headerMediaId.
+                            const stdHeaderType = (template.headerType || '').toUpperCase();
+                            const stdHeaderMediaId = userParams['headerMediaId'];
+                            if (stdHeaderMediaId && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(stdHeaderType)) {
+                                const mediaType = stdHeaderType.toLowerCase();
+                                const mediaParam = { id: stdHeaderMediaId };
+                                if (mediaType === 'document') {
+                                    mediaParam.filename = userParams['headerFilename'] || template.name || 'document';
+                                }
+                                components.push({
+                                    type: 'header',
+                                    parameters: [{ type: mediaType, [mediaType]: mediaParam }]
+                                });
+                            }
+
+                            // 2. Body component
                             if (bodyParameters.length > 0) {
-                                payload.template.components = [{ type: "body", parameters: bodyParameters }];
+                                components.push({ type: 'body', parameters: bodyParameters });
+                            }
+
+                            // 3. Button components (URL dynamic suffix / QUICK_REPLY payload)
+                            if (Array.isArray(template.buttons) && template.buttons.length > 0) {
+                                template.buttons.forEach((btn, btnIdx) => {
+                                    if (btn.type === 'URL') {
+                                        const overrideUrl = userParams[`btn_${btnIdx}_url`];
+                                        if (overrideUrl) {
+                                            components.push({
+                                                type: 'button',
+                                                sub_type: 'url',
+                                                index: String(btnIdx),
+                                                parameters: [{ type: 'text', text: overrideUrl }]
+                                            });
+                                        }
+                                    } else if (btn.type === 'QUICK_REPLY') {
+                                        components.push({
+                                            type: 'button',
+                                            sub_type: 'quick_reply',
+                                            index: String(btnIdx),
+                                            parameters: [{ type: 'payload', payload: btn.text || 'reply' }]
+                                        });
+                                    }
+                                    // PHONE_NUMBER / COPY_CODE buttons need no runtime parameters
+                                });
+                            }
+
+                            if (components.length > 0) {
+                                payload.template.components = components;
                             }
                         }
 

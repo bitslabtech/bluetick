@@ -309,7 +309,16 @@ export default function PublicWaStore({ customSlug }) {
                             {slide.imageUrl?.match(/\.(mp4|webm|ogg)(\?.*)?$/i) ? (
                                 <video src={imgUrl(slide.imageUrl)} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                             ) : (
-                                <img src={imgUrl(slide.imageUrl)} alt={slide.title} className="w-full h-full object-contain" onError={e => e.target.style.display = 'none'} />
+                                <img
+                                    src={imgUrl(slide.imageUrl)}
+                                    alt={slide.title || ''}
+                                    className="w-full h-full object-contain"
+                                    onError={e => e.target.style.display = 'none'}
+                                    // First slide is the LCP element — prioritise its load
+                                    loading={idx === 0 ? 'eager' : 'lazy'}
+                                    fetchpriority={idx === 0 ? 'high' : 'auto'}
+                                    decoding={idx === 0 ? 'sync' : 'async'}
+                                />
                             )}
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-2 md:px-4">
                                 <div className="max-w-3xl space-y-1 sm:space-y-2 md:space-y-4">
@@ -342,15 +351,31 @@ export default function PublicWaStore({ customSlug }) {
                     {/* Controls */}
                     {slides.length > 1 && (
                         <>
-                            <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                                onClick={prevSlide}
+                                aria-label="Previous slide"
+                                className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                            >
                                 <ChevronLeft className="w-6 h-6" />
                             </button>
-                            <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                                onClick={nextSlide}
+                                aria-label="Next slide"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                            >
                                 <ChevronRight className="w-6 h-6" />
                             </button>
+                            {/* Dot navigation — wrapped in a larger touch target */}
                             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-2">
                                 {slides.map((_, idx) => (
-                                    <button key={idx} onClick={() => goToSlide(idx)} className={`h-1.5 rounded-full transition-all ${idx === activeSlide ? 'w-8 bg-white' : 'w-2 bg-white/50'}`} />
+                                    <button
+                                        key={idx}
+                                        onClick={() => goToSlide(idx)}
+                                        aria-label={`Go to slide ${idx + 1}`}
+                                        className="flex items-center justify-center p-2 -m-2"
+                                    >
+                                        <span className={`h-1.5 rounded-full transition-all block ${idx === activeSlide ? 'w-8 bg-white' : 'w-2 bg-white/50'}`} />
+                                    </button>
                                 ))}
                             </div>
                         </>
@@ -399,7 +424,7 @@ export default function PublicWaStore({ customSlug }) {
                                         >
                                             <div className={`w-24 h-24 sm:w-44 sm:h-44 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
                                                 {catImage ? (
-                                                    <img src={imgUrl(catImage)} alt={cat} className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-100 group-hover:scale-105`} />
+                                                    <img src={imgUrl(catImage)} alt="" loading="lazy" className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-100 group-hover:scale-105`} />
                                                 ) : (
                                                     <span className="text-xl sm:text-4xl font-thin text-zinc-400 dark:text-zinc-600">{cat.substring(0, 1)}</span>
                                                 )}
@@ -437,7 +462,7 @@ export default function PublicWaStore({ customSlug }) {
                                         >
                                             <div className={`w-24 h-24 sm:w-44 sm:h-44 ${theme.categoryImageShape || 'rounded-full'} overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
                                                 {catImage ? (
-                                                    <img src={imgUrl(catImage)} alt={cat} className="w-full h-full object-cover" />
+                                                    <img src={imgUrl(catImage)} alt="" loading="lazy" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <span className={`text-xl sm:text-4xl font-bold uppercase ${theme.textMuted}`}>{cat.substring(0, 2)}</span>
                                                 )}
@@ -465,6 +490,7 @@ export default function PublicWaStore({ customSlug }) {
                         <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:block">Sort By</span>
                         <select
                             value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+                            aria-label="Sort products"
                             className="bg-transparent text-[13px] md:text-sm font-bold text-gray-800 dark:text-gray-200 outline-none cursor-pointer border-none focus:ring-0 appearance-none pr-6 z-10"
                         >
                             <option value="newest" className="text-gray-900 font-medium">New Arrivals</option>
@@ -514,7 +540,7 @@ export default function PublicWaStore({ customSlug }) {
                                         {/* Image Box */}
                                         <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                             {product.imageUrls && product.imageUrls[0] ? (
-                                                <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
+                                                <img src={imgUrl(product.imageUrls[0])} alt={product.name} loading="lazy" decoding="async" className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
                                             )}

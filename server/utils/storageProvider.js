@@ -11,7 +11,7 @@
  */
 
 const multer = require('multer');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
 const SystemConfig = require('../models/SystemConfig');
@@ -361,9 +361,91 @@ const storageProvider = (folderName, options = {}) => {
     };
 };
 
+// ─── Key extraction helpers (reverse of the URL-building functions above) ────
+
+const extractR2Key = (url, r2Conf, endpoint) => {
+    if (r2Conf.publicUrl) {
+        const prefix = r2Conf.publicUrl.replace(/\/$/, '');
+        if (url.startsWith(prefix + '/')) return url.slice(prefix.length + 1);
+    }
+    // fallback: endpoint/bucket/key
+    const prefix = `${endpoint}/${r2Conf.bucket}/`;
+    if (url.startsWith(prefix)) return url.slice(prefix.length);
+    return null;
+};
+
+const extractS3Key = (url, s3Conf, endpoint, forcePathStyleVal) => {
+    if (s3Conf.publicUrlPrefix) {
+        const prefix = s3Conf.publicUrlPrefix.replace(/\/$/, '');
+        if (url.startsWith(prefix + '/')) return url.slice(prefix.length + 1);
+    }
+    if (endpoint) {
+        if (forcePathStyleVal) {
+            const prefix = `${endpoint}/${s3Conf.bucket}/`;
+            if (url.startsWith(prefix)) return url.slice(prefix.length);
+        } else {
+            const withBucket = endpoint.replace('://', `://${s3Conf.bucket}.`);
+            const prefix = `${withBucket}/`;
+            if (url.startsWith(prefix)) return url.slice(prefix.length);
+        }
+    }
+    // Standard AWS S3
+    const region = s3Conf.region || 'us-east-1';
+    const awsPrefix = `https://${s3Conf.bucket}.s3.${region}.amazonaws.com/`;
+    if (url.startsWith(awsPrefix)) return url.slice(awsPrefix.length);
+    return null;
+};
+
+/**
+ * Deletes a file from whichever storage backend is currently configured
+ * (Cloudflare R2, AWS / S3-compatible, or local disk).
+ *
+ * Safe to call fire-and-forget — all errors are caught and logged.
+ * @param {string} url - The public URL that was stored in the database.
+ */
+const deleteStorageFile = async (url) => {
+    if (!url || typeof url !== 'string') return;
+    try {
+        const storageConf = await getStorageConfig();
+
+        if (storageConf.type === 'r2') {
+            const key = extractR2Key(url, storageConf.r2Conf, storageConf.endpoint);
+            if (!key) { console.warn('[Storage] Could not extract R2 key from URL:', url); return; }
+            await storageConf.s3Client.send(new DeleteObjectCommand({
+                Bucket: storageConf.r2Conf.bucket,
+                Key: key
+            }));
+            console.log('[Storage] Deleted R2 object:', key);
+
+        } else if (storageConf.type === 's3') {
+            const key = extractS3Key(url, storageConf.s3Conf, storageConf.endpoint, storageConf.forcePathStyleVal);
+            if (!key) { console.warn('[Storage] Could not extract S3 key from URL:', url); return; }
+            await storageConf.s3Client.send(new DeleteObjectCommand({
+                Bucket: storageConf.s3Conf.bucket,
+                Key: key
+            }));
+            console.log('[Storage] Deleted S3 object:', key);
+
+        } else {
+            // Local disk — extract path after /uploads/
+            const match = url.match(/\/uploads\/(.+)/);
+            if (!match) { console.warn('[Storage] Could not extract local path from URL:', url); return; }
+            const filePath = path.join(__dirname, '../public/uploads', match[1]);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+                console.log('[Storage] Deleted local file:', filePath);
+            }
+        }
+    } catch (err) {
+        // Non-fatal — log but never throw so callers stay unaffected
+        console.error('[Storage] Failed to delete file:', url, err.message);
+    }
+};
+
 module.exports = storageProvider;
 module.exports.generalImageFilter = generalImageFilter;
 module.exports.whatsappImageFilter = whatsappImageFilter;
 module.exports.documentFilter = documentFilter;
 module.exports.videoFilter = videoFilter;
 module.exports.whatsappMediaFilter = whatsappMediaFilter;
+module.exports.deleteStorageFile = deleteStorageFile;

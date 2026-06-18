@@ -98,6 +98,58 @@ router.get('/campaign-summary', async (req, res) => {
     }
 });
 
+// POST /api/contacts/field-coverage
+// Returns how many contacts in the selected audience are missing a dynamic field.
+// Used by the campaign wizard to show "X contacts have no email — will use fallback" warnings.
+router.post('/field-coverage', async (req, res) => {
+    try {
+        const { recipients, field } = req.body;
+        const userId = req.user.parentUserId || req.user.id;
+
+        const validFields = ['name', 'first_name', 'phone', 'email', 'tags'];
+        if (!validFields.includes(field)) {
+            return res.json({ total: 0, missing: 0 });
+        }
+
+        // phone is always present — short-circuit
+        if (field === 'phone') {
+            const total = await Contact.count({
+                where: { userId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } }
+            });
+            return res.json({ total, missing: 0 });
+        }
+
+        const allContacts = await Contact.findAll({
+            where: { userId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } },
+            attributes: ['name', 'phone', 'email', 'tags'],
+            raw: true
+        });
+
+        // Filter by selected audience
+        let targets = allContacts;
+        if (Array.isArray(recipients) && !recipients.includes('all') && recipients.length > 0) {
+            targets = allContacts.filter(c => c.tags && c.tags.some(t => recipients.includes(t)));
+        }
+
+        // Count missing per field
+        let missing = 0;
+        if (field === 'email') {
+            missing = targets.filter(c => !c.email || !c.email.trim()).length;
+        } else if (field === 'name' || field === 'first_name') {
+            missing = targets.filter(c => !c.name || !c.name.trim()).length;
+        } else if (field === 'tags') {
+            missing = targets.filter(c => !c.tags || c.tags.length === 0).length;
+        }
+
+        res.json({ total: targets.length, missing });
+    } catch (err) {
+        console.error('[field-coverage] error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+
 // GET contact by phone number
 router.get('/by-phone/:phone', async (req, res) => {
     try {
