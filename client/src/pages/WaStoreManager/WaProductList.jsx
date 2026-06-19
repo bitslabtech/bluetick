@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { Package, Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight } from 'lucide-react';
+import { Package, Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ─── Allowed MIME types & extensions ─────────────────────────────────────────
@@ -176,6 +176,62 @@ function MultiImageUploader({ imageUrls, onImagesChange }) {
                 onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }}
             />
             {error && <div className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</div>}
+        </div>
+    );
+}
+
+// ─── Single Variant Image Uploader Component ────────────────────────────────
+function VariantImageUploader({ onUploaded }) {
+    const inputRef = useRef(null);
+    const [uploading, setUploading] = useState(false);
+
+    const handleFile = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        const err = validateImageFile(file);
+        if (err) { toast.error(err); return; }
+        
+        setUploading(true);
+        try {
+            const form = new FormData();
+            form.append('product', file);
+            const res = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/wastore/upload/product`,
+                form,
+                { headers: {  'Content-Type': 'multipart/form-data' } }
+            );
+            onUploaded(res.data.url);
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Upload failed.');
+        } finally {
+            setUploading(false);
+            if (inputRef.current) inputRef.current.value = '';
+        }
+    };
+
+    return (
+        <div className="relative inline-block ml-1">
+            <input
+                ref={inputRef}
+                type="file"
+                accept={ALLOWED_MIME.join(',')}
+                className="hidden"
+                onChange={handleFile}
+            />
+            <button
+                type="button"
+                onClick={() => !uploading && inputRef.current?.click()}
+                disabled={uploading}
+                title="Upload unique image for this variant"
+                className="w-10 h-10 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors disabled:opacity-50"
+            >
+                {uploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+                ) : (
+                    <Upload className="w-4 h-4 text-slate-400" />
+                )}
+            </button>
         </div>
     );
 }
@@ -793,35 +849,57 @@ export default function WaProductList() {
                                                                                 />
                                                                             </td>
                                                                             <td className="px-4 py-2.5">
-                                                                                {(form.imageUrls || []).filter(u => u && u.trim()).length > 0 ? (
-                                                                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                                                                        {(form.imageUrls || []).filter(u => u && u.trim()).map((imgUrl, imgIdx) => {
+                                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                                    {(() => {
+                                                                                        const allUrls = [...(form.imageUrls || [])].filter(u => u && u.trim());
+                                                                                        if (v.imageUrl && !allUrls.includes(v.imageUrl)) {
+                                                                                            allUrls.push(v.imageUrl);
+                                                                                        }
+                                                                                        
+                                                                                        return allUrls.map((imgUrl, imgIdx) => {
                                                                                             const resolvedSrc = imgUrl.startsWith('http') ? imgUrl : `${import.meta.env.VITE_API_URL}${imgUrl.startsWith('/') ? '' : '/'}${imgUrl}`;
                                                                                             const isSelected = v.imageUrl === imgUrl;
                                                                                             return (
-                                                                                                <button
-                                                                                                    key={imgIdx}
-                                                                                                    type="button"
-                                                                                                    title={isSelected ? 'Click to remove image link' : `Use image ${imgIdx + 1} for this variant`}
-                                                                                                    onClick={() => {
-                                                                                                        const updated = [...form.variants];
-                                                                                                        updated[idx] = { ...updated[idx], imageUrl: isSelected ? '' : imgUrl };
-                                                                                                        setForm({ ...form, variants: updated });
-                                                                                                    }}
-                                                                                                    className={`relative w-8 h-8 rounded-md border-2 transition-all overflow-hidden ${
-                                                                                                        isSelected
-                                                                                                            ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-700 scale-110 shadow-sm'
-                                                                                                            : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300'
-                                                                                                    }`}
-                                                                                                >
-                                                                                                    <img src={resolvedSrc} alt="" className="w-full h-full object-cover" />
-                                                                                                </button>
+                                                                                                    <button
+                                                                                                        key={imgIdx}
+                                                                                                        type="button"
+                                                                                                        title={isSelected ? 'Click to remove image link' : `Use image ${imgIdx + 1} for this variant`}
+                                                                                                        onClick={() => {
+                                                                                                            const updated = [...form.variants];
+                                                                                                            updated[idx] = { ...updated[idx], imageUrl: isSelected ? '' : imgUrl };
+                                                                                                            setForm({ ...form, variants: updated });
+                                                                                                        }}
+                                                                                                        className={`relative w-10 h-10 rounded-md border-2 transition-all overflow-hidden ${
+                                                                                                            isSelected
+                                                                                                                ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-700 shadow-sm'
+                                                                                                                : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300'
+                                                                                                        }`}
+                                                                                                    >
+                                                                                                        <img src={resolvedSrc} alt="" className="w-full h-full object-cover" />
+                                                                                                        {isSelected && (
+                                                                                                            <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
+                                                                                                                <Check className="w-5 h-5 text-indigo-600 bg-white rounded-full p-0.5 shadow-sm" />
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                    </button>
                                                                                             );
-                                                                                        })}
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <span className="text-[10px] text-slate-400">Upload images first</span>
-                                                                                )}
+                                                                                        });
+                                                                                    })()}
+                                                                                    
+                                                                                    <VariantImageUploader 
+                                                                                        onUploaded={(url) => {
+                                                                                            const updated = [...form.variants];
+                                                                                            updated[idx] = { ...updated[idx], imageUrl: url };
+                                                                                            
+                                                                                            const nextUrls = [...(form.imageUrls || [])];
+                                                                                            if (!nextUrls.includes(url) && nextUrls.length < MAX_IMAGES) {
+                                                                                                nextUrls.push(url);
+                                                                                            }
+                                                                                            
+                                                                                            setForm({ ...form, variants: updated, imageUrls: nextUrls });
+                                                                                        }} 
+                                                                                    />
+                                                                                </div>
                                                                             </td>
                                                                         </tr>
                                                                     ))}

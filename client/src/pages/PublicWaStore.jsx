@@ -341,7 +341,7 @@ export default function PublicWaStore({ customSlug }) {
                                     onError={e => e.target.style.display = 'none'}
                                     // First slide is the LCP element — prioritise its load
                                     loading={idx === 0 ? 'eager' : 'lazy'}
-                                    fetchpriority={idx === 0 ? 'high' : 'auto'}
+                                    fetchPriority={idx === 0 ? 'high' : 'auto'}
                                     decoding={idx === 0 ? 'sync' : 'async'}
                                 />
                             )}

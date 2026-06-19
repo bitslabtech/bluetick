@@ -25,6 +25,13 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         return symbols[code] || code;
     };
 
+    const getItemPrice = (item) => {
+        if (item.minWholesaleQty && item.wholesalePrice && item.qty >= parseInt(item.minWholesaleQty)) {
+            return parseFloat(item.wholesalePrice);
+        }
+        return parseFloat(item.price);
+    };
+
     const loadRazorpay = () => {
         return new Promise((resolve) => {
             if (window.Razorpay) return resolve(true);
@@ -84,7 +91,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         let totalBase = 0; // total cart value with tax
         
         cart.forEach(item => {
-            let basePrice = parseFloat(item.price) || 0;
+            let basePrice = getItemPrice(item);
             let taxRate = item.taxRate !== null && item.taxRate !== undefined ? parseFloat(item.taxRate) : (parseFloat(store?.taxConfig?.rate) || 0);
             
             let itemDisplayPrice = 0;
@@ -130,7 +137,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                 customerAddress: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
                 customerNote: formData.notes,
                 items: cart.map(item => ({
-                    id: item.id, name: item.name, price: item.price, qty: item.qty, imageUrls: item.imageUrls
+                    id: item.id, name: item.name, price: getItemPrice(item), qty: item.qty, imageUrls: item.imageUrls
                 })),
                 subtotal: finalTotal, // discounted subtotal
                 shippingCost: shippingCost,
@@ -214,7 +221,16 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                     const variantsStr = Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(', ');
                     if (variantsStr) variantText = ` (${variantsStr})`;
                 }
-                message += `${i+1}. ${item.name}${variantText}\n   ${item.qty} x ${getCurrencySymbol(store.currency)} ${item.price}\n`;
+                
+                const currentItemPrice = getItemPrice(item);
+                let priceText = `${getCurrencySymbol(store.currency)} ${currentItemPrice.toFixed(2)}`;
+                
+                // If wholesale applied, strike-through the original price in WhatsApp
+                if (item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty)) {
+                    priceText = `~${getCurrencySymbol(store.currency)}${parseFloat(item.price).toFixed(2)}~ *${getCurrencySymbol(store.currency)}${currentItemPrice.toFixed(2)}* (Wholesale)`;
+                }
+
+                message += `${i+1}. ${item.name}${variantText}\n   ${item.qty} x ${priceText}\n`;
             });
 
             message += `\n*Subtotal:* ${getCurrencySymbol(store.currency)} ${cartSubtotal.toFixed(2)}\n`;

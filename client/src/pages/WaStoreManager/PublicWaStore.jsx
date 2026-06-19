@@ -426,7 +426,9 @@ export default function PublicWaStore() {
 
             {/* ─── PRODUCT MODAL ─── */}
             {selectedProduct && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <>
+                    {console.log('DEBUG selectedProduct:', selectedProduct)}
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedProduct(null)} />
                     <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row relative z-10 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh]">
                         <button onClick={() => setSelectedProduct(null)} className="absolute top-4 right-4 z-10 p-2 bg-white/80 hover:bg-gray-100 rounded-full transition-colors">
@@ -500,6 +502,7 @@ export default function PublicWaStore() {
                         </div>
                     </div>
                 </div>
+                </>
             )}
 
             {/* ─── CART DRAWER ─── */}
@@ -550,10 +553,15 @@ export default function PublicWaStore() {
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-1">
                                                     <h4 className="font-semibold text-sm text-gray-900 truncate">{item.name}</h4>
-                                                    <div className="font-medium text-sm text-gray-500 mt-1 flex items-center gap-2">
-                                                        {getCurrencySymbol(store.currency)}{getItemPrice(item).toFixed(2)}
-                                                        {item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty) && (
-                                                            <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Wholesale Applied</span>
+                                                    <div className="font-medium text-sm text-gray-500 mt-1 flex flex-wrap items-center gap-2">
+                                                        {item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty) ? (
+                                                            <>
+                                                                <span className="line-through opacity-60 text-xs">{getCurrencySymbol(store.currency)}{parseFloat(item.price).toFixed(2)}</span>
+                                                                <span className="text-emerald-600 font-bold">{getCurrencySymbol(store.currency)}{getItemPrice(item).toFixed(2)}</span>
+                                                                <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Wholesale Rate Applied</span>
+                                                            </>
+                                                        ) : (
+                                                            <span>{getCurrencySymbol(store.currency)}{getItemPrice(item).toFixed(2)}</span>
                                                         )}
                                                     </div>
                                                     

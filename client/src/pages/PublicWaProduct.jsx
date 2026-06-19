@@ -97,8 +97,15 @@ export default function PublicWaProduct({ customSlug }) {
     );
 
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
+    const getItemPrice = React.useCallback((item) => {
+        if (item.minWholesaleQty && item.wholesalePrice && item.qty >= parseInt(item.minWholesaleQty)) {
+            return parseFloat(item.wholesalePrice);
+        }
+        return parseFloat(item.price);
+    }, []);
+
     // Note: this cartTotal is mostly unused in PublicWaProduct, but updated for consistency
-    const cartTotal = cart.reduce((sum, item) => sum + (getDisplayPrice(item.price, item) * item.qty), 0);
+    const cartTotal = cart.reduce((sum, item) => sum + (getDisplayPrice(getItemPrice(item), item) * item.qty), 0);
 
     const updateQty = (cartItemId, delta) => {
         setCart(prev => {
@@ -291,7 +298,7 @@ export default function PublicWaProduct({ customSlug }) {
     const freeShippingThreshold = checkoutConfig.freeShippingThreshold || 0;
 
     const currentCart = cart.length > 0 ? cart : [{ ...product, cartItemId: product.id, qty, selectedVariants }];
-    const checkoutSubtotal = currentCart.reduce((sum, item) => sum + (getDisplayPrice(item.price, item) * item.qty), 0);
+    const checkoutSubtotal = currentCart.reduce((sum, item) => sum + (getDisplayPrice(getItemPrice(item), item) * item.qty), 0);
     const checkoutShippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || checkoutSubtotal < freeShippingThreshold)) ? flatShippingRate : 0;
     const checkoutTotal = checkoutSubtotal + checkoutShippingCost;
 
@@ -582,6 +589,16 @@ export default function PublicWaProduct({ customSlug }) {
                                     )}
                                 </div>
                             </div>
+                            
+                            {/* Wholesale Badge - moved to next line */}
+                            {product.wholesalePrice && product.minWholesaleQty && (
+                                <div className="mt-3">
+                                    <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                        Wholesale: {getCurrencySymbol(store.currency)}{parseFloat(product.wholesalePrice).toFixed(2)} (Min {product.minWholesaleQty})
+                                    </span>
+                                </div>
+                            )}
+
                         </div>
 
                         {/* Variant Selector */}
@@ -814,7 +831,17 @@ export default function PublicWaProduct({ customSlug }) {
                                                             {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(' | ')}
                                                         </div>
                                                     )}
-                                                    <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{getDisplayPrice(item.price, item).toFixed(2)}</div>
+                                                    <div className={`font-medium text-sm ${theme.textMuted} mt-1 flex flex-wrap items-center gap-2`}>
+                                                        {item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty) ? (
+                                                            <>
+                                                                <span className="line-through opacity-60 text-xs">{getCurrencySymbol(store.currency)}{getDisplayPrice(item.price, item).toFixed(2)}</span>
+                                                                <span className="text-emerald-600 font-bold">{getCurrencySymbol(store.currency)}{getDisplayPrice(getItemPrice(item), item).toFixed(2)}</span>
+                                                                <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Wholesale Rate Applied</span>
+                                                            </>
+                                                        ) : (
+                                                            <span>{getCurrencySymbol(store.currency)}{getDisplayPrice(getItemPrice(item), item).toFixed(2)}</span>
+                                                        )}
+                                                    </div>
                                                     
                                                     <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -824,7 +851,7 @@ export default function PublicWaProduct({ customSlug }) {
                                                         </div>
                                                         {item.qty > 1 && (
                                                             <div className={`font-bold text-sm ${theme.text}`}>
-                                                                {getCurrencySymbol(store.currency)}{(getDisplayPrice(item.price, item) * item.qty).toFixed(2)}
+                                                                {getCurrencySymbol(store.currency)}{(getDisplayPrice(getItemPrice(item), item) * item.qty).toFixed(2)}
                                                             </div>
                                                         )}
                                                     </div>
