@@ -1205,6 +1205,61 @@ router.get('/location-search', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/meta-ads/interest-search — Live Meta interest / targeting keyword search
+// Returns ONLY verified Meta adinterest results. No fallback list.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/interest-search', async (req, res) => {
+    const q = (req.query.q || '').trim();
+    if (!q || q.length < 1) return res.json({ interests: [], source: 'empty' });
+
+    try {
+        const user = await User.findByPk(req.user.id);
+        const token = user?.metaAdsToken;
+
+        // If Meta Ads is not connected, tell the frontend clearly — no fallback
+        if (!token) {
+            return res.json({ interests: [], source: 'not_connected' });
+        }
+
+        // Call Meta adinterest Targeting Search API
+        try {
+            const metaRes = await axios.get('https://graph.facebook.com/v22.0/search', {
+                params: {
+                    type: 'adinterest',
+                    q: q,
+                    access_token: token,
+                    limit: 20,
+                    locale: 'en_US'
+                },
+                timeout: 6000
+            });
+
+            const metaData = metaRes.data?.data || [];
+            const interests = metaData.map(item => ({
+                id: item.id,
+                name: item.name,
+                audience_size: (item.audience_size_lower_bound && item.audience_size_upper_bound)
+                    ? `${(item.audience_size_lower_bound / 1000000).toFixed(1)}M–${(item.audience_size_upper_bound / 1000000).toFixed(1)}M`
+                    : null,
+                path: item.path ? item.path.join(' > ') : null,
+                topic: item.topic || null,
+            }));
+
+            return res.json({ interests, source: 'meta' });
+        } catch (metaErr) {
+            const errMsg = metaErr.response?.data?.error?.message || metaErr.message;
+            console.warn('[INTEREST-SEARCH] Meta API error:', errMsg);
+            // Return explicit error state — no silent fallback
+            return res.json({ interests: [], source: 'error', message: errMsg });
+        }
+    } catch (err) {
+        console.error('[INTEREST-SEARCH] Unexpected error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/meta-ads/:id/status — Pause or Resume a live campaign
 // ─────────────────────────────────────────────────────────────────────────────
 router.patch('/:id/status', async (req, res) => {

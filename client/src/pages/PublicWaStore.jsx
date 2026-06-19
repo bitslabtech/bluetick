@@ -592,17 +592,29 @@ export default function PublicWaStore({ customSlug }) {
                                             <h3 className={`text-[13px] md:text-[15px] font-semibold ${theme.text} mb-1.5 line-clamp-2 leading-snug hover:opacity-80 transition-opacity capitalize`}>{product.name}</h3>
 
                                             <div className="flex items-baseline flex-wrap gap-1 md:gap-2 mb-3 md:mb-5">
-                                                <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>{getCurrencySymbol(store.currency)}{getDisplayPrice(product.price, product).toFixed(2)}</span>
-                                                {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
-                                                    <>
-                                                        <span className={`${theme.priceCompareStyle || 'text-xs md:text-sm text-gray-400 line-through font-normal'}`}>
-                                                            {getCurrencySymbol(store.currency)}{getDisplayPrice(product.compareAtPrice, product).toFixed(2)}
-                                                        </span>
-                                                        <span className="text-[9px] md:text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-100/50">
-                                                            {Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100)}% OFF
-                                                        </span>
-                                                    </>
-                                                )}
+                                                {(() => {
+                                                    // Find the lowest variant price if variant overrides exist
+                                                    const variantPrices = (product.variants || []).map(v => v.price).filter(p => p != null);
+                                                    const minPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : parseFloat(product.price);
+                                                    const hasVariantPricing = variantPrices.length > 0 && variantPrices.some(p => p !== parseFloat(product.price));
+                                                    return (
+                                                        <>
+                                                            <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>
+                                                                {hasVariantPricing ? 'from ' : ''}{getCurrencySymbol(store.currency)}{getDisplayPrice(minPrice, product).toFixed(2)}
+                                                            </span>
+                                                            {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
+                                                                <>
+                                                                    <span className={`${theme.priceCompareStyle || 'text-xs md:text-sm text-gray-400 line-through font-normal'}`}>
+                                                                        {getCurrencySymbol(store.currency)}{getDisplayPrice(product.compareAtPrice, product).toFixed(2)}
+                                                                    </span>
+                                                                    <span className="text-[9px] md:text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-100/50">
+                                                                        {Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100)}% OFF
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
 
                                             <div className="mt-auto">

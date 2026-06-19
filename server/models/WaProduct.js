@@ -76,6 +76,11 @@ const WaProduct = sequelize.define('WaProduct', {
         defaultValue: [],
         comment: 'Array of { name: "Size", values: ["S", "M", "L"] }'
     },
+    variants: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Per-combination overrides: [{ combo: {Size:"L"}, price: 599, stock: 10 }]. Only combos that differ from base price/stock need an entry.'
+    },
     wholesalePrice: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true,

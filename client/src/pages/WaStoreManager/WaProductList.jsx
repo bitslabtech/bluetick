@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { Package, Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star } from 'lucide-react';
+import { Package, Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ─── Allowed MIME types & extensions ─────────────────────────────────────────
@@ -180,6 +180,29 @@ function MultiImageUploader({ imageUrls, onImagesChange }) {
     );
 }
 
+// ─── Generates every combination of option values (Cartesian product) ─────────
+function generateCombos(options) {
+    const groups = (options || []).map(o => {
+        const parsedValues = Array.isArray(o.values) 
+            ? o.values.filter(v => typeof v === 'string' && v.trim() !== '')
+            : (typeof o.values === 'string' ? o.values.split(',').map(v => v.trim()).filter(Boolean) : []);
+        return { ...o, name: (o.name || '').trim(), values: parsedValues };
+    }).filter(o => o.name && o.values.length > 0);
+
+    if (groups.length === 0) return [];
+    let combos = [{}];
+    for (const group of groups) {
+        const next = [];
+        for (const existing of combos) {
+            for (const val of group.values) {
+                next.push({ ...existing, [group.name]: val });
+            }
+        }
+        combos = next;
+    }
+    return combos;
+}
+
 export default function WaProductList() {
     const { storeId } = useOutletContext();
     const [products, setProducts] = useState([]);
@@ -192,13 +215,15 @@ export default function WaProductList() {
     const [storeCategories, setStoreCategories] = useState([]);
     const [storeTaxConfig, setStoreTaxConfig] = useState(null);
     const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
+    const [isVariationsOpen, setIsVariationsOpen] = useState(false);
+    const [isSeoOpen, setIsSeoOpen] = useState(false);
 
     const getCurrencySymbol = (code) => {
         const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
         return symbols[code] || code;
     };
 
-    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], taxRate: '' };
+    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '' };
     const [form, setForm] = useState(defaultForm);
 
     useEffect(() => {
@@ -236,6 +261,15 @@ export default function WaProductList() {
                     ? opt.values 
                     : opt.values.split(',').map(v => v.trim()).filter(Boolean)
             }));
+            // Only save variant rows that actually have a custom price, stock, or image set
+            payload.variants = (payload.variants || [])
+                .filter(v => v.price !== '' || v.stock !== '' || v.imageUrl)
+                .map(v => ({
+                    combo: v.combo,
+                    price: v.price !== '' ? parseFloat(v.price) : null,
+                    stock: v.stock !== '' ? parseInt(v.stock) : null,
+                    imageUrl: v.imageUrl || null,
+                }));
             
             if (editingProduct) {
                 await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/products/${editingProduct.id}`, payload);
@@ -264,6 +298,21 @@ export default function WaProductList() {
 
     const openEdit = (product) => {
         setEditingProduct(product);
+        // Reconstruct variant pricing table from saved options + saved variant overrides
+        const savedOptions = product.options || [];
+        const savedVariants = product.variants || [];
+        const combos = generateCombos(savedOptions);
+        const loadedVariants = combos.map(combo => {
+            const existing = savedVariants.find(v =>
+                v.combo && Object.entries(combo).every(([k, val]) => v.combo[k] === val)
+            );
+            return {
+                combo,
+                price: existing?.price != null ? existing.price : '',
+                stock: existing?.stock != null ? existing.stock : '',
+                imageUrl: existing?.imageUrl || '',
+            };
+        });
         setForm({
             name: product.name,
             description: product.description || '',
@@ -274,8 +323,12 @@ export default function WaProductList() {
             imageUrls: product.imageUrls?.length > 0 ? product.imageUrls : [''],
             category: product.category || '',
             inStock: product.inStock,
-            options: product.options || [],
-            taxRate: product.taxRate !== null && product.taxRate !== undefined ? product.taxRate : ''
+            options: savedOptions,
+            variants: loadedVariants,
+            taxRate: product.taxRate !== null && product.taxRate !== undefined ? product.taxRate : '',
+            metaTitle: product.metaTitle || '',
+            metaDescription: product.metaDescription || '',
+            slug: product.slug || ''
         });
         
         if (product.category && !storeCategories.includes(product.category)) {
@@ -284,6 +337,27 @@ export default function WaProductList() {
             setIsAddingNewCategory(false);
         }
         setShowModal(true);
+    };
+
+    // Builds the variant pricing table from the current option groups
+    const generateVariantTable = () => {
+        const combos = generateCombos(form.options || []);
+        if (combos.length === 0) {
+            toast.error('Add at least one option with values first (e.g. Size: S, M, L)');
+            return;
+        }
+        const newVariants = combos.map(combo => {
+            const existing = (form.variants || []).find(v =>
+                v.combo && Object.entries(combo).every(([k, val]) => v.combo[k] === val)
+            );
+            return {
+                combo,
+                price: existing?.price ?? '',
+                stock: existing?.stock ?? '',
+                imageUrl: existing?.imageUrl ?? '',
+            };
+        });
+        setForm(prev => ({ ...prev, variants: newVariants }));
     };
 
     const handleGenerateAi = async () => {
@@ -312,7 +386,7 @@ export default function WaProductList() {
                 <div>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Package className="w-5 h-5 text-indigo-500" />
-                        Inventory
+                        Products
                     </h2>
                     <p className="text-sm text-slate-500">Manage your store's products.</p>
                 </div>
@@ -405,202 +479,430 @@ export default function WaProductList() {
             )}
 
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-surface-dark sm:rounded-2xl max-w-2xl w-full max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto p-4 md:p-6 shadow-xl flex flex-col">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-                            {editingProduct ? 'Edit Product' : 'Add New Product'}
-                        </h2>
-                        <form onSubmit={handleSave} className="space-y-5 flex-1 flex flex-col">
+                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto flex">
+                    <div className="min-h-screen flex items-center w-full lg:w-[85%] max-w-[1600px] mx-auto px-4 lg:px-0">
+                        {/* Sidebar Spacer to offset the modal */}
+                        <div className="hidden md:block w-64 flex-shrink-0 mr-6 pointer-events-none" />
+                        <div className="flex-1 flex justify-center p-0 sm:p-4">
+                            <div className="bg-white dark:bg-surface-dark sm:rounded-2xl max-w-[1100px] w-full max-h-[100dvh] sm:max-h-[90vh] overflow-hidden shadow-xl flex flex-col">
+                                {/* Sticky Header */}
+                                <div className="px-4 md:px-6 py-4 md:py-5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-surface-dark shrink-0 z-10">
+                                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                                        {editingProduct ? 'Edit Product' : 'Add New Product'}
+                                    </h2>
+                                </div>
+                                
+                                <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
+                                    {/* Scrollable Body */}
+                                    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div className="space-y-1 md:col-span-2">
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Product Name</label>
-                                    <input required type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                </div>
-                                
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Price</label>
-                                    <input required type="number" step="0.01" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Compare at Price (Optional)</label>
-                                    <input type="number" step="0.01" value={form.compareAtPrice} onChange={e => setForm({...form, compareAtPrice: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Left Column: Main Details */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    
+                                    {/* General Box */}
+                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-5">
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product Name</label>
+                                            <input required type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium shadow-sm" placeholder="e.g. Classic White T-Shirt" />
+                                        </div>
+                                        
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Description</label>
+                                                <div className="flex items-center gap-2">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Keywords (optional)" 
+                                                        value={aiKeywords} 
+                                                        onChange={e => setAiKeywords(e.target.value)}
+                                                        className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500 w-32 shadow-sm"
+                                                    />
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={handleGenerateAi}
+                                                        disabled={generatingAi}
+                                                        className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-md hover:shadow-lg transition-all disabled:opacity-50 font-medium"
+                                                    >
+                                                        {generatingAi ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                                                        {generatingAi ? 'Generating...' : 'AI Magic'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <textarea rows={5} required value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y shadow-sm text-sm" placeholder="Describe your product..."></textarea>
+                                        </div>
+                                    </div>
+
+                                    {/* Images Box */}
+                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+                                        <MultiImageUploader
+                                            imageUrls={form.imageUrls || []}
+                                            onImagesChange={(urls) => setForm({ ...form, imageUrls: urls })}
+                                        />
+                                    </div>
+
+
+
                                 </div>
 
-                                <div className="md:col-span-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">B2B / Wholesale Pricing (Optional)</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <div className="space-y-1">
-                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Wholesale Price</label>
-                                            <input type="number" step="0.01" value={form.wholesalePrice} onChange={e => setForm({...form, wholesalePrice: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. 15.00" />
+                                {/* Right Column: Pricing & Organization */}
+                                <div className="space-y-6">
+                                    
+                                    {/* Status Box */}
+                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
+                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Status</h3>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Inventory Status</label>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" checked={form.inStock} onChange={e => setForm({...form, inStock: e.target.checked})} className="sr-only peer" />
+                                                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500 shadow-inner"></div>
+                                                <span className="ml-3 text-sm font-semibold text-slate-700 dark:text-slate-300">{form.inStock ? 'In Stock' : 'Out of Stock'}</span>
+                                            </label>
                                         </div>
-                                        <div className="space-y-1">
-                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Min Wholesale Qty</label>
-                                            <input type="number" value={form.minWholesaleQty} onChange={e => setForm({...form, minWholesaleQty: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. 10" />
+                                    </div>
+
+                                    {/* Pricing Box */}
+                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
+                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Pricing</h3>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Price</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">{getCurrencySymbol(currency)}</span>
+                                                    <input required type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold shadow-sm" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Compare At</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{getCurrencySymbol(currency)}</span>
+                                                    <input type="number" value={form.compareAtPrice} onChange={e => setForm({...form, compareAtPrice: e.target.value})} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                                            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-3">Wholesale / B2B</h3>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">{getCurrencySymbol(currency)}</span>
+                                                        <input type="number" value={form.wholesalePrice} onChange={e => setForm({...form, wholesalePrice: e.target.value})} className="w-full pl-6 pr-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium" />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Min Qty</label>
+                                                    <input type="number" value={form.minWholesaleQty} onChange={e => setForm({...form, minWholesaleQty: e.target.value})} className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Organization Box */}
+                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
+                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Organization</h3>
+                                        
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Category</label>
+                                            {!isAddingNewCategory ? (
+                                                <select 
+                                                    value={form.category} 
+                                                    onChange={e => {
+                                                        if (e.target.value === 'ADD_NEW') {
+                                                            setIsAddingNewCategory(true);
+                                                            setForm({...form, category: ''});
+                                                        } else {
+                                                            setForm({...form, category: e.target.value});
+                                                        }
+                                                    }}
+                                                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium shadow-sm"
+                                                >
+                                                    <option value="">Select category...</option>
+                                                    {storeCategories.map(cat => (
+                                                        <option key={cat} value={cat}>{cat}</option>
+                                                    ))}
+                                                    <option value="ADD_NEW" className="font-bold text-indigo-600">+ Add New Category</option>
+                                                </select>
+                                            ) : (
+                                                <div className="flex gap-2">
+                                                    <input 
+                                                        type="text" 
+                                                        value={form.category} 
+                                                        onChange={e => setForm({...form, category: e.target.value})} 
+                                                        className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm" 
+                                                        placeholder="New Category Name" 
+                                                        autoFocus
+                                                    />
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => { setIsAddingNewCategory(false); setForm({...form, category: ''}); }}
+                                                        className="px-2 py-2 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-300 font-medium"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Tax Slab</label>
+                                            <select 
+                                                value={form.taxRate === null ? '' : form.taxRate} 
+                                                onChange={e => setForm({...form, taxRate: e.target.value === '' ? '' : parseFloat(e.target.value)})}
+                                                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm"
+                                            >
+                                                <option value="">Store Default ({storeTaxConfig?.rate || 0}%)</option>
+                                                {(storeTaxConfig?.slabs || []).map((slab, idx) => (
+                                                    <option key={idx} value={slab.rate}>{slab.name} ({slab.rate}%)</option>
+                                                ))}
+                                                <option value="0">No Tax (0%)</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="space-y-1 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
-                                    {!isAddingNewCategory ? (
-                                        <select 
-                                            value={form.category} 
-                                            onChange={e => {
-                                                if (e.target.value === 'ADD_NEW') {
-                                                    setIsAddingNewCategory(true);
-                                                    setForm({...form, category: ''});
-                                                } else {
-                                                    setForm({...form, category: e.target.value});
-                                                }
-                                            }}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        >
-                                            <option value="">Select a category...</option>
-                                            {storeCategories.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                            <option value="ADD_NEW" className="font-bold text-indigo-600">+ Add New Category</option>
-                                        </select>
-                                    ) : (
-                                        <div className="flex gap-2">
-                                            <input 
-                                                type="text" 
-                                                value={form.category} 
-                                                onChange={e => setForm({...form, category: e.target.value})} 
-                                                className="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
-                                                placeholder="New Category Name" 
-                                                autoFocus
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => { setIsAddingNewCategory(false); setForm({...form, category: ''}); }}
-                                                className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-300 font-medium"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                <div className="space-y-1 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Tax Slab</label>
-                                    <select 
-                                        value={form.taxRate === null ? '' : form.taxRate} 
-                                        onChange={e => setForm({...form, taxRate: e.target.value === '' ? '' : parseFloat(e.target.value)})}
-                                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                            </div>
+                            
+                            {/* Variations Box (Full Width) */}
+                            <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden mt-6">
+                                <div 
+                                    className="flex items-center justify-between p-5 cursor-pointer select-none"
+                                    onClick={() => setIsVariationsOpen(!isVariationsOpen)}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        {isVariationsOpen ? <ChevronDown className="w-5 h-5 text-slate-500" /> : <ChevronRight className="w-5 h-5 text-slate-500" />}
+                                        <label className="text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">Product Variations</label>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={(e) => { e.stopPropagation(); setIsVariationsOpen(true); setForm({...form, options: [...(form.options || []), { name: '', values: [] }]}) }}
+                                        className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-md font-medium transition-colors shadow-sm"
                                     >
-                                        <option value="">Default Store Rate ({storeTaxConfig?.rate || 0}%)</option>
-                                        {(storeTaxConfig?.slabs || []).map((slab, idx) => (
-                                            <option key={idx} value={slab.rate}>{slab.name} ({slab.rate}%)</option>
+                                        <Plus className="w-3.5 h-3.5" /> Add Option
+                                    </button>
+                                </div>
+                                
+                                {isVariationsOpen && (
+                                    <div className="px-5 pb-5 space-y-4 pt-1">
+                                        {(form.options || []).map((option, optIdx) => (
+                                            <div key={optIdx} className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Option Name (e.g. Size, Color)" 
+                                                        value={option.name}
+                                                        onChange={(e) => {
+                                                            const newOpts = [...form.options];
+                                                            newOpts[optIdx].name = e.target.value;
+                                                            setForm({...form, options: newOpts});
+                                                        }}
+                                                        className="flex-1 px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500 font-medium"
+                                                    />
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newOpts = form.options.filter((_, i) => i !== optIdx);
+                                                            setForm({...form, options: newOpts});
+                                                        }}
+                                                        className="text-rose-500 p-1.5 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                                <div>
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Values (comma separated, e.g. S, M, L)" 
+                                                        value={Array.isArray(option.values) ? option.values.join(', ') : option.values}
+                                                        onChange={(e) => {
+                                                            const newOpts = [...form.options];
+                                                            newOpts[optIdx].values = e.target.value;
+                                                            setForm({...form, options: newOpts});
+                                                        }}
+                                                        className="w-full px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500"
+                                                    />
+                                                </div>
+                                            </div>
                                         ))}
-                                        <option value="0">No Tax / Exempt (0%)</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1 flex items-center pt-6">
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" checked={form.inStock} onChange={e => setForm({...form, inStock: e.target.checked})} className="sr-only peer" />
-                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
-                                        <span className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">In Stock</span>
-                                    </label>
-                                </div>
 
-                                <div className="md:col-span-2">
-                                    <MultiImageUploader
-                                        imageUrls={form.imageUrls || []}
-                                        onImagesChange={(urls) => setForm({ ...form, imageUrls: urls })}
-                                    />
-                                </div>
+                                        {/* Variant Pricing & Stock (Only show if options exist) */}
+                                        {(form.options || []).some(o => o.values?.length > 0) && (
+                                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                                            Different Prices/Stock per Variant <span className="text-slate-400 font-normal text-xs">(Optional)</span>
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={generateVariantTable}
+                                                        className="shrink-0 text-xs flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg font-medium transition-colors border border-indigo-100 dark:border-indigo-500/20"
+                                                    >
+                                                        <Layers className="w-3.5 h-3.5" /> Generate Table
+                                                    </button>
+                                                </div>
 
-                                {/* AI Description Generator */}
-                                <div className="space-y-1 md:col-span-2 mt-4 pt-4 border-t border-slate-100 dark:border-white/10">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
-                                        <div className="flex items-center gap-2">
+                                                {(form.variants || []).length > 0 ? (
+                                                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                                                        <div className="overflow-x-auto">
+                                                            <table className="w-full text-sm">
+                                                                <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                                                                    <tr>
+                                                                        <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Variant</th>
+                                                                        <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price (opt)</th>
+                                                                        <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stock</th>
+                                                                        <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Image (opt)</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                                                    {form.variants.map((v, idx) => (
+                                                                        <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                                                                            <td className="px-4 py-2.5">
+                                                                                <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs">
+                                                                                    {Object.values(v.combo).join(' / ')}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    min="0"
+                                                                                    placeholder={form.price ? `Base: ${form.price}` : 'Base'}
+                                                                                    value={v.price}
+                                                                                    onChange={e => {
+                                                                                        const updated = [...form.variants];
+                                                                                        updated[idx] = { ...updated[idx], price: e.target.value };
+                                                                                        setForm({ ...form, variants: updated });
+                                                                                    }}
+                                                                                    className="w-24 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium"
+                                                                                />
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    min="0"
+                                                                                    placeholder="—"
+                                                                                    value={v.stock}
+                                                                                    onChange={e => {
+                                                                                        const updated = [...form.variants];
+                                                                                        updated[idx] = { ...updated[idx], stock: e.target.value };
+                                                                                        setForm({ ...form, variants: updated });
+                                                                                    }}
+                                                                                    className="w-16 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium"
+                                                                                />
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5">
+                                                                                {(form.imageUrls || []).filter(u => u && u.trim()).length > 0 ? (
+                                                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                                                        {(form.imageUrls || []).filter(u => u && u.trim()).map((imgUrl, imgIdx) => {
+                                                                                            const resolvedSrc = imgUrl.startsWith('http') ? imgUrl : `${import.meta.env.VITE_API_URL}${imgUrl.startsWith('/') ? '' : '/'}${imgUrl}`;
+                                                                                            const isSelected = v.imageUrl === imgUrl;
+                                                                                            return (
+                                                                                                <button
+                                                                                                    key={imgIdx}
+                                                                                                    type="button"
+                                                                                                    title={isSelected ? 'Click to remove image link' : `Use image ${imgIdx + 1} for this variant`}
+                                                                                                    onClick={() => {
+                                                                                                        const updated = [...form.variants];
+                                                                                                        updated[idx] = { ...updated[idx], imageUrl: isSelected ? '' : imgUrl };
+                                                                                                        setForm({ ...form, variants: updated });
+                                                                                                    }}
+                                                                                                    className={`relative w-8 h-8 rounded-md border-2 transition-all overflow-hidden ${
+                                                                                                        isSelected
+                                                                                                            ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-700 scale-110 shadow-sm'
+                                                                                                            : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300'
+                                                                                                    }`}
+                                                                                                >
+                                                                                                    <img src={resolvedSrc} alt="" className="w-full h-full object-cover" />
+                                                                                                </button>
+                                                                                            );
+                                                                                        })}
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <span className="text-[10px] text-slate-400">Upload images first</span>
+                                                                                )}
+                                                                            </td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center py-5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
+                                                        <p className="text-xs text-slate-500">Click <span className="font-semibold text-indigo-500">Generate Table</span> to set variations.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* SEO Meta Details Box (Full Width) */}
+                            <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden mt-6 mb-6">
+                                <div 
+                                    className="flex items-center justify-between p-5 cursor-pointer select-none"
+                                    onClick={() => setIsSeoOpen(!isSeoOpen)}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        {isSeoOpen ? <ChevronDown className="w-5 h-5 text-slate-500" /> : <ChevronRight className="w-5 h-5 text-slate-500" />}
+                                        <label className="text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">SEO Meta Details</label>
+                                    </div>
+                                </div>
+                                
+                                {isSeoOpen && (
+                                    <div className="px-5 pb-5 space-y-4 pt-1">
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Meta Title</label>
                                             <input 
                                                 type="text" 
-                                                placeholder="Keywords (optional)" 
-                                                value={aiKeywords} 
-                                                onChange={e => setAiKeywords(e.target.value)}
-                                                className="px-3 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500 w-32"
+                                                value={form.metaTitle} 
+                                                onChange={e => setForm({...form, metaTitle: e.target.value})} 
+                                                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium shadow-sm" 
+                                                placeholder={form.name || "Product Name"} 
                                             />
-                                            <button 
-                                                type="button" 
-                                                onClick={handleGenerateAi}
-                                                disabled={generatingAi}
-                                                className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-md hover:shadow-lg transition-all disabled:opacity-50 font-medium"
-                                            >
-                                                {generatingAi ? <Activity className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                                                {generatingAi ? 'Generating...' : 'AI Magic'}
-                                            </button>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Meta Description</label>
+                                            <textarea 
+                                                rows={3} 
+                                                value={form.metaDescription} 
+                                                onChange={e => setForm({...form, metaDescription: e.target.value})} 
+                                                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y shadow-sm text-sm" 
+                                                placeholder="Brief summary for search engines..."
+                                            ></textarea>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">URL Slug</label>
+                                            <div className="flex items-center">
+                                                <span className="px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-r-0 border-slate-200 dark:border-slate-700 rounded-l-lg text-slate-500 text-sm">/products/</span>
+                                                <input 
+                                                    type="text" 
+                                                    value={form.slug} 
+                                                    onChange={e => setForm({...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')})} 
+                                                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-r-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium shadow-sm" 
+                                                    placeholder={form.name ? form.name.toLowerCase().replace(/[^a-z0-9-]/g, '-') : "product-url"} 
+                                                />
+                                            </div>
                                         </div>
                                     </div>
-                                    <textarea rows={4} required value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y"></textarea>
-                                </div>
+                                )}
+                            </div>
 
-                                {/* Variants / Options */}
-                                <div className="space-y-4 md:col-span-2 pt-4 border-t border-slate-100 dark:border-white/10">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Product Variants</label>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setForm({...form, options: [...(form.options || []), { name: '', values: [] }]})}
-                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md font-medium transition-colors"
-                                        >
-                                            <Plus className="w-3 h-3" /> Add Option
+                                    </div> {/* End Scrollable Body */}
+                                    
+                                    {/* Sticky Footer */}
+                                    <div className="px-4 md:px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-surface-dark shrink-0 flex flex-col sm:flex-row gap-3 justify-end z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-none">
+                                        <button type="button" onClick={() => setShowModal(false)} className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
+                                        <button type="submit" className="w-full sm:w-auto px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors">
+                                            {editingProduct ? 'Save Changes' : 'Add Product'}
                                         </button>
                                     </div>
-                                    
-                                    {(form.options || []).map((option, optIdx) => (
-                                        <div key={optIdx} className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Option Name (e.g. Size, Color)" 
-                                                    value={option.name}
-                                                    onChange={(e) => {
-                                                        const newOpts = [...form.options];
-                                                        newOpts[optIdx].name = e.target.value;
-                                                        setForm({...form, options: newOpts});
-                                                    }}
-                                                    className="flex-1 px-3 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500"
-                                                />
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const newOpts = form.options.filter((_, i) => i !== optIdx);
-                                                        setForm({...form, options: newOpts});
-                                                    }}
-                                                    className="text-rose-500 p-1 hover:bg-rose-50 rounded-md transition-colors"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                            <div>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Values (comma separated, e.g. S, M, L)" 
-                                                    value={Array.isArray(option.values) ? option.values.join(', ') : option.values}
-                                                    onChange={(e) => {
-                                                        const newOpts = [...form.options];
-                                                        newOpts[optIdx].values = e.target.value;
-                                                        setForm({...form, options: newOpts});
-                                                    }}
-                                                    className="w-full px-3 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500"
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 dark:border-white/10 mt-auto">
-                                <button type="button" onClick={() => setShowModal(false)} className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
-                                <button type="submit" className="w-full sm:flex-1 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors">
-                                    {editingProduct ? 'Save Changes' : 'Add Product'}
-                                </button>
-                            </div>
-                        </form>
+                                </form>
+                    </div>
+                        </div>
                     </div>
                 </div>
             )}

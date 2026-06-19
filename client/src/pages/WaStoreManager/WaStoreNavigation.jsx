@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { GripVertical, Plus, Trash2, Link as LinkIcon, Save, AlertCircle, LayoutList, CheckCircle2, Search, ShoppingCart, Menu as MenuIcon, ChevronDown, ListTree, Globe, FileText } from 'lucide-react';
+import { GripVertical, Plus, Trash2, Link as LinkIcon, Save, AlertCircle, LayoutList, CheckCircle2, Search, ShoppingCart, Menu as MenuIcon, ChevronDown, ChevronUp, ListTree, Globe, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getThemeConfig } from '../../utils/wastoreThemes';
 
@@ -37,6 +37,13 @@ export default function WaStoreNavigation() {
     const [draggedChildIndex, setDraggedChildIndex] = useState(null);
     const [draggedOverChildIndex, setDraggedOverChildIndex] = useState(null);
     const [draggedChildParentIndex, setDraggedChildParentIndex] = useState(null);
+
+    // Collapsed state for parent items
+    const [collapsedMenus, setCollapsedMenus] = useState({});
+
+    const toggleCollapse = (id) => {
+        setCollapsedMenus(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
     const theme = React.useMemo(() => getThemeConfig(store?.themeId), [store?.themeId]);
 
@@ -426,22 +433,39 @@ export default function WaStoreNavigation() {
                                                 />
                                             </div>
                                             <div className="md:col-span-2">
-                                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Destination</label>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Destination</label>
+                                                    {collapsedMenus[parent.id] && parent.children && parent.children.length > 0 && (
+                                                        <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] px-2 py-0.5 rounded-full font-bold">
+                                                            {parent.children.length} sub-item{parent.children.length !== 1 ? 's' : ''}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 {renderLinkInput(parent, (field, value) => updateParent(pIndex, field, value))}
                                             </div>
                                         </div>
-                                        <button 
-                                            onClick={() => removeParent(pIndex)}
-                                            className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors shrink-0"
-                                            title="Delete Menu"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                                onClick={() => toggleCollapse(parent.id)}
+                                                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                                title={collapsedMenus[parent.id] ? "Expand" : "Collapse"}
+                                            >
+                                                {collapsedMenus[parent.id] ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                                            </button>
+                                            <button 
+                                                onClick={() => removeParent(pIndex)}
+                                                className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+                                                title="Delete Menu"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* Child Items */}
-                                    <div className="bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-200 dark:border-white/10 p-4 rounded-b-xl">
-                                        <div className="space-y-2 mb-3 pl-10">
+                                    {!collapsedMenus[parent.id] && (
+                                        <div className="bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-200 dark:border-white/10 p-4 rounded-b-xl">
+                                            <div className="space-y-2 mb-3 pl-10">
                                             {parent.children && parent.children.map((child, cIndex) => (
                                                 <div 
                                                     key={child.id}
@@ -478,15 +502,16 @@ export default function WaStoreNavigation() {
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="pl-10">
-                                            <button 
-                                                onClick={() => addChildItem(pIndex)}
-                                                className="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1.5 transition-colors bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-1.5 rounded-md"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" /> Add Sub-item
-                                            </button>
+                                            <div className="pl-10">
+                                                <button 
+                                                    onClick={() => addChildItem(pIndex)}
+                                                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1.5 transition-colors bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-1.5 rounded-md"
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" /> Add Sub-item
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             ))}
 

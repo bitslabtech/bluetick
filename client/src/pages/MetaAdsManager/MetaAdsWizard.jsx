@@ -253,6 +253,257 @@ function LocationSearchInput({ selectedLocations, onChange, placeholder = 'Searc
 }
 
 
+// ── InterestSearchInput: Live Meta adinterest search — no fallback ─────────────
+// Calls /api/meta-ads/interest-search — only real Meta results shown.
+// Props: selectedInterests (string[]), onChange(string[])
+function InterestSearchInput({ selectedInterests, onChange, placeholder = 'Type to search live Meta interests...' }) {
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [activeIdx, setActiveIdx] = useState(-1);
+    const [apiState, setApiState] = useState('idle'); // 'idle' | 'meta' | 'not_connected' | 'error'
+    const [errorMsg, setErrorMsg] = useState('');
+    const wrapRef = useRef(null);
+    const inputRef = useRef(null);
+    const debounceRef = useRef(null);
+
+    useEffect(() => {
+        const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const doSearch = useCallback(async (q) => {
+        if (!q || q.length < 1) { setResults([]); setOpen(false); setApiState('idle'); return; }
+        setLoading(true);
+        setErrorMsg('');
+        try {
+            const res = await axios.get(`/api/meta-ads/interest-search?q=${encodeURIComponent(q)}`, { withCredentials: true });
+            const { interests = [], source, message } = res.data;
+            setResults(interests);
+            setApiState(source);
+            if (source === 'error') setErrorMsg(message || 'Meta API error');
+            setOpen(true);
+            setActiveIdx(-1);
+        } catch {
+            setResults([]);
+            setApiState('error');
+            setErrorMsg('Could not reach the server. Please try again.');
+            setOpen(true);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const handleInput = (e) => {
+        const v = e.target.value;
+        setQuery(v);
+        clearTimeout(debounceRef.current);
+        if (v.length >= 1) {
+            debounceRef.current = setTimeout(() => doSearch(v), 300);
+        } else {
+            setResults([]);
+            setOpen(false);
+            setApiState('idle');
+        }
+    };
+
+    const addInterest = (name) => {
+        if (name && !selectedInterests.includes(name)) onChange([...selectedInterests, name]);
+        setQuery('');
+        setResults([]);
+        setOpen(false);
+        setApiState('idle');
+        inputRef.current?.focus();
+    };
+
+    const removeInterest = (name) => onChange(selectedInterests.filter(i => i !== name));
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') { setOpen(false); return; }
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (open && activeIdx >= 0 && results[activeIdx]) {
+                addInterest(results[activeIdx].name);
+            }
+            return;
+        }
+        if (!open || results.length === 0) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, results.length - 1)); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
+    };
+
+    return (
+        <div ref={wrapRef} className="space-y-3">
+            {/* Selected interest tags */}
+            {selectedInterests.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {selectedInterests.map((name) => (
+                        <motion.span
+                            key={name}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 px-3 py-1.5 rounded-full text-xs font-bold"
+                        >
+                            <span className="text-blue-400">#</span>
+                            <span>{name}</span>
+                            <button
+                                type="button"
+                                onClick={() => removeInterest(name)}
+                                className="ml-0.5 w-4 h-4 rounded-full bg-blue-200 dark:bg-blue-500/30 flex items-center justify-center hover:bg-blue-300 transition-colors text-blue-600 dark:text-blue-300 text-[10px] font-black leading-none"
+                            >×</button>
+                        </motion.span>
+                    ))}
+                </div>
+            )}
+            {selectedInterests.length === 0 && (
+                <p className="text-xs text-slate-400 italic">No interests added yet. Search live from Meta below.</p>
+            )}
+
+            {/* Search input + dropdown */}
+            <div className="relative">
+                <div className="relative flex items-center">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    {loading && <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400 animate-spin pointer-events-none" />}
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={query}
+                        onChange={handleInput}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => { if (results.length > 0 || apiState === 'not_connected' || apiState === 'error') setOpen(true); }}
+                        placeholder={placeholder}
+                        className="w-full bg-white dark:bg-surface-dark border-2 border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-blue-400 dark:focus:border-blue-500 transition-all placeholder-slate-400"
+                        autoComplete="off"
+                    />
+                </div>
+
+                {/* Results dropdown */}
+                <AnimatePresence>
+                    {/* ── Meta results ── */}
+                    {open && apiState === 'meta' && results.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl shadow-slate-900/10 overflow-hidden"
+                        >
+                            <div className="px-4 py-2 border-b border-slate-100 dark:border-white/5 flex items-center gap-2">
+                                <Globe className="w-3.5 h-3.5 text-blue-500" />
+                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Live from Meta Targeting Database</span>
+                            </div>
+                            <div className="max-h-64 overflow-y-auto">
+                                {results.map((item, idx) => {
+                                    const isSelected = selectedInterests.includes(item.name);
+                                    return (
+                                        <button
+                                            key={item.id || item.name}
+                                            type="button"
+                                            onMouseDown={(e) => { e.preventDefault(); addInterest(item.name); }}
+                                            onMouseEnter={() => setActiveIdx(idx)}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                                                isSelected ? 'bg-blue-50 dark:bg-blue-500/10' :
+                                                activeIdx === idx ? 'bg-slate-50 dark:bg-white/5' : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                            }`}
+                                        >
+                                            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                                                <Tag className="w-4 h-4 text-blue-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-sm font-bold truncate ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-white'}`}>
+                                                    {item.name}
+                                                </p>
+                                                {(item.path || item.audience_size) && (
+                                                    <p className="text-[11px] text-slate-400 truncate">
+                                                        {item.path && <span>{item.path}</span>}
+                                                        {item.path && item.audience_size && <span> · </span>}
+                                                        {item.audience_size && <span>👥 {item.audience_size}</span>}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {isSelected && <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <div className="px-4 py-2 border-t border-slate-100 dark:border-white/5">
+                                <p className="text-[10px] text-slate-400">✅ Verified Meta targeting interests · Showing {results.length} results</p>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* ── No results from Meta ── */}
+                    {open && apiState === 'meta' && results.length === 0 && !loading && (
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl px-5 py-6 text-center"
+                        >
+                            <Tag className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No Meta interests found for "{query}"</p>
+                            <p className="text-xs text-slate-400 mt-1">Try a different keyword — Meta may not have this interest in their database.</p>
+                        </motion.div>
+                    )}
+
+                    {/* ── Not connected to Meta ── */}
+                    {open && apiState === 'not_connected' && query.length >= 1 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                            className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-500/30 rounded-2xl shadow-xl overflow-hidden"
+                        >
+                            <div className="px-5 py-4 flex items-start gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-900 dark:text-white">Meta Ads not connected</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                        Interest search is powered by Meta's live Targeting API. Please connect your Meta Ads account in <strong>Settings → Meta Ads</strong> to enable this feature.
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* ── Meta API error ── */}
+                    {open && apiState === 'error' && query.length >= 1 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                            className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-500/30 rounded-2xl shadow-xl overflow-hidden"
+                        >
+                            <div className="px-5 py-4 flex items-start gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-red-100 dark:bg-red-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-bold text-slate-900 dark:text-white">Meta API error</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                        {errorMsg || 'Could not fetch interests from Meta. Your token may have expired.'}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onMouseDown={(e) => { e.preventDefault(); doSearch(query); }}
+                                        className="mt-2 text-xs text-blue-500 hover:text-blue-700 font-semibold transition-colors"
+                                    >↩ Retry</button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Helper hint */}
+            <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                <Globe className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                Results come directly from Meta's live Targeting database — only real, verified interests are shown.
+            </p>
+        </div>
+    );
+}
+
+
 const steps = [
     { id: 'business', title: 'Business Info', icon: Briefcase },
     { id: 'audience', title: 'AI Audience', icon: Target },
@@ -936,29 +1187,17 @@ export default function MetaAdsWizard() {
                             />
                         </div>
 
-                        {/* Interests */}
+                        {/* Interests — Live Meta Search */}
                         <div>
-                            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                                 <Tag className="w-3.5 h-3.5 text-blue-400" /> Interests / Targeting Keywords
+                                <span className="ml-1 text-[10px] font-normal normal-case text-slate-400">— Type to search live from Meta</span>
                             </label>
-                            <div className="flex flex-wrap gap-2 mb-2 min-h-[32px]">
-                                {manualInterests.map((int, i) => (
-                                    <span key={i} className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                                        # {int}
-                                        <button onClick={() => setManualInterests(p => p.filter((_,idx) => idx!==i))} className="hover:text-blue-900 transition-colors">×</button>
-                                    </span>
-                                ))}
-                                {manualInterests.length === 0 && <span className="text-xs text-slate-400 italic">No interests added...</span>}
-                            </div>
-                            <div className="flex gap-2">
-                                <input ref={manualInterestRef} type="text" className="flex-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/40 transition-all" placeholder="e.g. Fashion, Online Shopping..." value={manualInterestInput} onChange={e => setManualInterestInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addManualInterest(); }}} />
-                                <button type="button" onClick={addManualInterest} className="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-all"><Plus className="w-4 h-4" /></button>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                                {QUICK_INTERESTS.map(s => (
-                                    <button key={s} type="button" onClick={() => { if (!manualInterests.includes(s)) setManualInterests(p => [...p, s]); }} className={`text-[10px] px-2 py-1 rounded-full border transition-all ${ manualInterests.includes(s) ? 'border-blue-400 bg-blue-50 dark:bg-blue-500/10 text-blue-600' : 'border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-400'}`}>{s}</button>
-                                ))}
-                            </div>
+                            <InterestSearchInput
+                                selectedInterests={manualInterests}
+                                onChange={setManualInterests}
+                                placeholder="Search interests, e.g. men clothing, fitness..."
+                            />
                         </div>
                     </div>
                 </div>

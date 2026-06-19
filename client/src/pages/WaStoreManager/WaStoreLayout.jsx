@@ -80,6 +80,7 @@ export default function WaStoreLayout() {
     };
 
     const navItems = [
+        { path: `/online-store/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
         { path: `/online-store/${slug}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
         { path: `/online-store/${slug}/navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Navigation' },
         { path: `/online-store/${slug}/categories`, icon: <Tag className="w-5 h-5" />, label: 'Categories' },
@@ -87,7 +88,6 @@ export default function WaStoreLayout() {
         { path: `/online-store/${slug}/inventory`, icon: <ClipboardList className="w-5 h-5" />, label: 'Inventory' },
         { path: `/online-store/${slug}/orders`, icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
         { path: `/online-store/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
-        { path: `/online-store/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
         { path: `/online-store/${slug}/pos`, icon: <ShoppingBag className="w-5 h-5" />, label: 'POS' },
         { path: `/online-store/${slug}/notifications`, icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
         { path: `/online-store/${slug}/coupons`, icon: <Tag className="w-5 h-5" />, label: 'Promo Codes' },

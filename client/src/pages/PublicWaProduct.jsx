@@ -78,6 +78,24 @@ export default function PublicWaProduct({ customSlug }) {
         return p;
     }, [store]);
 
+    // Resolves the correct price for the currently selected variant combo.
+    // Falls back to base product.price if no variant override matches.
+    const resolveVariantPrice = React.useCallback((prod, selVars) => {
+        if (!prod) return 0;
+        if (!prod.variants?.length || !Object.keys(selVars || {}).length) {
+            return parseFloat(prod.price) || 0;
+        }
+        const match = prod.variants.find(v =>
+            v.combo && Object.entries(selVars).every(([k, val]) => v.combo[k] === val)
+        );
+        return match?.price != null ? parseFloat(match.price) : (parseFloat(prod.price) || 0);
+    }, []);
+
+    const currentVariantPrice = React.useMemo(() =>
+        resolveVariantPrice(product, selectedVariants),
+        [product, selectedVariants, resolveVariantPrice]
+    );
+
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
     // Note: this cartTotal is mostly unused in PublicWaProduct, but updated for consistency
     const cartTotal = cart.reduce((sum, item) => sum + (getDisplayPrice(item.price, item) * item.qty), 0);
@@ -121,6 +139,25 @@ export default function PublicWaProduct({ customSlug }) {
         // Reset image index when product changes
         setActiveImageIdx(0);
     }, [product]);
+
+    // Auto-switch main image when a variant with a linked image is selected
+    useEffect(() => {
+        if (!product?.variants?.length || !Object.keys(selectedVariants).length) return;
+        const match = product.variants.find(v =>
+            v.combo && Object.entries(selectedVariants).every(([k, val]) => v.combo[k] === val)
+        );
+        if (match?.imageUrl) {
+            // Find the index of this image in the product's imageUrls array
+            const imgUrls = product.imageUrls || [];
+            const idx = imgUrls.findIndex(u => u === match.imageUrl);
+            if (idx !== -1) {
+                setActiveImageIdx(idx);
+            }
+        } else {
+            // No specific image for this variant — stay on current image (don't reset)
+            // Only reset if the user switches to a combo with no image after having been on a variant image
+        }
+    }, [selectedVariants, product]);
 
     useEffect(() => {
         localStorage.setItem(`wa_cart_${slug}`, JSON.stringify(cart));
@@ -184,13 +221,15 @@ export default function PublicWaProduct({ customSlug }) {
         // Create a unique ID for the cart item based on variants
         const variantString = Object.values(selectedVariants).sort().join('-');
         const cartItemId = variantString ? `${product.id}-${variantString}` : product.id;
+        // Resolve the correct price for this variant combination
+        const resolvedPrice = resolveVariantPrice(product, selectedVariants);
 
         setCart(prev => {
             const existing = prev.find(item => item.cartItemId === cartItemId);
             if (existing) {
                 return prev.map(item => item.cartItemId === cartItemId ? { ...item, qty: item.qty + qty } : item);
             }
-            return [...prev, { ...product, cartItemId, qty, selectedVariants }];
+            return [...prev, { ...product, price: resolvedPrice, cartItemId, qty, selectedVariants }];
         });
         toast.success(`Added ${qty} ${product.name} to cart`);
     };
@@ -210,13 +249,14 @@ export default function PublicWaProduct({ customSlug }) {
 
         const variantString = Object.values(selectedVariants).sort().join('-');
         const cartItemId = variantString ? `${product.id}-${variantString}` : product.id;
+        const resolvedPrice = resolveVariantPrice(product, selectedVariants);
 
         setCart(prev => {
             const existing = prev.find(item => item.cartItemId === cartItemId);
             if (existing) {
                 return prev; // Already in cart, we can just proceed
             }
-            return [...prev, { ...product, cartItemId, qty, selectedVariants }];
+            return [...prev, { ...product, price: resolvedPrice, cartItemId, qty, selectedVariants }];
         });
         
         setIsCheckoutModalOpen(true);
@@ -333,25 +373,38 @@ export default function PublicWaProduct({ customSlug }) {
                         {/* Desktop Vertical Thumbnails */}
                         {product.imageUrls && product.imageUrls.length > 1 && (
                             <div className="hidden lg:flex flex-col gap-3 w-20 shrink-0 select-none">
-                                {product.imageUrls.map((url, idx) => (
-                                    <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => setActiveImageIdx(idx)}
-                                        className={`w-20 h-20 rounded-xl overflow-hidden bg-gray-50 border transition-all duration-300 relative ${
-                                            activeImageIdx === idx
-                                                ? 'border-black ring-1 ring-black scale-[1.02]'
-                                                : 'border-gray-200 opacity-60 hover:opacity-100'
-                                        }`}
-                                    >
-                                        <img
-                                            src={imgUrl(url)}
-                                            alt={`Thumbnail ${idx + 1}`}
-                                            className="w-full h-full object-contain mix-blend-multiply"
-                                            onError={e => e.target.style.display = 'none'}
-                                        />
-                                    </button>
-                                ))}
+                                {product.imageUrls.map((url, idx) => {
+                                    // Check if this image is linked to any variant
+                                    const linkedVariant = (product.variants || []).find(v => v.imageUrl === url);
+                                    const linkedLabel = linkedVariant ? Object.values(linkedVariant.combo).join(' / ') : null;
+                                    return (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => setActiveImageIdx(idx)}
+                                            title={linkedLabel ? `Variant: ${linkedLabel}` : ''}
+                                            className={`w-20 h-20 rounded-xl overflow-hidden bg-gray-50 border transition-all duration-300 relative ${
+                                                activeImageIdx === idx
+                                                    ? 'border-black ring-1 ring-black scale-[1.02]'
+                                                    : 'border-gray-200 opacity-60 hover:opacity-100'
+                                            }`}
+                                        >
+                                            <img
+                                                src={imgUrl(url)}
+                                                alt={`Thumbnail ${idx + 1}`}
+                                                className="w-full h-full object-contain mix-blend-multiply"
+                                                onError={e => e.target.style.display = 'none'}
+                                            />
+                                            {linkedLabel && (
+                                                <div className="absolute bottom-1 left-1 right-1">
+                                                    <span className="block text-center text-[8px] font-bold bg-black/70 text-white px-1 py-0.5 rounded truncate">
+                                                        {linkedLabel}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
 
@@ -436,25 +489,37 @@ export default function PublicWaProduct({ customSlug }) {
                     {product.imageUrls && product.imageUrls.length > 1 && (
                         <div className="lg:hidden w-full mt-2 flex justify-center">
                             <div className="mobile-thumb-strip flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x max-w-full px-1">
-                                {product.imageUrls.map((url, idx) => (
-                                    <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => setActiveImageIdx(idx)}
-                                        className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-50 border snap-start relative ${
-                                            activeImageIdx === idx
-                                                ? 'border-black ring-1 ring-black'
-                                                : 'border-transparent opacity-60'
-                                        }`}
-                                    >
-                                        <img
-                                            src={imgUrl(url)}
-                                            alt={`Thumbnail ${idx + 1}`}
-                                            className="w-full h-full object-contain mix-blend-multiply"
-                                            onError={e => e.target.style.display = 'none'}
-                                        />
-                                    </button>
-                                ))}
+                                {product.imageUrls.map((url, idx) => {
+                                    const linkedVariant = (product.variants || []).find(v => v.imageUrl === url);
+                                    const linkedLabel = linkedVariant ? Object.values(linkedVariant.combo).join(' / ') : null;
+                                    return (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => setActiveImageIdx(idx)}
+                                            title={linkedLabel ? `Variant: ${linkedLabel}` : ''}
+                                            className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-50 border snap-start relative ${
+                                                activeImageIdx === idx
+                                                    ? 'border-black ring-1 ring-black'
+                                                    : 'border-transparent opacity-60'
+                                            }`}
+                                        >
+                                            <img
+                                                src={imgUrl(url)}
+                                                alt={`Thumbnail ${idx + 1}`}
+                                                className="w-full h-full object-contain mix-blend-multiply"
+                                                onError={e => e.target.style.display = 'none'}
+                                            />
+                                            {linkedLabel && (
+                                                <div className="absolute bottom-0.5 left-0.5 right-0.5">
+                                                    <span className="block text-center text-[7px] font-bold bg-black/70 text-white px-0.5 py-0.5 rounded truncate">
+                                                        {linkedLabel}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -476,7 +541,7 @@ export default function PublicWaProduct({ customSlug }) {
                             {/* Pricing & Savings & Status */}
                             <div className="flex flex-wrap items-center gap-4">
                                 <span className={`text-2xl font-semibold ${theme.text}`}>
-                                    {getCurrencySymbol(store.currency)}{getDisplayPrice(product.price, product).toFixed(2)}
+                                    {getCurrencySymbol(store.currency)}{getDisplayPrice(currentVariantPrice, product).toFixed(2)}
                                 </span>
                                 {product.compareAtPrice && (
                                     <>
@@ -484,7 +549,7 @@ export default function PublicWaProduct({ customSlug }) {
                                             {getCurrencySymbol(store.currency)}{getDisplayPrice(product.compareAtPrice, product).toFixed(2)}
                                         </span>
                                         {(() => {
-                                            const discountPercent = Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100);
+                                            const discountPercent = Math.round(((parseFloat(product.compareAtPrice) - currentVariantPrice) / parseFloat(product.compareAtPrice)) * 100);
                                             if (discountPercent > 0) {
                                                 return (
                                                     <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
