@@ -260,7 +260,8 @@ function generateCombos(options) {
 }
 
 export default function WaProductList() {
-    const { storeId } = useOutletContext();
+    const { storeId, store } = useOutletContext();
+    const inventoryEnabled = store?.inventoryConfig?.enabled === true;
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -279,7 +280,7 @@ export default function WaProductList() {
         return symbols[code] || code;
     };
 
-    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '' };
+    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '', sku: '', trackQuantity: false, stockQuantity: 0, lowStockThreshold: 5 };
     const [form, setForm] = useState(defaultForm);
 
     useEffect(() => {
@@ -384,7 +385,11 @@ export default function WaProductList() {
             taxRate: product.taxRate !== null && product.taxRate !== undefined ? product.taxRate : '',
             metaTitle: product.metaTitle || '',
             metaDescription: product.metaDescription || '',
-            slug: product.slug || ''
+            slug: product.slug || '',
+            sku: product.sku || '',
+            trackQuantity: !!product.trackQuantity,
+            stockQuantity: product.stockQuantity ?? 0,
+            lowStockThreshold: product.lowStockThreshold ?? 5,
         });
         
         if (product.category && !storeCategories.includes(product.category)) {
@@ -616,6 +621,66 @@ export default function WaProductList() {
                                             </label>
                                         </div>
                                     </div>
+
+                                    {/* Inventory & Stock — only shown when store inventory management is enabled */}
+                                    {inventoryEnabled && (
+                                        <div className="bg-emerald-50/60 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-5 space-y-4">
+                                            <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300 border-b border-emerald-200 dark:border-emerald-800/40 pb-2 flex items-center gap-2">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                                Inventory & Stock
+                                            </h3>
+
+                                            {/* SKU */}
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">SKU (Optional)</label>
+                                                <input
+                                                    type="text"
+                                                    value={form.sku}
+                                                    onChange={e => setForm({...form, sku: e.target.value})}
+                                                    placeholder="e.g. SHIRT-BLK-M"
+                                                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-mono"
+                                                />
+                                            </div>
+
+                                            {/* Track Quantity toggle */}
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">Track Quantity</label>
+                                                    <span className="text-[11px] text-slate-500">Count stock on every order</span>
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" checked={form.trackQuantity} onChange={e => setForm({...form, trackQuantity: e.target.checked})} className="sr-only peer" />
+                                                    <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500 shadow-inner"></div>
+                                                </label>
+                                            </div>
+
+                                            {/* Stock Qty + Low Stock Threshold — shown only when Track Qty is on */}
+                                            {form.trackQuantity && (
+                                                <div className="grid grid-cols-2 gap-3 pt-1">
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Stock Qty</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={form.stockQuantity}
+                                                            onChange={e => setForm({...form, stockQuantity: parseInt(e.target.value) || 0})}
+                                                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-semibold"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Low Stock Alert</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={form.lowStockThreshold}
+                                                            onChange={e => setForm({...form, lowStockThreshold: parseInt(e.target.value) || 0})}
+                                                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Pricing Box */}
                                     <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">

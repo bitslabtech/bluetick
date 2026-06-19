@@ -117,9 +117,13 @@ router.get('/public/:slug', async (req, res) => {
         // ⚠️ View increment moved to dedicated POST /public/:slug/view endpoint
         // to prevent double-counting from React StrictMode / multiple re-renders
 
-        // Fetch active products
+        // Fetch products — if showOutOfStock is enabled, include out-of-stock products
+        // so the frontend shows them with an "Out of Stock" badge; otherwise only return in-stock
+        const showOutOfStock = store.inventoryConfig?.showOutOfStock === true;
         const products = await WaProduct.findAll({
-            where: { storeId: store.id, inStock: true }
+            where: showOutOfStock
+                ? { storeId: store.id }
+                : { storeId: store.id, inStock: true }
         });
 
         const responseData = store.toJSON();
@@ -180,9 +184,13 @@ router.get('/public/domain/:domain', async (req, res) => {
 
         // ⚠️ View increment handled by POST /public/:slug/view (called once per session)
 
-        // Fetch active products
+        // Fetch products — if showOutOfStock is enabled, include out-of-stock products
+        // so the frontend shows them with an "Out of Stock" badge; otherwise only return in-stock
+        const showOutOfStock = store.inventoryConfig?.showOutOfStock === true;
         const products = await WaProduct.findAll({
-            where: { storeId: store.id, inStock: true }
+            where: showOutOfStock
+                ? { storeId: store.id }
+                : { storeId: store.id, inStock: true }
         });
 
         const responseData = store.toJSON();

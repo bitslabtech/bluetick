@@ -37,7 +37,7 @@ export default function WaStoreSettings() {
     const [taxConfig, setTaxConfig] = useState({ enabled: false, type: 'gst', taxInclusive: false, slabs: [], rate: 0, autoGenerateBill: false, autoSendWhatsApp: false });
     const [savingTax, setSavingTax] = useState(false);
 
-    const [inventoryConfig, setInventoryConfig] = useState({ autoOutOfStock: false, showLowStock: false, preventCartAdd: false });
+    const [inventoryConfig, setInventoryConfig] = useState({ enabled: false, autoOutOfStock: false, showLowStock: false, preventCartAdd: false, showOutOfStock: false });
     const [savingInventory, setSavingInventory] = useState(false);
 
     const [invoiceConfig, setInvoiceConfig] = useState({ prefixOnline: 'ORD-', prefixPos: 'POS-', startingNumber: 1001 });
@@ -179,9 +179,8 @@ export default function WaStoreSettings() {
             <div className="h-48 rounded-2xl bg-slate-100 dark:bg-slate-800" />
         </div>
     );
-
     return (
-        <div className="max-w-2xl space-y-6 pb-7 sm:pb-20">
+        <div className="max-w-4xl space-y-6 pb-7 sm:pb-20">
             <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Settings className="w-5 h-5 text-indigo-500" />
@@ -644,48 +643,96 @@ export default function WaStoreSettings() {
                     <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <ClipboardList className="w-4 h-4 text-indigo-400" /> Inventory Preferences
                     </h3>
+                    <p className="text-xs text-slate-500 mt-1">Control how stock levels are tracked and displayed in your store.</p>
                 </div>
                 <div className="p-4 md:p-6 space-y-5">
-                    <div className="space-y-4">
-                        <label className="flex items-start gap-3 cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                checked={inventoryConfig.autoOutOfStock} 
-                                onChange={e => setInventoryConfig({...inventoryConfig, autoOutOfStock: e.target.checked})}
-                                className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                            />
-                            <div>
-                                <span className="block text-sm font-medium text-slate-900 dark:text-white">Auto "Out of Stock"</span>
-                                <span className="block text-xs text-slate-500 mt-0.5">Automatically mark items as Out of Stock when quantity reaches 0.</span>
-                            </div>
-                        </label>
 
-                        <label className="flex items-start gap-3 cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                checked={inventoryConfig.preventCartAdd} 
-                                onChange={e => setInventoryConfig({...inventoryConfig, preventCartAdd: e.target.checked})}
-                                className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    {/* Master Toggle */}
+                    <label className="flex items-start gap-3 cursor-pointer p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors">
+                        <div className="relative mt-0.5 shrink-0">
+                            <input
+                                type="checkbox"
+                                checked={inventoryConfig.enabled}
+                                onChange={e => setInventoryConfig({ ...inventoryConfig, enabled: e.target.checked })}
+                                className="sr-only peer"
                             />
-                            <div>
-                                <span className="block text-sm font-medium text-slate-900 dark:text-white">Prevent Adding to Cart on Zero Stock</span>
-                                <span className="block text-xs text-slate-500 mt-0.5">Disable the "Add to Cart" button if the product's exact stock quantity is 0.</span>
+                            <div
+                                onClick={() => setInventoryConfig(c => ({ ...c, enabled: !c.enabled }))}
+                                className={`w-11 h-6 rounded-full transition-colors cursor-pointer border-2 ${
+                                    inventoryConfig.enabled
+                                        ? 'bg-indigo-600 border-indigo-600'
+                                        : 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
+                                }`}
+                            >
+                                <div className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                                    inventoryConfig.enabled ? 'translate-x-5' : 'translate-x-0'
+                                }`} />
                             </div>
-                        </label>
+                        </div>
+                        <div>
+                            <span className="block text-sm font-semibold text-slate-900 dark:text-white">Enable Inventory Management</span>
+                            <span className="block text-xs text-slate-500 mt-0.5">
+                                When enabled, you can track stock levels per product, and product creation will ask for stock quantity.
+                            </span>
+                        </div>
+                    </label>
 
-                        <label className="flex items-start gap-3 cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                checked={inventoryConfig.showLowStock} 
-                                onChange={e => setInventoryConfig({...inventoryConfig, showLowStock: e.target.checked})}
-                                className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                            />
-                            <div>
-                                <span className="block text-sm font-medium text-slate-900 dark:text-white">Show "X items left"</span>
-                                <span className="block text-xs text-slate-500 mt-0.5">Show a low stock badge to customers on the storefront when stock drops below threshold.</span>
-                            </div>
-                        </label>
-                    </div>
+                    {/* Sub-options (only shown when inventory is enabled) */}
+                    {inventoryConfig.enabled && (
+                        <div className="space-y-4 pl-4 border-l-2 border-indigo-100 dark:border-indigo-900/50">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    checked={inventoryConfig.autoOutOfStock} 
+                                    onChange={e => setInventoryConfig({...inventoryConfig, autoOutOfStock: e.target.checked})}
+                                    className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                />
+                                <div>
+                                    <span className="block text-sm font-medium text-slate-900 dark:text-white">Auto "Out of Stock"</span>
+                                    <span className="block text-xs text-slate-500 mt-0.5">Automatically mark items as Out of Stock when quantity reaches 0.</span>
+                                </div>
+                            </label>
+
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    checked={inventoryConfig.preventCartAdd} 
+                                    onChange={e => setInventoryConfig({...inventoryConfig, preventCartAdd: e.target.checked})}
+                                    className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                />
+                                <div>
+                                    <span className="block text-sm font-medium text-slate-900 dark:text-white">Prevent Adding to Cart on Zero Stock</span>
+                                    <span className="block text-xs text-slate-500 mt-0.5">Disable the "Add to Cart" button if the product's exact stock quantity is 0.</span>
+                                </div>
+                            </label>
+
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    checked={inventoryConfig.showLowStock} 
+                                    onChange={e => setInventoryConfig({...inventoryConfig, showLowStock: e.target.checked})}
+                                    className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                />
+                                <div>
+                                    <span className="block text-sm font-medium text-slate-900 dark:text-white">Show "X items left"</span>
+                                    <span className="block text-xs text-slate-500 mt-0.5">Show a low stock badge to customers on the storefront when stock drops below threshold.</span>
+                                </div>
+                            </label>
+
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    checked={inventoryConfig.showOutOfStock} 
+                                    onChange={e => setInventoryConfig({...inventoryConfig, showOutOfStock: e.target.checked})}
+                                    className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                />
+                                <div>
+                                    <span className="block text-sm font-medium text-slate-900 dark:text-white">Show Out of Stock Products</span>
+                                    <span className="block text-xs text-slate-500 mt-0.5">Display out-of-stock products in your storefront with an "Out of Stock" badge instead of hiding them.</span>
+                                </div>
+                            </label>
+                        </div>
+                    )}
 
                     <div className="pt-2">
                         <button

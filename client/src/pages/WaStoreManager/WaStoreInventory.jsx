@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { ClipboardList, Search, Save, AlertCircle, CheckCircle2, XCircle, ArrowUpDown, Info } from 'lucide-react';
+import { ClipboardList, Search, Save, AlertCircle, CheckCircle2, XCircle, Info, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreInventory() {
-    const { storeId, store } = useOutletContext();
+    const { storeId, store, setParentStore } = useOutletContext();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [togglingInventory, setTogglingInventory] = useState(false);
     const [search, setSearch] = useState('');
     
     // Store original products to detect changes
@@ -89,6 +90,26 @@ export default function WaStoreInventory() {
         (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
     );
 
+    const handleToggleInventory = async (value, field = 'enabled') => {
+        setTogglingInventory(true);
+        try {
+            const currentConfig = store?.inventoryConfig || {};
+            const newConfig = { ...currentConfig, [field]: value };
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, { inventoryConfig: newConfig });
+            // Update parent store context so everything reacts immediately
+            if (setParentStore) setParentStore(prev => ({ ...prev, inventoryConfig: newConfig }));
+            if (field === 'enabled') {
+                toast.success(value ? 'Inventory management enabled!' : 'Inventory management disabled.');
+            } else if (field === 'showOutOfStock') {
+                toast.success(value ? 'Out-of-stock products will now show in your store.' : 'Out-of-stock products are now hidden from your store.');
+            }
+        } catch (err) {
+            toast.error('Failed to update inventory settings.');
+        } finally {
+            setTogglingInventory(false);
+        }
+    };
+
     const getStatusBadge = (product) => {
         if (!product.trackQuantity) {
             return product.inStock 
@@ -109,6 +130,53 @@ export default function WaStoreInventory() {
         return <div className="p-8 animate-pulse text-slate-500">Loading inventory...</div>;
     }
 
+    // Show a friendly disabled state with inline enable toggle
+    if (!store?.inventoryConfig?.enabled) {
+        return (
+            <div className="space-y-6">
+                <div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <ClipboardList className="w-6 h-6 text-indigo-500" />
+                        Inventory
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-1">Track and update your product stock levels.</p>
+                </div>
+
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                    {/* Banner */}
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-slate-200 dark:border-white/10 p-6 text-center">
+                        <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                            <ClipboardList className="w-7 h-7 text-indigo-500" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Inventory Management is Off</h3>
+                        <p className="text-slate-500 text-sm max-w-sm mx-auto">
+                            Enable it to start tracking stock levels, get low-stock alerts, and auto-mark products as out of stock.
+                        </p>
+                    </div>
+
+                    {/* Enable card */}
+                    <div className="p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                            <div>
+                                <p className="font-semibold text-slate-900 dark:text-white text-sm">Enable Inventory Management</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Track stock per product and control what happens when items run out.</p>
+                            </div>
+                            <button
+                                onClick={() => handleToggleInventory(true)}
+                                disabled={togglingInventory}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl font-medium transition-colors text-sm shadow-sm shrink-0"
+                            >
+                                {togglingInventory ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                                {togglingInventory ? 'Enabling...' : 'Enable Now'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Inventory management is enabled — show full table
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -117,9 +185,7 @@ export default function WaStoreInventory() {
                         <ClipboardList className="w-6 h-6 text-indigo-500" />
                         Inventory
                     </h2>
-                    <p className="text-sm text-slate-500 mt-1">
-                        Track and update your product stock levels.
-                    </p>
+                    <p className="text-sm text-slate-500 mt-1">Track and update your product stock levels.</p>
                 </div>
                 
                 <div className="flex items-center gap-3">
@@ -128,6 +194,19 @@ export default function WaStoreInventory() {
                             <AlertCircle className="w-4 h-4" /> Unsaved changes
                         </span>
                     )}
+                    <button
+                        onClick={() => {
+                            if (window.confirm('Disable inventory management? Stock tracking will be turned off.')) {
+                                handleToggleInventory(false);
+                            }
+                        }}
+                        disabled={togglingInventory}
+                        title="Disable inventory management"
+                        className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-600 hover:border-rose-300 dark:hover:border-rose-700 rounded-xl font-medium transition-all text-sm disabled:opacity-50"
+                    >
+                        {togglingInventory ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                        Disable
+                    </button>
                     <button
                         onClick={handleSaveAll}
                         disabled={!hasChanges || saving}
@@ -138,17 +217,6 @@ export default function WaStoreInventory() {
                     </button>
                 </div>
             </div>
-
-            {/* Config warning if settings are disabled */}
-            {(!store.inventoryConfig?.autoOutOfStock || !store.inventoryConfig?.preventCartAdd) && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 p-4 rounded-xl border border-blue-100 dark:border-blue-800/40 text-sm flex gap-3 items-start">
-                    <Info className="w-5 h-5 shrink-0 mt-0.5" />
-                    <div>
-                        <p className="font-semibold mb-1">Store Inventory Settings</p>
-                        <p>Your store settings currently allow customers to buy out-of-stock items. You can change this behavior in the <a href={`/online-store/${store.slug}/settings`} className="underline font-medium hover:text-blue-800">Store Settings</a> page under Inventory Preferences.</p>
-                    </div>
-                </div>
-            )}
 
             {/* Controls */}
             <div className="flex flex-col sm:flex-row gap-4">
