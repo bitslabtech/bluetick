@@ -710,7 +710,37 @@ const Settings = () => {
     const executeFacebookLogin = (wipeManual) => {
         console.log('[FB DEBUG Settings] executeFacebookLogin() called, wipeManual =', wipeManual);
         
-        // Ensure FB.login is called synchronously immediately on click to prevent popup blockers
+        // Capture WABA ID + Phone Number ID from Meta's postMessage (sessionInfoVersion: 3)
+        // This is the MOST RELIABLE source — Meta sends them directly before the auth callback fires
+        let capturedWabaId = null;
+        let capturedPhoneNumberId = null;
+
+        const fbMessageListener = (event) => {
+            if (!event.origin || (!event.origin.includes('facebook.com') && !event.origin.includes('fb.com'))) return;
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                console.log('[FB DEBUG Settings] 📩 postMessage from Facebook:', JSON.stringify(data));
+                // sessionInfoVersion 3 sends phone_number_id and waba_id
+                if (data?.type === 'WA_EMBEDDED_SIGNUP') {
+                    if (data.event === 'FINISH') {
+                        capturedPhoneNumberId = data.data?.phone_number_id || null;
+                        capturedWabaId = data.data?.waba_id || null;
+                        console.log('[FB DEBUG Settings] ✅ Captured from postMessage → wabaId:', capturedWabaId, ', phoneNumberId:', capturedPhoneNumberId);
+                    } else if (data.event === 'CANCEL' || data.event === 'ERROR') {
+                        console.warn('[FB DEBUG Settings] ⚠️ Embedded signup cancelled/errored via postMessage:', data);
+                    }
+                }
+            } catch (e) {
+                // Not a JSON message or unrelated — ignore
+            }
+        };
+        window.addEventListener('message', fbMessageListener);
+
+        const fbErrorListener = (errorEvent) => {
+            console.error('[FB DEBUG Settings] 🔴 Window error during FB flow:', errorEvent.message);
+        };
+        window.addEventListener('error', fbErrorListener);
+
         const loginOptions = {
             config_id: import.meta.env.VITE_FB_CONFIG_ID,
             response_type: 'code',
@@ -722,7 +752,6 @@ const Settings = () => {
             }
         };
         console.log('[FB DEBUG Settings] Calling FB.login() with options:', JSON.stringify(loginOptions, null, 2));
-        console.log('[FB DEBUG Settings] Current page URL:', window.location.href);
 
         let callbackFired = false;
 
@@ -734,10 +763,11 @@ const Settings = () => {
                 window.removeEventListener('error', fbErrorListener);
                 console.log('[FB DEBUG Settings] ✅ FB.login callback FIRED');
                 console.log('[FB DEBUG Settings] response.status =', response?.status);
+                console.log('[FB DEBUG Settings] capturedWabaId =', capturedWabaId, ', capturedPhoneNumberId =', capturedPhoneNumberId);
                 
                 if (response.authResponse && response.authResponse.code) {
                     console.log('[FB DEBUG Settings] ✅ Got auth code, calling exchangeFbCode()...');
-                    exchangeFbCode(response.authResponse.code, wipeManual);
+                    exchangeFbCode(response.authResponse.code, wipeManual, capturedWabaId, capturedPhoneNumberId);
                 } else {
                     setFbLoading(false);
                     console.warn('[FB DEBUG Settings] ⚠️ No auth code received.');
@@ -753,31 +783,21 @@ const Settings = () => {
         }
 
         console.log('[FB DEBUG Settings] FB.login() call returned');
-
         setFbLoading(true);
         showToast({ type: 'info', title: 'Connecting...', message: 'Opening WhatsApp Setup. Please allow popups if blocked.' });
-
-        // --- DEEP DEBUG: Listen for cross-origin messages from Facebook popup ---
-        const fbMessageListener = (event) => {
-            if (event.origin && (event.origin.includes('facebook.com') || event.origin.includes('fb.com'))) {
-                console.log('[FB DEBUG Settings] 📩 postMessage from Facebook:', event.origin);
-            }
-        };
-        window.addEventListener('message', fbMessageListener);
-
-        // --- DEEP DEBUG: Listen for global errors during the popup flow ---
-        const fbErrorListener = (errorEvent) => {
-            console.error('[FB DEBUG Settings] 🔴 Window error during FB flow:', errorEvent.message);
-        };
-        window.addEventListener('error', fbErrorListener);
-
     };
 
-    const exchangeFbCode = async (code, wipeManual) => {
+    const exchangeFbCode = async (code, wipeManual, capturedWabaId = null, capturedPhoneNumberId = null) => {
         console.log('[FB DEBUG Settings] exchangeFbCode() called, code length:', code?.length, ', wipeManual:', wipeManual);
+        console.log('[FB DEBUG Settings] Hint IDs → wabaId:', capturedWabaId, ', phoneNumberId:', capturedPhoneNumberId);
         try {
             console.log('[FB DEBUG Settings] POSTing to /api/whatsapp/exchange-token ...');
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, { code });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, {
+                code,
+                // Pass the IDs captured from postMessage as authoritative hints to the backend
+                hintWabaId: capturedWabaId,
+                hintPhoneNumberId: capturedPhoneNumberId
+            });
             console.log('[FB DEBUG Settings] ✅ Exchange token response:', res.data);
 
             const returnedUser = res.data.user || {};

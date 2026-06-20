@@ -8,10 +8,13 @@ const User = require('../models/User');
 // Exchanges the Facebook OAuth code for a System User Access Token and retrieves the WABA ID
 router.post('/exchange-token', auth, async (req, res) => {
     try {
-        const { code } = req.body;
+        const { code, hintWabaId, hintPhoneNumberId } = req.body;
         console.log('[WA DEBUG] ========== /exchange-token START ==========');
         console.log('[WA DEBUG] User ID:', req.user?.id);
         console.log('[WA DEBUG] Received code:', code ? `${code.substring(0, 20)}... (length: ${code.length})` : '(MISSING!)');
+        console.log('[WA DEBUG] Hint WABA ID from browser postMessage:', hintWabaId || '(none)');
+        console.log('[WA DEBUG] Hint Phone Number ID from browser postMessage:', hintPhoneNumberId || '(none)');
+
 
         if (!code) {
             console.error('[WA DEBUG] ❌ No code provided in request body');
@@ -92,15 +95,19 @@ router.post('/exchange-token', auth, async (req, res) => {
         console.log('[WA DEBUG] ✅ Token is valid');
         console.log('[WA DEBUG] granular_scopes:', JSON.stringify(debugData.granular_scopes, null, 2));
 
-        // 2. Extract WABA ID from granular_scopes
-        let wabaId = debugData.granular_scopes?.find(s => s.scope === 'whatsapp_business_management')?.target_ids?.[0];
-        console.log('[WA DEBUG] wabaId from granular_scopes:', wabaId || '(not found, will try Graph API fallback)');
+        // 2. Extract WABA ID — prioritise the hint from browser postMessage (most reliable source)
+        let wabaId = hintWabaId || null;
+        console.log('[WA DEBUG] wabaId from postMessage hint:', wabaId || '(not provided, will try granular_scopes)');
+
+        if (!wabaId) {
+            wabaId = debugData.granular_scopes?.find(s => s.scope === 'whatsapp_business_management')?.target_ids?.[0];
+            console.log('[WA DEBUG] wabaId from granular_scopes:', wabaId || '(not found, will try Graph API fallback)');
+        }
 
         // Fallback: if granular_scopes didn't yield a WABA ID, query Graph API directly
         if (!wabaId) {
             console.log('[WA DEBUG] Attempting Graph API fallback to fetch WABA ID...');
             try {
-                // Try fetching the businesses/WABAs the user token has access to
                 const wabaListRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
                     params: {
                         fields: 'whatsapp_business_accounts{id,name}',
@@ -109,7 +116,6 @@ router.post('/exchange-token', auth, async (req, res) => {
                 });
                 const businesses = wabaListRes.data?.data || [];
                 console.log('[WA DEBUG] businesses from /me/businesses:', JSON.stringify(businesses));
-                // Walk through businesses to find first WABA
                 for (const biz of businesses) {
                     const accounts = biz.whatsapp_business_accounts?.data;
                     if (accounts && accounts.length > 0) {
@@ -123,7 +129,6 @@ router.post('/exchange-token', auth, async (req, res) => {
             }
         }
 
-        // Last resort: log that we could not determine WABA ID (do NOT use profile_id)
         if (!wabaId) {
             console.error('[WA DEBUG] ❌ Could not determine WABA ID from any source. User must enter manually.');
         }
@@ -137,9 +142,47 @@ router.post('/exchange-token', auth, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // 4. Fetch Phone Number details (Tier, Quality Rating) if we have a valid WABA ID
-        console.log('[WA DEBUG] Step 4: Fetching Phone Numbers for WABA...');
-        if (wabaId) {
+        // IMPORTANT: Clear stale WhatsApp fields before populating fresh data
+        // This prevents old wrong values (e.g. email-as-phone-id from a previous broken run) from persisting
+        user.metaPhoneNumberId = null;
+        user.metaDisplayPhoneNumber = null;
+        user.metaQualityRating = null;
+        user.metaTier = null;
+        user.metaVerifiedName = null;
+        user.metaNameStatus = null;
+
+        // 4. Fetch Phone Number details using the most reliable available source
+        console.log('[WA DEBUG] Step 4: Fetching Phone Number details...');
+        const phoneIdToUse = hintPhoneNumberId || null;
+
+        if (phoneIdToUse) {
+            // Best path: we have the exact Phone Number ID from the browser postMessage
+            console.log('[WA DEBUG] Using hintPhoneNumberId directly:', phoneIdToUse);
+            try {
+                const phoneRes = await axios.get(`https://graph.facebook.com/v22.0/${phoneIdToUse}`, {
+                    params: {
+                        fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
+                        access_token: accessToken
+                    }
+                });
+                const phoneData = phoneRes.data;
+                if (phoneData?.id) {
+                    console.log('[WA DEBUG] ✅ Phone Data via hintPhoneNumberId:', JSON.stringify(phoneData));
+                    user.metaPhoneNumberId = phoneData.id;
+                    user.metaDisplayPhoneNumber = phoneData.display_phone_number;
+                    user.metaQualityRating = phoneData.quality_rating;
+                    user.metaTier = phoneData.messaging_limit_tier;
+                    user.metaVerifiedName = phoneData.verified_name;
+                    user.metaNameStatus = phoneData.name_status;
+                }
+            } catch (phoneErr) {
+                console.error('[WA DEBUG] Error fetching by hintPhoneNumberId, falling back to WABA list:', phoneErr.response?.data || phoneErr.message);
+            }
+        }
+
+        // Fallback: fetch phone list from WABA if hint didn't populate metaPhoneNumberId
+        if (!user.metaPhoneNumberId && wabaId) {
+            console.log('[WA DEBUG] Fetching phone list from WABA:', wabaId);
             try {
                 const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}/phone_numbers`, {
                     params: {
@@ -149,7 +192,7 @@ router.post('/exchange-token', auth, async (req, res) => {
                 });
                 if (phoneResponse.data?.data?.length > 0) {
                     const phoneData = phoneResponse.data.data[0];
-                    console.log('[WA DEBUG] Phone Data fetched:', JSON.stringify(phoneData));
+                    console.log('[WA DEBUG] Phone Data fetched from WABA list:', JSON.stringify(phoneData));
                     user.metaPhoneNumberId = phoneData.id;
                     user.metaDisplayPhoneNumber = phoneData.display_phone_number;
                     user.metaQualityRating = phoneData.quality_rating;
@@ -160,10 +203,12 @@ router.post('/exchange-token', auth, async (req, res) => {
                     console.warn('[WA DEBUG] ⚠️ No phone numbers found under WABA:', wabaId);
                 }
             } catch (phoneErr) {
-                console.error('[WA DEBUG] Error fetching phone numbers:', phoneErr.response?.data || phoneErr.message);
+                console.error('[WA DEBUG] Error fetching phone numbers from WABA:', phoneErr.response?.data || phoneErr.message);
             }
-        } else {
-            console.warn('[WA DEBUG] ⚠️ Skipping phone number fetch — no valid WABA ID found.');
+        }
+
+        if (!user.metaPhoneNumberId) {
+            console.warn('[WA DEBUG] ⚠️ metaPhoneNumberId could not be determined. User must set it manually.');
         }
 
         // 3a. Generate a permanent System User Token (never expires)
@@ -241,7 +286,29 @@ router.post('/exchange-token', auth, async (req, res) => {
             } catch (_) { /* non-critical */ }
         }
         await user.save();
-        console.log('[WA DEBUG] ✅ User saved. wabaId:', user.wabaId);
+        console.log('[WA DEBUG] ✅ User saved. wabaId:', user.wabaId, '| metaPhoneNumberId:', user.metaPhoneNumberId);
+
+        // =====================================================================
+        // CRITICAL: Sync the final token + phone number ID into the Settings table
+        // The entire messaging system (campaigns, chat, FlowRunner, systemMessenger)
+        // reads from Settings.metaAccessToken and Settings.metaPhoneNumberId —
+        // NOT from User.fbAccessToken. Without this sync, messaging will fail silently.
+        // =====================================================================
+        try {
+            const Settings = require('../models/Settings');
+            let settings = await Settings.findOne({ where: { userId: user.id } });
+            if (!settings) {
+                settings = await Settings.create({ userId: user.id });
+            }
+            settings.metaAccessToken = finalToken;
+            if (user.metaPhoneNumberId) settings.metaPhoneNumberId = user.metaPhoneNumberId;
+            if (wabaId) settings.metaBusinessAccountId = wabaId;
+            await settings.save();
+            console.log('[WA DEBUG] ✅ Settings table synced → metaAccessToken set, metaPhoneNumberId:', settings.metaPhoneNumberId, ', wabaId:', settings.metaBusinessAccountId);
+        } catch (syncErr) {
+            console.error('[WA DEBUG] ⚠️ Failed to sync token to Settings table:', syncErr.message);
+        }
+
         console.log('[WA DEBUG] ========== /exchange-token SUCCESS ==========');
 
         res.json({
