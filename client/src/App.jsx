@@ -236,7 +236,7 @@ function CustomDomainRouter({ children }) {
     useEffect(() => {
         const hostname = window.location.hostname;
         // Ignore local development domains and the main SaaS platform domain
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === 'whatsapp-cloud.com' || hostname.includes('ngrok.io')) {
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === 'whatsapp-cloud.com' || hostname === 'bluetick.cloud' || hostname === 'www.bluetick.cloud' || hostname.includes('ngrok.io')) {
             setLoading(false);
             return;
         }

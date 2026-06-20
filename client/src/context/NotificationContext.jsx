@@ -61,17 +61,20 @@ export const NotificationProvider = ({ children }) => {
             prevUnreadRef.current = newCount;
             return newCount;
         } catch (err) {
-            console.error('Error loading notifications:', err);
+            if (err.response && err.response.status !== 401) {
+                console.error('Error loading notifications:', err);
+            }
             return 0;
         }
     }, [getReadIds]);
 
     // Polling — reset interval when isAdmin changes
     useEffect(() => {
+        if (!user) return;
         fetchNotifications();
         const interval = setInterval(fetchNotifications, POLL_INTERVAL_MS);
         return () => clearInterval(interval);
-    }, [isAdmin, fetchNotifications]);
+    }, [user, isAdmin, fetchNotifications]);
 
     const markAllRead = useCallback(async () => {
         if (isAdmin) {

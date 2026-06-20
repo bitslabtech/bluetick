@@ -397,7 +397,7 @@ export default function PublicWaStore({ customSlug }) {
                                         key={idx}
                                         onClick={() => goToSlide(idx)}
                                         aria-label={`Go to slide ${idx + 1}`}
-                                        className="flex items-center justify-center p-2 -m-2"
+                                        className="flex items-center justify-center w-12 h-12"
                                     >
                                         <span className={`h-1.5 rounded-full transition-all block ${idx === activeSlide ? 'w-8 bg-white' : 'w-2 bg-white/50'}`} />
                                     </button>

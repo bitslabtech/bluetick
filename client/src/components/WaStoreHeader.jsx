@@ -115,6 +115,7 @@ export default function WaStoreHeader({
                         {/* LEFT – Hamburger on mobile, Search on desktop */}
                         <div className="flex items-center justify-start gap-2 relative">
                             <button 
+                                aria-label="Open menu"
                                 onClick={() => setIsMobileMenuOpen(true)}
                                 className="md:hidden p-2 -ml-2 text-black hover:bg-black/5 rounded-lg transition-colors"
                             >
@@ -132,6 +133,7 @@ export default function WaStoreHeader({
                                 />
                                 {searchQuery && (
                                     <button 
+                                        aria-label="Clear search"
                                         onClick={() => setSearchQuery('')}
                                         className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black p-1"
                                     >
@@ -159,16 +161,19 @@ export default function WaStoreHeader({
                         {/* RIGHT – Search(mobile) and Cart */}
                         <div className="flex items-center justify-end gap-2">
                             <button 
+                                aria-label="Toggle search"
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
                                 className="md:hidden p-2 text-black hover:bg-black/5 rounded-full transition-colors flex items-center justify-center"
                             >
                                 <Search className="w-5 h-5 stroke-[1.5]" />
                             </button>
                             <button
+                                aria-label="View cart"
                                 onClick={() => setIsCartOpen(true)}
                                 className="relative flex items-center justify-center p-2 text-black hover:bg-black/5 rounded-full transition-colors group"
                             >
-                                <ShoppingCart className="w-5 h-5 text-black group-hover:scale-105 transition-transform stroke-[1.5]" />
+                                <span className="sr-only">View cart</span>
+                                <ShoppingCart aria-hidden="true" className="w-5 h-5 text-black group-hover:scale-105 transition-transform stroke-[1.5]" />
                                 {cartCount > 0 && (
                                     <span className="absolute -top-1 -right-1 flex items-center justify-center bg-black text-white text-[10px] font-bold w-4 h-4 rounded-full border border-white">
                                         {cartCount}
@@ -183,6 +188,7 @@ export default function WaStoreHeader({
                         {/* LEFT: Mobile Menu Button (hidden on desktop) */}
                         <div className="flex items-center shrink-0 w-1/3 md:w-auto md:hidden">
                             <button 
+                                aria-label="Open menu"
                                 onClick={() => setIsMobileMenuOpen(true)}
                                 className={`p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors mr-2`}
                             >
@@ -261,6 +267,7 @@ export default function WaStoreHeader({
                         <div className="flex items-center justify-end gap-2 md:gap-4 shrink-0 w-1/3 md:w-auto">
                             {/* Mobile Search Icon */}
                             <button 
+                                aria-label="Toggle search"
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
                                 className={`md:hidden p-2 rounded-full transition-colors ${theme.textMuted} hover:${theme.text} flex items-center justify-center`}
                             >
@@ -279,6 +286,7 @@ export default function WaStoreHeader({
                                 />
                                 {searchQuery && (
                                     <button 
+                                        aria-label="Clear search"
                                         onClick={() => setSearchQuery('')}
                                         className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-current p-1"
                                     >
@@ -295,10 +303,13 @@ export default function WaStoreHeader({
 
                             {/* Cart Button */}
                             <button 
+                                aria-label="View cart"
+                                title="View cart"
                                 onClick={() => setIsCartOpen(true)}
                                 className={`relative p-2 ${theme.cartButton} rounded-full transition-colors flex items-center justify-center ${theme.cartWrapper || ''}`}
                             >
-                                <ShoppingCart className="w-6 h-6 stroke-[1.5]" />
+                                <span className="sr-only">View cart</span>
+                                <ShoppingCart aria-hidden="true" className="w-6 h-6 stroke-[1.5]" />
                                 {cartCount > 0 && (
                                     <span className={`absolute -top-1 -right-1 ${theme.cartBadge} text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[var(--glow-bg,white)] shadow-sm`}>
                                         {cartCount}
@@ -313,6 +324,7 @@ export default function WaStoreHeader({
                         {/* LEFT: Mobile Menu Button */}
                         <div className="flex items-center shrink-0 w-1/3 md:w-auto md:hidden">
                             <button 
+                                aria-label="Open menu"
                                 onClick={() => setIsMobileMenuOpen(true)}
                                 className={`p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors`}
                             >
@@ -333,6 +345,7 @@ export default function WaStoreHeader({
                         <div className="flex items-center justify-end gap-2 md:gap-4 shrink-0 w-1/3 md:w-full">
                             {/* Mobile Search Icon */}
                             <button 
+                                aria-label="Toggle search"
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
                                 className={`md:hidden p-2 rounded-full transition-colors ${theme.textMuted} hover:${theme.text} flex items-center justify-center`}
                             >
@@ -351,6 +364,7 @@ export default function WaStoreHeader({
                                 />
                                 {searchQuery && (
                                     <button 
+                                        aria-label="Clear search"
                                         onClick={() => setSearchQuery('')}
                                         className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-current p-1"
                                     >
@@ -367,10 +381,13 @@ export default function WaStoreHeader({
 
                             {/* Cart Button */}
                             <button 
+                                aria-label="View cart"
+                                title="View cart"
                                 onClick={() => setIsCartOpen(true)}
                                 className={`relative p-2 ${theme.cartButton} rounded-full transition-colors flex items-center justify-center ${theme.cartWrapper || ''}`}
                             >
-                                <ShoppingCart className="w-6 h-6 stroke-[1.5]" />
+                                <span className="sr-only">View cart</span>
+                                <ShoppingCart aria-hidden="true" className="w-6 h-6 stroke-[1.5]" />
                                 {cartCount > 0 && (
                                     <span className={`absolute -top-1 -right-1 ${theme.cartBadge} text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm`}>
                                         {cartCount}
@@ -402,6 +419,7 @@ export default function WaStoreHeader({
                                         className="w-full bg-gray-50 border border-gray-200 text-black py-3 pl-12 pr-4 rounded-xl outline-none focus:border-black transition-colors"
                                     />
                                     <button 
+                                        aria-label="Close search"
                                         onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
                                         className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black p-1"
                                     >
@@ -510,7 +528,7 @@ export default function WaStoreHeader({
                                     <span className={`font-bold text-lg tracking-tight ${theme.headerLogo}`}>{store.name}</span>
                                 </div>
                                 <div className="flex-1 flex justify-end">
-                                    <button onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${theme.textMuted}`}>
+                                    <button aria-label="Close menu" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${theme.textMuted}`}>
                                         <X className="w-6 h-6" />
                                     </button>
                                 </div>
@@ -646,7 +664,7 @@ export default function WaStoreHeader({
                                 {activePolicy === 'terms' && 'Terms & Conditions'}
                                 {activePolicy === 'return' && 'Return Policy'}
                             </h2>
-                            <button onClick={() => setActivePolicy(null)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                            <button aria-label="Close policy" onClick={() => setActivePolicy(null)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                                 <X className={`w-6 h-6 ${theme.text}`} />
                             </button>
                         </div>

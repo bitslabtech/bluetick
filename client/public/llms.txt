@@ -1,0 +1,11 @@
+# Bluetick
+
+Bluetick is a SaaS platform for WhatsApp marketing, digital stores, and vCards.
+
+## Links
+
+- [Home](https://bluetick.cloud/)
+- [Login](https://bluetick.cloud/login)
+- [Register](https://bluetick.cloud/register)
+- [Privacy Policy](https://bluetick.cloud/privacy)
+- [Terms of Service](https://bluetick.cloud/terms)

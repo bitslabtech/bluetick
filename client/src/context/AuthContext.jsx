@@ -157,11 +157,12 @@ export const AuthProvider = ({ children }) => {
                 }
             }
         } catch (err) {
-            console.error("Failed to fetch user profile:", err);
             if (err.response && (err.response.status === 401 || err.response.status === 404)) {
                 localStorage.removeItem('user');
                 setUser(null);
                 setIsImpersonating(false);
+            } else {
+                console.error("Failed to fetch user profile:", err);
             }
         }
     };
