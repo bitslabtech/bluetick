@@ -28,7 +28,7 @@ router.post('/exchange-token', auth, async (req, res) => {
             return res.status(500).json({ error: 'Server configuration missing for WhatsApp integration' });
         }
 
-        // 1. Exchange 'code' for 'access_token'
+        // 1. Exchange 'code' for 'access_token' (short-lived user token)
         console.log("[WA DEBUG] Step 1: Exchanging code for token via Graph API...");
         console.log("[WA DEBUG] GET https://graph.facebook.com/v22.0/oauth/access_token");
         const tokenResponse = await axios.get('https://graph.facebook.com/v22.0/oauth/access_token', {
@@ -41,12 +41,35 @@ router.post('/exchange-token', auth, async (req, res) => {
         console.log('[WA DEBUG] ✅ Token exchange response status:', tokenResponse.status);
         console.log('[WA DEBUG] Token response data keys:', Object.keys(tokenResponse.data));
 
-        const accessToken = tokenResponse.data.access_token;
-        if (!accessToken) {
+        const shortLivedToken = tokenResponse.data.access_token;
+        if (!shortLivedToken) {
             console.error('[WA DEBUG] ❌ No access_token in response:', JSON.stringify(tokenResponse.data));
             return res.status(400).json({ error: 'Failed to retrieve access token from Meta' });
         }
-        console.log('[WA DEBUG] ✅ Got access_token (length:', accessToken.length, ')');
+        console.log('[WA DEBUG] ✅ Got short-lived token (length:', shortLivedToken.length, ')');
+
+        // 1b. Immediately upgrade to a long-lived token (valid ~60 days)
+        console.log("[WA DEBUG] Step 1b: Upgrading to long-lived token...");
+        let accessToken = shortLivedToken;
+        try {
+            const longLivedRes = await axios.get('https://graph.facebook.com/v22.0/oauth/access_token', {
+                params: {
+                    grant_type: 'fb_exchange_token',
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    fb_exchange_token: shortLivedToken
+                }
+            });
+            if (longLivedRes.data?.access_token) {
+                accessToken = longLivedRes.data.access_token;
+                const expiresIn = longLivedRes.data.expires_in;
+                console.log(`[WA DEBUG] ✅ Got long-lived token (length: ${accessToken.length}, expires_in: ${expiresIn}s ≈ ${Math.round(expiresIn / 86400)} days)`);
+            } else {
+                console.warn('[WA DEBUG] ⚠️ Long-lived token exchange returned no token, using short-lived token as fallback.');
+            }
+        } catch (longLivedErr) {
+            console.error('[WA DEBUG] ⚠️ Failed to get long-lived token, using short-lived as fallback:', longLivedErr.response?.data || longLivedErr.message);
+        }
 
         // 2. Debug the token to extract 'waba_id' (WhatsApp Business Account ID)
         console.log("[WA DEBUG] Step 2: Debugging token to fetch WABA ID...");
@@ -69,9 +92,42 @@ router.post('/exchange-token', auth, async (req, res) => {
         console.log('[WA DEBUG] ✅ Token is valid');
         console.log('[WA DEBUG] granular_scopes:', JSON.stringify(debugData.granular_scopes, null, 2));
 
-        const wabaId = debugData.granular_scopes?.find(s => s.scope === 'whatsapp_business_management')?.target_ids?.[0]
-            || debugData.profile_id;
-        console.log('[WA DEBUG] Extracted wabaId:', wabaId || '(not found)');
+        // 2. Extract WABA ID from granular_scopes
+        let wabaId = debugData.granular_scopes?.find(s => s.scope === 'whatsapp_business_management')?.target_ids?.[0];
+        console.log('[WA DEBUG] wabaId from granular_scopes:', wabaId || '(not found, will try Graph API fallback)');
+
+        // Fallback: if granular_scopes didn't yield a WABA ID, query Graph API directly
+        if (!wabaId) {
+            console.log('[WA DEBUG] Attempting Graph API fallback to fetch WABA ID...');
+            try {
+                // Try fetching the businesses/WABAs the user token has access to
+                const wabaListRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
+                    params: {
+                        fields: 'whatsapp_business_accounts{id,name}',
+                        access_token: accessToken
+                    }
+                });
+                const businesses = wabaListRes.data?.data || [];
+                console.log('[WA DEBUG] businesses from /me/businesses:', JSON.stringify(businesses));
+                // Walk through businesses to find first WABA
+                for (const biz of businesses) {
+                    const accounts = biz.whatsapp_business_accounts?.data;
+                    if (accounts && accounts.length > 0) {
+                        wabaId = accounts[0].id;
+                        console.log('[WA DEBUG] Found WABA ID via /me/businesses:', wabaId);
+                        break;
+                    }
+                }
+            } catch (fbErr) {
+                console.error('[WA DEBUG] /me/businesses fallback failed:', fbErr.response?.data || fbErr.message);
+            }
+        }
+
+        // Last resort: log that we could not determine WABA ID (do NOT use profile_id)
+        if (!wabaId) {
+            console.error('[WA DEBUG] ❌ Could not determine WABA ID from any source. User must enter manually.');
+        }
+        console.log('[WA DEBUG] Final wabaId:', wabaId || '(not found)');
 
         // 3. Save to User Model
         console.log('[WA DEBUG] Step 3: Saving to User model...');
@@ -81,31 +137,109 @@ router.post('/exchange-token', auth, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // 4. Fetch Phone Number details (Tier, Quality Rating)
-        console.log('[WA DEBUG] Step 3: Fetching Phone Numbers for WABA...');
-        try {
-            const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}/phone_numbers`, {
-                params: {
-                    fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
-                    access_token: accessToken
+        // 4. Fetch Phone Number details (Tier, Quality Rating) if we have a valid WABA ID
+        console.log('[WA DEBUG] Step 4: Fetching Phone Numbers for WABA...');
+        if (wabaId) {
+            try {
+                const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}/phone_numbers`, {
+                    params: {
+                        fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
+                        access_token: accessToken
+                    }
+                });
+                if (phoneResponse.data?.data?.length > 0) {
+                    const phoneData = phoneResponse.data.data[0];
+                    console.log('[WA DEBUG] Phone Data fetched:', JSON.stringify(phoneData));
+                    user.metaPhoneNumberId = phoneData.id;
+                    user.metaDisplayPhoneNumber = phoneData.display_phone_number;
+                    user.metaQualityRating = phoneData.quality_rating;
+                    user.metaTier = phoneData.messaging_limit_tier;
+                    user.metaVerifiedName = phoneData.verified_name;
+                    user.metaNameStatus = phoneData.name_status;
+                } else {
+                    console.warn('[WA DEBUG] ⚠️ No phone numbers found under WABA:', wabaId);
                 }
-            });
-            if (phoneResponse.data?.data?.length > 0) {
-                const phoneData = phoneResponse.data.data[0];
-                console.log('[WA DEBUG] Phone Data fetched:', JSON.stringify(phoneData));
-                user.metaPhoneNumberId = phoneData.id;
-                user.metaDisplayPhoneNumber = phoneData.display_phone_number;
-                user.metaQualityRating = phoneData.quality_rating;
-                user.metaTier = phoneData.messaging_limit_tier;
-                user.metaVerifiedName = phoneData.verified_name;
-                user.metaNameStatus = phoneData.name_status;
+            } catch (phoneErr) {
+                console.error('[WA DEBUG] Error fetching phone numbers:', phoneErr.response?.data || phoneErr.message);
             }
-        } catch (phoneErr) {
-            console.error('[WA DEBUG] Error fetching phone numbers:', phoneErr.response?.data || phoneErr.message);
+        } else {
+            console.warn('[WA DEBUG] ⚠️ Skipping phone number fetch — no valid WABA ID found.');
         }
 
-        user.fbAccessToken = accessToken;
+        // 3a. Generate a permanent System User Token (never expires)
+        // We need the Business Manager ID to create the system user under it
+        console.log('[WA DEBUG] Step 3a: Generating permanent System User Token...');
+        let permanentToken = null;
+        try {
+            // Get the Business Manager ID from /me/businesses
+            const bizRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
+                params: { access_token: accessToken }
+            });
+            const businessId = bizRes.data?.data?.[0]?.id;
+            console.log('[WA DEBUG] Business Manager ID:', businessId || '(not found)');
+
+            if (businessId) {
+                // Create (or re-use existing) System User under this business
+                const sysUserRes = await axios.post(
+                    `https://graph.facebook.com/v22.0/${businessId}/system_users`,
+                    null,
+                    {
+                        params: {
+                            name: 'Bluetick_API_SysUser',
+                            role: 'ADMIN',
+                            access_token: accessToken
+                        }
+                    }
+                );
+                const systemUserId = sysUserRes.data?.id;
+                console.log('[WA DEBUG] System User ID:', systemUserId || '(not created)');
+
+                if (systemUserId) {
+                    // Generate a never-expiring token for this system user
+                    const sysTokenRes = await axios.post(
+                        `https://graph.facebook.com/v22.0/${systemUserId}/access_tokens`,
+                        null,
+                        {
+                            params: {
+                                business_app: clientId,
+                                appsecret_proof: require('crypto')
+                                    .createHmac('sha256', clientSecret)
+                                    .update(accessToken)
+                                    .digest('hex'),
+                                scope: 'whatsapp_business_messaging,whatsapp_business_management,business_management',
+                                access_token: accessToken
+                            }
+                        }
+                    );
+                    permanentToken = sysTokenRes.data?.access_token;
+                    if (permanentToken) {
+                        console.log('[WA DEBUG] ✅ Got permanent System User Token (never expires), length:', permanentToken.length);
+                    } else {
+                        console.warn('[WA DEBUG] ⚠️ System User token request returned no token:', JSON.stringify(sysTokenRes.data));
+                    }
+                }
+            }
+        } catch (sysErr) {
+            console.error('[WA DEBUG] ⚠️ System User token generation failed — will fall back to long-lived token:', sysErr.response?.data || sysErr.message);
+        }
+
+        // Use permanent token if we got one, otherwise keep the long-lived token
+        const finalToken = permanentToken || accessToken;
+        console.log('[WA DEBUG] Using', permanentToken ? '✅ PERMANENT System User Token' : '⚠️ Long-lived User Token (60 days)');
+
+        user.fbAccessToken = finalToken;
         if (wabaId) user.wabaId = wabaId;
+        // Also persist the Business Manager ID we fetched during System User token generation
+        if (!user.metaBusinessId) {
+            // businessId may be in scope from Step 3a — re-fetch if needed
+            try {
+                const bizLookup = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
+                    params: { access_token: finalToken }
+                });
+                const foundBizId = bizLookup.data?.data?.[0]?.id;
+                if (foundBizId) user.metaBusinessId = foundBizId;
+            } catch (_) { /* non-critical */ }
+        }
         await user.save();
         console.log('[WA DEBUG] ✅ User saved. wabaId:', user.wabaId);
         console.log('[WA DEBUG] ========== /exchange-token SUCCESS ==========');
@@ -114,8 +248,8 @@ router.post('/exchange-token', auth, async (req, res) => {
             message: 'WhatsApp Business connected successfully',
             wabaId: user.wabaId,
             user: {
-                fbAccessToken: user.fbAccessToken,
                 wabaId: user.wabaId,
+                metaBusinessId: user.metaBusinessId,
                 metaPhoneNumberId: user.metaPhoneNumberId,
                 metaDisplayPhoneNumber: user.metaDisplayPhoneNumber,
                 metaQualityRating: user.metaQualityRating,

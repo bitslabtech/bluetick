@@ -780,26 +780,35 @@ const Settings = () => {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, { code });
             console.log('[FB DEBUG Settings] ✅ Exchange token response:', res.data);
 
+            const returnedUser = res.data.user || {};
+
             // If wiping manual configuration, let's clear the settings on the backend
             if (wipeManual) {
                 console.log('[FB DEBUG Settings] Wiping manual keys on backend...');
                 await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, {
                     ...formData,
                     metaAccessToken: '',
-                    metaPhoneNumberId: '',
-                    metaBusinessAccountId: res.data.wabaId || ''
+                    metaPhoneNumberId: returnedUser.metaPhoneNumberId || '',
+                    metaBusinessAccountId: res.data.wabaId || returnedUser.wabaId || ''
                 });
                 console.log('[FB DEBUG Settings] ✅ Manual keys wiped');
             }
 
             showToast({ type: 'success', title: 'WhatsApp Connected', message: res.data.message });
 
-            // Update local UI state
+            // Update local UI state with ALL returned fields from the server
             setFormData(prev => ({
                 ...prev,
-                ...(wipeManual && { metaAccessToken: '', metaPhoneNumberId: '' }),
-                ...(res.data.wabaId && { metaBusinessAccountId: res.data.wabaId })
+                // Clear manual token if overwriting
+                ...(wipeManual && { metaAccessToken: '' }),
+                // Apply WABA ID (Business Account ID)
+                ...(res.data.wabaId && { metaBusinessAccountId: res.data.wabaId }),
+                // Apply Phone Number ID auto-fetched by backend
+                ...(returnedUser.metaPhoneNumberId && { metaPhoneNumberId: returnedUser.metaPhoneNumberId }),
             }));
+
+            // Refresh AuthContext so the user object (wabaId, metaPhoneNumberId etc.) is current
+            await fetchUser();
         } catch (error) {
             console.error('[FB DEBUG Settings] ❌ Exchange token FAILED:', error?.response?.status, error?.response?.data || error.message);
             const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Failed to connect WhatsApp account.';
