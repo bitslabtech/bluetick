@@ -715,11 +715,11 @@ const Settings = () => {
             config_id: import.meta.env.VITE_FB_CONFIG_ID,
             response_type: 'code',
             override_default_response_type: true,
-            extras: { 
-                feature: 'whatsapp_embedded_signup',
+            extras: {
+                setup: {},
+                featureType: '',
                 sessionInfoVersion: '3'
-            },
-            scope: 'whatsapp_business_management,whatsapp_business_messaging'
+            }
         };
         console.log('[FB DEBUG Settings] Calling FB.login() with options:', JSON.stringify(loginOptions, null, 2));
         console.log('[FB DEBUG Settings] Current page URL:', window.location.href);
@@ -790,8 +790,8 @@ const Settings = () => {
                 setFbLoading(false);
                 showModal({
                     type: 'error',
-                    title: 'Facebook App Configuration Error',
-                    message: `The Facebook login popup opened but closed without completing. This is a Facebook App configuration issue.\n\nPlease verify in developers.facebook.com:\n\n1. App ID: ${import.meta.env.VITE_FB_APP_ID} is correct\n2. Config ID: ${import.meta.env.VITE_FB_CONFIG_ID} is valid\n3. App is in "Live" mode (not Development)\n4. "Facebook Login for Business" product is added\n5. OAuth Redirect URI includes: ${window.location.origin}\n6. WhatsApp > Embedded Signup configuration is complete`,
+                    title: 'Facebook Login Interrupted',
+                    message: 'The Facebook login popup opened but closed without completing. Please ensure you have allowed popups, completed the setup flow, and that your Facebook account is eligible. If this issue persists, please contact support.',
                     confirmText: 'OK'
                 });
             }
