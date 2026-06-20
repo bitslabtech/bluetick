@@ -212,15 +212,14 @@ router.post('/exchange-token', auth, async (req, res) => {
         }
 
         // 3a. Generate a permanent System User Token (never expires)
-        // We need the Business Manager ID to create the system user under it
         console.log('[WA DEBUG] Step 3a: Generating permanent System User Token...');
         let permanentToken = null;
+        let businessId = null; // capture here so we can reuse below
         try {
-            // Get the Business Manager ID from /me/businesses
             const bizRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
                 params: { access_token: accessToken }
             });
-            const businessId = bizRes.data?.data?.[0]?.id;
+            businessId = bizRes.data?.data?.[0]?.id;
             console.log('[WA DEBUG] Business Manager ID:', businessId || '(not found)');
 
             if (businessId) {
@@ -270,23 +269,15 @@ router.post('/exchange-token', auth, async (req, res) => {
 
         // Use permanent token if we got one, otherwise keep the long-lived token
         const finalToken = permanentToken || accessToken;
-        console.log('[WA DEBUG] Using', permanentToken ? '✅ PERMANENT System User Token' : '⚠️ Long-lived User Token (60 days)');
+        const tokenType = permanentToken ? 'PERMANENT (never expires)' : 'LONG-LIVED (~60 days)';
+        console.log(`[WA DEBUG] ✅ finalToken type: ${tokenType}, length: ${finalToken.length}`);
 
+        // Save all fields to User model
         user.fbAccessToken = finalToken;
-        if (wabaId) user.wabaId = wabaId;
-        // Also persist the Business Manager ID we fetched during System User token generation
-        if (!user.metaBusinessId) {
-            // businessId may be in scope from Step 3a — re-fetch if needed
-            try {
-                const bizLookup = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
-                    params: { access_token: finalToken }
-                });
-                const foundBizId = bizLookup.data?.data?.[0]?.id;
-                if (foundBizId) user.metaBusinessId = foundBizId;
-            } catch (_) { /* non-critical */ }
-        }
+        user.wabaId = wabaId || user.wabaId || null;       // keep existing if we couldn't get a new one
+        user.metaBusinessId = businessId || user.metaBusinessId || null; // reuse from step 3a
         await user.save();
-        console.log('[WA DEBUG] ✅ User saved. wabaId:', user.wabaId, '| metaPhoneNumberId:', user.metaPhoneNumberId);
+        console.log('[WA DEBUG] ✅ User saved → wabaId:', user.wabaId, '| metaPhoneNumberId:', user.metaPhoneNumberId, '| metaBusinessId:', user.metaBusinessId);
 
         // =====================================================================
         // CRITICAL: Sync the final token + phone number ID into the Settings table
@@ -300,11 +291,13 @@ router.post('/exchange-token', auth, async (req, res) => {
             if (!settings) {
                 settings = await Settings.create({ userId: user.id });
             }
+            // Always set the token
             settings.metaAccessToken = finalToken;
-            if (user.metaPhoneNumberId) settings.metaPhoneNumberId = user.metaPhoneNumberId;
-            if (wabaId) settings.metaBusinessAccountId = wabaId;
+            // Always clear stale phone/waba fields first — prevents old email-as-ID from persisting
+            settings.metaPhoneNumberId = user.metaPhoneNumberId || '';
+            settings.metaBusinessAccountId = wabaId || settings.metaBusinessAccountId || '';
             await settings.save();
-            console.log('[WA DEBUG] ✅ Settings table synced → metaAccessToken set, metaPhoneNumberId:', settings.metaPhoneNumberId, ', wabaId:', settings.metaBusinessAccountId);
+            console.log('[WA DEBUG] ✅ Settings table synced → token set, metaPhoneNumberId:', settings.metaPhoneNumberId, ', wabaId:', settings.metaBusinessAccountId);
         } catch (syncErr) {
             console.error('[WA DEBUG] ⚠️ Failed to sync token to Settings table:', syncErr.message);
         }
@@ -421,7 +414,6 @@ router.get('/status', auth, async (req, res) => {
         res.json({
             message: 'Status refreshed successfully',
             user: {
-                fbAccessToken: user.fbAccessToken,
                 wabaId: user.wabaId,
                 metaPhoneNumberId: user.metaPhoneNumberId,
                 metaDisplayPhoneNumber: user.metaDisplayPhoneNumber,
@@ -447,6 +439,7 @@ router.delete('/disconnect', auth, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        // Clear User model fields
         user.fbAccessToken = null;
         user.wabaId = null;
         user.metaPhoneNumberId = null;
@@ -455,7 +448,23 @@ router.delete('/disconnect', auth, async (req, res) => {
         user.metaTier = null;
         user.metaVerifiedName = null;
         user.metaNameStatus = null;
+        user.metaBusinessId = null;
         await user.save();
+
+        // Also clear the Settings table — this is what the messaging system actually reads
+        try {
+            const Settings = require('../models/Settings');
+            const settings = await Settings.findOne({ where: { userId: req.user.id } });
+            if (settings) {
+                settings.metaAccessToken = '';
+                settings.metaPhoneNumberId = '';
+                settings.metaBusinessAccountId = '';
+                await settings.save();
+                console.log('[WA DISCONNECT] ✅ Settings table cleared');
+            }
+        } catch (settingsErr) {
+            console.error('[WA DISCONNECT] Failed to clear Settings table:', settingsErr.message);
+        }
 
         res.json({ message: 'WhatsApp disconnected successfully' });
     } catch (error) {

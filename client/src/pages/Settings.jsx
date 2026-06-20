@@ -827,8 +827,9 @@ const Settings = () => {
                 ...(returnedUser.metaPhoneNumberId && { metaPhoneNumberId: returnedUser.metaPhoneNumberId }),
             }));
 
-            // Refresh AuthContext so the user object (wabaId, metaPhoneNumberId etc.) is current
+            // Refresh AuthContext (User model) AND Settings (which the UI renders from)
             await fetchUser();
+            await fetchSettings();
         } catch (error) {
             console.error('[FB DEBUG Settings] ❌ Exchange token FAILED:', error?.response?.status, error?.response?.data || error.message);
             const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Failed to connect WhatsApp account.';

@@ -8,15 +8,15 @@ const Settings = sequelize.define('Settings', {
         primaryKey: true
     },
     metaPhoneNumberId: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(500),
         defaultValue: ''
     },
     metaAccessToken: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(2048), // Permanent System User tokens can be 400-600+ chars; 2048 matches User.fbAccessToken
         defaultValue: ''
     },
     metaBusinessAccountId: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(500),
         defaultValue: ''
     },
     webhookVerifyToken: {
