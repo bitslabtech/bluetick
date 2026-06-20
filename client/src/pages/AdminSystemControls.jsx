@@ -1052,8 +1052,8 @@ const SortableMenuItem = ({ id, label }) => {
 const MenuOrderPanel = ({ config, onSave }) => {
     // List of base items that can be reordered (matches the new Sidebar nav structure)
     const baseMenuLabels = [
-        'Dashboard', 'WhatsApp', 'Growth & Marketing',
-        'Automation', 'Refer & Earn', 'Add-ons Market', 'Integrations & API', 'Reports',
+        'Dashboard', 'WhatsApp', 'Growth Hub',
+        'Automation', 'Digital veCard', 'Online Store', 'Refer & Earn', 'Add-ons Market', 'Integrations & API', 'Reports',
         'Support', 'Settings'
     ];
 

@@ -27,7 +27,7 @@ const StorePage = () => {
 
     const fetchStoreItems = async () => {
         try {
-            const res = await axios.get('/api/store', { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.get(`${API}/api/store`, { withCredentials: true });
             console.log("Store Items fetch success:", res.data);
             if (Array.isArray(res.data)) {
                 setStoreItems(res.data);

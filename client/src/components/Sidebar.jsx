@@ -350,7 +350,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         return (
             <aside className={cn(
                 "flex flex-col border-r border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark p-4 transition-all duration-300",
-                "fixed inset-y-0 left-0 z-[60] w-72 transform overflow-y-auto",
+                "fixed inset-y-0 left-0 z-[60] w-64 transform overflow-y-auto",
                 isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
                 "md:translate-x-0 md:sticky md:top-0 md:h-screen md:shadow-none"
             )}>
@@ -375,7 +375,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     return (<>
         <aside className={cn(
             "flex flex-col justify-between border-r border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark p-4 transition-all duration-300",
-            "fixed inset-y-0 left-0 z-[60] w-72 transform overflow-y-auto",
+            "fixed inset-y-0 left-0 z-[60] w-64 transform overflow-y-auto",
             isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
             "md:translate-x-0 md:sticky md:top-0 md:h-screen md:shadow-none"
         )}>

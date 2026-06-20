@@ -771,31 +771,6 @@ const Settings = () => {
         };
         window.addEventListener('error', fbErrorListener);
 
-        // Safety timeout — if callback hasn't fired in 20s, show diagnostics
-        window.fbSettingsSafetyTimeout = setTimeout(() => {
-            window.removeEventListener('message', fbMessageListener);
-            window.removeEventListener('error', fbErrorListener);
-            if (!callbackFired) {
-                console.error('[FB DEBUG Settings] ❌ SAFETY TIMEOUT — FB.login callback never fired after 20s');
-                console.log('[FB DEBUG Settings] ======= DIAGNOSIS =======');
-                console.log('[FB DEBUG Settings] The popup opened but Facebook rejected the request.');
-                console.log('[FB DEBUG Settings] Most likely causes:');
-                console.log('[FB DEBUG Settings]   1. config_id (' + import.meta.env.VITE_FB_CONFIG_ID + ') is invalid or does not exist');
-                console.log('[FB DEBUG Settings]   2. The FB App (ID: ' + import.meta.env.VITE_FB_APP_ID + ') is in Development mode — switch to Live');
-                console.log('[FB DEBUG Settings]   3. "Facebook Login for Business" product is not added to the app');
-                console.log('[FB DEBUG Settings]   4. Valid OAuth Redirect URIs do not include: ' + window.location.origin);
-                console.log('[FB DEBUG Settings]   5. The WhatsApp Embedded Signup configuration is incomplete');
-                console.log('[FB DEBUG Settings]   6. The app does not have "whatsapp_business_management" permission approved');
-                console.log('[FB DEBUG Settings] ===========================');
-                setFbLoading(false);
-                showModal({
-                    type: 'error',
-                    title: 'Facebook Login Interrupted',
-                    message: 'The Facebook login popup opened but closed without completing. Please ensure you have allowed popups, completed the setup flow, and that your Facebook account is eligible. If this issue persists, please contact support.',
-                    confirmText: 'OK'
-                });
-            }
-        }, 20000);
     };
 
     const exchangeFbCode = async (code, wipeManual) => {
@@ -1701,20 +1676,30 @@ const Settings = () => {
                                                                 {fbLoading ? 'Disconnecting...' : 'Disconnect'}
                                                             </button>
                                                         ) : (
-                                                            <button
-                                                                onClick={handleFacebookLogin}
-                                                                disabled={fbLoading}
-                                                                className="px-4 md:px-8 py-4 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 w-full md:w-auto text-lg disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-1"
-                                                            >
-                                                                {fbLoading ? (
-                                                                    <div className="w-6 h-6 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
-                                                                ) : (
-                                                                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                                                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                                                                    </svg>
+                                                            <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                                                                {fbLoading && (
+                                                                    <button 
+                                                                        onClick={() => setFbLoading(false)} 
+                                                                        className="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline underline-offset-2 transition-colors order-2 sm:order-1"
+                                                                    >
+                                                                        Cancel Setup
+                                                                    </button>
                                                                 )}
-                                                                {fbLoading ? 'Connecting...' : 'Connect WhatsApp'}
-                                                            </button>
+                                                                <button
+                                                                    onClick={handleFacebookLogin}
+                                                                    disabled={fbLoading}
+                                                                    className="px-4 md:px-8 py-4 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 w-full md:w-auto text-lg disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-1 order-1 sm:order-2"
+                                                                >
+                                                                    {fbLoading ? (
+                                                                        <div className="w-6 h-6 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                                                                    ) : (
+                                                                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                                                                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                                                                        </svg>
+                                                                    )}
+                                                                    {fbLoading ? 'Connecting...' : 'Connect WhatsApp'}
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -2929,14 +2914,14 @@ const Settings = () => {
             </main>
 
             {/* Sticky Bottom Save Button */}
-            <div className="sticky bottom-0 left-0 right-0 p-4 md:p-6 bg-white/90 dark:bg-background-dark/90 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 z-40 flex justify-center md:justify-end shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] dark:shadow-none transition-all mt-auto w-full">
+            <div className="sticky bottom-0 left-0 right-0 py-3 px-4 md:px-6 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-white/10 z-40 flex justify-center md:justify-end shadow-sm transition-all mt-auto w-full">
                 <button
                     onClick={handleSubmit}
                     disabled={saving}
-                    className="w-full sm:w-auto min-w-[200px] px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl shadow-xl shadow-indigo-500/30 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
+                    className="w-full sm:w-auto min-w-[160px] px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-lg shadow-sm hover:shadow shadow-indigo-500/20 transition-all text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
                 >
-                    {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                    {saving ? 'Saving Changes...' : 'Save Settings'}
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {saving ? 'Saving...' : 'Save Settings'}
                 </button>
             </div>
         </div>

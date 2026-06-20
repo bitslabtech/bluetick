@@ -342,31 +342,6 @@ const Dashboard = () => {
         };
         window.addEventListener('error', fbErrorListener);
 
-        // Safety timeout — if callback hasn't fired in 20s, show diagnostics
-        window.fbSafetyTimeout = setTimeout(() => {
-            window.removeEventListener('message', fbMessageListener);
-            window.removeEventListener('error', fbErrorListener);
-            if (!callbackFired) {
-                console.error('[FB DEBUG] ❌ SAFETY TIMEOUT — FB.login callback never fired after 20s');
-                console.log('[FB DEBUG] ======= DIAGNOSIS =======');
-                console.log('[FB DEBUG] The popup opened but Facebook rejected the request.');
-                console.log('[FB DEBUG] Most likely causes:');
-                console.log('[FB DEBUG]   1. config_id (' + import.meta.env.VITE_FB_CONFIG_ID + ') is invalid or does not exist');
-                console.log('[FB DEBUG]   2. The FB App (ID: ' + import.meta.env.VITE_FB_APP_ID + ') is in Development mode — switch to Live');
-                console.log('[FB DEBUG]   3. "Facebook Login for Business" product is not added to the app');
-                console.log('[FB DEBUG]   4. Valid OAuth Redirect URIs do not include: ' + window.location.origin);
-                console.log('[FB DEBUG]   5. The WhatsApp Embedded Signup configuration is incomplete');
-                console.log('[FB DEBUG]   6. The app does not have "whatsapp_business_management" permission approved');
-                console.log('[FB DEBUG] ===========================');
-                setFbLoading(false);
-                showModal({
-                    type: 'error',
-                    title: 'Facebook Login Interrupted',
-                    message: 'The Facebook login popup opened but closed without completing. Please ensure you have allowed popups, completed the setup flow, and that your Facebook account is eligible. If this issue persists, please contact support.',
-                    confirmText: 'OK'
-                });
-            }
-        }, 20000);
         console.log('[FB DEBUG] ========== handleFacebookLogin() END ==========');
     };
 
@@ -471,7 +446,15 @@ const Dashboard = () => {
                                             Quickly connect your number to start messaging.
                                         </p>
                                     </div>
-                                    <div className="px-5 py-3 md:py-0 md:pl-0 border-t md:border-t-0 border-indigo-100 dark:border-indigo-500/30 w-full md:w-auto flex justify-end">
+                                    <div className="px-5 py-3 md:py-0 md:pl-0 border-t md:border-t-0 border-indigo-100 dark:border-indigo-500/30 w-full md:w-auto flex flex-col md:flex-row items-center justify-end gap-3">
+                                        {fbLoading && (
+                                            <button 
+                                                onClick={() => setFbLoading(false)} 
+                                                className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline underline-offset-2 transition-colors"
+                                            >
+                                                Cancel Setup
+                                            </button>
+                                        )}
                                         <button
                                             onClick={handleFacebookLogin}
                                             disabled={fbLoading}
@@ -509,7 +492,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
                         {/* Stat 1: Messages Sent / Plan Limit */}
                         <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
                             <div className="flex items-start justify-between mb-4">
