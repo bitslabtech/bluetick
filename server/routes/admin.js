@@ -310,6 +310,9 @@ router.delete('/users/:id', async (req, res) => {
         if (user.id === req.user.id) {
             return res.status(400).json({ error: 'Cannot delete yourself' });
         }
+        const Settings = require('../models/Settings');
+        // Clean up Settings row first (no FK cascade exists for Settings)
+        await Settings.destroy({ where: { userId: user.id } }).catch(() => {});
         await user.destroy();
         await logActivity(req, 'Delete User', `Admin deleted user ${user.email} (ID: ${user.id})`);
         res.json({ message: 'User deleted' });
@@ -996,6 +999,64 @@ router.post('/migrate/webp', async (req, res) => {
 
     } catch (err) {
         console.error('[WebP Migration] Fatal error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/admin/fix-whatsapp-data
+// One-shot cleanup: finds users where metaPhoneNumberId contains '@' (email saved by mistake)
+// and wipes ALL stale WhatsApp fields from both Users and Settings tables.
+router.post('/fix-whatsapp-data', async (req, res) => {
+    const Settings = require('../models/Settings');
+    const isEmailLike = (val) => typeof val === 'string' && val.includes('@');
+    const isEmpty = (val) => !val || String(val).trim() === '';
+
+    const report = { usersFixed: [], settingsFixed: [] };
+
+    try {
+        // ── Users table ──
+        const allUsers = await User.findAll();
+        for (const user of allUsers) {
+            const badPhone = isEmailLike(user.metaPhoneNumberId);
+            const badWaba  = isEmailLike(user.wabaId);
+            if (badPhone || badWaba) {
+                const before = { metaPhoneNumberId: user.metaPhoneNumberId, wabaId: user.wabaId };
+                user.metaPhoneNumberId      = null;
+                user.metaDisplayPhoneNumber = null;
+                user.metaQualityRating      = null;
+                user.metaTier               = null;
+                user.metaVerifiedName       = null;
+                user.metaNameStatus         = null;
+                if (badWaba) user.wabaId    = null;
+                await user.save();
+                report.usersFixed.push({ userId: user.id, email: user.email, before });
+            }
+        }
+
+        // ── Settings table ──
+        const allSettings = await Settings.findAll();
+        for (const s of allSettings) {
+            const badPhone = isEmailLike(s.metaPhoneNumberId);
+            const badWaba  = isEmailLike(s.metaBusinessAccountId);
+            const badToken = isEmailLike(s.metaAccessToken);
+            if (badPhone || badWaba || badToken) {
+                const before = { metaPhoneNumberId: s.metaPhoneNumberId, metaBusinessAccountId: s.metaBusinessAccountId };
+                if (badPhone) s.metaPhoneNumberId     = '';
+                if (badWaba)  s.metaBusinessAccountId = '';
+                if (badToken) s.metaAccessToken       = '';
+                await s.save();
+                report.settingsFixed.push({ userId: s.userId, before });
+            }
+        }
+
+        console.log('[ADMIN FIX-WA] Done:', JSON.stringify(report));
+        res.json({
+            success: true,
+            message: `Fixed ${report.usersFixed.length} user(s) and ${report.settingsFixed.length} settings row(s). Affected users must reconnect WhatsApp.`,
+            report
+        });
+    } catch (err) {
+        console.error('[ADMIN FIX-WA] Error:', err);
         res.status(500).json({ error: err.message });
     }
 });

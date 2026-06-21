@@ -1834,6 +1834,8 @@ const Settings = () => {
                                                             name="metaPhoneNumberId"
                                                             value={formData.metaPhoneNumberId}
                                                             onChange={handleChange}
+                                                            autoComplete="off"
+                                                            data-lpignore="true"
                                                             className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                                             placeholder="e.g. 1045618..."
                                                         />
@@ -1846,6 +1848,8 @@ const Settings = () => {
                                                                 name="metaAccessToken"
                                                                 value={formData.metaAccessToken}
                                                                 onChange={handleChange}
+                                                                autoComplete="new-password"
+                                                                data-lpignore="true"
                                                                 className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl pl-4 pr-12 py-3 text-slate-900 dark:text-white font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                                                 placeholder="Permanent Access Token"
                                                             />
