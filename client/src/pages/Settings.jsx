@@ -19,7 +19,7 @@ import UserDropdown from '../components/UserDropdown';
 import GlobalSearch from '../components/GlobalSearch';
 
 const Settings = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, fetchUser } = useAuth();
     const { showModal, showToast } = useUI();
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
