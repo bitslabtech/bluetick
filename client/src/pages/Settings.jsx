@@ -802,30 +802,16 @@ const Settings = () => {
 
             const returnedUser = res.data.user || {};
 
-            // If wiping manual configuration, let's clear the settings on the backend
-            if (wipeManual) {
-                console.log('[FB DEBUG Settings] Wiping manual keys on backend...');
-                await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, {
-                    ...formData,
-                    metaAccessToken: '',
-                    metaPhoneNumberId: returnedUser.metaPhoneNumberId || '',
-                    metaBusinessAccountId: res.data.wabaId || returnedUser.wabaId || ''
-                });
-                console.log('[FB DEBUG Settings] ✅ Manual keys wiped');
-            }
-
-            showToast({ type: 'success', title: 'WhatsApp Connected', message: res.data.message });
-
             // Update local UI state with ALL returned fields from the server
             setFormData(prev => ({
                 ...prev,
-                // Clear manual token if overwriting
-                ...(wipeManual && { metaAccessToken: '' }),
                 // Apply WABA ID (Business Account ID)
                 ...(res.data.wabaId && { metaBusinessAccountId: res.data.wabaId }),
                 // Apply Phone Number ID auto-fetched by backend
                 ...(returnedUser.metaPhoneNumberId && { metaPhoneNumberId: returnedUser.metaPhoneNumberId }),
             }));
+
+            showToast({ type: 'success', title: 'WhatsApp Connected', message: res.data.message });
 
             // Refresh AuthContext (User model) AND Settings (which the UI renders from)
             await fetchUser();
