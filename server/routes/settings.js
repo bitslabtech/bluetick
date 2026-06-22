@@ -159,8 +159,13 @@ router.get('/', async (req, res) => {
             }
 
             if (settingsModified) {
-                await settings.save();
-                console.log('[Settings GET] ✅ Settings table auto-healed from User model for user:', req.user.id);
+                try {
+                    await settings.save();
+                    console.log('[Settings GET] ✅ Settings table auto-healed from User model for user:', req.user.id);
+                } catch (saveErr) {
+                    console.error('[Settings GET] ⚠️ Auto-heal save failed (likely token length issue):', saveErr.message);
+                    // Continue anyway so the client still gets the in-memory settings
+                }
             }
         }
         

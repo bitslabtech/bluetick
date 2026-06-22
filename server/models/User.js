@@ -141,7 +141,7 @@ const User = sequelize.define('User', {
     },
     // WhatsApp Integration Fields
     fbAccessToken: {
-        type: DataTypes.STRING(2048), // Access tokens can be long
+        type: DataTypes.TEXT, // Access tokens can be long
         allowNull: true
     },
     wabaId: {
@@ -174,7 +174,7 @@ const User = sequelize.define('User', {
     },
     // Meta Ads Integration Fields (CTWA)
     metaAdsToken: {
-        type: DataTypes.STRING(2048),
+        type: DataTypes.TEXT,
         allowNull: true,
         comment: 'Long-lived User Access Token with ads_read permission'
     },

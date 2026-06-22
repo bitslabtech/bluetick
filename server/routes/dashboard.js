@@ -109,7 +109,10 @@ router.get('/stats', async (req, res) => {
 
         // Fetch Settings to check WhatsApp Configuration
         const settings = await Settings.findOne({ where: { userId } });
-        const isWhatsappConfigured = Boolean(settings && settings.metaAccessToken && settings.metaPhoneNumberId);
+        const isWhatsappConfigured = Boolean(
+            (settings && settings.metaAccessToken && settings.metaPhoneNumberId) ||
+            (user.fbAccessToken && user.metaPhoneNumberId)
+        );
 
         // Check if any bots are active (AI Bot or Flows)
         const Flow = require('../models/Flow');

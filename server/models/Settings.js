@@ -12,7 +12,7 @@ const Settings = sequelize.define('Settings', {
         defaultValue: ''
     },
     metaAccessToken: {
-        type: DataTypes.STRING(2048), // Permanent System User tokens can be 400-600+ chars; 2048 matches User.fbAccessToken
+        type: DataTypes.TEXT, // Permanent System User tokens can be 400-600+ chars; TEXT avoids DB limits
         defaultValue: ''
     },
     metaBusinessAccountId: {
