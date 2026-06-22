@@ -149,8 +149,16 @@ const Settings = () => {
         setMetaStatusLoading(true);
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/whatsapp/status`);
-            if (res.data?.success) {
-                setMetaStatus(res.data.data);
+            // The /api/whatsapp/status endpoint returns { message, user: { metaQualityRating, metaTier, ... } }
+            const userData = res.data?.user;
+            if (userData) {
+                setMetaStatus({
+                    qualityRating: userData.metaQualityRating || 'UNKNOWN',
+                    tier: userData.metaTier || 'UNKNOWN',
+                    displayPhoneNumber: userData.metaDisplayPhoneNumber || '',
+                    verifiedName: userData.metaVerifiedName || '',
+                    nameStatus: userData.metaNameStatus || ''
+                });
             }
         } catch (err) {
             console.error('Failed to fetch meta status:', err);
@@ -775,18 +783,19 @@ const Settings = () => {
         try {
             window.FB.login(function (response) {
                 console.log('[FB DEBUG Settings] ✅ FB.login callback FIRED');
-                console.log('[FB DEBUG Settings] response.status =', response?.status);
-                console.log('[FB DEBUG Settings] response.authResponse =', JSON.stringify(response?.authResponse));
+                console.log('[FB DEBUG Settings] FULL response:', JSON.stringify(response));
 
-                if (response.authResponse && response.authResponse.code) {
-                    capturedCode = response.authResponse.code;
-                    console.log('[FB DEBUG Settings] ✅ Got auth code (length:', capturedCode.length, ')');
+                const authRes = response?.authResponse;
+                if (authRes && (authRes.code || authRes.accessToken)) {
+                    // Prefer 'code' (server-side exchange), fallback to 'accessToken' (short-lived)
+                    capturedCode = authRes.code || authRes.accessToken;
+                    console.log('[FB DEBUG Settings] ✅ Got credential (type:', authRes.code ? 'code' : 'accessToken', ', length:', capturedCode.length, ')');
                     // Try immediately — postMessage FINISH may have already set the IDs
                     tryExchange('FB.login-callback');
                 } else {
                     window.removeEventListener('message', fbMessageListener);
                     setFbLoading(false);
-                    console.warn('[FB DEBUG Settings] ⚠️ No auth code in FB.login callback. status:', response?.status);
+                    console.warn('[FB DEBUG Settings] ⚠️ No auth code OR accessToken in FB.login callback. status:', response?.status);
                     if (response.status === 'unknown') {
                         showToast({ type: 'warning', title: 'Popup Blocked?', message: 'The login popup may have been blocked. Please allow popups for this site and try again.' });
                     } else {

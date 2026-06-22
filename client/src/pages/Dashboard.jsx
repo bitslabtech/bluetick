@@ -19,7 +19,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns'; // We need date-fns, if not available I will use native logic or check package.json
 
 const Dashboard = () => {
-    const { user, isImpersonating } = useAuth();
+    const { user, isImpersonating, fetchUser } = useAuth();
     const { showToast, showModal } = useUI();
     const navigate = useNavigate();
 
@@ -236,16 +236,24 @@ const Dashboard = () => {
         fetchChartData();
     }, [dateRange, customStart, customEnd]);
 
-    const exchangeFbCode = async (code) => {
+    const exchangeFbCode = async (code, capturedWabaId = null, capturedPhoneNumberId = null) => {
         console.log('[FB DEBUG] exchangeFbCode() called with code length:', code?.length);
+        console.log('[FB DEBUG] Hint IDs → wabaId:', capturedWabaId, ', phoneNumberId:', capturedPhoneNumberId);
         try {
             console.log('[FB DEBUG] POSTing to /api/whatsapp/exchange-token ...');
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, { code });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, {
+                code,
+                hintWabaId: capturedWabaId,
+                hintPhoneNumberId: capturedPhoneNumberId
+            });
 
             console.log('[FB DEBUG] ✅ Exchange token response:', res.data);
             showToast({ type: 'success', title: 'WhatsApp Connected', message: res.data.message });
 
             setStats(prev => ({ ...prev, isWhatsappConfigured: true }));
+
+            // Refresh AuthContext so Settings page sees the updated User model
+            await fetchUser();
         } catch (error) {
             console.error('[FB DEBUG] ❌ Exchange token FAILED:', error?.response?.status, error?.response?.data || error.message);
             const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Failed to connect WhatsApp account.';
@@ -281,7 +289,63 @@ const Dashboard = () => {
             return;
         }
 
-        // Ensure FB.login is called synchronously immediately on click to prevent popup blockers
+        // Captured IDs from Meta's postMessage (sessionInfoVersion: 3)
+        let capturedWabaId = null;
+        let capturedPhoneNumberId = null;
+        let capturedCode = null;
+        let exchangeAlreadyTriggered = false;
+
+        // Helper: trigger exchange once both code + postMessage have resolved
+        const tryExchange = (source) => {
+            if (exchangeAlreadyTriggered) return;
+            if (!capturedCode) {
+                console.warn(`[FB DEBUG] tryExchange called from "${source}" but capturedCode is still null — waiting.`);
+                return;
+            }
+            exchangeAlreadyTriggered = true;
+            console.log(`[FB DEBUG] ✅ tryExchange triggered from "${source}" — wabaId:`, capturedWabaId, ', phoneNumberId:', capturedPhoneNumberId);
+            window.removeEventListener('message', fbMessageListener);
+            window.removeEventListener('error', fbErrorListener);
+            exchangeFbCode(capturedCode, capturedWabaId, capturedPhoneNumberId);
+        };
+
+        // postMessage listener (MOST RELIABLE for IDs and FINISH signal)
+        const fbMessageListener = (event) => {
+            if (!event.origin || (!event.origin.includes('facebook.com') && !event.origin.includes('fb.com'))) return;
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                console.log('[FB DEBUG] 📩 postMessage from Facebook:', JSON.stringify(data));
+
+                if (data?.type === 'WA_EMBEDDED_SIGNUP') {
+                    if (data.event === 'FINISH') {
+                        capturedPhoneNumberId = data.data?.phone_number_id || null;
+                        capturedWabaId = data.data?.waba_id || null;
+                        console.log('[FB DEBUG] ✅ FINISH postMessage captured → wabaId:', capturedWabaId, ', phoneNumberId:', capturedPhoneNumberId);
+                        setTimeout(() => tryExchange('postMessage-FINISH-timeout'), 800);
+                    } else if (data.event === 'CANCEL') {
+                        console.warn('[FB DEBUG] ⚠️ Embedded signup CANCELLED by user');
+                        window.removeEventListener('message', fbMessageListener);
+                        window.removeEventListener('error', fbErrorListener);
+                        setFbLoading(false);
+                    } else if (data.event === 'ERROR') {
+                        console.error('[FB DEBUG] ❌ Embedded signup ERROR via postMessage:', data);
+                        window.removeEventListener('message', fbMessageListener);
+                        window.removeEventListener('error', fbErrorListener);
+                        setFbLoading(false);
+                    }
+                }
+            } catch (e) {
+                // Not a JSON message or unrelated — ignore
+            }
+        };
+        window.addEventListener('message', fbMessageListener);
+
+        // Global error listener
+        const fbErrorListener = (errorEvent) => {
+            console.error('[FB DEBUG] 🔴 Window error during FB flow:', errorEvent.message);
+        };
+        window.addEventListener('error', fbErrorListener);
+
         const loginOptions = {
             config_id: import.meta.env.VITE_FB_CONFIG_ID,
             response_type: 'code',
@@ -295,21 +359,19 @@ const Dashboard = () => {
         console.log('[FB DEBUG] Calling FB.login() with options:', JSON.stringify(loginOptions, null, 2));
         console.log('[FB DEBUG] Current page URL:', window.location.href);
 
-        let callbackFired = false;
-
         try {
             window.FB.login(function (response) {
-                callbackFired = true;
-                clearTimeout(window.fbSafetyTimeout);
-                window.removeEventListener('message', fbMessageListener);
-                window.removeEventListener('error', fbErrorListener);
                 console.log('[FB DEBUG] ✅ FB.login callback FIRED');
                 console.log('[FB DEBUG] response.status =', response?.status);
 
-                if (response.authResponse && response.authResponse.code) {
-                    console.log('[FB DEBUG] ✅ Got auth code, calling exchangeFbCode()...');
-                    exchangeFbCode(response.authResponse.code);
+                const authRes = response?.authResponse;
+                if (authRes && (authRes.code || authRes.accessToken)) {
+                    capturedCode = authRes.code || authRes.accessToken;
+                    console.log('[FB DEBUG] ✅ Got credential (type:', authRes.code ? 'code' : 'accessToken', ', length:', capturedCode.length, ')');
+                    tryExchange('FB.login-callback');
                 } else {
+                    window.removeEventListener('message', fbMessageListener);
+                    window.removeEventListener('error', fbErrorListener);
                     setFbLoading(false);
                     console.warn('[FB DEBUG] ⚠️ No auth code received.');
                     if (response.status === 'unknown') {
@@ -321,26 +383,14 @@ const Dashboard = () => {
             }, loginOptions);
         } catch (err) {
             console.error('[FB DEBUG] ❌ FB.login() THREW an exception:', err);
+            window.removeEventListener('message', fbMessageListener);
+            window.removeEventListener('error', fbErrorListener);
         }
 
         console.log('[FB DEBUG] FB.login() call returned');
 
         setFbLoading(true);
         showToast({ type: 'info', title: 'Connecting...', message: 'Opening WhatsApp Setup. Please allow popups if blocked.' });
-
-        // --- DEEP DEBUG: Listen for cross-origin messages from Facebook popup ---
-        const fbMessageListener = (event) => {
-            if (event.origin && (event.origin.includes('facebook.com') || event.origin.includes('fb.com'))) {
-                console.log('[FB DEBUG] 📩 postMessage from Facebook:', event.origin);
-            }
-        };
-        window.addEventListener('message', fbMessageListener);
-
-        // --- DEEP DEBUG: Listen for global errors during the popup flow ---
-        const fbErrorListener = (errorEvent) => {
-            console.error('[FB DEBUG] 🔴 Window error during FB flow:', errorEvent.message);
-        };
-        window.addEventListener('error', fbErrorListener);
 
         console.log('[FB DEBUG] ========== handleFacebookLogin() END ==========');
     };

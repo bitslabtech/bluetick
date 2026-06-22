@@ -129,6 +129,40 @@ router.get('/', async (req, res) => {
         if (!settings) {
             settings = await Settings.create({ userId: req.user.id });
         }
+
+        // ── Auto-heal: If Settings is missing WhatsApp creds but User has them ──
+        // This handles the case where exchange-token saved to User model successfully
+        // but the Settings table was blanked out (e.g. by old wipeManual code or a bug).
+        const user = await User.findByPk(req.user.id);
+        let settingsModified = false;
+
+        if (user) {
+            // Sync metaPhoneNumberId: User.metaPhoneNumberId → Settings.metaPhoneNumberId
+            if (user.metaPhoneNumberId && !settings.metaPhoneNumberId) {
+                settings.metaPhoneNumberId = user.metaPhoneNumberId;
+                settingsModified = true;
+                console.log('[Settings GET] Auto-healed metaPhoneNumberId from User model:', user.metaPhoneNumberId);
+            }
+
+            // Sync metaBusinessAccountId: User.wabaId → Settings.metaBusinessAccountId
+            if (user.wabaId && !settings.metaBusinessAccountId) {
+                settings.metaBusinessAccountId = user.wabaId;
+                settingsModified = true;
+                console.log('[Settings GET] Auto-healed metaBusinessAccountId from User model:', user.wabaId);
+            }
+
+            // Sync metaAccessToken: User.fbAccessToken → Settings.metaAccessToken
+            if (user.fbAccessToken && !settings.metaAccessToken) {
+                settings.metaAccessToken = user.fbAccessToken;
+                settingsModified = true;
+                console.log('[Settings GET] Auto-healed metaAccessToken from User model (length:', user.fbAccessToken.length, ')');
+            }
+
+            if (settingsModified) {
+                await settings.save();
+                console.log('[Settings GET] ✅ Settings table auto-healed from User model for user:', req.user.id);
+            }
+        }
         
         let jsonRes = maskSettingsForClient(settings);
         

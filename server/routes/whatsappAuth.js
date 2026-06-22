@@ -31,23 +31,33 @@ router.post('/exchange-token', auth, async (req, res) => {
             return res.status(500).json({ error: 'Server configuration missing for WhatsApp integration' });
         }
 
-        // 1. Exchange 'code' for 'access_token' (short-lived user token)
-        console.log("[WA DEBUG] Step 1: Exchanging code for token via Graph API...");
-        console.log("[WA DEBUG] GET https://graph.facebook.com/v22.0/oauth/access_token");
-        const tokenResponse = await axios.get('https://graph.facebook.com/v22.0/oauth/access_token', {
-            params: {
-                client_id: clientId,
-                client_secret: clientSecret,
-                code: code
-            }
-        });
-        console.log('[WA DEBUG] ✅ Token exchange response status:', tokenResponse.status);
-        console.log('[WA DEBUG] Token response data keys:', Object.keys(tokenResponse.data));
+        // Detect if we received an OAuth code (starts with 'AQ') or a direct access token (starts with 'EA')
+        const isDirectToken = code.startsWith('EA');
+        let shortLivedToken;
 
-        const shortLivedToken = tokenResponse.data.access_token;
-        if (!shortLivedToken) {
-            console.error('[WA DEBUG] ❌ No access_token in response:', JSON.stringify(tokenResponse.data));
-            return res.status(400).json({ error: 'Failed to retrieve access token from Meta' });
+        if (isDirectToken) {
+            // Frontend sent accessToken directly (FB.login fallback mode)
+            console.log('[WA DEBUG] Step 1: Received DIRECT access token (starts with EA), skipping code exchange');
+            shortLivedToken = code;
+        } else {
+            // Standard OAuth flow: exchange 'code' for 'access_token'
+            console.log("[WA DEBUG] Step 1: Exchanging code for token via Graph API...");
+            console.log("[WA DEBUG] GET https://graph.facebook.com/v22.0/oauth/access_token");
+            const tokenResponse = await axios.get('https://graph.facebook.com/v22.0/oauth/access_token', {
+                params: {
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    code: code
+                }
+            });
+            console.log('[WA DEBUG] ✅ Token exchange response status:', tokenResponse.status);
+            console.log('[WA DEBUG] Token response data keys:', Object.keys(tokenResponse.data));
+
+            shortLivedToken = tokenResponse.data.access_token;
+            if (!shortLivedToken) {
+                console.error('[WA DEBUG] ❌ No access_token in response:', JSON.stringify(tokenResponse.data));
+                return res.status(400).json({ error: 'Failed to retrieve access token from Meta' });
+            }
         }
         console.log('[WA DEBUG] ✅ Got short-lived token (length:', shortLivedToken.length, ')');
 
