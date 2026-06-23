@@ -354,22 +354,22 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-6 border-y border-slate-100 dark:border-white/5 py-4">
                 <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-white/5">
                     <div className="flex justify-center text-slate-400 mb-1"><CreditCard className="w-4 h-4" /></div>
-                    <div className="font-bold text-slate-900 dark:text-white text-sm">{plan.messageLimit}</div>
+                    <div className="font-bold text-slate-900 dark:text-white text-sm">{plan.messageLimit === -1 ? '∞' : plan.messageLimit}</div>
                     <div className="text-[10px] text-slate-500 uppercase">Msgs</div>
                 </div>
                 <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-white/5">
                     <div className="flex justify-center text-slate-400 mb-1"><Users className="w-4 h-4" /></div>
-                    <div className="font-bold text-slate-900 dark:text-white text-sm">{plan.contactLimit}</div>
+                    <div className="font-bold text-slate-900 dark:text-white text-sm">{plan.contactLimit === -1 ? '∞' : plan.contactLimit}</div>
                     <div className="text-[10px] text-slate-500 uppercase">Contacts</div>
                 </div>
                 <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-white/5">
                     <div className="flex justify-center text-slate-400 mb-1"><FileText className="w-4 h-4" /></div>
-                    <div className="font-bold text-slate-900 dark:text-white text-sm">{plan.templateLimit}</div>
+                    <div className="font-bold text-slate-900 dark:text-white text-sm">{plan.templateLimit === -1 ? '∞' : plan.templateLimit}</div>
                     <div className="text-[10px] text-slate-500 uppercase">Templates</div>
                 </div>
                 <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-white/5">
                     <div className="flex justify-center text-slate-400 mb-1"><Users className="w-4 h-4" /></div>
-                    <div className="font-bold text-slate-900 dark:text-white text-sm">{plan.teamMemberLimit || 0}</div>
+                    <div className="font-bold text-slate-900 dark:text-white text-sm">{plan.teamMemberLimit === -1 ? '∞' : (plan.teamMemberLimit || 0)}</div>
                     <div className="text-[10px] text-slate-500 uppercase">Team</div>
                 </div>
             </div>
@@ -499,6 +499,47 @@ const ModernToggle = ({ checked, onChange, name, label, description, icon: Icon,
                 </div>
                 {description && <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">{description}</p>}
             </div>
+        </div>
+    );
+};
+
+// ════════════════════════════════════════════
+//  LIMIT INPUT CARD COMPONENT
+// ════════════════════════════════════════════
+const LimitInputCard = ({ name, value, onChange, label, icon: Icon, colorClass }) => {
+    const isUnlimited = Number(value) === -1;
+    
+    return (
+        <div className="limit-card relative flex flex-col justify-between">
+            <div className="flex justify-between items-center mb-3">
+                <div className={`flex items-center gap-2 ${colorClass}`}>
+                    <Icon className="w-4 h-4" /> <span className="font-bold text-xs uppercase">{label}</span>
+                </div>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        checked={isUnlimited} 
+                        onChange={(e) => onChange({ target: { name, value: e.target.checked ? -1 : 0, type: 'number' } })} 
+                        className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500" 
+                    />
+                    <span className="text-[10px] uppercase font-bold text-slate-500">Unlimited</span>
+                </label>
+            </div>
+            {isUnlimited ? (
+                <div className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-center font-bold text-slate-500 text-sm">
+                    ∞ Unlimited
+                </div>
+            ) : (
+                <input 
+                    type="number" 
+                    name={name} 
+                    value={value} 
+                    onChange={onChange} 
+                    required 
+                    min="0"
+                    className="limit-input w-full" 
+                />
+            )}
         </div>
     );
 };
@@ -764,42 +805,15 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                 <div>
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Usage & Quota Limits</h4>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                                        <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-indigo-500"><MessageSquare className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Messages/mo</span></div>
-                                            <input type="number" name="messageLimit" value={formData.messageLimit} onChange={handleChange} required className="limit-input" />
-                                        </div>
-                                        <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-blue-500"><Users className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Contacts</span></div>
-                                            <input type="number" name="contactLimit" value={formData.contactLimit} onChange={handleChange} required className="limit-input" />
-                                        </div>
-                                        <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-emerald-500"><FileText className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Templates</span></div>
-                                            <input type="number" name="templateLimit" value={formData.templateLimit} onChange={handleChange} required className="limit-input" />
-                                        </div>
-                                        <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-purple-500"><Users className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Team Members</span></div>
-                                            <input type="number" name="teamMemberLimit" value={formData.teamMemberLimit} onChange={handleChange} required className="limit-input" />
-                                        </div>
-                                        <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-amber-500"><Zap className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Quick Replies</span></div>
-                                            <input type="number" name="quickReplyLimit" value={formData.quickReplyLimit} onChange={handleChange} required className="limit-input" />
-                                        </div>
-                                        <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-rose-500"><Layers className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Tags</span></div>
-                                            <input type="number" name="tagLimit" value={formData.tagLimit} onChange={handleChange} required className="limit-input" />
-                                        </div>
-                                        <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-teal-500"><Users className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Groups</span></div>
-                                            <input type="number" name="groupLimit" value={formData.groupLimit} onChange={handleChange} required className="limit-input" />
-                                        </div>
-                                        <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-cyan-500"><CreditCard className="w-4 h-4" /> <span className="font-bold text-xs uppercase">VeCards</span></div>
-                                            <input type="number" name="vcardLimit" value={formData.vcardLimit} onChange={handleChange} required className="limit-input" />
-                                        </div>
-                                        <div className="limit-card">
-                                            <div className="flex items-center gap-2 mb-3 text-orange-500"><Store className="w-4 h-4" /> <span className="font-bold text-xs uppercase">Online Stores</span></div>
-                                            <input type="number" name="waStoreLimit" value={formData.waStoreLimit} onChange={handleChange} required className="limit-input" />
-                                        </div>
+                                        <LimitInputCard name="messageLimit" value={formData.messageLimit} onChange={handleChange} label="Messages/mo" icon={MessageSquare} colorClass="text-indigo-500" />
+                                        <LimitInputCard name="contactLimit" value={formData.contactLimit} onChange={handleChange} label="Contacts" icon={Users} colorClass="text-blue-500" />
+                                        <LimitInputCard name="templateLimit" value={formData.templateLimit} onChange={handleChange} label="Templates" icon={FileText} colorClass="text-emerald-500" />
+                                        <LimitInputCard name="teamMemberLimit" value={formData.teamMemberLimit} onChange={handleChange} label="Team Members" icon={Users} colorClass="text-purple-500" />
+                                        <LimitInputCard name="quickReplyLimit" value={formData.quickReplyLimit} onChange={handleChange} label="Quick Replies" icon={Zap} colorClass="text-amber-500" />
+                                        <LimitInputCard name="tagLimit" value={formData.tagLimit} onChange={handleChange} label="Tags" icon={Layers} colorClass="text-rose-500" />
+                                        <LimitInputCard name="groupLimit" value={formData.groupLimit} onChange={handleChange} label="Groups" icon={Users} colorClass="text-teal-500" />
+                                        <LimitInputCard name="vcardLimit" value={formData.vcardLimit} onChange={handleChange} label="VeCards" icon={CreditCard} colorClass="text-cyan-500" />
+                                        <LimitInputCard name="waStoreLimit" value={formData.waStoreLimit} onChange={handleChange} label="Online Stores" icon={Store} colorClass="text-orange-500" />
                                     </div>
                                 </div>
                             </div>

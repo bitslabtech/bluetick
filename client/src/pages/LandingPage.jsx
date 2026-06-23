@@ -2444,7 +2444,7 @@ export default function LandingPage() {
                     {/* 11. PRICING */}
                     {plans.length > 0 && (
                         <section id="pricing" className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
-                            <div className="max-w-7xl mx-auto px-4 md:px-6">
+                            <div className="max-w-[100rem] mx-auto px-4 md:px-6">
                                 <div className="text-center mb-12">
                                     <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight">Simple, transparent pricing</h2>
                                     <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg font-medium">Choose the perfect plan to scale your customer engagement seamlessly. No hidden fees.</p>
@@ -2516,7 +2516,7 @@ export default function LandingPage() {
                                 )}
 
                                 {/* Slider Wrapper */}
-                                <div className="relative max-w-6xl mx-auto">
+                                <div className="relative w-full mx-auto">
                                     {/* Sticky Vertical Center Arrows for Mobile */}
                                     {plans.length > 1 && (
                                         <div className="absolute inset-x-0 top-[10%] bottom-[10%] pointer-events-none z-30">
@@ -2620,7 +2620,7 @@ export default function LandingPage() {
 
                                             return (
                                                 <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                                                    className={`relative w-[85vw] sm:w-[340px] shrink-0 snap-center p-8 rounded-[2.5rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
+                                                    className={`relative w-[85vw] sm:w-[340px] lg:w-auto lg:flex-1 lg:min-w-[280px] lg:max-w-[380px] shrink-0 snap-center p-6 lg:p-8 rounded-[2.5rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
                                                 >
                                                     {isPopular && <div className={`absolute top-0 right-1/2 translate-x-1/2 px-4 py-1.5 bg-gradient-to-r from-emerald-400 to-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-emerald-500/20 whitespace-nowrap border-b border-x border-emerald-400/50`}>MOST POPULAR</div>}
                                                     {plan.trialDays > 0 && (
