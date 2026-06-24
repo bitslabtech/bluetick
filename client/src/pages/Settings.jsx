@@ -883,6 +883,23 @@ const Settings = () => {
         });
     };
 
+    const handleRepairSettings = async () => {
+        try {
+            setFbLoading(true);
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/heal-settings`);
+            if (res.data.success) {
+                showToast({ type: 'success', title: 'Connection Repaired', message: res.data.message });
+                await fetchSettings();
+            } else {
+                showModal({ type: 'warning', title: 'Repair Incomplete', message: res.data.message + (res.data.missing ? '\n\nMissing: ' + res.data.missing.join(', ') : ''), confirmText: 'OK' });
+            }
+        } catch (err) {
+            showModal({ type: 'error', title: 'Repair Failed', message: err.response?.data?.error || err.message, confirmText: 'Close' });
+        } finally {
+            setFbLoading(false);
+        }
+    };
+
     if (loading) return <div className="p-4 md:p-8 text-center text-slate-500">Loading settings...</div>;
 
     const emailCategories = [
@@ -1706,18 +1723,29 @@ const Settings = () => {
                                                             </p>
                                                         </div>
                                                         {formData.metaBusinessAccountId ? (
-                                                            <button
-                                                                onClick={handleDisconnect}
-                                                                disabled={fbLoading}
-                                                                className="px-4 md:px-8 py-4 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 font-bold rounded-xl transition-all flex items-center justify-center gap-3 w-full md:w-auto text-lg disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-1 border border-red-200 dark:border-red-500/20"
-                                                            >
-                                                                {fbLoading ? (
-                                                                    <RefreshCw className="w-6 h-6 animate-spin" />
-                                                                ) : (
-                                                                    <Shield className="w-6 h-6" /> // A shield or alert icon fits "disconnecting"
-                                                                )}
-                                                                {fbLoading ? 'Disconnecting...' : 'Disconnect'}
-                                                            </button>
+                                                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                                                                <button
+                                                                    onClick={handleRepairSettings}
+                                                                    disabled={fbLoading}
+                                                                    title="Use this if WhatsApp shows 'Connected' but templates/messaging say 'Not Configured'"
+                                                                    className="px-4 py-3 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-400/10 dark:hover:bg-amber-400/20 dark:text-amber-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2 w-full sm:w-auto border border-amber-200 dark:border-amber-400/20 text-sm"
+                                                                >
+                                                                    {fbLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                                                    Repair Connection
+                                                                </button>
+                                                                <button
+                                                                    onClick={handleDisconnect}
+                                                                    disabled={fbLoading}
+                                                                    className="px-4 md:px-8 py-4 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 font-bold rounded-xl transition-all flex items-center justify-center gap-3 w-full md:w-auto text-lg disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-1 border border-red-200 dark:border-red-500/20"
+                                                                >
+                                                                    {fbLoading ? (
+                                                                        <RefreshCw className="w-6 h-6 animate-spin" />
+                                                                    ) : (
+                                                                        <Shield className="w-6 h-6" />
+                                                                    )}
+                                                                    {fbLoading ? 'Processing...' : 'Disconnect'}
+                                                                </button>
+                                                            </div>
                                                         ) : (
                                                             <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
                                                                 {fbLoading && (

@@ -303,11 +303,17 @@ router.post('/exchange-token', auth, async (req, res) => {
             }
             // Always set the token
             settings.metaAccessToken = finalToken;
-            // Always clear stale phone/waba fields first — prevents old email-as-ID from persisting
-            settings.metaPhoneNumberId = user.metaPhoneNumberId || '';
-            settings.metaBusinessAccountId = wabaId || settings.metaBusinessAccountId || '';
+            // Only overwrite phone number ID if we actually retrieved one —
+            // never write an empty string, which would break all "not configured" guards.
+            if (user.metaPhoneNumberId) {
+                settings.metaPhoneNumberId = user.metaPhoneNumberId;
+            }
+            // Only overwrite WABA ID if we have a fresh value
+            if (wabaId) {
+                settings.metaBusinessAccountId = wabaId;
+            }
             await settings.save();
-            console.log('[WA DEBUG] ✅ Settings table synced → token set, metaPhoneNumberId:', settings.metaPhoneNumberId, ', wabaId:', settings.metaBusinessAccountId);
+            console.log('[WA DEBUG] ✅ Settings table synced → token set, metaPhoneNumberId:', settings.metaPhoneNumberId || '(kept existing)', ', wabaId:', settings.metaBusinessAccountId || '(kept existing)');
         } catch (syncErr) {
             console.error('[WA DEBUG] ⚠️ Failed to sync token to Settings table:', syncErr.message);
         }
@@ -483,4 +489,81 @@ router.delete('/disconnect', auth, async (req, res) => {
     }
 });
 
+
+// POST /api/whatsapp/heal-settings
+// One-shot repair: if a user completed Embedded Signup but their Settings table is missing
+// the phone number ID or access token (due to the old overwrite-with-empty bug), this
+// endpoint re-syncs the User model data into Settings without requiring a full re-connect.
+router.post('/heal-settings', auth, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const Settings = require('../models/Settings');
+        let settings = await Settings.findOne({ where: { userId: user.id } });
+        if (!settings) {
+            settings = await Settings.create({ userId: user.id });
+        }
+
+        let healed = [];
+
+        if (user.fbAccessToken && !settings.metaAccessToken) {
+            settings.metaAccessToken = user.fbAccessToken;
+            healed.push('metaAccessToken');
+        }
+        if (user.metaPhoneNumberId && !settings.metaPhoneNumberId) {
+            settings.metaPhoneNumberId = user.metaPhoneNumberId;
+            healed.push('metaPhoneNumberId');
+        }
+        if (user.wabaId && !settings.metaBusinessAccountId) {
+            settings.metaBusinessAccountId = user.wabaId;
+            healed.push('metaBusinessAccountId');
+        }
+
+        // Also force-sync if Settings has empty string (which also fails the guards)
+        if (user.fbAccessToken && settings.metaAccessToken === '') {
+            settings.metaAccessToken = user.fbAccessToken;
+            healed.push('metaAccessToken (was empty string)');
+        }
+        if (user.metaPhoneNumberId && settings.metaPhoneNumberId === '') {
+            settings.metaPhoneNumberId = user.metaPhoneNumberId;
+            healed.push('metaPhoneNumberId (was empty string)');
+        }
+        if (user.wabaId && settings.metaBusinessAccountId === '') {
+            settings.metaBusinessAccountId = user.wabaId;
+            healed.push('metaBusinessAccountId (was empty string)');
+        }
+
+        if (healed.length > 0) {
+            await settings.save();
+            console.log(`[WA HEAL] ✅ Healed settings for user ${user.id}:`, healed);
+            return res.json({
+                success: true,
+                message: `Settings repaired successfully. Fields synced: ${healed.join(', ')}.`,
+                healed
+            });
+        }
+
+        // Check what's still missing after heal attempt
+        const missing = [];
+        if (!settings.metaAccessToken) missing.push('Access Token (not found in User model either — please reconnect)');
+        if (!settings.metaPhoneNumberId) missing.push('Phone Number ID (not found in User model — please reconnect)');
+        if (!settings.metaBusinessAccountId) missing.push('WABA ID (not found in User model — please reconnect)');
+
+        if (missing.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Could not fully repair — some values are missing from the User model too.',
+                missing
+            });
+        }
+
+        return res.json({ success: true, message: 'Settings already correctly configured. No changes needed.' });
+    } catch (err) {
+        console.error('[WA HEAL] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
+
