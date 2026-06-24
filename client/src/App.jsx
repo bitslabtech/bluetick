@@ -328,7 +328,7 @@ function App() {
                                                     <Route path="list" element={<VcardList />} />
                                                     <Route path="enquiries" element={<VcardEnquiries />} />
                                                     <Route path="bookings" element={<VcardBookings />} />
-                                                    <Route path="media" element={<MediaGallery restrictSource="vcard" />} />
+                                                    <Route path="media" element={<MediaGallery accessMode="restricted" />} />
                                                     <Route path="settings" element={<VcardSettings />} />
                                                 </Route>
                                                 <Route path="/vcards/builder" element={<VcardBuilder />} />
@@ -349,7 +349,7 @@ function App() {
                                                     <Route path="themes" element={<WaStoreThemes />} />
                                                     <Route path="navigation" element={<WaStoreNavigation />} />
                                                     <Route path="policies" element={<WaStorePolicies />} />
-                                                    <Route path="media" element={<MediaGallery restrictSource="wastore" />} />
+                                                    <Route path="media" element={<MediaGallery accessMode="restricted" />} />
                                                     <Route path="settings" element={<WaStoreSettings />} />
                                                 </Route>
                                                 <Route path="/wa-links" element={<WALinksGenerator />} />

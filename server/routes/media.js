@@ -11,7 +11,7 @@ const { Op, fn, col, literal } = require('sequelize');
 router.use(auth);
 
 // Sources that count toward the plan storage quota
-const QUOTA_SOURCES = ['wastore', 'vcard'];
+const QUOTA_SOURCES = ['wastore', 'vcard', 'restricted'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/media/usage — Returns two separate usage stats:
@@ -91,7 +91,13 @@ router.get('/', async (req, res) => {
         const source = req.query.source; // optional filter: 'wastore' | 'vcard' | 'general_media'
 
         const where = { userId: req.user.id };
-        if (source) where.source = source;
+        if (source) {
+            if (source === 'restricted') {
+                where.source = { [Op.in]: QUOTA_SOURCES };
+            } else {
+                where.source = source;
+            }
+        }
 
         const { count, rows } = await MediaFile.findAndCountAll({
             where,
@@ -119,7 +125,7 @@ router.get('/', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/upload', (req, res, next) => {
     const source = req.query.source;
-    const isRestricted = QUOTA_SOURCES.includes(source);
+    const isRestricted = source === 'restricted' || QUOTA_SOURCES.includes(source);
 
     const uploadMiddleware = storageProvider('media-gallery', {
         fileFilter: storageProvider.generalImageFilter,

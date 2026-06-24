@@ -21,7 +21,7 @@ const SOURCE_LABELS = {
     general_media: "Gallery Upload"
 };
 
-export default function MediaGallery({ restrictSource = null }) {
+export default function MediaGallery({ accessMode = 'dashboard' }) {
     const { user } = useAuth();
     const { showToast } = useUI();
     const token = user?.token || localStorage.getItem("token");
@@ -33,7 +33,8 @@ export default function MediaGallery({ restrictSource = null }) {
     const [uploading, setUploading] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
     const [previewFile, setPreviewFile] = useState(null);
-    const [sourceFilter, setSourceFilter] = useState(restrictSource || "");
+    // Determine the source to fetch based on mode
+    const fetchSource = accessMode === 'restricted' ? 'restricted' : 'general_media';
     const [searchTerm, setSearchTerm] = useState("");
     const [viewMode, setViewMode] = useState("grid"); // grid | list
     const [page, setPage] = useState(1);
@@ -54,7 +55,7 @@ export default function MediaGallery({ restrictSource = null }) {
         setLoading(true);
         try {
             const params = new URLSearchParams({ page: p, limit: 50 });
-            if (sourceFilter) params.append("source", sourceFilter);
+            params.append("source", fetchSource);
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/media?${params}`, { headers });
             setFiles(res.data.files || []);
             setTotal(res.data.total || 0);
@@ -65,12 +66,12 @@ export default function MediaGallery({ restrictSource = null }) {
         } finally {
             setLoading(false);
         }
-    }, [token, sourceFilter]);
+    }, [fetchSource]);
 
     useEffect(() => {
         fetchUsage();
         fetchFiles(1);
-    }, [sourceFilter]);
+    }, [fetchSource]);
 
     const handleFileUpload = async (fileObj) => {
         if (!fileObj) return;
@@ -80,10 +81,7 @@ export default function MediaGallery({ restrictSource = null }) {
             form.append("file", fileObj);
             
             // If restricted, tell backend the source
-            let uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload`;
-            if (restrictSource) {
-                uploadUrl += `?source=${restrictSource}`;
-            }
+            let uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload?source=${fetchSource}`;
 
             await axios.post(uploadUrl, form, {
                 headers: { ...headers, "Content-Type": "multipart/form-data" }
@@ -206,44 +204,46 @@ export default function MediaGallery({ restrictSource = null }) {
             {/* Storage Overview */}
             {usage && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Plan-Restricted Storage (vCard + Online Store) */}
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm">
-                        <div className="flex items-center gap-2 mb-1">
-                            <HardDrive className="w-4 h-4 text-primary" />
-                            <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">Plan Storage</span>
-                            <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium">vCard &amp; Online Store</span>
+                    {/* Plan-Restricted Storage (vCard + Online Store) - ONLY show in restricted mode */}
+                    {accessMode === 'restricted' && (
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm">
+                            <div className="flex items-center gap-2 mb-1">
+                                <HardDrive className="w-4 h-4 text-primary" />
+                                <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">Plan Storage</span>
+                                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium">vCard &amp; Online Store</span>
+                            </div>
+                            <p className="text-xs text-slate-400 mb-3">Reserved quota for your vCard &amp; Online Store uploads as per your plan.</p>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs text-slate-500">
+                                    {formatBytes(usage.restrictedBytes)} used
+                                </span>
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                    {usage.unlimited
+                                        ? <span className="text-emerald-500">&#8734; Unlimited</span>
+                                        : `${usage.limitMb} MB limit`}
+                                </span>
+                            </div>
+                            {!usage.unlimited && (
+                                <>
+                                    <div className="w-full bg-slate-100 dark:bg-white/10 rounded-full h-2.5 overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                                            style={{ width: `${Math.min(100, restrictedPct)}%` }}
+                                        />
+                                    </div>
+                                    <p className={`text-xs mt-1.5 font-medium ${restrictedPct >= 90 ? "text-red-500" : "text-slate-400"}`}>
+                                        {restrictedPct >= 90 ? "⚠ Storage almost full!" : `${restrictedPct.toFixed(1)}% of plan quota used`}
+                                    </p>
+                                </>
+                            )}
+                            {usage.unlimited && (
+                                <p className="text-xs text-slate-400">No limit set on your plan.</p>
+                            )}
                         </div>
-                        <p className="text-xs text-slate-400 mb-3">Reserved quota for your vCard &amp; Online Store uploads as per your plan.</p>
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-slate-500">
-                                {formatBytes(usage.restrictedBytes)} used
-                            </span>
-                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                                {usage.unlimited
-                                    ? <span className="text-emerald-500">&#8734; Unlimited</span>
-                                    : `${usage.limitMb} MB limit`}
-                            </span>
-                        </div>
-                        {!usage.unlimited && (
-                            <>
-                                <div className="w-full bg-slate-100 dark:bg-white/10 rounded-full h-2.5 overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-                                        style={{ width: `${Math.min(100, restrictedPct)}%` }}
-                                    />
-                                </div>
-                                <p className={`text-xs mt-1.5 font-medium ${restrictedPct >= 90 ? "text-red-500" : "text-slate-400"}`}>
-                                    {restrictedPct >= 90 ? "⚠ Storage almost full!" : `${restrictedPct.toFixed(1)}% of plan quota used`}
-                                </p>
-                            </>
-                        )}
-                        {usage.unlimited && (
-                            <p className="text-xs text-slate-400">No limit set on your plan.</p>
-                        )}
-                    </div>
+                    )}
 
-                    {/* General Uploads (Media Manager — Unlimited) - ONLY show if not restricted */}
-                    {!restrictSource && (
+                    {/* General Uploads (Media Manager — Unlimited) - ONLY show in dashboard mode */}
+                    {accessMode === 'dashboard' && (
                         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm">
                             <div className="flex items-center gap-2 mb-1">
                                 <HardDrive className="w-4 h-4 text-emerald-500" />
@@ -279,19 +279,6 @@ export default function MediaGallery({ restrictSource = null }) {
                         className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                 </div>
-                {/* Source Filter - Hide if restrictSource is active */}
-                {!restrictSource && (
-                    <select
-                        value={sourceFilter}
-                        onChange={e => { setSourceFilter(e.target.value); setSelectedIds([]); }}
-                        className="px-3 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                        <option value="">All Sources</option>
-                        <option value="wastore">Online Store</option>
-                        <option value="vcard">Digital vCard</option>
-                        <option value="general_media">Gallery Uploads</option>
-                    </select>
-                )}
                 {/* View toggle */}
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-surface-dark rounded-lg p-1">
                     <button
