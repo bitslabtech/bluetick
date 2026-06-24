@@ -690,14 +690,14 @@ router.post('/test', auth, async (req, res) => {
         // Verify with Meta Graph API
         // If a test phone number is provided, try to send a message
         if (req.body.testPhoneNumber) {
-            try {
-                const messageResponse = await axios.post(`https://graph.facebook.com/v19.0/${metaPhoneNumberId}/messages`, {
+            const sendTestMessage = async (langCode) => {
+                return axios.post(`https://graph.facebook.com/v19.0/${metaPhoneNumberId}/messages`, {
                     messaging_product: 'whatsapp',
                     to: req.body.testPhoneNumber,
                     type: 'template',
                     template: {
                         name: 'hello_world',
-                        language: { code: 'en_US' }
+                        language: { code: langCode }
                     }
                 }, {
                     headers: {
@@ -705,6 +705,23 @@ router.post('/test', auth, async (req, res) => {
                         'Content-Type': 'application/json'
                     }
                 });
+            };
+
+            try {
+                let messageResponse;
+                try {
+                    // Try standard US English first
+                    messageResponse = await sendTestMessage('en_US');
+                } catch (err) {
+                    // Code 132001: Template name does not exist in the translation
+                    // Many modern WABAs default to 'en' instead of 'en_US'
+                    if (err.response?.data?.error?.code === 132001) {
+                        console.log('[WA TEST] en_US failed, falling back to en...');
+                        messageResponse = await sendTestMessage('en');
+                    } else {
+                        throw err;
+                    }
+                }
 
                 return res.json({
                     success: true,
