@@ -2,7 +2,7 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
 /**
- * MediaFile — Registry for the Media Gallery.
+ * MediaFile â€” Registry for the Media Gallery.
  * Tracks every file uploaded through the WaStore or vCard upload endpoints.
  * Used for quota enforcement, gallery browsing, and selective deletion.
  */
@@ -30,7 +30,7 @@ const MediaFile = sequelize.define('MediaFile', {
     fileKey: {
         type: DataTypes.STRING,
         allowNull: true,
-        comment: 'S3/R2 object key, or local relative path — used for deletion'
+        comment: 'S3/R2 object key, or local relative path â€” used for deletion'
     },
     fileName: {
         type: DataTypes.STRING,
