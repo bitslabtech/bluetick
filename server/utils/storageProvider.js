@@ -370,6 +370,8 @@ const storageProvider = (folderName, options = {}) => {
 
                             // Free the memory buffer — file is now persisted
                             delete req.file.buffer;
+                            // Expose fileKey on req.file for route handlers
+                            req.file.fileKey = fileKey;
 
                             // ── Step 7: Post-upload Tracking ──────────────────────────────────────
                             if (req.user && req.user.id && req.file.size) {
@@ -383,7 +385,8 @@ const storageProvider = (folderName, options = {}) => {
                                     console.error("Storage Tracking Error:", e);
                                 }
 
-                                // If trackMedia=true: also increment mediaStorageUsed + create MediaFile record
+                                // If trackMedia=true: quota-restricted upload (wastore / vcard)
+                                // Increments mediaStorageUsed + creates MediaFile record
                                 if (options.trackMedia) {
                                     try {
                                         await User.increment('mediaStorageUsed', {
@@ -403,6 +406,26 @@ const storageProvider = (folderName, options = {}) => {
                                         });
                                     } catch (e) {
                                         console.error("[Media Tracking] Error creating MediaFile record:", e.message);
+                                    }
+                                }
+
+                                // If registerMedia=true (no quota): free/general upload
+                                // Creates MediaFile record for gallery listing but does NOT
+                                // touch mediaStorageUsed (quota counter is only for wastore/vcard)
+                                if (options.registerMedia && !options.trackMedia) {
+                                    try {
+                                        await MediaFile.create({
+                                            userId: req.user.id,
+                                            source: options.mediaSource || 'general_media',
+                                            url: req.file.publicUrl,
+                                            fileKey: fileKey,
+                                            fileName: req.file.originalname,
+                                            mimeType: req.file.mimetype,
+                                            sizeBytes: req.file.size,
+                                            folder: folderName || null
+                                        });
+                                    } catch (e) {
+                                        console.error("[Media Register] Error creating MediaFile record:", e.message);
                                     }
                                 }
                             }

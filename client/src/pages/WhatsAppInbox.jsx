@@ -95,11 +95,15 @@ const WhatsAppInbox = () => {
     });
     const notificationsRef = useRef(notificationsEnabled);
 
-    // Keep ref in sync
+    // Keep refs in sync with state
     useEffect(() => {
         notificationsRef.current = notificationsEnabled;
         localStorage.setItem('whatsapp_notifications_enabled', JSON.stringify(notificationsEnabled));
     }, [notificationsEnabled]);
+
+    useEffect(() => {
+        selectedChatRef.current = selectedChat;
+    }, [selectedChat]);
 
     // Close header group dropdown on outside click
     useEffect(() => {
@@ -141,6 +145,7 @@ const WhatsAppInbox = () => {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const conversationsRef = useRef([]);
+    const selectedChatRef = useRef(null);   // always reflects latest selectedChat without stale closure
     const inputRef = useRef(null);
     const socketRef = useRef(null);
     const prevChatIdRef = useRef(null);
@@ -173,16 +178,19 @@ const WhatsAppInbox = () => {
             Notification.requestPermission();
         }
 
-        // Socket setup
-        const socket = io(API_BASE);
+        // Socket setup — withCredentials sends the auth cookie to the server
+        const socket = io(API_BASE, { withCredentials: true });
         socketRef.current = socket;
 
-        socket.on('connect', () => {
+        const joinRooms = () => {
             if (user?.id) {
                 socket.emit('join_waba', user.id);
-                socket.emit('join_personal', user.id); // For assignment notifications
+                socket.emit('join_personal', user.id);
             }
-        });
+        };
+
+        socket.on('connect', joinRooms);
+        socket.on('reconnect', joinRooms); // re-join after network drop
 
         // Real-time assignment notification
         socket.on('conversation_assigned', ({ conversation, assignedBy }) => {
@@ -211,31 +219,43 @@ const WhatsAppInbox = () => {
 
         socket.on('new_message', (data) => {
             const { conversation, message } = data;
-            // Update conversation list
+
+            // 1. Update conversation list (sort by latest)
             setConversations(prev => {
                 const existing = prev.find(c => c.id === conversation.id);
                 if (!existing) { fetchConversations(); return prev; }
                 const updated = prev.map(c => c.id === conversation.id ? { ...c, ...conversation } : c);
                 return updated.sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
             });
-            conversationsRef.current = conversationsRef.current.map(c => c.id === conversation.id ? { ...c, ...conversation } : c);
+            conversationsRef.current = conversationsRef.current.map(c =>
+                c.id === conversation.id ? { ...c, ...conversation } : c
+            );
 
-            // Append to open chat
-            setSelectedChat(prevChat => {
-                if (prevChat?.id === conversation.id) {
-                    setMessages(prev => prev.find(m => m.id === message.id) ? prev : [...prev, message]);
-                }
-                return prevChat;
-            });
+            // 2. Append message to currently open chat (use ref — no stale closure)
+            const currentChat = selectedChatRef.current;
+            if (currentChat?.id === conversation.id) {
+                setMessages(prev =>
+                    prev.find(m => m.id === message.id) ? prev : [...prev, message]
+                );
+            }
 
-            // Notification for inbound messages
+            // 3. Notifications for inbound messages
             if (message.direction === 'INBOUND') {
-                if (notificationsRef.current) {
+                const isViewingThisChat = currentChat?.id === conversation.id && !document.hidden;
+
+                // Sound: always play if notifications enabled, UNLESS user is actively viewing this exact chat
+                if (notificationsRef.current && !isViewingThisChat) {
                     playNotificationSound();
                 }
-                if (document.hidden) {
-                    const safeName = !conversation.contactName || conversation.contactName === conversation.phoneNumber || /^\d+$/.test(conversation.contactName.replace(/\D/g, ''))
-                        ? (isSubMember && teamPolicy.phonePrivacy === 'masked' ? `****${conversation.phoneNumber?.slice(-4)}` : conversation.phoneNumber)
+
+                // Browser notification: only when tab is hidden or user is on a different chat
+                if (!isViewingThisChat) {
+                    const safeName = !conversation.contactName ||
+                        conversation.contactName === conversation.phoneNumber ||
+                        /^\d+$/.test(conversation.contactName.replace(/\D/g, ''))
+                        ? (isSubMember && teamPolicy.phonePrivacy === 'masked'
+                            ? `****${conversation.phoneNumber?.slice(-4)}`
+                            : conversation.phoneNumber)
                         : conversation.contactName;
                     showBrowserNotification(safeName, message.body || '📎 Media');
                 }

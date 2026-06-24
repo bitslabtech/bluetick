@@ -21,7 +21,7 @@ const SOURCE_LABELS = {
     general_media: "Gallery Upload"
 };
 
-export default function MediaGallery() {
+export default function MediaGallery({ restrictSource = null }) {
     const { user } = useAuth();
     const { showToast } = useUI();
     const token = user?.token || localStorage.getItem("token");
@@ -33,7 +33,7 @@ export default function MediaGallery() {
     const [uploading, setUploading] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
     const [previewFile, setPreviewFile] = useState(null);
-    const [sourceFilter, setSourceFilter] = useState("");
+    const [sourceFilter, setSourceFilter] = useState(restrictSource || "");
     const [searchTerm, setSearchTerm] = useState("");
     const [viewMode, setViewMode] = useState("grid"); // grid | list
     const [page, setPage] = useState(1);
@@ -78,7 +78,14 @@ export default function MediaGallery() {
         try {
             const form = new FormData();
             form.append("file", fileObj);
-            await axios.post(`${import.meta.env.VITE_API_URL}/api/media/upload`, form, {
+            
+            // If restricted, tell backend the source
+            let uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload`;
+            if (restrictSource) {
+                uploadUrl += `?source=${restrictSource}`;
+            }
+
+            await axios.post(uploadUrl, form, {
                 headers: { ...headers, "Content-Type": "multipart/form-data" }
             });
             showToast("File uploaded successfully!", "success");
@@ -155,9 +162,9 @@ export default function MediaGallery() {
         (f.source || "").includes(searchTerm.toLowerCase())
     );
 
-    // Usage bar color
-    const usagePct = usage?.percentage || 0;
-    const barColor = usagePct >= 90 ? "bg-red-500" : usagePct >= 70 ? "bg-amber-500" : "bg-emerald-500";
+    // Usage bar color for restricted (plan-quota) storage
+    const restrictedPct = usage?.percentage || 0;
+    const barColor = restrictedPct >= 90 ? "bg-red-500" : restrictedPct >= 70 ? "bg-amber-500" : "bg-emerald-500";
 
     return (
         <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
@@ -196,39 +203,65 @@ export default function MediaGallery() {
                 </div>
             </div>
 
-            {/* Storage Usage Bar */}
+            {/* Storage Overview */}
             {usage && (
-                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <HardDrive className="w-5 h-5 text-slate-500" />
-                            <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">Storage Usage</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Plan-Restricted Storage (vCard + Online Store) */}
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm">
+                        <div className="flex items-center gap-2 mb-1">
+                            <HardDrive className="w-4 h-4 text-primary" />
+                            <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">Plan Storage</span>
+                            <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium">vCard &amp; Online Store</span>
                         </div>
-                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                            {usage.unlimited
-                                ? <span className="text-emerald-500 font-semibold">Unlimited</span>
-                                : `${formatBytes(usage.usedBytes)} / ${usage.limitMb} MB`
-                            }
-                        </span>
+                        <p className="text-xs text-slate-400 mb-3">Reserved quota for your vCard &amp; Online Store uploads as per your plan.</p>
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-slate-500">
+                                {formatBytes(usage.restrictedBytes)} used
+                            </span>
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                {usage.unlimited
+                                    ? <span className="text-emerald-500">&#8734; Unlimited</span>
+                                    : `${usage.limitMb} MB limit`}
+                            </span>
+                        </div>
+                        {!usage.unlimited && (
+                            <>
+                                <div className="w-full bg-slate-100 dark:bg-white/10 rounded-full h-2.5 overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                                        style={{ width: `${Math.min(100, restrictedPct)}%` }}
+                                    />
+                                </div>
+                                <p className={`text-xs mt-1.5 font-medium ${restrictedPct >= 90 ? "text-red-500" : "text-slate-400"}`}>
+                                    {restrictedPct >= 90 ? "⚠ Storage almost full!" : `${restrictedPct.toFixed(1)}% of plan quota used`}
+                                </p>
+                            </>
+                        )}
+                        {usage.unlimited && (
+                            <p className="text-xs text-slate-400">No limit set on your plan.</p>
+                        )}
                     </div>
-                    {!usage.unlimited && (
-                        <>
-                            <div className="w-full bg-slate-100 dark:bg-white/10 rounded-full h-3 overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-                                    style={{ width: `${Math.min(100, usagePct)}%` }}
-                                />
+
+                    {/* General Uploads (Media Manager — Unlimited) - ONLY show if not restricted */}
+                    {!restrictSource && (
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm">
+                            <div className="flex items-center gap-2 mb-1">
+                                <HardDrive className="w-4 h-4 text-emerald-500" />
+                                <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">General Uploads</span>
+                                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium">Unlimited</span>
                             </div>
-                            <div className="flex justify-between mt-2">
-                                <span className={`text-xs font-medium ${usagePct >= 90 ? "text-red-500" : "text-slate-400"}`}>
-                                    {usagePct >= 90 ? "âš  Storage almost full!" : `${usagePct.toFixed(1)}% used`}
+                            <p className="text-xs text-slate-400 mb-3">Files uploaded directly through the Media Manager. Not subject to plan quota.</p>
+                            <div className="flex items-center justify-between">
+                                <span className="text-2xl font-bold text-slate-800 dark:text-white">
+                                    {formatBytes(usage.generalBytes)}
                                 </span>
-                                <span className="text-xs text-slate-400">{total} file{total !== 1 ? "s" : ""}</span>
+                                <span className="text-xs text-slate-400">{total} file{total !== 1 ? "s" : ""} total</span>
                             </div>
-                        </>
-                    )}
-                    {usage.unlimited && (
-                        <p className="text-xs text-slate-400 mt-1">{total} file{total !== 1 ? "s" : ""} uploaded</p>
+                            <div className="w-full bg-emerald-100 dark:bg-emerald-900/20 rounded-full h-2.5 mt-3 overflow-hidden">
+                                <div className="h-full rounded-full bg-emerald-500 opacity-40" style={{ width: "100%" }} />
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1.5">&#8734; No limit — upload freely</p>
+                        </div>
                     )}
                 </div>
             )}
@@ -246,17 +279,19 @@ export default function MediaGallery() {
                         className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                 </div>
-                {/* Source Filter */}
-                <select
-                    value={sourceFilter}
-                    onChange={e => { setSourceFilter(e.target.value); setSelectedIds([]); }}
-                    className="px-3 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                    <option value="">All Sources</option>
-                    <option value="wastore">Online Store</option>
-                    <option value="vcard">Digital vCard</option>
-                    <option value="general_media">Gallery Uploads</option>
-                </select>
+                {/* Source Filter - Hide if restrictSource is active */}
+                {!restrictSource && (
+                    <select
+                        value={sourceFilter}
+                        onChange={e => { setSourceFilter(e.target.value); setSelectedIds([]); }}
+                        className="px-3 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                        <option value="">All Sources</option>
+                        <option value="wastore">Online Store</option>
+                        <option value="vcard">Digital vCard</option>
+                        <option value="general_media">Gallery Uploads</option>
+                    </select>
+                )}
                 {/* View toggle */}
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-surface-dark rounded-lg p-1">
                     <button

@@ -5,39 +5,74 @@ const MediaFile = require('../models/MediaFile');
 const User = require('../models/User');
 const Plan = require('../models/Plan');
 const storageProvider = require('../utils/storageProvider');
-const { Op } = require('sequelize');
+const { Op, fn, col, literal } = require('sequelize');
 
 // All routes require authentication
 router.use(auth);
 
+// Sources that count toward the plan storage quota
+const QUOTA_SOURCES = ['wastore', 'vcard'];
+
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/media/usage — Returns current storage usage vs plan limit
+// GET /api/media/usage — Returns two separate usage stats:
+//   • restricted: vCard + Online Store combined (counts against plan quota)
+//   • general:    Media Manager direct uploads (always unlimited)
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/usage', async (req, res) => {
     try {
         const user = await User.findByPk(req.user.id, {
-            attributes: ['id', 'plan', 'mediaStorageUsed']
+            attributes: ['id', 'plan']
         });
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const userPlan = await Plan.findOne({
-            where: { name: user.plan },
+            where: { name: user.plan || 'Free' },
             attributes: ['storageLimitMb', 'name']
         });
 
-        const usedBytes = Number(user.mediaStorageUsed || 0);
+        // Sum sizeBytes from MediaFile for quota-tracked sources (wastore + vcard)
+        const restrictedResult = await MediaFile.findOne({
+            where: { userId: req.user.id, source: { [Op.in]: QUOTA_SOURCES } },
+            attributes: [[fn('SUM', col('sizeBytes')), 'total']],
+            raw: true
+        });
+        const restrictedBytes = Number(restrictedResult?.total || 0);
+
+        // Sum sizeBytes for general uploads (gallery)
+        const generalResult = await MediaFile.findOne({
+            where: { userId: req.user.id, source: { [Op.notIn]: QUOTA_SOURCES } },
+            attributes: [[fn('SUM', col('sizeBytes')), 'total']],
+            raw: true
+        });
+        const generalBytes = Number(generalResult?.total || 0);
+
+        // Total across all files
+        const totalBytes = restrictedBytes + generalBytes;
+
+        // Plan limit
         const limitMb = userPlan?.storageLimitMb ?? 100;
-        const limitBytes = limitMb * 1024 * 1024;
-        const usedMb = usedBytes / (1024 * 1024);
-        const percentage = limitMb === 0 ? 0 : Math.min(100, (usedMb / limitMb) * 100);
+        const limitBytes = limitMb === 0 ? Infinity : limitMb * 1024 * 1024;
+        const unlimited = limitMb === 0;
+        const restrictedMb = restrictedBytes / (1024 * 1024);
+        const generalMb = generalBytes / (1024 * 1024);
+        const percentage = unlimited
+            ? 0
+            : Math.min(100, (restrictedMb / limitMb) * 100);
 
         res.json({
-            usedBytes,
-            usedMb: parseFloat(usedMb.toFixed(2)),
+            // Plan-restricted usage (wastore + vcard)
+            restrictedBytes,
+            restrictedMb: parseFloat(restrictedMb.toFixed(2)),
             limitMb,
-            limitBytes,
+            limitBytes: unlimited ? null : limitMb * 1024 * 1024,
             percentage: parseFloat(percentage.toFixed(1)),
-            unlimited: limitMb === 0
+            unlimited,
+            // General (Media Manager) usage — always unlimited
+            generalBytes,
+            generalMb: parseFloat(generalMb.toFixed(2)),
+            // Total
+            totalBytes,
+            totalMb: parseFloat((totalBytes / (1024 * 1024)).toFixed(2)),
         });
     } catch (error) {
         console.error('Media usage error:', error);
@@ -78,25 +113,34 @@ router.get('/', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /api/media/upload — Direct upload via Media Gallery page
+// POST /api/media/upload — Upload media with dynamic quota handling
+// - If ?source=wastore or vcard -> trackMedia: true (enforces plan quota)
+// - Otherwise -> registerMedia: true (unrestricted gallery upload)
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/upload',
-    storageProvider('media-gallery', {
+router.post('/upload', (req, res, next) => {
+    const source = req.query.source;
+    const isRestricted = QUOTA_SOURCES.includes(source);
+
+    const uploadMiddleware = storageProvider('media-gallery', {
         fileFilter: storageProvider.generalImageFilter,
         convertToWebp: true,
-        trackMedia: true,
-        mediaSource: 'general_media'
-    }).single('file'),
-    async (req, res) => {
-        try {
-            if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
-            res.json({ url: req.file.publicUrl, size: req.file.size, mimeType: req.file.mimetype });
-        } catch (error) {
-            console.error('Media upload error:', error);
-            res.status(500).json({ error: 'Upload failed' });
-        }
+        // If restricted, check quota and increment usage
+        trackMedia: isRestricted,
+        // If not restricted, just log it to gallery without quota check
+        registerMedia: !isRestricted,
+        mediaSource: isRestricted ? source : 'general_media'
+    }).single('file');
+
+    uploadMiddleware(req, res, next);
+}, async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+        res.json({ url: req.file.publicUrl, size: req.file.size, mimeType: req.file.mimetype });
+    } catch (error) {
+        console.error('Media upload error:', error);
+        res.status(500).json({ error: 'Upload failed' });
     }
-);
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/media/:id — Delete a specific media file
@@ -113,8 +157,8 @@ router.delete('/:id', async (req, res) => {
             await storageProvider.deleteStorageFile(mediaFile.url);
         }
 
-        // Decrement mediaStorageUsed
-        if (mediaFile.sizeBytes && mediaFile.sizeBytes > 0) {
+        // Only decrement mediaStorageUsed for quota-tracked sources (wastore / vcard)
+        if (QUOTA_SOURCES.includes(mediaFile.source) && mediaFile.sizeBytes && mediaFile.sizeBytes > 0) {
             const user = await User.findByPk(req.user.id, { attributes: ['id', 'mediaStorageUsed'] });
             if (user) {
                 const newUsed = Math.max(0, Number(user.mediaStorageUsed || 0) - Number(mediaFile.sizeBytes));
@@ -148,19 +192,23 @@ router.delete('/', async (req, res) => {
 
         if (files.length === 0) return res.status(404).json({ error: 'No files found' });
 
-        let totalSize = 0;
+        // Delete from storage
         for (const file of files) {
             if (file.url) await storageProvider.deleteStorageFile(file.url);
-            totalSize += Number(file.sizeBytes || 0);
         }
+
+        // Sum bytes only from quota-tracked sources
+        const restrictedDeletedSize = files
+            .filter(f => QUOTA_SOURCES.includes(f.source))
+            .reduce((sum, f) => sum + Number(f.sizeBytes || 0), 0);
 
         await MediaFile.destroy({ where: { id: { [Op.in]: ids }, userId: req.user.id } });
 
-        // Decrement mediaStorageUsed
-        if (totalSize > 0) {
+        // Decrement mediaStorageUsed only for restricted files
+        if (restrictedDeletedSize > 0) {
             const user = await User.findByPk(req.user.id, { attributes: ['id', 'mediaStorageUsed'] });
             if (user) {
-                const newUsed = Math.max(0, Number(user.mediaStorageUsed || 0) - totalSize);
+                const newUsed = Math.max(0, Number(user.mediaStorageUsed || 0) - restrictedDeletedSize);
                 await User.update({ mediaStorageUsed: newUsed }, { where: { id: req.user.id } });
             }
         }
