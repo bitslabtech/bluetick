@@ -1,6 +1,7 @@
 const express = require('express');
 const router = require('express').Router();
 const { Op } = require('sequelize');
+const { sequelize } = require('../config/database');
 const Contact = require('../models/Contact');
 const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
@@ -198,11 +199,13 @@ router.get('/', async (req, res) => {
         // We will just filter client side or handle labels dynamically. Since labels is a JSON field in Contact, we can cast it if needed, or query it.
         // Assume label filtering is complex if JSON, but we can roughly search it
         if (label !== 'All') {
-            // Because labels is a JSONB array, we need a special query in Postgres to check if an object with id exists inside the array
-            // Due to sqlite fallback or simpler structure, it's safer to query using text matching or skip for now
-            // But let's add a basic string match for the JSON chunk:
-            whereClause.labels = { [Op.like]: `%"id":${label}%` };
-            // Note: Postgres JSONB would use: { [Op.contains]: [{ id: parseInt(label) }] } but String match works as a hack across DBs
+            whereClause[Op.and] = whereClause[Op.and] || [];
+            whereClause[Op.and].push(
+                sequelize.where(
+                    sequelize.cast(sequelize.col('labels'), 'VARCHAR'),
+                    { [Op.like]: `%"id":"${label}"%` }
+                )
+            );
         }
 
         const { count, rows } = await Contact.findAndCountAll({

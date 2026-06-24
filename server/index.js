@@ -47,6 +47,7 @@ require('./models/WaOrder');        // WhatsApp Store Orders
 require('./models/NfcCard');        // Physical NFC Products
 require('./models/NfcOrder');       // Physical NFC Orders
 require('./models/FlowExecutionLog'); // FlowBot execution analytics
+require('./models/AutoTagRule');      // Auto-tagging rules engine
 
 // Import Routes
 const contactsRoute = require('./routes/contacts');
@@ -187,6 +188,7 @@ app.use('/api/nfc', require('./routes/nfc')); // User NFC Portal
 app.use('/n', require('./routes/publicNfc')); // Public NFC scan redirect
 
 app.use('/api/v1', require('./routes/apiV1')); // External Developer REST API
+app.use('/api/auto-tag-rules', require('./routes/autoTagRules')); // Auto-Tagging Engine
 
 // Webhook for Meta WhatsApp pushes
 app.use('/api/webhook', require('./routes/webhook')); // NEW

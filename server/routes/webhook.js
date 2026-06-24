@@ -19,6 +19,7 @@ const Flow = require('../models/Flow'); // NEW
 const ContactFlowState = require('../models/ContactFlowState'); // NEW
 const FlowRunner = require('../services/FlowRunner'); // NEW
 const { getMonthlyMessageCount, getUserPlanLimits } = require('../utils/planLimits');
+const { applyAutoTags } = require('../services/AutoTagger'); // Auto-Tagging Engine
 const path = require('path');
 const fs = require('fs');
 
@@ -438,6 +439,11 @@ router.post('/:userId', (req, res, next) => {
                                                 // CTWA: stamp the ad source on the contact's first touch
                                                 ctwaSource: referralData || null
                                             });
+
+                                            // ── AUTO-TAGGING: Fire rules for this new contact ──
+                                            // isFirstMessage = true because this contact was just created
+                                            applyAutoTags(contact, messageBody, true, referralData).catch(() => {});
+
                                             if (referralData) {
                                                 console.log(`[WEBHOOK][CTWA] New contact ${contactWaId} attributed to Ad ID: ${referralData.source_id}`);
 
@@ -639,6 +645,12 @@ router.post('/:userId', (req, res, next) => {
                                         }
                                     }
                                     
+                                    // 2b. Auto-Tag Engine: Evaluate rules against incoming message for existing contacts
+                                    // (New contacts are handled inline at creation above)
+                                    if (contact && !activeState) {
+                                        applyAutoTags(contact, messageBody, false, referralData).catch(() => {});
+                                    }
+
                                     // 3. If not in a running flow, check if message matches any Trigger Keywords
                                     if (!flowHandled && (messageType === 'text' || messageType === 'button' || messageType === 'interactive')) {
                                         const incomingText = messageBody.trim().toLowerCase();

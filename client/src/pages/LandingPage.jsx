@@ -1,3 +1,4 @@
+// @refresh reset
 import React, { useState, useEffect, useRef } from 'react';
 import { m as motion, LazyMotion, domAnimation, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -11,7 +12,7 @@ import {
     Twitter, Facebook, Linkedin, Instagram,
     CreditCard, Truck, LayoutTemplate, Repeat, QrCode,
     Megaphone, Activity, Target, SplitSquareHorizontal, Wand2,
-    LayoutGrid, ListOrdered, Tag, FileText, LineChart, Wifi, Search, Filter
+    LayoutGrid, ListOrdered, Tag, FileText, LineChart, Wifi, Search, Filter, Info
 } from 'lucide-react';
 import PublicHeader from '../components/landing/PublicHeader';
 import FloatingChatbot from '../components/landing/FloatingChatbot';
@@ -198,7 +199,7 @@ const CapabilitiesBento = ({ config }) => {
 
                     {/* CARD 2: SUPPORT (Large Right) */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-                        className="md:col-span-5 rounded-[32px] bg-[#F0FDF4] dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
+                        className="md:col-span-5 rounded-[32px] bg-[#F0FDF4] dark:bg-emerald-950/5 border border-emerald-100 dark:border-emerald-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
                         <div className="p-8 md:p-4 md:p-10 relative z-10 w-full">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400 mb-4">{supportCard.tag}</div>
                             <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight whitespace-pre-line">{supportCard.title}</h3>
@@ -313,7 +314,7 @@ const CapabilitiesBento = ({ config }) => {
 
                     {/* CARD 4: COMMERCE */}
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                        className="md:col-span-4 rounded-[32px] bg-[#FFFBEB] dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
+                        className="md:col-span-4 rounded-[32px] bg-[#FFFBEB] dark:bg-amber-950/5 border border-amber-100 dark:border-amber-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
                         <div className="p-4 md:p-10 relative z-10 w-full mb-auto text-center">
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500 mb-4">{commerceCard.tag}</div>
                             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{commerceCard.title}</h3>
@@ -478,7 +479,7 @@ export const advancedFeatures = [
     },
     {
         id: 'livechat', label: 'Multi-Agent Inbox', icon: HeadphonesIcon,
-        bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70',
+        bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70',
         barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400',
         gradientIcon: 'from-emerald-500 to-teal-500',
@@ -489,7 +490,7 @@ export const advancedFeatures = [
     },
     {
         id: 'aibot', label: 'Generative AI Bot', icon: Zap,
-        bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70',
+        bg: 'bg-purple-50 dark:bg-purple-950/5', previewBg: 'bg-purple-100/70',
         barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100',
         iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400',
         gradientIcon: 'from-purple-500 to-indigo-600',
@@ -500,7 +501,7 @@ export const advancedFeatures = [
     },
     {
         id: 'analytics_wa', label: 'WhatsApp Reports', icon: BarChart,
-        bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70',
+        bg: 'bg-blue-50 dark:bg-blue-950/5', previewBg: 'bg-blue-100/70',
         barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100',
         iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400',
         gradientIcon: 'from-blue-500 to-cyan-500',
@@ -545,7 +546,7 @@ export const advancedFeatures = [
     },
     {
         id: 'analytics_meta', label: 'Ad Performance', icon: BarChart,
-        bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70',
+        bg: 'bg-amber-50 dark:bg-amber-950/5', previewBg: 'bg-amber-100/70',
         barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100',
         iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400',
         gradientIcon: 'from-amber-500 to-orange-500',
@@ -567,7 +568,7 @@ export const advancedFeatures = [
     },
     {
         id: 'meta_pixel_sync', label: 'Meta Pixel Sync', icon: Activity,
-        bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70',
+        bg: 'bg-blue-50 dark:bg-blue-950/5', previewBg: 'bg-blue-100/70',
         barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100',
         iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400',
         gradientIcon: 'from-blue-500 to-cyan-500',
@@ -578,7 +579,7 @@ export const advancedFeatures = [
     },
     {
         id: 'meta_custom_audience', label: 'Dynamic Audiences', icon: Target,
-        bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70',
+        bg: 'bg-purple-50 dark:bg-purple-950/5', previewBg: 'bg-purple-100/70',
         barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100',
         iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400',
         gradientIcon: 'from-purple-500 to-pink-500',
@@ -600,7 +601,7 @@ export const advancedFeatures = [
     },
     {
         id: 'meta_ab_testing', label: 'A/B Testing', icon: SplitSquareHorizontal,
-        bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70',
+        bg: 'bg-amber-50 dark:bg-amber-950/5', previewBg: 'bg-amber-100/70',
         barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100',
         iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400',
         gradientIcon: 'from-amber-500 to-yellow-500',
@@ -611,7 +612,7 @@ export const advancedFeatures = [
     },
     {
         id: 'meta_campaign_builder', label: 'Unified Campaign Builder', icon: Wand2,
-        bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70',
+        bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70',
         barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400',
         gradientIcon: 'from-emerald-500 to-teal-500',
@@ -645,7 +646,7 @@ export const advancedFeatures = [
     },
     {
         id: 'order_track', label: 'Order Tracking', icon: Truck,
-        bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70',
+        bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70',
         barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400',
         gradientIcon: 'from-emerald-400 to-teal-500',
@@ -667,7 +668,7 @@ export const advancedFeatures = [
     },
     {
         id: 'store_orders', label: 'Order Management', icon: ListOrdered,
-        bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70',
+        bg: 'bg-blue-50 dark:bg-blue-950/5', previewBg: 'bg-blue-100/70',
         barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100',
         iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400',
         gradientIcon: 'from-blue-500 to-indigo-500',
@@ -678,7 +679,7 @@ export const advancedFeatures = [
     },
     {
         id: 'store_coupons', label: 'Dynamic Coupons', icon: Tag,
-        bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70',
+        bg: 'bg-amber-50 dark:bg-amber-950/5', previewBg: 'bg-amber-100/70',
         barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100',
         iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400',
         gradientIcon: 'from-amber-500 to-orange-500',
@@ -689,7 +690,7 @@ export const advancedFeatures = [
     },
     {
         id: 'store_invoices', label: 'Automated Invoices', icon: FileText,
-        bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70',
+        bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70',
         barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400',
         gradientIcon: 'from-emerald-500 to-teal-500',
@@ -734,7 +735,7 @@ export const advancedFeatures = [
     },
     {
         id: 'vcard_analytics', label: 'Profile Analytics', icon: LineChart,
-        bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70',
+        bg: 'bg-blue-50 dark:bg-blue-950/5', previewBg: 'bg-blue-100/70',
         barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100',
         iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400',
         gradientIcon: 'from-blue-500 to-cyan-500',
@@ -745,7 +746,7 @@ export const advancedFeatures = [
     },
     {
         id: 'vcard_appointments', label: 'Appointment Booking', icon: Calendar,
-        bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70',
+        bg: 'bg-purple-50 dark:bg-purple-950/5', previewBg: 'bg-purple-100/70',
         barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100',
         iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400',
         gradientIcon: 'from-purple-500 to-pink-500',
@@ -767,7 +768,7 @@ export const advancedFeatures = [
     },
     {
         id: 'vcard_domain', label: 'Custom Domains', icon: Globe,
-        bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70',
+        bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70',
         barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400',
         gradientIcon: 'from-emerald-500 to-teal-500',
@@ -1191,35 +1192,35 @@ const SHOWCASE_INTERVAL = 4500;
 export const FEATURE_STYLE_DEFAULTS = {
     broadcast: { icon: Send, bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70', barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100', iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', gradientIcon: 'from-indigo-500 to-violet-500', preview: 'broadcast' },
     chatbot: { icon: Layers, bg: 'bg-violet-50 dark:bg-violet-950/20', previewBg: 'bg-violet-100/70', barColor: 'bg-violet-500', pillColor: 'bg-violet-50 text-violet-700 border-violet-100', iconBg: 'bg-violet-100 dark:bg-violet-900/40', iconColor: 'text-violet-600 dark:text-violet-400', gradientIcon: 'from-violet-500 to-purple-500', preview: 'chatbot' },
-    livechat: { icon: HeadphonesIcon, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'livechat' },
-    analytics_meta: { icon: BarChart, bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-orange-500', preview: 'analytics_meta' },
-    analytics_wa: { icon: BarChart, bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-cyan-500', preview: 'analytics_wa' },
+    livechat: { icon: HeadphonesIcon, bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'livechat' },
+    analytics_meta: { icon: BarChart, bg: 'bg-amber-50 dark:bg-amber-950/5', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-orange-500', preview: 'analytics_meta' },
+    analytics_wa: { icon: BarChart, bg: 'bg-blue-50 dark:bg-blue-950/5', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-cyan-500', preview: 'analytics_wa' },
     catalog: { icon: ShoppingCart, bg: 'bg-rose-50 dark:bg-rose-950/20', previewBg: 'bg-rose-100/70', barColor: 'bg-rose-500', pillColor: 'bg-rose-50 text-rose-700 border-rose-100', iconBg: 'bg-rose-100 dark:bg-rose-900/40', iconColor: 'text-rose-600 dark:text-rose-400', gradientIcon: 'from-rose-500 to-pink-500', preview: 'catalog' },
     retarget: { icon: ArrowUpRight, bg: 'bg-cyan-50 dark:bg-cyan-950/20', previewBg: 'bg-cyan-100/70', barColor: 'bg-cyan-500', pillColor: 'bg-cyan-50 text-cyan-700 border-cyan-100', iconBg: 'bg-cyan-100 dark:bg-cyan-900/40', iconColor: 'text-cyan-600 dark:text-cyan-400', gradientIcon: 'from-cyan-500 to-sky-500', preview: 'retarget' },
-    aibot: { icon: Zap, bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-indigo-600', preview: 'aibot' },
+    aibot: { icon: Zap, bg: 'bg-purple-50 dark:bg-purple-950/5', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-indigo-600', preview: 'aibot' },
     cart_payment: { icon: CreditCard, bg: 'bg-orange-50 dark:bg-orange-950/20', previewBg: 'bg-orange-100/70', barColor: 'bg-orange-500', pillColor: 'bg-orange-50 text-orange-700 border-orange-100', iconBg: 'bg-orange-100 dark:bg-orange-900/40', iconColor: 'text-orange-600 dark:text-orange-400', gradientIcon: 'from-orange-400 to-amber-500', preview: 'cart_payment' },
-    order_track: { icon: Truck, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-400 to-teal-500', preview: 'order_track' },
+    order_track: { icon: Truck, bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-400 to-teal-500', preview: 'order_track' },
     vcard: { icon: Briefcase, bg: 'bg-cyan-50 dark:bg-cyan-950/20', previewBg: 'bg-cyan-100/70', barColor: 'bg-cyan-500', pillColor: 'bg-cyan-50 text-cyan-700 border-cyan-100', iconBg: 'bg-cyan-100 dark:bg-cyan-900/40', iconColor: 'text-cyan-600 dark:text-cyan-400', gradientIcon: 'from-cyan-400 to-blue-500', preview: 'vcard' },
     vcard_lead: { icon: Users, bg: 'bg-fuchsia-50 dark:bg-fuchsia-950/20', previewBg: 'bg-fuchsia-100/70', barColor: 'bg-fuchsia-500', pillColor: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100', iconBg: 'bg-fuchsia-100 dark:bg-fuchsia-900/40', iconColor: 'text-fuchsia-600 dark:text-fuchsia-400', gradientIcon: 'from-fuchsia-500 to-pink-500', preview: 'vcard_lead' },
     vcard_theme: { icon: LayoutTemplate, bg: 'bg-slate-50 dark:bg-zinc-800/50', previewBg: 'bg-slate-200/70 dark:bg-zinc-800', barColor: 'bg-slate-800 dark:bg-slate-200', pillColor: 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-zinc-800 dark:text-slate-200 dark:border-white/10', iconBg: 'bg-slate-200 dark:bg-zinc-700', iconColor: 'text-slate-800 dark:text-slate-200', gradientIcon: 'from-slate-700 to-slate-900 dark:from-slate-400 dark:to-slate-200', preview: 'vcard_theme' },
     audience_sync: { icon: Repeat, bg: 'bg-pink-50 dark:bg-pink-950/20', previewBg: 'bg-pink-100/70', barColor: 'bg-pink-500', pillColor: 'bg-pink-50 text-pink-700 border-pink-100', iconBg: 'bg-pink-100 dark:bg-pink-900/40', iconColor: 'text-pink-600 dark:text-pink-400', gradientIcon: 'from-pink-500 to-rose-500', preview: 'audience_sync' },
 
     meta_lead_ads: { icon: Megaphone, bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70', barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100', iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', gradientIcon: 'from-indigo-500 to-blue-500', preview: 'meta_lead_ads' },
-    meta_pixel_sync: { icon: Activity, bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-cyan-500', preview: 'meta_pixel_sync' },
-    meta_custom_audience: { icon: Target, bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-pink-500', preview: 'meta_custom_audience' },
+    meta_pixel_sync: { icon: Activity, bg: 'bg-blue-50 dark:bg-blue-950/5', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-cyan-500', preview: 'meta_pixel_sync' },
+    meta_custom_audience: { icon: Target, bg: 'bg-purple-50 dark:bg-purple-950/5', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-pink-500', preview: 'meta_custom_audience' },
     meta_catalog_sales: { icon: Store, bg: 'bg-rose-50 dark:bg-rose-950/20', previewBg: 'bg-rose-100/70', barColor: 'bg-rose-500', pillColor: 'bg-rose-50 text-rose-700 border-rose-100', iconBg: 'bg-rose-100 dark:bg-rose-900/40', iconColor: 'text-rose-600 dark:text-rose-400', gradientIcon: 'from-rose-500 to-orange-500', preview: 'meta_catalog_sales' },
-    meta_ab_testing: { icon: SplitSquareHorizontal, bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-yellow-500', preview: 'meta_ab_testing' },
-    meta_campaign_builder: { icon: Wand2, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'meta_campaign_builder' },
+    meta_ab_testing: { icon: SplitSquareHorizontal, bg: 'bg-amber-50 dark:bg-amber-950/5', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-yellow-500', preview: 'meta_ab_testing' },
+    meta_campaign_builder: { icon: Wand2, bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'meta_campaign_builder' },
 
     store_categories: { icon: LayoutGrid, bg: 'bg-pink-50 dark:bg-pink-950/20', previewBg: 'bg-pink-100/70', barColor: 'bg-pink-500', pillColor: 'bg-pink-50 text-pink-700 border-pink-100', iconBg: 'bg-pink-100 dark:bg-pink-900/40', iconColor: 'text-pink-600 dark:text-pink-400', gradientIcon: 'from-pink-500 to-rose-500', preview: 'store_categories' },
-    store_orders: { icon: ListOrdered, bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-indigo-500', preview: 'store_orders' },
-    store_coupons: { icon: Tag, bg: 'bg-amber-50 dark:bg-amber-950/20', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-orange-500', preview: 'store_coupons' },
-    store_invoices: { icon: FileText, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'store_invoices' },
+    store_orders: { icon: ListOrdered, bg: 'bg-blue-50 dark:bg-blue-950/5', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-indigo-500', preview: 'store_orders' },
+    store_coupons: { icon: Tag, bg: 'bg-amber-50 dark:bg-amber-950/5', previewBg: 'bg-amber-100/70', barColor: 'bg-amber-500', pillColor: 'bg-amber-50 text-amber-700 border-amber-100', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', gradientIcon: 'from-amber-500 to-orange-500', preview: 'store_coupons' },
+    store_invoices: { icon: FileText, bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'store_invoices' },
 
-    vcard_analytics: { icon: LineChart, bg: 'bg-blue-50 dark:bg-blue-950/20', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-cyan-500', preview: 'vcard_analytics' },
-    vcard_appointments: { icon: Calendar, bg: 'bg-purple-50 dark:bg-purple-950/20', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-pink-500', preview: 'vcard_appointments' },
+    vcard_analytics: { icon: LineChart, bg: 'bg-blue-50 dark:bg-blue-950/5', previewBg: 'bg-blue-100/70', barColor: 'bg-blue-500', pillColor: 'bg-blue-50 text-blue-700 border-blue-100', iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', gradientIcon: 'from-blue-500 to-cyan-500', preview: 'vcard_analytics' },
+    vcard_appointments: { icon: Calendar, bg: 'bg-purple-50 dark:bg-purple-950/5', previewBg: 'bg-purple-100/70', barColor: 'bg-purple-500', pillColor: 'bg-purple-50 text-purple-700 border-purple-100', iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', gradientIcon: 'from-purple-500 to-pink-500', preview: 'vcard_appointments' },
     vcard_nfc: { icon: Wifi, bg: 'bg-indigo-50 dark:bg-indigo-950/20', previewBg: 'bg-indigo-100/70', barColor: 'bg-indigo-500', pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-100', iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', gradientIcon: 'from-indigo-500 to-violet-500', preview: 'vcard_nfc' },
-    vcard_domain: { icon: Globe, bg: 'bg-emerald-50 dark:bg-emerald-950/20', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'vcard_domain' }
+    vcard_domain: { icon: Globe, bg: 'bg-emerald-50 dark:bg-emerald-950/5', previewBg: 'bg-emerald-100/70', barColor: 'bg-emerald-500', pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-100', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', gradientIcon: 'from-emerald-500 to-teal-500', preview: 'vcard_domain' }
 };
 
 export const FEATURE_CATEGORIES = [
@@ -1737,6 +1738,7 @@ export default function LandingPage() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [error, setError] = useState(false);
     const [plans, setPlans] = useState([]);
+    const [metaRates, setMetaRates] = useState(null);
     const [billingInterval, setBillingInterval] = useState('monthly');
     const [currencySymbol, setCurrencySymbol] = useState('$');
     const [activeIndustry, setActiveIndustry] = useState(industries[0].id);
@@ -1813,6 +1815,7 @@ export default function LandingPage() {
         fetchConfig();
         fetchPlans();
         fetchPublicSettings();
+        fetchMetaRates();
     }, []);
 
     // Update SEO Meta
@@ -1845,6 +1848,15 @@ export default function LandingPage() {
             setPlans(res.data);
         } catch (err) {
             console.error('Failed to fetch plans', err);
+        }
+    };
+
+    const fetchMetaRates = async () => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/plans/meta-rates`);
+            setMetaRates(res.data);
+        } catch (err) {
+            console.error('Failed to fetch meta rates', err);
         }
     };
 
@@ -2549,47 +2561,63 @@ export default function LandingPage() {
                                             const themeColors = {
                                                 blue: {
                                                     bgPop: 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 shadow-xl shadow-blue-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-blue-500/30',
+                                                    bgReg: 'bg-blue-50/10 dark:bg-blue-950/5 border-blue-200/90 dark:border-blue-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-blue-500/40',
                                                     badgePop: 'bg-blue-500 text-white',
                                                     textSubtlePop: 'text-slate-500 dark:text-slate-400',
                                                     lineThroughPop: 'text-slate-400 dark:text-slate-500',
-                                                    checkPop: 'bg-blue-500 text-white',
-                                                    checkSubtle: 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400',
+                                                    checkPop: 'bg-emerald-500 text-white',
+                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
                                                     btnSubtlePop: 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
-                                                    btnSubtleReg: 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50'
+                                                    btnSubtleReg: 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50',
+                                                    btnPrimary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25'
                                                 },
                                                 green: {
                                                     bgPop: 'bg-green-50 dark:bg-green-900/20 border-green-400 shadow-xl shadow-green-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-green-500/30',
+                                                    bgReg: 'bg-green-50/10 dark:bg-green-950/5 border-green-200/90 dark:border-green-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-green-500/40',
                                                     badgePop: 'bg-green-500 text-white',
                                                     textSubtlePop: 'text-slate-500 dark:text-slate-400',
                                                     lineThroughPop: 'text-slate-400 dark:text-slate-500',
-                                                    checkPop: 'bg-green-500 text-white',
-                                                    checkSubtle: 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400',
+                                                    checkPop: 'bg-emerald-500 text-white',
+                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
                                                     btnSubtlePop: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800',
-                                                    btnSubtleReg: 'bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800/50'
+                                                    btnSubtleReg: 'bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800/50',
+                                                    btnPrimary: 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/25'
                                                 },
                                                 amber: {
                                                     bgPop: 'bg-amber-50 dark:bg-amber-900/20 border-amber-400 shadow-xl shadow-amber-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-amber-500/30',
+                                                    bgReg: 'bg-amber-50/10 dark:bg-amber-950/5 border-amber-200/90 dark:border-amber-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-amber-500/40',
                                                     badgePop: 'bg-amber-500 text-white',
                                                     textSubtlePop: 'text-slate-500 dark:text-slate-400',
                                                     lineThroughPop: 'text-slate-400 dark:text-slate-500',
-                                                    checkPop: 'bg-amber-500 text-white',
-                                                    checkSubtle: 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400',
+                                                    checkPop: 'bg-emerald-500 text-white',
+                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
                                                     btnSubtlePop: 'bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800',
-                                                    btnSubtleReg: 'bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50'
+                                                    btnSubtleReg: 'bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50',
+                                                    btnPrimary: 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/25'
                                                 },
                                                 emerald: {
                                                     bgPop: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-400 shadow-xl shadow-emerald-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white hover:shadow-xl hover:border-emerald-500/30',
+                                                    bgReg: 'bg-emerald-50/10 dark:bg-emerald-950/5 border-emerald-200/90 dark:border-emerald-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-emerald-500/40',
                                                     badgePop: 'bg-emerald-500 text-white',
                                                     textSubtlePop: 'text-slate-500 dark:text-slate-400',
                                                     lineThroughPop: 'text-slate-400 dark:text-slate-500',
                                                     checkPop: 'bg-emerald-500 text-white',
-                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400',
+                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
                                                     btnSubtlePop: 'bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800',
-                                                    btnSubtleReg: 'bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
+                                                    btnSubtleReg: 'bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50',
+                                                    btnPrimary: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                                                },
+                                                purple: {
+                                                    bgPop: 'bg-purple-50 dark:bg-purple-900/20 border-purple-400 shadow-xl shadow-purple-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+                                                    bgReg: 'bg-purple-50/10 dark:bg-purple-950/5 border-purple-200/90 dark:border-purple-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-purple-500/40',
+                                                    badgePop: 'bg-purple-500 text-white',
+                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
+                                                    checkPop: 'bg-emerald-500 text-white',
+                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+                                                    btnSubtlePop: 'bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800',
+                                                    btnSubtleReg: 'bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50',
+                                                    btnPrimary: 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/25'
                                                 }
                                             };
                                             const theme = themeColors[plan.color] || themeColors.blue;
@@ -2620,18 +2648,22 @@ export default function LandingPage() {
 
                                             return (
                                                 <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                                                    className={`relative w-[85vw] sm:w-[340px] lg:w-auto lg:flex-1 lg:min-w-[280px] lg:max-w-[380px] shrink-0 snap-center p-6 lg:p-8 rounded-[2.5rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
+                                                    className={`relative w-[85vw] sm:w-[300px] lg:w-auto lg:flex-1 lg:min-w-[260px] lg:max-w-[320px] shrink-0 snap-center p-5 lg:p-6 rounded-[2rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
                                                 >
-                                                    {isPopular && <div className={`absolute top-0 right-1/2 translate-x-1/2 px-4 py-1.5 bg-gradient-to-r from-emerald-400 to-emerald-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-emerald-500/20 whitespace-nowrap border-b border-x border-emerald-400/50`}>MOST POPULAR</div>}
+                                                    {isPopular && (
+                                                         <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-indigo-500/10 border-b border-x border-indigo-400/30 whitespace-nowrap z-10">
+                                                             MOST POPULAR
+                                                         </div>
+                                                     )}
                                                     {plan.trialDays > 0 && (
-                                                        <div className="mb-3 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                                                            {plan.trialDays}-Day Free Trial
-                                                        </div>
-                                                    )}
+                                                         <div className="absolute top-0 left-6 px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-emerald-500/10 border-b border-x border-emerald-400/30 whitespace-nowrap z-10 flex items-center gap-1.5">
+                                                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
+                                                             {plan.trialDays}-Day Trial
+                                                         </div>
+                                                     )}
 
-                                                    <h3 className="text-2xl font-bold mb-2 pt-2">{plan.name}</h3>
-                                                    <p className="text-sm mb-8 font-medium text-slate-500 dark:text-slate-400">{plan.description || 'Perfect for growing businesses.'}</p>
+                                                    <h3 className="text-xl font-bold mb-2 pt-2">{plan.name}</h3>
+                                                    <p className="text-xs mb-6 font-medium text-slate-500 dark:text-slate-400">{plan.description || 'Perfect for growing businesses.'}</p>
 
                                                     <div className="flex flex-col gap-1 mb-2 pb-10 border-b border-indigo-500/20 dark:border-white/10">
                                                         {originalPrice > displayPrice && (
@@ -2640,8 +2672,11 @@ export default function LandingPage() {
                                                             </span>
                                                         )}
                                                         <div className="flex items-baseline gap-1">
-                                                            <span className="text-5xl font-extrabold">{planCurrencySymbol}{displayPrice.toLocaleString()}</span>
-                                                            <span className="font-bold text-slate-500 dark:text-slate-400">/{displayInterval}</span>
+                                                            <span className="text-4xl font-extrabold">{planCurrencySymbol}{displayPrice.toLocaleString()}</span>
+                                                            <span className="font-bold text-slate-500 dark:text-slate-400">
+                                                                /{displayInterval}
+                                                                {plan.taxEnabled && <span className="text-[10px] ml-1 font-semibold opacity-70">({plan.taxText})</span>}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     {plan.trialDays > 0 && (
@@ -2650,55 +2685,101 @@ export default function LandingPage() {
                                                         </p>
                                                     )}
 
-                                                    <div className="space-y-6 mb-10 flex-1">
+                                                    <div className="space-y-5 mb-8 flex-1">
+                                                        {/* Meta Message Pricing Box */}
+                                                        {metaRates && (
+                                                            <div className="mb-6 relative rounded-xl bg-gradient-to-br from-emerald-50/10 to-green-50/5 dark:from-emerald-950/5 dark:to-green-950/5 border border-emerald-200/60 dark:border-emerald-900/40 shadow-sm">
+                                                                {/* Decorative subtle glows in a clipped wrapper */}
+                                                                <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
+                                                                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
+                                                                </div>
+                                                                
+                                                                <div className="relative p-4">
+                                                                    <div className="flex items-center justify-between mb-3">
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Template Rates</h4>
+                                                                        </div>
+                                                                        <div className="relative flex items-center justify-center group z-[100]">
+                                                                            <Info className="w-4 h-4 text-slate-400 hover:text-[#0088cc] transition-colors cursor-help" />
+                                                                            <div className="absolute right-0 bottom-full mb-2 w-64 p-3 bg-slate-900 text-white text-[11px] leading-relaxed font-medium rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none">
+                                                                                These are the official WhatsApp message rates charged directly by Meta. The rates shown are for {metaRates.country} and vary based on your recipient's country.
+                                                                                <div className="absolute -bottom-1 right-2 w-2 h-2 bg-slate-900 rotate-45"></div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <div className="space-y-2 text-xs font-semibold relative z-10">
+                                                                        <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                                                            <span className="text-slate-500 dark:text-slate-400">Marketing</span>
+                                                                            <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.marketing}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                                                            <span className="text-slate-500 dark:text-slate-400">Utility</span>
+                                                                            <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.utility}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                                                            <span className="text-slate-500 dark:text-slate-400">Authentication</span>
+                                                                            <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.authentication}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center pt-0.5">
+                                                                            <span className="text-emerald-600 dark:text-emerald-400">Service</span>
+                                                                            <span className="text-emerald-500">{metaRates.rates.service}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
                                                         {/* Core Limits */}
                                                         <div>
                                                             <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Core</div>
                                                             <ul className="space-y-3">
                                                                 <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                    <span>{plan.messageLimit.toLocaleString()} Messages/mo</span>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                    <span>{plan.messageLimit === -1 ? 'Unlimited' : plan.messageLimit.toLocaleString()} Messages/mo</span>
                                                                 </li>
                                                                 <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                    <span>{plan.contactLimit.toLocaleString()} Contacts</span>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                    <span>{plan.contactLimit === -1 ? 'Unlimited' : plan.contactLimit.toLocaleString()} Contacts</span>
                                                                 </li>
-                                                                {plan.templateLimit > 0 && (
+                                                                {(plan.templateLimit > 0 || plan.templateLimit === -1) && (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.templateLimit} Message Templates</span>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.templateLimit === -1 ? 'Unlimited' : plan.templateLimit} Message Templates</span>
                                                                     </li>
                                                                 )}
-                                                                {plan.teamMemberLimit > 0 && (
+                                                                {(plan.teamMemberLimit > 0 || plan.teamMemberLimit === -1) && (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.teamMemberLimit} Team Members</span>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.teamMemberLimit === -1 ? 'Unlimited' : plan.teamMemberLimit} Team Members</span>
                                                                     </li>
                                                                 )}
-                                                                {plan.vcardLimit > 0 ? (
+                                                                {plan.vcardLimit > 0 || plan.vcardLimit === -1 ? (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.vcardLimit} VeCards</span>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.vcardLimit === -1 ? 'Unlimited' : plan.vcardLimit} VeCards</span>
                                                                     </li>
                                                                 ) : (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white"><X className="w-3 h-3" /></div>
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
                                                                         <span className="text-slate-900 dark:text-white">VeCards</span>
                                                                     </li>
                                                                 )}
-                                                                {plan.waStoreLimit > 0 ? (
+                                                                {plan.waStoreLimit > 0 || plan.waStoreLimit === -1 ? (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.waStoreLimit} Online Stores</span>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Stores</span>
                                                                     </li>
                                                                 ) : (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white"><X className="w-3 h-3" /></div>
+                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
                                                                         <span className="text-slate-900 dark:text-white">Online Stores</span>
                                                                     </li>
                                                                 )}
                                                                 <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-70' : ''}`}>
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
                                                                         {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                                                     </div>
                                                                     <span className={!plan.flowBotEnabled ? "text-slate-900 dark:text-white" : ""}>AI FlowBot Builder</span>
@@ -2707,26 +2788,26 @@ export default function LandingPage() {
                                                         </div>
 
                                                         {/* Capabilities */}
-                                                        {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
+                                                        {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
                                                             <div>
                                                                 <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Add-ons</div>
                                                                 <ul className="space-y-3">
                                                                     <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowApiAccess ? 'opacity-70' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white'}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
                                                                             {plan.allowApiAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                                                         </div>
                                                                         <span className={!plan.allowApiAccess ? "text-slate-900 dark:text-white" : ""}>Developer API Access</span>
                                                                     </li>
 
-                                                                    {plan.aiTokensAllowance > 0 && (
+                                                                    {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1) && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.aiTokensAllowance === -1 ? 'Unlimited' : plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
                                                                         </li>
                                                                     )}
                                                                     {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
                                                                         <li className="flex items-start gap-3 text-sm font-semibold">
-                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                             <div className="flex flex-col">
                                                                                 <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
                                                                                 <ul className="mt-2 space-y-1.5">
@@ -2748,33 +2829,33 @@ export default function LandingPage() {
                                                         <div>
                                                             <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Features</div>
                                                             <ul className="space-y-3">
-                                                                {plan.quickReplyLimit > 0 && (
+                                                                {(plan.quickReplyLimit > 0 || plan.quickReplyLimit === -1) && (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.quickReplyLimit} Quick Replies</span>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.quickReplyLimit === -1 ? 'Unlimited' : plan.quickReplyLimit} Quick Replies</span>
                                                                     </li>
                                                                 )}
-                                                                {plan.tagLimit > 0 && (
+                                                                {(plan.tagLimit > 0 || plan.tagLimit === -1) && (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.tagLimit} Contact Tags</span>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.tagLimit === -1 ? 'Unlimited' : plan.tagLimit} Contact Tags</span>
                                                                     </li>
                                                                 )}
-                                                                {plan.groupLimit > 0 && (
+                                                                {(plan.groupLimit > 0 || plan.groupLimit === -1) && (
                                                                     <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.groupLimit} Contact Groups</span>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.groupLimit === -1 ? 'Unlimited' : plan.groupLimit} Contact Groups</span>
                                                                     </li>
                                                                 )}
                                                                 {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
                                                                     <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-500 text-white"><Check className="w-3 h-3" /></div>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
                                                                         <span className="leading-tight">{feat}</span>
                                                                     </li>
                                                                 ))}
                                                                 {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => (
                                                                     <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50 grayscale' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
                                                                             {(!feat.qty || feat.qty === '0') ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
                                                                         </div>
                                                                         <span className="leading-tight">
@@ -2784,13 +2865,13 @@ export default function LandingPage() {
                                                                     </li>
                                                                 ))}
                                                                 <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-50 grayscale' : ''}`}>
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowCtwaAnalytics ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowCtwaAnalytics ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
                                                                         {!plan.allowCtwaAnalytics ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
                                                                     </div>
                                                                     <span className="leading-tight">Click to WhatsApp Ads</span>
                                                                 </li>
                                                                 <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-50 grayscale' : ''}`}>
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowMetaAds ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowMetaAds ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
                                                                         {!plan.allowMetaAds ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
                                                                     </div>
                                                                     <span className="leading-tight">Meta Ads Marketing</span>
@@ -2804,19 +2885,19 @@ export default function LandingPage() {
                                                         <div className="flex flex-col gap-2 mt-auto">
                                                             <Link
                                                                 to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`}
-                                                                className="w-full py-4 rounded-xl font-bold text-center transition-all text-sm bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25"
+                                                                className={`w-full py-4 rounded-xl font-bold text-center transition-all text-sm bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20`}
                                                             >
                                                                 Choose {plan.name} — {currencySymbol}{displayPrice.toLocaleString()}/{displayInterval}
                                                             </Link>
                                                             <Link
                                                                 to={`/register?plan=${plan.id}&trial=true`}
-                                                                className="w-full py-3 rounded-xl font-bold text-center text-xs transition-all bg-sky-50 hover:bg-sky-100 dark:bg-sky-500/10 dark:hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-500/20 shadow-sm"
+                                                                className={`w-full py-3 rounded-xl font-bold text-center text-xs transition-all border shadow-sm bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50`}
                                                             >
                                                                 🎉 Try {plan.trialDays} days free trial
                                                             </Link>
                                                         </div>
                                                     ) : (
-                                                        <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className="w-full py-4 rounded-xl font-bold text-center transition-all bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 mt-auto">
+                                                        <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all mt-auto bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20`}>
                                                             Choose {plan.name}
                                                         </Link>
                                                     )}

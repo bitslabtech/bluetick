@@ -46,6 +46,12 @@ const Contact = sequelize.define('Contact', {
         type: DataTypes.JSONB,
         allowNull: true,
         comment: 'Stores origin ad referral data (e.g. source_id, headline) if contact was created via a Click to WhatsApp Ad'
+    },
+    tagExpiry: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Maps tag names to their expiry ISO timestamps. e.g. { "Flash_Sale": "2026-06-24T12:00:00Z" }. Null means all tags are permanent.'
     }
 }, {
     timestamps: true,

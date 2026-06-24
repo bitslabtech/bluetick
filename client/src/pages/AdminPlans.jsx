@@ -9,6 +9,7 @@ import ThemeToggle from '../components/ThemeToggle';
 const AdminPlans = () => {
     const { user } = useAuth();
     const { showModal, showToast } = useUI();
+    const token = user?.token || localStorage.getItem('token');
     const [activeTab, setActiveTab] = useState('plans');
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -19,7 +20,12 @@ const AdminPlans = () => {
     const [editingPlan, setEditingPlan] = useState(null);
     const [availableAddons, setAvailableAddons] = useState([]);
 
-    // ────── Store State ──────
+    // ────── Meta Rates State ──────
+    const [metaRatesForm, setMetaRatesForm] = useState({ marketing: '', utility: '', authentication: '', currency: 'INR', symbol: '₹', country: 'India' });
+    const [metaRatesLoading, setMetaRatesLoading] = useState(false);
+    const [metaRatesSaving, setMetaRatesSaving] = useState(false);
+    const [metaRatesLastUpdated, setMetaRatesLastUpdated] = useState(null);
+
     const [storeItems, setStoreItems] = useState([]);
     const [storeLoading, setStoreLoading] = useState(true);
     const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
@@ -28,6 +34,7 @@ const AdminPlans = () => {
     useEffect(() => {
         fetchPlans();
         fetchStoreItems();
+        fetchMetaRates();
     }, []);
 
     // ════════════════════════════════════
@@ -46,6 +53,45 @@ const AdminPlans = () => {
             console.error("Error fetching plans:", err);
         } finally {
             setPlansLoading(false);
+        }
+    };
+
+    const fetchMetaRates = async () => {
+        setMetaRatesLoading(true);
+        try {
+            const res = await axios.get('/api/plans/meta-rates');
+            if (res.data) {
+                setMetaRatesForm({
+                    marketing: res.data.rates?.marketing || '',
+                    utility: res.data.rates?.utility || '',
+                    authentication: res.data.rates?.authentication || '',
+                    currency: res.data.currency || 'INR',
+                    symbol: res.data.symbol || '₹',
+                    country: res.data.country || 'India',
+                });
+                setMetaRatesLastUpdated(res.data.updatedAt || res.data.persistedAt || null);
+            }
+        } catch (err) {
+            console.error('Error fetching meta rates:', err);
+        } finally {
+            setMetaRatesLoading(false);
+        }
+    };
+
+    const saveMetaRates = async () => {
+        if (!metaRatesForm.marketing || !metaRatesForm.utility || !metaRatesForm.authentication) {
+            showToast({ type: 'error', message: 'Please fill in all three rate fields.' });
+            return;
+        }
+        setMetaRatesSaving(true);
+        try {
+            await axios.post('/api/plans/meta-rates', metaRatesForm, { headers: { Authorization: `Bearer ${token}` } });
+            showToast({ type: 'success', message: 'Meta rates saved successfully.' });
+            setMetaRatesLastUpdated(new Date().toISOString());
+        } catch (err) {
+            showToast({ type: 'error', message: 'Failed to save rates.' });
+        } finally {
+            setMetaRatesSaving(false);
         }
     };
 
@@ -131,7 +177,8 @@ const AdminPlans = () => {
 
     const tabs = [
         { key: 'plans', label: 'Subscription Plans', icon: CreditCard, count: plans.length },
-        { key: 'topups', label: 'Store Top-ups', icon: Store, count: storeItems.length }
+        { key: 'topups', label: 'Store Top-ups', icon: Store, count: storeItems.length },
+        { key: 'meta-rates', label: 'Meta Rates', icon: MessageSquare, count: '' },
     ];
 
     return (
@@ -233,6 +280,103 @@ const AdminPlans = () => {
                 )}
 
 
+                {/* ════════ Meta Rates Tab ════════ */}
+                {activeTab === 'meta-rates' && (
+                    <div className="max-w-xl">
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm p-6 space-y-6">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <MessageSquare className="w-5 h-5 text-[#0088cc]" />
+                                    WhatsApp Template Message Rates
+                                </h2>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                    Enter the official per-message rates charged directly by Meta. These are displayed on all pricing cards so users understand the Meta cost.
+                                    Always verify from <a href="https://developers.facebook.com/docs/whatsapp/pricing" target="_blank" rel="noreferrer" className="text-[#0088cc] underline">Meta's official pricing page</a>.
+                                </p>
+                            </div>
+
+                            {metaRatesLoading ? (
+                                <div className="flex items-center gap-2 text-slate-400"><Loader2 className="w-4 h-4 animate-spin" /> Loading current rates...</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Currency</label>
+                                            <input
+                                                type="text"
+                                                value={metaRatesForm.currency}
+                                                onChange={e => setMetaRatesForm(f => ({ ...f, currency: e.target.value }))}
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0088cc]/40"
+                                                placeholder="INR"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Symbol</label>
+                                            <input
+                                                type="text"
+                                                value={metaRatesForm.symbol}
+                                                onChange={e => setMetaRatesForm(f => ({ ...f, symbol: e.target.value }))}
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0088cc]/40"
+                                                placeholder="₹"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Country / Region</label>
+                                        <input
+                                            type="text"
+                                            value={metaRatesForm.country}
+                                            onChange={e => setMetaRatesForm(f => ({ ...f, country: e.target.value }))}
+                                            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0088cc]/40"
+                                            placeholder="India"
+                                        />
+                                    </div>
+
+                                    <div className="border-t border-slate-100 dark:border-white/5 pt-4 space-y-3">
+                                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Per-Message Rates</p>
+                                        {[{ key: 'marketing', label: 'Marketing' }, { key: 'utility', label: 'Utility' }, { key: 'authentication', label: 'Authentication' }].map(({ key, label }) => (
+                                            <div key={key} className="flex items-center gap-3">
+                                                <span className="w-32 text-sm font-semibold text-slate-700 dark:text-slate-300 shrink-0">{label}</span>
+                                                <div className="relative flex-1">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">{metaRatesForm.symbol}</span>
+                                                    <input
+                                                        type="number"
+                                                        step="0.001"
+                                                        min="0"
+                                                        value={metaRatesForm[key]}
+                                                        onChange={e => setMetaRatesForm(f => ({ ...f, [key]: e.target.value }))}
+                                                        className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0088cc]/40"
+                                                        placeholder="0.00"
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-32 text-sm font-semibold text-slate-700 dark:text-slate-300 shrink-0">Service</span>
+                                            <span className="px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-sm font-bold border border-emerald-100 dark:border-emerald-500/20">Free (always)</span>
+                                        </div>
+                                    </div>
+
+                                    {metaRatesLastUpdated && (
+                                        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                                            Last updated: {new Date(metaRatesLastUpdated).toLocaleString()}
+                                        </p>
+                                    )}
+
+                                    <button
+                                        onClick={saveMetaRates}
+                                        disabled={metaRatesSaving}
+                                        className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0088cc] text-white font-bold rounded-xl hover:bg-[#0077b3] transition-all disabled:opacity-60"
+                                    >
+                                        {metaRatesSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                        {metaRatesSaving ? 'Saving...' : 'Save Rates'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
             </main>
 
             {/* ════════ Modals ════════ */}
@@ -262,17 +406,63 @@ const AdminPlans = () => {
 const PlanCard = ({ plan, onEdit, onDelete }) => {
     const isPopular = plan.isPopular;
     const themeColors = {
-        blue: { bg: 'bg-blue-600', text: 'text-blue-600', light: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200' },
-        green: { bg: 'bg-green-600', text: 'text-green-600', light: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200' },
-        amber: { bg: 'bg-amber-500', text: 'text-amber-600', light: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200' },
-        emerald: { bg: 'bg-emerald-600', text: 'text-emerald-600', light: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200' },
+        blue: { 
+            bg: 'bg-blue-600', 
+            text: 'text-blue-600', 
+            light: 'bg-blue-50/30 dark:bg-blue-900/5', 
+            border: 'border-blue-200', 
+            borderPop: 'border-blue-500 dark:border-blue-500', 
+            shadowPop: 'shadow-blue-500/10',
+            btnPop: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20',
+            check: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+        },
+        green: { 
+            bg: 'bg-green-600', 
+            text: 'text-green-600', 
+            light: 'bg-green-50/30 dark:bg-green-900/5', 
+            border: 'border-green-200', 
+            borderPop: 'border-green-500 dark:border-green-500', 
+            shadowPop: 'shadow-green-500/10',
+            btnPop: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20',
+            check: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+        },
+        amber: { 
+            bg: 'bg-amber-500', 
+            text: 'text-amber-600', 
+            light: 'bg-amber-50/30 dark:bg-amber-900/5', 
+            border: 'border-amber-200', 
+            borderPop: 'border-amber-500 dark:border-amber-500', 
+            shadowPop: 'shadow-amber-500/10',
+            btnPop: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20',
+            check: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+        },
+        emerald: { 
+            bg: 'bg-emerald-600', 
+            text: 'text-emerald-600', 
+            light: 'bg-emerald-50/30 dark:bg-emerald-900/5', 
+            border: 'border-emerald-200', 
+            borderPop: 'border-emerald-500 dark:border-emerald-500', 
+            shadowPop: 'shadow-emerald-500/10',
+            btnPop: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20',
+            check: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+        },
+        purple: { 
+            bg: 'bg-purple-600', 
+            text: 'text-purple-600', 
+            light: 'bg-purple-50/30 dark:bg-purple-900/5', 
+            border: 'border-purple-200', 
+            borderPop: 'border-purple-500 dark:border-purple-500', 
+            shadowPop: 'shadow-purple-500/10',
+            btnPop: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20',
+            check: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+        },
     };
     const theme = themeColors[plan.color] || themeColors.blue;
 
     return (
-        <div className={`relative bg-white dark:bg-surface-dark rounded-2xl p-8 border ${isPopular ? 'border-indigo-500 dark:border-indigo-500 shadow-xl shadow-indigo-500/10' : 'border-slate-200 dark:border-white/5 shadow-sm'} flex flex-col transition-all hover:scale-[1.02]`}>
+        <div className={`relative ${isPopular ? theme.light : 'bg-white dark:bg-surface-dark'} rounded-2xl p-8 border ${isPopular ? `${theme.borderPop} shadow-xl ${theme.shadowPop}` : 'border-slate-200 dark:border-white/5 shadow-sm'} flex flex-col transition-all hover:scale-[1.02]`}>
             {isPopular && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg">
+                <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r ${plan.color === 'emerald' ? 'from-emerald-500 to-green-600' : plan.color === 'green' ? 'from-green-500 to-teal-600' : plan.color === 'amber' ? 'from-amber-500 to-orange-600' : plan.color === 'purple' ? 'from-purple-500 to-indigo-600' : 'from-blue-500 to-indigo-600'} text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg`}>
                     Most Popular
                 </div>
             )}
@@ -394,7 +584,7 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
             <div className="space-y-4 mb-8 flex-1">
                 {plan.features?.map((feature, idx) => (
                     <div key={idx} className="flex items-start gap-3">
-                        <div className="mt-1 p-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                        <div className={`mt-1 p-0.5 rounded-full ${theme.check}`}>
                             <Check className="w-3 h-3" />
                         </div>
                         <span className="text-sm text-slate-600 dark:text-slate-300">{feature}</span>
@@ -402,7 +592,7 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
                 ))}
             </div>
 
-            <button className={`w-full py-3 rounded-xl font-bold transition-all ${isPopular ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25' : 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-white/20'}`}>
+            <button className={`w-full py-3 rounded-xl font-bold transition-all ${isPopular ? theme.btnPop : 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-white/20'}`}>
                 Choose {plan.name}
             </button>
         </div>
@@ -594,6 +784,8 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         vcardLimit: plan?.vcardLimit || 0,
         allowWaStore: plan?.allowWaStore || false,
         waStoreLimit: plan?.waStoreLimit || 0,
+        taxEnabled: plan?.taxEnabled || false,
+        taxText: plan?.taxText || 'excluding 18% GST',
         flowBotEnabled: plan?.flowBotEnabled || false,
     });
 
@@ -714,6 +906,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                 <option value="green">Green (Success)</option>
                                                 <option value="amber">Amber (Gold)</option>
                                                 <option value="emerald">Emerald (Growth)</option>
+                                                <option value="purple">Purple (Creative)</option>
                                             </select>
                                         </div>
                                     </div>
@@ -760,6 +953,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">{formData.currency === 'INR' ? '₹' : formData.currency === 'EUR' ? '€' : '$'}</span>
                                                 <input type="number" step="0.01" name="monthlyPrice" value={formData.monthlyPrice} onChange={handleChange} className="modern-input pl-8" placeholder="0.00" />
                                             </div>
+                                            <p className="text-[10px] text-slate-400 mt-1">Optional. Leave blank to disable.</p>
                                         </div>
                                         <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10">
                                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Half-Yearly Price</label>
@@ -767,6 +961,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">{formData.currency === 'INR' ? '₹' : formData.currency === 'EUR' ? '€' : '$'}</span>
                                                 <input type="number" step="0.01" name="halfYearlyPrice" value={formData.halfYearlyPrice} onChange={handleChange} className="modern-input pl-8" placeholder="0.00" />
                                             </div>
+                                            <p className="text-[10px] text-slate-400 mt-1">Optional. Leave blank to disable.</p>
                                         </div>
                                         <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10">
                                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Yearly Price</label>
@@ -775,6 +970,26 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                 <input type="number" step="0.01" name="yearlyPrice" value={formData.yearlyPrice} onChange={handleChange} className="modern-input pl-8" placeholder="0.00" />
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* Taxation Section */}
+                                    <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-200 dark:border-white/10 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Enable Taxation Label</h4>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Show tax info next to the price on the landing page</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" className="sr-only peer" checked={formData.taxEnabled} onChange={(e) => setFormData(p => ({ ...p, taxEnabled: e.target.checked }))} />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-[#0088cc]"></div>
+                                            </label>
+                                        </div>
+                                        {formData.taxEnabled && (
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tax Text</label>
+                                                <input type="text" name="taxText" value={formData.taxText} onChange={handleChange} className="modern-input" placeholder="e.g. excluding 18% GST" />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

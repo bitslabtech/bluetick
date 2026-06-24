@@ -6,6 +6,9 @@ const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const logActivity = require('../utils/logger');
 const cacheManager = require('../utils/cacheManager');
+const axios = require('axios');
+const Settings = require('../models/Settings');
+const SystemConfig = require('../models/SystemConfig');
 const _publicPlansCache = cacheManager.createSimpleCache('public_plans', 60_000);
 
 // GET All Plans (Admin - shows all plans)
@@ -59,8 +62,107 @@ router.get('/default', async (req, res) => {
     }
 });
 
+const _metaRatesCache = cacheManager.createSimpleCache('meta_rates', 24 * 60 * 60 * 1000); // 24-hour TTL
+
+/**
+ * Persist admin-set rates to SystemConfig.settings so they survive
+ * server restarts and are served consistently across all instances.
+ */
+async function persistMetaRates(rates) {
+    try {
+        const config = await SystemConfig.getConfig();
+        const currentSettings = config.settings || {};
+        await config.update({
+            settings: {
+                ...currentSettings,
+                metaRatesCache: {
+                    ...rates,
+                    persistedAt: new Date().toISOString()
+                }
+            }
+        });
+    } catch (err) {
+        console.warn('[META RATES] Could not persist rates to DB:', err.message);
+    }
+}
+
+/**
+ * Read the admin-set Meta rates from DB.
+ * Returns null if no rates have been configured yet.
+ */
+async function getPersistedMetaRates() {
+    try {
+        const config = await SystemConfig.getConfig();
+        return config.settings?.metaRatesCache || null;
+    } catch (err) {
+        console.warn('[META RATES] Could not read rates from DB:', err.message);
+        return null;
+    }
+}
+
+// GET /api/plans/meta-rates
+// Returns WhatsApp per-message template rates (24h server-side cache).
+// Rates are configured by the admin via POST /api/plans/meta-rates (auth required).
+// Returns null if no rates have been configured yet — UI hides section.
+router.get('/meta-rates', async (req, res) => {
+    try {
+        // Serve from 24h in-memory cache first
+        const cached = _metaRatesCache.get();
+        if (cached) return res.json(cached);
+
+        // Read from DB (admin-configured)
+        const rates = await getPersistedMetaRates();
+        if (rates) {
+            _metaRatesCache.set(rates);
+            return res.json(rates);
+        }
+
+        // No rates configured yet — UI will hide the section
+        return res.json(null);
+    } catch (err) {
+        console.error('[META RATES] Unexpected error:', err);
+        res.json(null);
+    }
+});
+
+
 // Protect all subsequent routes with Auth + Admin
 router.use(auth, admin);
+
+// POST /api/plans/meta-rates (Admin only)
+// Set/update the WhatsApp per-message template rates shown on pricing cards.
+// Admin looks up the official rates from Meta's pricing page and enters them here.
+// Rates are stored in SystemConfig.settings.metaRatesCache and cached in-memory for 24h.
+router.post('/meta-rates', async (req, res) => {
+    try {
+        const { marketing, utility, authentication, currency, symbol, country } = req.body;
+
+        if (!marketing || !utility || !authentication) {
+            return res.status(400).json({ error: 'marketing, utility, and authentication rates are required' });
+        }
+
+        const rates = {
+            currency: currency || 'INR',
+            symbol: symbol || '\u20B9',
+            country: country || 'India',
+            source: 'admin',
+            updatedAt: new Date().toISOString(),
+            rates: {
+                marketing: String(marketing),
+                utility: String(utility),
+                authentication: String(authentication),
+                service: 'Free'
+            }
+        };
+
+        await persistMetaRates(rates);
+        _metaRatesCache.set(rates); // Update in-memory cache immediately
+        res.json({ success: true, rates });
+    } catch (err) {
+        console.error('[META RATES] Error saving rates:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
 
 // POST Create Plan
 router.post('/', async (req, res) => {
@@ -70,7 +172,7 @@ router.post('/', async (req, res) => {
             features, color, isPopular, isActive, isDefault, isPublic, messageLimit, contactLimit, 
             templateLimit, aiTokensAllowance, includedAddons, teamMemberLimit, allowApiAccess, trialDays,
             quickReplyLimit, tagLimit, groupLimit, allowCtwaAnalytics, allowMetaAds,
-            allowVcard, vcardLimit, coreFeatures
+            allowVcard, vcardLimit, coreFeatures, taxEnabled, taxText
         } = req.body;
 
         if (!name) return res.status(400).json({ error: 'Plan name is required' });
@@ -113,7 +215,9 @@ router.post('/', async (req, res) => {
             allowVcard: allowVcard || false,
             vcardLimit: vcardLimit || 0,
             isDefault: isDefault || false,
-            isPublic: isPublic !== undefined ? isPublic : true
+            isPublic: isPublic !== undefined ? isPublic : true,
+            taxEnabled: taxEnabled || false,
+            taxText: taxText || 'excluding 18% GST'
         });
 
         // Sync core features across all plans

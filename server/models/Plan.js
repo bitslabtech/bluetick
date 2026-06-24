@@ -38,6 +38,15 @@ const Plan = sequelize.define('Plan', {
         type: DataTypes.STRING,
         defaultValue: 'USD'
     },
+    taxEnabled: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    taxText: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: 'excluding 18% GST'
+    },
     interval: {
         type: DataTypes.ENUM('month', 'year', 'lifetime', 'half-year'),
         defaultValue: 'month',

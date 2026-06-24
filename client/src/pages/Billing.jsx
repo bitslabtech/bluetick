@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
     Sparkles, Zap, Check, X, MessageSquare, Users, Layout,
-    Clock, TrendingUp, Shield, ChevronRight, RefreshCw, Menu
+    Clock, TrendingUp, Shield, ChevronRight, RefreshCw, Menu, Info
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
@@ -12,16 +12,8 @@ import UserDropdown from '../components/UserDropdown';
 
 const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
-// Color themes for plan cards
+// Color themes for plan cards — must match the color options in AdminPlans
 const PLAN_THEMES = {
-    default: {
-        gradient: 'from-slate-600 via-slate-700 to-slate-800',
-        badge: 'bg-slate-100 text-slate-700',
-        btn: 'bg-white text-slate-900 hover:bg-slate-50',
-        glow: 'shadow-slate-500/20',
-        accent: 'text-slate-400',
-        ring: 'ring-slate-400/30'
-    },
     blue: {
         gradient: 'from-blue-500 via-indigo-600 to-violet-700',
         badge: 'bg-blue-100 text-blue-700',
@@ -30,13 +22,21 @@ const PLAN_THEMES = {
         accent: 'text-indigo-300',
         ring: 'ring-indigo-500/40'
     },
-    purple: {
-        gradient: 'from-violet-500 via-purple-600 to-fuchsia-700',
-        badge: 'bg-purple-100 text-purple-700',
-        btn: 'bg-white text-purple-900 hover:bg-purple-50',
-        glow: 'shadow-purple-500/30',
-        accent: 'text-purple-300',
-        ring: 'ring-purple-500/40'
+    green: {
+        gradient: 'from-green-400 via-green-500 to-teal-600',
+        badge: 'bg-green-100 text-green-700',
+        btn: 'bg-white text-green-900 hover:bg-green-50',
+        glow: 'shadow-green-500/30',
+        accent: 'text-green-200',
+        ring: 'ring-green-500/40'
+    },
+    emerald: {
+        gradient: 'from-emerald-400 via-emerald-500 to-green-700',
+        badge: 'bg-emerald-100 text-emerald-700',
+        btn: 'bg-white text-emerald-900 hover:bg-emerald-50',
+        glow: 'shadow-emerald-500/30',
+        accent: 'text-emerald-200',
+        ring: 'ring-emerald-500/40'
     },
     amber: {
         gradient: 'from-amber-400 via-orange-500 to-red-600',
@@ -45,6 +45,14 @@ const PLAN_THEMES = {
         glow: 'shadow-orange-500/30',
         accent: 'text-orange-200',
         ring: 'ring-orange-400/40'
+    },
+    purple: {
+        gradient: 'from-violet-500 via-purple-600 to-fuchsia-700',
+        badge: 'bg-purple-100 text-purple-700',
+        btn: 'bg-white text-purple-900 hover:bg-purple-50',
+        glow: 'shadow-purple-500/30',
+        accent: 'text-purple-300',
+        ring: 'ring-purple-500/40'
     }
 };
 
@@ -85,7 +93,7 @@ const UsageBar = ({ label, icon, used, limit, color }) => {
     );
 };
 
-const PlanCard = ({ plan, currentPlan, billingInterval, usage, onUpgrade }) => {
+const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgrade }) => {
     const currentPlanName = currentPlan?.name || 'Free';
     const isCurrent = plan.name === currentPlanName;
     
@@ -156,23 +164,74 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, onUpgrade }) => {
             )}
 
             {/* Header Gradient */}
-            <div className={`relative p-7 pb-8 bg-gradient-to-br ${theme.gradient} text-white`}>
+            <div className={`relative p-5 pb-6 bg-gradient-to-br ${theme.gradient} text-white`}>
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10" />
                 <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
                 <div className="relative z-10">
                     <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
                     {plan.description && (
-                        <p className={`text-sm mb-4 ${theme.accent}`}>{plan.description}</p>
+                        <p className={`text-xs mb-3 ${theme.accent}`}>{plan.description}</p>
                     )}
                     <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-black tracking-tight">{currency}{displayPrice.toLocaleString()}</span>
-                        {intervalLbl && <span className="text-white/60 text-sm font-medium">{intervalLbl}</span>}
+                        <span className="text-3xl font-black tracking-tight">{currency}{displayPrice.toLocaleString()}</span>
+                        {intervalLbl && (
+                            <span className="text-white/60 text-sm font-medium">
+                                {intervalLbl}
+                                {plan.taxEnabled && <span className="text-[10px] ml-1 opacity-80">({plan.taxText})</span>}
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* Body */}
-            <div className="flex-1 flex flex-col bg-white dark:bg-surface-dark p-4 md:p-6 gap-5">
+            <div className="flex-1 flex flex-col bg-white dark:bg-surface-dark p-4 md:p-5 gap-4">
+                {/* Meta Message Pricing Box */}
+                {metaRates && (
+                    <div className="relative rounded-xl bg-gradient-to-br from-emerald-50/10 to-green-50/5 dark:from-emerald-950/5 dark:to-green-950/5 border border-emerald-200/60 dark:border-emerald-900/40 shadow-sm">
+                        {/* Decorative subtle glows in a clipped wrapper */}
+                        <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
+                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
+                        </div>
+                        
+                        <div className="relative p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-1.5">
+                                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Template Rates</h4>
+                                </div>
+                                <div className="relative flex items-center justify-center group z-[100]">
+                                    <Info className="w-4 h-4 text-slate-400 hover:text-[#0088cc] transition-colors cursor-help" />
+                                    <div className="absolute right-0 bottom-full mb-2 w-64 p-3 bg-slate-900 text-white text-[11px] leading-relaxed font-medium rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none">
+                                        These are the official WhatsApp message rates charged directly by Meta. The rates shown are for {metaRates.country} and vary based on your recipient's country.
+                                        <div className="absolute -bottom-1 right-2 w-2 h-2 bg-slate-900 rotate-45"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2 text-xs font-semibold relative z-10">
+                                <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                    <span className="text-slate-500 dark:text-slate-400">Marketing</span>
+                                    <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.marketing}</span>
+                                </div>
+                                <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                    <span className="text-slate-500 dark:text-slate-400">Utility</span>
+                                    <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.utility}</span>
+                                </div>
+                                <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                    <span className="text-slate-500 dark:text-slate-400">Authentication</span>
+                                    <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.authentication}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-0.5">
+                                    <span className="text-emerald-600 dark:text-emerald-400">Service</span>
+                                    <span className="text-emerald-500">{metaRates.rates.service}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Limits */}
                 <div className="space-y-3">
                     <LimitRow icon={MessageSquare} label="Messages / month" value={plan.messageLimit} />
@@ -182,67 +241,92 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, onUpgrade }) => {
 
                 {/* Features */}
                 {plan.features?.length > 0 && (
-                    <div className="border-t border-slate-100 dark:border-white/5 pt-4 space-y-2">
+                    <div className="border-t border-slate-100 dark:border-white/5 pt-4 space-y-3">
                         {plan.features.map((f, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                {f}
+                            <div key={i} className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                                    <Check className="w-3 h-3" />
+                                </div>
+                                <span>{f}</span>
                             </div>
                         ))}
-                        {plan.coreFeatures?.map((feat, fi) => (
-                            <div key={`core-${fi}`} className={`flex items-center gap-2 text-sm ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500 opacity-70' : 'text-slate-600 dark:text-slate-300'}`}>
-                                {(!feat.qty || feat.qty === '0') ? (
-                                    <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
-                                ) : (
-                                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                )}
-                                <span>
-                                    {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
-                                    {feat.name}
-                                </span>
-                            </div>
-                        ))}
+                        {plan.coreFeatures?.map((feat, fi) => {
+                            const isAvailable = feat.qty && feat.qty !== '0';
+                            return (
+                                <div key={`core-${fi}`} className={`flex items-center gap-3 text-sm ${!isAvailable ? 'text-slate-400 dark:text-slate-500 opacity-70' : 'text-slate-600 dark:text-slate-300'}`}>
+                                    {isAvailable ? (
+                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                                            <Check className="w-3 h-3" />
+                                        </div>
+                                    ) : (
+                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                                            <X className="w-3 h-3" />
+                                        </div>
+                                    )}
+                                    <span>
+                                        {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                        {feat.name}
+                                    </span>
+                                </div>
+                            );
+                        })}
                         {plan.allowWaStore ? (
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                Online Store Builder (Limit: {plan.waStoreLimit})
+                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                                    <Check className="w-3 h-3" />
+                                </div>
+                                <span>Online Store Builder (Limit: {plan.waStoreLimit})</span>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
-                                <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                            <div className="flex items-center gap-3 text-sm text-slate-400 dark:text-slate-500 opacity-70">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                                    <X className="w-3 h-3" />
+                                </div>
                                 <span>Online Store Builder</span>
                             </div>
                         )}
                         {plan.allowVcard ? (
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                Digital VeCards (Limit: {plan.vcardLimit})
+                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                                    <Check className="w-3 h-3" />
+                                </div>
+                                <span>Digital VeCards (Limit: {plan.vcardLimit})</span>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
-                                <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                            <div className="flex items-center gap-3 text-sm text-slate-400 dark:text-slate-500 opacity-70">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                                    <X className="w-3 h-3" />
+                                </div>
                                 <span>Digital VeCards</span>
                             </div>
                         )}
                         {plan.allowCtwaAnalytics ? (
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                Click to WhatsApp Ads
+                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                                    <Check className="w-3 h-3" />
+                                </div>
+                                <span>Click to WhatsApp Ads</span>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
-                                <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                            <div className="flex items-center gap-3 text-sm text-slate-400 dark:text-slate-500 opacity-70">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                                    <X className="w-3 h-3" />
+                                </div>
                                 <span>Click to WhatsApp Ads</span>
                             </div>
                         )}
                         {plan.allowMetaAds ? (
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                                Meta Ads Marketing
+                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                                    <Check className="w-3 h-3" />
+                                </div>
+                                <span>Meta Ads Marketing</span>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500 opacity-70">
-                                <X className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                            <div className="flex items-center gap-3 text-sm text-slate-400 dark:text-slate-500 opacity-70">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                                    <X className="w-3 h-3" />
+                                </div>
                                 <span>Meta Ads Marketing</span>
                             </div>
                         )}
@@ -283,7 +367,7 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, onUpgrade }) => {
                     ) : (
                         <button
                             onClick={() => onUpgrade(plan, intervalCode)}
-                            className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl active:scale-95 bg-gradient-to-r ${theme.gradient} text-white hover:opacity-90`}
+                            className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl active:scale-95 bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 text-white hover:opacity-90`}
                         >
                             <Zap className="w-4 h-4" />
                             Upgrade to {plan.name}
@@ -316,18 +400,23 @@ const Billing = () => {
     const { user } = useAuth();
     const [billingInfo, setBillingInfo] = useState(null);
     const [plans, setPlans] = useState([]);
+    const [metaRates, setMetaRates] = useState(null);
     const [billingInterval, setBillingInterval] = useState('yearly');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [billingRes, plansRes] = await Promise.all([
+                const [billingRes, plansRes, metaRatesRes] = await Promise.all([
                     axios.get(`${API_BASE}/api/billing`),
-                    axios.get(`${API_BASE}/api/plans/public`)
+                    axios.get(`${API_BASE}/api/plans/public`),
+                    axios.get(`${API_BASE}/api/plans/meta-rates`).catch(() => ({ data: null }))
                 ]);
                 setBillingInfo(billingRes.data);
                 setPlans(plansRes.data);
+                if (metaRatesRes && metaRatesRes.data) {
+                    setMetaRates(metaRatesRes.data);
+                }
             } catch (err) {
                 console.error('Billing fetch error:', err);
             } finally {
@@ -530,12 +619,13 @@ const Billing = () => {
                             ) : (
                                 <div className="flex flex-wrap justify-center gap-6">
                                     {plans.map(p => (
-                                        <div key={p.id} className="w-full sm:w-[calc(50%-1.5rem)] lg:w-[calc(33.333%-1.5rem)] xl:w-[calc(25%-1.5rem)] max-w-[340px] flex flex-col">
+                                        <div key={p.id} className="w-full sm:w-[calc(50%-1.5rem)] lg:w-[calc(33.333%-1.5rem)] xl:w-[calc(25%-1.5rem)] max-w-[300px] flex flex-col">
                                             <PlanCard
                                                 plan={p}
+                                                currentPlan={billingInfo?.currentPlan}
                                                 billingInterval={billingInterval}
-                                                currentPlan={plan}
-                                                usage={usage}
+                                                usage={billingInfo?.usage}
+                                                metaRates={metaRates}
                                                 onUpgrade={handleUpgrade}
                                             />
                                         </div>

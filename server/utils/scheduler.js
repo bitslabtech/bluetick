@@ -2,6 +2,51 @@ const Message = require('../models/Message');
 const { Op } = require('sequelize');
 const processCampaign = require('./campaignProcessor');
 
+/**
+ * Prune expired tags from contacts.
+ * Reads the tagExpiry JSONB map and removes any tags whose expiry timestamp has passed.
+ * This runs on a background schedule so it's non-blocking and efficient.
+ */
+async function pruneExpiredTags() {
+    try {
+        const Contact = require('../models/Contact');
+        // Find all contacts that have a non-null tagExpiry field
+        const contacts = await Contact.findAll({
+            where: {
+                tagExpiry: { [Op.not]: null }
+            },
+            attributes: ['id', 'tags', 'tagExpiry']
+        });
+
+        const now = new Date();
+        let pruned = 0;
+
+        for (const contact of contacts) {
+            const expiry = contact.tagExpiry || {};
+            const expiredTags = Object.keys(expiry).filter(tag => new Date(expiry[tag]) <= now);
+            if (expiredTags.length === 0) continue;
+
+            // Remove expired tags from the tags array
+            const updatedTags = (contact.tags || []).filter(t => !expiredTags.includes(t));
+            // Remove expired entries from the tagExpiry map
+            const updatedExpiry = { ...expiry };
+            for (const t of expiredTags) delete updatedExpiry[t];
+
+            await contact.update({
+                tags: updatedTags,
+                tagExpiry: Object.keys(updatedExpiry).length > 0 ? updatedExpiry : null
+            });
+            pruned += expiredTags.length;
+        }
+
+        if (pruned > 0) {
+            console.log(`[AutoTagger] Pruned ${pruned} expired tag(s) from ${contacts.length} contact(s).`);
+        }
+    } catch (err) {
+        console.error('[AutoTagger] pruneExpiredTags error:', err.message);
+    }
+}
+
 // Initialize the scheduler
 function initScheduler() {
     console.log('Campaign Scheduler initialized. Checking every 60 seconds...');
@@ -293,6 +338,10 @@ function initScheduler() {
             } catch (cartErr) {
                 console.error('Scheduler Abandoned Cart error:', cartErr);
             }
+
+            // ── AUTO-TAG EXPIRY PRUNING ──────────────────────────────────────────
+            // Remove tags from contacts where their TTL (expiresInHours) has lapsed
+            await pruneExpiredTags();
 
         } catch (err) {
             console.error('Scheduler Expiry & Quota check error:', err);
