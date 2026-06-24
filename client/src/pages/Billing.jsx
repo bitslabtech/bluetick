@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
     Sparkles, Zap, Check, X, MessageSquare, Users, Layout,
-    Clock, TrendingUp, Shield, ChevronRight, RefreshCw, Menu, Info
+    Clock, TrendingUp, Shield, ChevronRight, RefreshCw, Menu, Info,
+    MousePointerClick, Megaphone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
@@ -237,6 +238,8 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
                     <LimitRow icon={MessageSquare} label="Messages / month" value={plan.messageLimit} />
                     <LimitRow icon={Layout} label="Templates" value={plan.templateLimit} />
                     <LimitRow icon={Users} label="Contacts" value={plan.contactLimit} />
+                    <LimitRow icon={MousePointerClick} label="Click to WhatsApp Ads" value={plan.allowCtwaAnalytics ? 'Included' : 'Not Included'} />
+                    <LimitRow icon={Megaphone} label="Meta Ads Marketing" value={plan.allowMetaAds ? 'Included' : 'Not Included'} />
                 </div>
 
                 {/* Features */}
@@ -298,36 +301,6 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
                                     <X className="w-3 h-3" />
                                 </div>
                                 <span>Digital VeCards</span>
-                            </div>
-                        )}
-                        {plan.allowCtwaAnalytics ? (
-                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-                                    <Check className="w-3 h-3" />
-                                </div>
-                                <span>Click to WhatsApp Ads</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3 text-sm text-slate-400 dark:text-slate-500 opacity-70">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
-                                    <X className="w-3 h-3" />
-                                </div>
-                                <span>Click to WhatsApp Ads</span>
-                            </div>
-                        )}
-                        {plan.allowMetaAds ? (
-                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-                                    <Check className="w-3 h-3" />
-                                </div>
-                                <span>Meta Ads Marketing</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3 text-sm text-slate-400 dark:text-slate-500 opacity-70">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
-                                    <X className="w-3 h-3" />
-                                </div>
-                                <span>Meta Ads Marketing</span>
                             </div>
                         )}
                     </div>

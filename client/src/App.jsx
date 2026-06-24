@@ -107,6 +107,7 @@ const RefundPolicy = React.lazy(() => import('./pages/RefundPolicy'));
 const AboutUs = React.lazy(() => import('./pages/AboutUs'));
 const ContactUs = React.lazy(() => import('./pages/ContactUs'));
 const PartnerWithUs = React.lazy(() => import('./pages/PartnerWithUs'));
+const MediaGallery = React.lazy(() => import('./pages/MediaGallery'));
 
 // Simple Loading Component
 const Loading = () => (
@@ -391,7 +392,8 @@ function App() {
                                                 <Route path="/checkout" element={<Checkout />} />
                                                 <Route path="/billing" element={<Billing />} />
                                                  <Route path="/ai-token-history" element={<AiTokenHistory />} />
-                                            </Route>
+                                                 <Route path="/media-gallery" element={<MediaGallery />} />
+                                             </Route>
                                         </Route>
                                     </Routes>
                                     </CustomDomainRouter>

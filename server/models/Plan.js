@@ -171,6 +171,11 @@ const Plan = sequelize.define('Plan', {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
         comment: 'Whether plan is visible on public pricing page. Default plan should be false.'
+    },
+    storageLimitMb: {
+        type: DataTypes.INTEGER,
+        defaultValue: 100,
+        comment: 'Storage quota in MB for Online Store + vCard uploads. 0 = unlimited.'
     }
 }, {
     timestamps: true

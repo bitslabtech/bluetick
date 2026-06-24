@@ -710,7 +710,7 @@ router.post('/ai-description', async (req, res) => {
 });
 
 // POST /api/wastore/upload/logo  — Upload store logo image
-router.post('/upload/logo', storageProvider('wastore-logos', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true }).single('logo'), async (req, res) => {
+router.post('/upload/logo', storageProvider('wastore-logos', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('logo'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -721,7 +721,7 @@ router.post('/upload/logo', storageProvider('wastore-logos', { fileFilter: stora
 });
 
 // POST /api/wastore/upload/seo  — Upload SEO og:image
-router.post('/upload/seo', storageProvider('wastore-seo', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true }).single('image'), async (req, res) => {
+router.post('/upload/seo', storageProvider('wastore-seo', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('image'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -732,7 +732,7 @@ router.post('/upload/seo', storageProvider('wastore-seo', { fileFilter: storageP
 });
 
 // POST /api/wastore/upload/cover  — Upload store cover image
-router.post('/upload/cover', storageProvider('wastore-covers', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true }).single('cover'), async (req, res) => {
+router.post('/upload/cover', storageProvider('wastore-covers', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('cover'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -743,7 +743,7 @@ router.post('/upload/cover', storageProvider('wastore-covers', { fileFilter: sto
 });
 
 // POST /api/wastore/upload/slide  — Upload a hero slider image
-router.post('/upload/slide', storageProvider('wastore-slides', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true }).single('slide'), async (req, res) => {
+router.post('/upload/slide', storageProvider('wastore-slides', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('slide'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -754,7 +754,7 @@ router.post('/upload/slide', storageProvider('wastore-slides', { fileFilter: sto
 });
 
 // POST /api/wastore/upload/product  — Upload a product image
-router.post('/upload/product', storageProvider('wastore-products', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true }).single('product'), async (req, res) => {
+router.post('/upload/product', storageProvider('wastore-products', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('product'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -765,7 +765,7 @@ router.post('/upload/product', storageProvider('wastore-products', { fileFilter:
 });
 
 // POST /api/wastore/upload/category  — Upload a category image
-router.post('/upload/category', storageProvider('wastore-categories', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true }).single('category'), async (req, res) => {
+router.post('/upload/category', storageProvider('wastore-categories', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('category'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });

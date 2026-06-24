@@ -1053,7 +1053,7 @@ const MenuOrderPanel = ({ config, onSave }) => {
     // List of base items that can be reordered (matches the new Sidebar nav structure)
     const baseMenuLabels = [
         'Dashboard', 'WhatsApp', 'Growth Hub',
-        'Automation', 'Digital veCard', 'Online Store', 'Refer & Earn', 'Add-ons Market', 'Integrations & API', 'Reports',
+        'Automation', 'Digital veCard', 'Online Store', 'Media Manager', 'Refer & Earn', 'Add-ons Market', 'Integrations & API', 'Reports',
         'Support', 'Settings'
     ];
 
@@ -1067,6 +1067,7 @@ const MenuOrderPanel = ({ config, onSave }) => {
         'Contacts': null,            // removed — now inside WhatsApp
         'FlowBot Builder': null,     // removed — now inside Automation
         'Integrations': 'Integrations & API',
+        'Media Gallery': 'Media Manager'
     };
 
     const [items, setItems] = useState([]);

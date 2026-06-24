@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Send, Settings, LogOut, MessageSquare, BarChart3, ShieldCheck, CreditCard, ShoppingBag, Bell, Activity, LifeBuoy, LayoutTemplate, Settings2, Package, X, ChevronDown, ChevronRight, Layers, Tag, Sparkles, Calendar, Terminal, Briefcase, TrendingUp, Gift, Contact, Store, Lock } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Send, Settings, LogOut, MessageSquare, BarChart3, ShieldCheck, CreditCard, ShoppingBag, Bell, Activity, LifeBuoy, LayoutTemplate, Settings2, Package, X, ChevronDown, ChevronRight, Layers, Tag, Sparkles, Calendar, Terminal, Briefcase, TrendingUp, Gift, Contact, Store, Lock, Image } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
@@ -52,6 +52,14 @@ const userNavItems = [
         path: '/online-store',
         perm: 'menu_wastore',
         requiresWaStore: true
+    },
+
+    // Media Manager (for Store & vCard uploads + quota tracking)
+    {
+        icon: Image,
+        label: 'Media Manager',
+        path: '/media-gallery',
+        perm: 'menu_media_gallery'
     },
 
     // Automation suite

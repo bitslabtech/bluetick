@@ -2784,6 +2784,18 @@ export default function LandingPage() {
                                                                     </div>
                                                                     <span className={!plan.flowBotEnabled ? "text-slate-900 dark:text-white" : ""}>AI FlowBot Builder</span>
                                                                 </li>
+                                                                <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-70' : ''}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
+                                                                        {plan.allowCtwaAnalytics ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                    </div>
+                                                                    <span className={!plan.allowCtwaAnalytics ? "text-slate-900 dark:text-white" : ""}>Click to WhatsApp Ads</span>
+                                                                </li>
+                                                                <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-70' : ''}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
+                                                                        {plan.allowMetaAds ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                    </div>
+                                                                    <span className={!plan.allowMetaAds ? "text-slate-900 dark:text-white" : ""}>Meta Ads Marketing</span>
+                                                                </li>
                                                             </ul>
                                                         </div>
 
@@ -2864,18 +2876,6 @@ export default function LandingPage() {
                                                                         </span>
                                                                     </li>
                                                                 ))}
-                                                                <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-50 grayscale' : ''}`}>
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowCtwaAnalytics ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
-                                                                        {!plan.allowCtwaAnalytics ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                                                                    </div>
-                                                                    <span className="leading-tight">Click to WhatsApp Ads</span>
-                                                                </li>
-                                                                <li className={`flex items-start gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-50 grayscale' : ''}`}>
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!plan.allowMetaAds ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
-                                                                        {!plan.allowMetaAds ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                                                                    </div>
-                                                                    <span className="leading-tight">Meta Ads Marketing</span>
-                                                                </li>
                                                             </ul>
                                                         </div>
                                                     </div>

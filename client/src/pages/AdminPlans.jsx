@@ -563,6 +563,15 @@ const PlanCard = ({ plan, onEdit, onDelete }) => {
                     <div className="text-[10px] text-slate-500 uppercase">Team</div>
                 </div>
             </div>
+            {/* Storage Quota badge */}
+            {plan.storageLimitMb !== undefined && (
+                <div className="mb-4 flex items-center justify-between text-xs font-bold bg-slate-50 dark:bg-white/5 rounded-lg px-3 py-2">
+                    <span className="text-slate-500 dark:text-slate-400">Media Storage</span>
+                    <span className={`${plan.storageLimitMb === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                        {plan.storageLimitMb === 0 ? '∞ Unlimited' : `${plan.storageLimitMb} MB`}
+                    </span>
+                </div>
+            )}
 
             {(plan.aiTokensAllowance > 0 || (plan.includedAddons && plan.includedAddons.length > 0)) && (
                 <div className="mb-4 pt-2 border-t border-slate-100 dark:border-white/5 space-y-2">
@@ -787,6 +796,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         taxEnabled: plan?.taxEnabled || false,
         taxText: plan?.taxText || 'excluding 18% GST',
         flowBotEnabled: plan?.flowBotEnabled || false,
+        storageLimitMb: plan?.storageLimitMb !== undefined ? plan.storageLimitMb : 100,
     });
 
     const handleChange = (e) => {
@@ -1029,6 +1039,27 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                         <LimitInputCard name="groupLimit" value={formData.groupLimit} onChange={handleChange} label="Groups" icon={Users} colorClass="text-teal-500" />
                                         <LimitInputCard name="vcardLimit" value={formData.vcardLimit} onChange={handleChange} label="VeCards" icon={CreditCard} colorClass="text-cyan-500" />
                                         <LimitInputCard name="waStoreLimit" value={formData.waStoreLimit} onChange={handleChange} label="Online Stores" icon={Store} colorClass="text-orange-500" />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Media Storage Quota</h4>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Applies only to Online Store + vCard uploads. WhatsApp chat media is excluded. Set to <b>0</b> for unlimited.</p>
+                                    <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-5">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Storage Limit (MB)</label>
+                                        <div className="relative max-w-xs">
+                                            <input
+                                                type="number"
+                                                name="storageLimitMb"
+                                                value={formData.storageLimitMb}
+                                                onChange={handleChange}
+                                                min="0"
+                                                className="modern-input pr-16"
+                                                placeholder="100"
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">MB</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-2">Enter <b>0</b> to give unlimited media storage. Default: 100 MB.</p>
                                     </div>
                                 </div>
                             </div>

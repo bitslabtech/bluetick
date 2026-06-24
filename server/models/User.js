@@ -207,6 +207,11 @@ const User = sequelize.define('User', {
         defaultValue: 0,
         comment: 'Total storage used by the user across all modules in bytes'
     },
+    mediaStorageUsed: {
+        type: DataTypes.BIGINT,
+        defaultValue: 0,
+        comment: 'Storage used (bytes) by Online Store + vCard uploads only. Enforced against plan quota.'
+    },
     // Notification Tracking
     lastExpiryAlertDay: {
         type: DataTypes.INTEGER,

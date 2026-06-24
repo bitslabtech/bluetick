@@ -16,6 +16,8 @@ const fs = require('fs');
 const path = require('path');
 const SystemConfig = require('../models/SystemConfig');
 const User = require('../models/User');
+const Plan = require('../models/Plan');
+const MediaFile = require('../models/MediaFile');
 const { compressImage, isCompressibleImage } = require('./imageCompressor');
 
 // Default limits if none provided
@@ -217,10 +219,38 @@ const storageProvider = (folderName, options = {}) => {
                         if (!req.file) return next();
 
                         try {
-                            // Step 2: Get storage config (local vs S3)
+                            // ── Step 2: Quota Check (trackMedia routes only) ───────────────────────
+                            if (options.trackMedia && req.user && req.user.id) {
+                                try {
+                                    const [user, userPlan] = await Promise.all([
+                                        User.findByPk(req.user.id, { attributes: ['id', 'plan', 'mediaStorageUsed'] }),
+                                        Plan.findOne({ where: { name: req.user.plan }, attributes: ['storageLimitMb'] })
+                                    ]);
+
+                                    if (user && userPlan && userPlan.storageLimitMb > 0) {
+                                        const usedBytes = Number(user.mediaStorageUsed || 0);
+                                        const limitBytes = userPlan.storageLimitMb * 1024 * 1024;
+                                        const incomingSize = req.file.size; // pre-compression size (conservative)
+
+                                        if (usedBytes + incomingSize > limitBytes) {
+                                            const usedMb = (usedBytes / (1024 * 1024)).toFixed(1);
+                                            const limitMb = userPlan.storageLimitMb;
+                                            return res.status(413).json({
+                                                error: `Storage limit reached (${usedMb}MB / ${limitMb}MB). Please delete old media from the Gallery or upgrade your plan.`,
+                                                storageQuotaExceeded: true
+                                            });
+                                        }
+                                    }
+                                } catch (quotaErr) {
+                                    console.error('[Storage Quota Check] Error:', quotaErr.message);
+                                    // Non-fatal — allow upload to proceed if quota check fails
+                                }
+                            }
+
+                            // Step 3: Get storage config (local vs S3)
                             const storageConf = await getStorageConfig(folderName);
 
-                            // Step 3: Compress image if applicable
+                            // Step 4: Compress image if applicable
                             let fileBuffer = req.file.buffer;
                             const originalSize = fileBuffer.length;
 
@@ -241,10 +271,11 @@ const storageProvider = (folderName, options = {}) => {
                                 }
                             }
 
-                            // Step 4: Generate unique filename
+                            // Step 5: Generate unique filename
                             const uniqueSuffix = Date.now().toString() + '-' + Math.round(Math.random() * 1e9);
 
-                            // Step 5: Save to storage
+                            // Step 6: Save to storage
+                            let fileKey = null;
                             if (storageConf.type === 's3') {
                                 // ── S3 Upload ──
                                 const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -274,6 +305,7 @@ const storageProvider = (folderName, options = {}) => {
                                 req.file.location = location;
                                 req.file.bucket = storageConf.s3Conf.bucket;
                                 req.file.size = fileBuffer.length;
+                                fileKey = key;
 
                                 // Set publicUrl (prefer publicUrlPrefix if configured)
                                 if (storageConf.s3Conf.publicUrlPrefix) {
@@ -311,6 +343,7 @@ const storageProvider = (folderName, options = {}) => {
                                 req.file.bucket = storageConf.r2Conf.bucket;
                                 req.file.size = fileBuffer.length;
                                 req.file.publicUrl = location;
+                                fileKey = key;
 
                             } else {
                                 // ── Local Disk Upload ──
@@ -331,13 +364,16 @@ const storageProvider = (folderName, options = {}) => {
                                 const host = req.headers['x-forwarded-host'] || req.get('host');
                                 const subPath = folderName ? `${folderName}/${filename}` : filename;
                                 req.file.publicUrl = `${protocol}://${host}/uploads/${subPath}`;
+                                // For local, store the relative path for deletion
+                                fileKey = subPath;
                             }
 
                             // Free the memory buffer — file is now persisted
                             delete req.file.buffer;
 
-                            // Increment User Storage if authenticated
+                            // ── Step 7: Post-upload Tracking ──────────────────────────────────────
                             if (req.user && req.user.id && req.file.size) {
+                                // Always increment global storageUsed
                                 try {
                                     await User.increment('storageUsed', {
                                         by: req.file.size,
@@ -345,6 +381,29 @@ const storageProvider = (folderName, options = {}) => {
                                     });
                                 } catch (e) {
                                     console.error("Storage Tracking Error:", e);
+                                }
+
+                                // If trackMedia=true: also increment mediaStorageUsed + create MediaFile record
+                                if (options.trackMedia) {
+                                    try {
+                                        await User.increment('mediaStorageUsed', {
+                                            by: req.file.size,
+                                            where: { id: req.user.id }
+                                        });
+
+                                        await MediaFile.create({
+                                            userId: req.user.id,
+                                            source: options.mediaSource || 'general_media',
+                                            url: req.file.publicUrl,
+                                            fileKey: fileKey,
+                                            fileName: req.file.originalname,
+                                            mimeType: req.file.mimetype,
+                                            sizeBytes: req.file.size,
+                                            folder: folderName || null
+                                        });
+                                    } catch (e) {
+                                        console.error("[Media Tracking] Error creating MediaFile record:", e.message);
+                                    }
                                 }
                             }
 

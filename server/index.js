@@ -182,6 +182,7 @@ app.use('/api/ctwa', require('./routes/ctwa')); // CTWA Ads Analytics & OAuth
 app.use('/api/meta-ads', require('./routes/meta-ads')); // Meta Ads Maker
 app.use('/api/vcards', require('./routes/vcards')); // Digital Business Card Config
 app.use('/api/wastore', require('./routes/wastore')); // WhatsApp Store Config
+app.use('/api/media', require('./routes/media')); // Media Gallery & Quota Management
 
 app.use('/api/admin/nfc', require('./routes/adminNfc')); // Admin NFC Management
 app.use('/api/nfc', require('./routes/nfc')); // User NFC Portal
@@ -319,6 +320,7 @@ const startServer = async () => {
         console.log('PostgreSQL connected.');
 
         require('./models/WaStoreCoupon'); // Ensure WaStoreCoupon is loaded before sync
+        require('./models/MediaFile');     // Ensure MediaFile is loaded before sync
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');
 
