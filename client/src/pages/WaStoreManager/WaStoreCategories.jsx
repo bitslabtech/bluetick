@@ -3,37 +3,18 @@ import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import {
     Tag, Plus, Trash2, Edit2, Check, X, AlertCircle,
-    Image as ImageIcon, Loader2, Upload, Camera, RefreshCw
+    Image as ImageIcon, Loader2, Upload, Camera, RefreshCw, FolderOpen
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import MediaPickerModal from '../../components/MediaPickerModal';
 
 // ─── Category Modal ────────────────────────────────────────────────────────────
-function CategoryModal({ mode, initial, onSave, onClose }) {
+function CategoryModal({ mode, initial, onSave, onClose, onOpenPicker }) {
     const [name, setName] = useState(initial?.name || '');
     const [imageUrl, setImageUrl] = useState(initial?.image || '');
     const [description, setDescription] = useState(initial?.description || '');
     const [metaTitle, setMetaTitle] = useState(initial?.metaTitle || '');
     const [metaDesc, setMetaDesc] = useState(initial?.metaDesc || '');
-    const [uploading, setUploading] = useState(false);
-    const fileRef = useRef(null);
-
-    const handleImageUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        setUploading(true);
-        const formData = new FormData();
-        formData.append('category', file);
-        try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/upload/category`, formData);
-            setImageUrl(res.data.url);
-        } catch {
-            toast.error('Failed to upload image');
-        } finally {
-            setUploading(false);
-            e.target.value = null;
-        }
-    };
-
     const handleSave = () => {
         const trimmed = name.trim();
         if (!trimmed) { toast.error('Category name is required'); return; }
@@ -107,20 +88,17 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
                                 /* Image preview with change / remove buttons */
                                 <div className="relative w-full h-full min-h-[140px] rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-zinc-800 group">
                                     <img src={resolvedImage} alt="Category" className="w-full h-full object-cover" />
-                                    {uploading && (
-                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                            <Loader2 className="w-8 h-8 text-white animate-spin" />
-                                        </div>
-                                    )}
                                     {/* Overlay actions */}
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
-                                        <button
-                                            type="button"
-                                            onClick={() => fileRef.current?.click()}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-white text-slate-800 rounded-xl text-xs font-bold shadow-lg hover:bg-slate-100 transition-colors"
-                                        >
-                                            <Camera className="w-3 h-3" /> Change
-                                        </button>
+                                        {onOpenPicker && (
+                                            <button
+                                                type="button"
+                                                onClick={onOpenPicker}
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-white text-slate-800 rounded-xl text-xs font-bold shadow-lg hover:bg-slate-100 transition-colors"
+                                            >
+                                                <Camera className="w-3 h-3" /> Change
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => setImageUrl('')}
@@ -132,39 +110,23 @@ function CategoryModal({ mode, initial, onSave, onClose }) {
                                 </div>
                             ) : (
                                 /* Empty upload area */
-                                <label
-                                    className="flex flex-col items-center justify-center w-full h-full min-h-[140px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all group"
-                                >
-                                    {uploading ? (
-                                        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                                    ) : (
-                                        <>
+                                <>
+                                    {/* Choose from library */}
+                                    {onOpenPicker && (
+                                        <button
+                                            type="button"
+                                            onClick={onOpenPicker}
+                                            className="flex flex-col items-center justify-center w-full h-full min-h-[140px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all group"
+                                        >
                                             <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-2 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-colors">
-                                                <Upload className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                                <ImageIcon className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                                             </div>
                                             <p className="font-semibold text-sm text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                                Click to upload
+                                                Add Image
                                             </p>
-                                        </>
+                                        </button>
                                     )}
-                                    <input
-                                        ref={fileRef}
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={handleImageUpload}
-                                    />
-                                </label>
-                            )}
-                            {/* Hidden file input for "Change" button on existing image */}
-                            {resolvedImage && (
-                                <input
-                                    ref={fileRef}
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={handleImageUpload}
-                                />
+                                </>
                             )}
                         </div>
                     </div>
@@ -238,6 +200,12 @@ export default function WaStoreCategories() {
 
     // Modal state
     const [modal, setModal] = useState(null); // { mode: 'add' | 'edit', idx?: number }
+
+    // ── Media Picker state ────────────────────────────────────────────────────
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [pickerConfig, setPickerConfig] = useState({ allowedTypes: 'image', onSelect: null });
+    const openPicker = (config) => { setPickerConfig(config); setPickerOpen(true); };
+    const closePicker = () => setPickerOpen(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -618,8 +586,33 @@ export default function WaStoreCategories() {
                     } : null}
                     onSave={handleSaveModal}
                     onClose={() => setModal(null)}
+                    onOpenPicker={() => openPicker({
+                        allowedTypes: 'image',
+                        multiple: false,
+                        title: 'Select Category Image',
+                        onSelect: (url) => {
+                            // Store the selected URL in a temporary state so CategoryModal
+                            // can receive it via the setImageUrl callback pattern.
+                            // We close the picker first, so the modal stays open.
+                            closePicker();
+                            // Bubble up through a custom event so CategoryModal picks it up
+                            window.dispatchEvent(new CustomEvent('mediapicker:select', { detail: { url } }));
+                        }
+                    })}
                 />
             )}
+
+            {/* ── Media Picker Modal ─────────────────────────────────────── */}
+            <MediaPickerModal
+                isOpen={pickerOpen}
+                onClose={closePicker}
+                onSelect={(url) => { if (pickerConfig.onSelect) pickerConfig.onSelect(url); }}
+                accessMode="restricted"
+                allowedTypes={pickerConfig.allowedTypes || 'image'}
+                multiple={false}
+                title={pickerConfig.title || 'Select Media'}
+                mimeConstraints={pickerConfig.mimeConstraints || null}
+            />
         </div>
     );
 }

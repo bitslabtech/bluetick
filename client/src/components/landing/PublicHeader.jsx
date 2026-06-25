@@ -32,7 +32,7 @@ const PublicHeader = () => {
     const logoUrl = publicSettings?.logoUrl || config?.brand?.logo;
 
     return (
-        <nav className="fixed top-0 w-full z-50 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 transition-colors duration-300">
+        <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl border-b border-slate-200 transition-colors duration-300">
             <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
                 <Link to="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
                     {logoUrl ? (
@@ -44,12 +44,12 @@ const PublicHeader = () => {
                     )}
                 </Link>
 
-                <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">
-                    <a href="/#platform" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Features</a>
-                    <a href="/#solutions" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Solutions</a>
-                    <a href="/#pricing" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Pricing</a>
-                    <a href="/#faq" className="hover:text-indigo-600 dark:hover:text-white transition-colors">FAQ</a>
-                    <div className="h-4 w-[1px] max-w-full bg-slate-300 dark:bg-white/10" />
+                <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
+                    <a href="/#platform" className="hover:text-indigo-600 transition-colors">Features</a>
+                    <a href="/#solutions" className="hover:text-indigo-600 transition-colors">Solutions</a>
+                    <a href="/#pricing" className="hover:text-indigo-600 transition-colors">Pricing</a>
+                    <a href="/#faq" className="hover:text-indigo-600 transition-colors">FAQ</a>
+                    <div className="h-4 w-[1px] max-w-full bg-slate-300" />
                     
                     {user ? (
                         <Link to="/dashboard" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all font-bold flex items-center gap-2">
@@ -57,7 +57,7 @@ const PublicHeader = () => {
                         </Link>
                     ) : (
                         <>
-                            <Link to="/login" className="hover:text-indigo-600 dark:hover:text-white transition-colors">Log In</Link>
+                            <Link to="/login" className="hover:text-indigo-600 transition-colors">Log In</Link>
                             <Link to="/register" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all font-bold">
                                 Get Started
                             </Link>
@@ -65,20 +65,20 @@ const PublicHeader = () => {
                     )}
                 </div>
 
-                <button className="md:hidden text-slate-900 dark:text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                <button className="md:hidden text-slate-900" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                     {isMenuOpen ? <X /> : <Menu />}
                 </button>
             </div>
 
             <AnimatePresence>
                 {isMenuOpen && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-white/10 overflow-hidden">
-                        <div className="flex flex-col p-4 md:p-6 gap-6 text-center text-slate-600 dark:text-slate-300 font-semibold">
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden bg-white border-b border-slate-200 overflow-hidden">
+                        <div className="flex flex-col p-4 md:p-6 gap-6 text-center text-slate-600 font-semibold">
                             <a href="/#platform" onClick={() => setIsMenuOpen(false)}>Features</a>
                             <a href="/#solutions" onClick={() => setIsMenuOpen(false)}>Solutions</a>
                             <a href="/#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
                             <a href="/#faq" onClick={() => setIsMenuOpen(false)}>FAQ</a>
-                            <div className="h-[1px] w-full bg-slate-200 dark:bg-white/10" />
+                            <div className="h-[1px] w-full bg-slate-200" />
                             
                             {user ? (
                                 <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="bg-indigo-600 text-white py-3 rounded-full font-bold shadow-lg flex items-center justify-center gap-2">
@@ -99,4 +99,3 @@ const PublicHeader = () => {
 };
 
 export default PublicHeader;
-

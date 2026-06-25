@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import WaStoreFooter from '../components/WaStoreFooter';
 import WaStoreHeader from '../components/WaStoreHeader';
 import WaStoreCheckoutModal from '../components/WaStoreCheckoutModal';
+import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyProductSeo, cleanupStoreSeo } from '../utils/storeSeo';
 
@@ -279,11 +280,14 @@ export default function PublicWaProduct({ customSlug }) {
         </div>
     );
     
-    if (!store || !product) return (
-        <div className="h-screen flex flex-col items-center justify-center bg-gray-50 space-y-4">
-            <ShoppingBag className="w-16 h-16 text-gray-300" />
-            <h1 className="text-2xl font-semibold text-gray-900">Product Not Found</h1>
-            <button onClick={() => navigate(`/store/${slug}`)} className={`${theme.text} font-medium hover:underline flex items-center gap-2`}>
+    if (!store) return <StoreNotFound slug={slug} />;
+    
+    if (!product) return (
+        <div className="h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-zinc-950 space-y-4">
+            <ShoppingBag className="w-16 h-16 text-slate-300 dark:text-zinc-700 animate-pulse" />
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-zinc-100">Product Not Found</h1>
+            <p className="text-sm text-slate-500 dark:text-zinc-400">The product you are looking for is unavailable or has been removed.</p>
+            <button onClick={() => navigate(`/store/${slug}`)} className={`${theme?.text || 'text-indigo-600'} font-semibold hover:underline flex items-center gap-2 mt-2`}>
                 <ArrowLeft className="w-4 h-4" /> Back to Store
             </button>
         </div>

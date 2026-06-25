@@ -1,11 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { useUI } from "../context/UIContext";
 import {
     Image, Trash2, Upload, X, Check, Search, Filter, RefreshCw,
-    AlertCircle, HardDrive, Loader2, Copy, ExternalLink, ZoomIn, Grid3X3, List
+    AlertCircle, HardDrive, Loader2, Copy, ExternalLink, ZoomIn, Grid3X3, List,
+    Film, FileText, FolderOpen
 } from "lucide-react";
+
+const MEDIA_TABS = [
+    { id: "all",      label: "All Media",  icon: FolderOpen, apiParam: null },
+    { id: "image",    label: "Photos",     icon: Image,      apiParam: "image" },
+    { id: "video",    label: "Videos",     icon: Film,       apiParam: "video" },
+    { id: "document", label: "Documents",  icon: FileText,   apiParam: "document" },
+];
 
 const formatBytes = (bytes) => {
     if (!bytes || bytes === 0) return "0 B";
@@ -25,7 +33,6 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
     const { user } = useAuth();
     const { showToast } = useUI();
     const token = user?.token || localStorage.getItem("token");
-    const headers = { Authorization: `Bearer ${token}` };
 
     const [files, setFiles] = useState([]);
     const [usage, setUsage] = useState(null);
@@ -33,45 +40,57 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
     const [uploading, setUploading] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
     const [previewFile, setPreviewFile] = useState(null);
-    // Determine the source to fetch based on mode
     const fetchSource = accessMode === 'restricted' ? 'restricted' : 'general_media';
     const [searchTerm, setSearchTerm] = useState("");
-    const [viewMode, setViewMode] = useState("grid"); // grid | list
+    const [viewMode, setViewMode] = useState("grid");
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [dragOver, setDragOver] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [activeMediaTab, setActiveMediaTab] = useState("all");
+    // Ref for the hidden file input inside the drop zone
+    const dropZoneInputRef = useRef(null);
+
+    // Build headers inline so callbacks always have the latest token
+    const getHeaders = useCallback(() => ({
+        Authorization: `Bearer ${token}`
+    }), [token]);
 
     const fetchUsage = useCallback(async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/media/usage`, { headers });
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/media/usage`, { headers: getHeaders() });
             setUsage(res.data);
         } catch (e) {
             console.error("Usage fetch error:", e);
         }
-    }, [token]);
+    }, [token, getHeaders]);
 
-    const fetchFiles = useCallback(async (p = 1) => {
+    const fetchFiles = useCallback(async (p = 1, tab = activeMediaTab) => {
         setLoading(true);
         try {
             const params = new URLSearchParams({ page: p, limit: 50 });
-            params.append("source", fetchSource);
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/media?${params}`, { headers });
+            // Pass source so each gallery only sees its own files
+            params.append('source', fetchSource);
+            // Pass mediaType filter when a specific tab is active
+            const currentTab = MEDIA_TABS.find(t => t.id === tab);
+            if (currentTab?.apiParam) params.append('mediaType', currentTab.apiParam);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/media?${params}`, { headers: getHeaders() });
             setFiles(res.data.files || []);
             setTotal(res.data.total || 0);
             setTotalPages(res.data.totalPages || 1);
             setPage(p);
         } catch (e) {
-            console.error("Files fetch error:", e);
+            console.error("Files fetch error:", e.response?.data || e.message);
         } finally {
             setLoading(false);
         }
-    }, [fetchSource]);
+    }, [token, getHeaders, fetchSource, activeMediaTab]);
 
     useEffect(() => {
         fetchUsage();
-        fetchFiles(1);
-    }, [fetchSource]);
+        fetchFiles(1, activeMediaTab);
+    }, [fetchSource, token]);
 
     const handleFileUpload = async (fileObj) => {
         if (!fileObj) return;
@@ -79,48 +98,56 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         try {
             const form = new FormData();
             form.append("file", fileObj);
-            
-            // If restricted, tell backend the source
-            let uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload?source=${fetchSource}`;
-
+            const uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload?source=${fetchSource}`;
             await axios.post(uploadUrl, form, {
-                headers: { ...headers, "Content-Type": "multipart/form-data" }
+                headers: { ...getHeaders(), "Content-Type": "multipart/form-data" }
             });
             showToast("File uploaded successfully!", "success");
-            await Promise.all([fetchFiles(1), fetchUsage()]);
+            await Promise.all([fetchFiles(1, activeMediaTab), fetchUsage()]);
         } catch (e) {
             const errMsg = e.response?.data?.error || "Upload failed";
-            showToast(errMsg , "error");
+            showToast(errMsg, "error");
         } finally {
             setUploading(false);
         }
     };
 
-    const handleDelete = async (id) => {
-        try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/api/media/${id}`, { headers });
-            showToast("File deleted", "success");
-            setFiles(prev => prev.filter(f => f.id !== id));
-            setSelectedIds(prev => prev.filter(sid => sid !== id));
-            await fetchUsage();
-        } catch (e) {
-            showToast(e.response?.data?.error || "Delete failed" , "error");
-        }
+    const handleDelete = (id) => {
+        setDeleteTarget({ type: 'single', id });
     };
 
-    const handleBulkDelete = async () => {
+    const handleBulkDelete = () => {
         if (selectedIds.length === 0) return;
-        if (!window.confirm(`Delete ${selectedIds.length} file(s)?`)) return;
-        try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/api/media`, {
-                headers,
-                data: { ids: selectedIds }
-            });
-            showToast(`${selectedIds.length} files deleted`, "success");
-            setSelectedIds([]);
-            await Promise.all([fetchFiles(page), fetchUsage()]);
-        } catch (e) {
-            showToast(e.response?.data?.error || "Bulk delete failed" , "error");
+        setDeleteTarget({ type: 'bulk' });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        const target = deleteTarget;
+        setDeleteTarget(null);
+
+        if (target.type === 'single') {
+            try {
+                await axios.delete(`${import.meta.env.VITE_API_URL}/api/media/${target.id}`, { headers: getHeaders() });
+                showToast("File deleted", "success");
+                setFiles(prev => prev.filter(f => f.id !== target.id));
+                setSelectedIds(prev => prev.filter(sid => sid !== target.id));
+                await fetchUsage();
+            } catch (e) {
+                showToast(e.response?.data?.error || "Delete failed", "error");
+            }
+        } else if (target.type === 'bulk') {
+            try {
+                await axios.delete(`${import.meta.env.VITE_API_URL}/api/media`, {
+                    headers: getHeaders(),
+                    data: { ids: selectedIds }
+                });
+                showToast(`${selectedIds.length} files deleted`, "success");
+                setSelectedIds([]);
+                await Promise.all([fetchFiles(page, activeMediaTab), fetchUsage()]);
+            } catch (e) {
+                showToast(e.response?.data?.error || "Bulk delete failed", "error");
+            }
         }
     };
 
@@ -189,10 +216,10 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     )}
                     <label className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium cursor-pointer transition-colors">
                         {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                        {uploading ? "Uploading..." : "Upload Image"}
+                        {uploading ? "Uploading..." : "Upload File"}
                         <input
                             type="file"
-                            accept="image/jpeg,image/png,image/webp"
+                            accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,video/mp4,video/webm,application/pdf,text/csv,text/plain,.docx"
                             className="hidden"
                             onChange={e => handleFileUpload(e.target.files[0])}
                             disabled={uploading}
@@ -266,6 +293,27 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                 </div>
             )}
 
+            {/* Horizontal Type Tabs */}
+            <div className="flex items-center gap-1 border-b border-slate-200 dark:border-white/10 overflow-x-auto">
+                {MEDIA_TABS.map(tab => {
+                    const Icon = tab.icon;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => { setActiveMediaTab(tab.id); setSelectedIds([]); fetchFiles(1, tab.id); }}
+                            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors whitespace-nowrap border-b-2 -mb-px
+                                ${activeMediaTab === tab.id
+                                    ? "border-primary text-primary bg-primary/5 dark:bg-primary/10"
+                                    : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5"
+                                }`}
+                        >
+                            <Icon className="w-4 h-4" />
+                            {tab.label}
+                        </button>
+                    );
+                })}
+            </div>
+
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 {/* Search */}
@@ -296,7 +344,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                 </div>
                 {/* Refresh */}
                 <button
-                    onClick={() => { fetchFiles(page); fetchUsage(); }}
+                    onClick={() => { fetchFiles(page, activeMediaTab); fetchUsage(); }}
                     className="p-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-slate-500 hover:text-primary transition-colors"
                 >
                     <RefreshCw className="w-4 h-4" />
@@ -312,25 +360,35 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                 )}
             </div>
 
-            {/* Drop Zone Banner */}
+            {/* Drop Zone Banner — clicking anywhere triggers file picker */}
             <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 cursor-pointer
+                onClick={() => !uploading && dropZoneInputRef.current?.click()}
+                className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 cursor-pointer select-none
                     ${dragOver
                         ? "border-primary bg-primary/5 scale-[1.01]"
                         : "border-slate-200 dark:border-white/10 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/5"
-                    }`}
+                    } ${uploading ? "opacity-60 cursor-not-allowed" : ""}`}
             >
+                {/* Hidden file input — triggered by clicking the zone or the Upload button above */}
+                <input
+                    ref={dropZoneInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,video/mp4,video/webm,application/pdf,text/csv,text/plain,.docx"
+                    className="hidden"
+                    onChange={e => { if (e.target.files[0]) { handleFileUpload(e.target.files[0]); e.target.value = ''; } }}
+                    disabled={uploading}
+                />
                 <div className="flex flex-col items-center gap-2">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${dragOver ? "bg-primary text-white" : "bg-slate-100 dark:bg-white/10 text-slate-400"}`}>
-                        <Upload className="w-5 h-5" />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${dragOver ? "bg-primary text-white" : uploading ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-white/10 text-slate-400"}`}>
+                        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                     </div>
                     <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                        {dragOver ? "Drop to upload!" : "Drag & drop images here, or click Upload Image above"}
+                        {uploading ? "Uploading..." : dragOver ? "Drop to upload!" : "Click here or drag & drop files to upload"}
                     </p>
-                    <p className="text-xs text-slate-400">Supports JPEG, PNG, WebP. Images auto-compressed & converted to WebP.</p>
+                    <p className="text-xs text-slate-400">Images (JPG/PNG/WebP/GIF/SVG), Videos (MP4/WebM), Documents (PDF/CSV/DOCX). Max 50 MB.</p>
                 </div>
             </div>
 
@@ -339,11 +397,11 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                 <div className="flex items-center justify-center py-16">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
-            ) : filteredFiles.length === 0 ? (
+                        ) : filteredFiles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
                     <Image className="w-12 h-12 opacity-30" />
                     <p className="font-medium">No media files found</p>
-                    <p className="text-sm">Upload images from the Online Store, vCard builder, or here directly.</p>
+                    <p className="text-sm">Upload files from the Online Store, vCard builder, or directly here.</p>
                 </div>
             ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
@@ -527,7 +585,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                         <button
                             key={p}
-                            onClick={() => fetchFiles(p)}
+                            onClick={() => fetchFiles(p, activeMediaTab)}
                             className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors
                                 ${p === page ? "bg-primary text-white shadow-sm" : "bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50"}`}
                         >
@@ -581,6 +639,38 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                                 alt={previewFile.fileName}
                                 className="max-h-[60vh] max-w-full object-contain rounded-lg"
                             />
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Delete Confirmation Modal */}
+            {deleteTarget && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-surface-dark w-full max-w-sm rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 text-center">
+                            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center mx-auto mb-4">
+                                <AlertCircle className="w-6 h-6 text-rose-500" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Delete File{deleteTarget.type === 'bulk' ? 's' : ''}?</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                {deleteTarget.type === 'bulk' 
+                                    ? `Are you sure you want to permanently delete ${selectedIds.length} files? This action cannot be undone.`
+                                    : `Are you sure you want to permanently delete this file? This action cannot be undone.`}
+                            </p>
+                        </div>
+                        <div className="flex border-t border-slate-100 dark:border-white/5">
+                            <button
+                                onClick={() => setDeleteTarget(null)}
+                                className="flex-1 px-4 py-3.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-r border-slate-100 dark:border-white/5"
+                            >
+                                No, Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 px-4 py-3.5 text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                            >
+                                Yes, Delete
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -51,6 +51,11 @@ const MediaFile = sequelize.define('MediaFile', {
         type: DataTypes.STRING,
         allowNull: true,
         comment: 'Storage folder/prefix, e.g. wastore-products'
+    },
+    mediaType: {
+        type: DataTypes.ENUM('image', 'video', 'document', 'other'),
+        defaultValue: 'other',
+        comment: 'Classified type of media for tabbed gallery filtering'
     }
 }, {
     timestamps: true,

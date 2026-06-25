@@ -13,6 +13,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getThemeComponent } from './VcardThemes';
+import VcardNotFound from '../components/VcardNotFound';
 
 export default function PublicVcard() {
     const { slug } = useParams();
@@ -104,19 +105,7 @@ export default function PublicVcard() {
 
     // ─── Error ────────────────────────────────────────────────────────
     if (error || !vcard) {
-        return (
-            <div style={{
-                minHeight: '100vh', display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                background: '#0f172a', color: '#fff', textAlign: 'center', padding: 24,
-            }}>
-                <div style={{ fontSize: '4rem', marginBottom: 16 }}>🔍</div>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: 8 }}>404</h1>
-                <p style={{ opacity: 0.5, fontSize: '0.9rem' }}>
-                    {error || 'This digital business card is not available.'}
-                </p>
-            </div>
-        );
+        return <VcardNotFound slug={slug} />;
     }
 
     // ─── Route to correct theme component ────────────────────────────

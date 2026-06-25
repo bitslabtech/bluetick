@@ -8,6 +8,8 @@
  * 
  * All existing req.file properties (path, filename, location, key, publicUrl, size)
  * are preserved for full downstream compatibility.
+ *
+ * Security: Magic bytes validation prevents scripts/malware disguised as media files.
  */
 
 const multer = require('multer');
@@ -19,6 +21,88 @@ const User = require('../models/User');
 const Plan = require('../models/Plan');
 const MediaFile = require('../models/MediaFile');
 const { compressImage, isCompressibleImage } = require('./imageCompressor');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Magic Bytes Validation — Prevents disguised executable / malicious uploads
+// ─────────────────────────────────────────────────────────────────────────────
+const MAGIC_BYTES = {
+    // Images
+    'image/jpeg':  [{ offset: 0, bytes: [0xFF, 0xD8, 0xFF] }],
+    'image/png':   [{ offset: 0, bytes: [0x89, 0x50, 0x4E, 0x47] }],
+    'image/webp':  [{ offset: 0, bytes: [0x52, 0x49, 0x46, 0x46] }], // RIFF....WEBP
+    'image/gif':   [{ offset: 0, bytes: [0x47, 0x49, 0x46, 0x38] }], // GIF8
+    'image/svg+xml': null, // SVG is XML text, skip magic bytes check but validate content
+    // Videos
+    'video/mp4':   [
+        { offset: 4, bytes: [0x66, 0x74, 0x79, 0x70] }, // ftyp box
+        { offset: 0, bytes: [0x00, 0x00, 0x00] }        // fallback partial
+    ],
+    'video/webm':  [{ offset: 0, bytes: [0x1A, 0x45, 0xDF, 0xA3] }],
+    'video/3gpp':  [{ offset: 4, bytes: [0x66, 0x74, 0x79, 0x70] }],
+    // Documents
+    'application/pdf': [{ offset: 0, bytes: [0x25, 0x50, 0x44, 0x46] }], // %PDF
+    'text/csv':   null, // plain text, no magic bytes
+    'text/plain': null,
+    'text/markdown': null,
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+        { offset: 0, bytes: [0x50, 0x4B, 0x03, 0x04] } // PK zip header (DOCX is ZIP)
+    ]
+};
+
+/**
+ * Validates that the buffer's magic bytes match the declared MIME type.
+ * Returns null if valid, or an error string if invalid.
+ */
+const validateMagicBytes = (buffer, mimeType) => {
+    const signatures = MAGIC_BYTES[mimeType];
+    if (signatures === undefined) return 'Unsupported file type.';
+    if (signatures === null) return null; // text files — no magic bytes
+    if (!buffer || buffer.length < 8) return 'File too small or corrupt.';
+
+    // For multi-signature types (e.g. MP4), any one match is sufficient
+    const matched = signatures.some(sig => {
+        if (buffer.length < sig.offset + sig.bytes.length) return false;
+        return sig.bytes.every((byte, i) => buffer[sig.offset + i] === byte);
+    });
+
+    // Special WebP check: also verify WEBP marker at offset 8
+    if (mimeType === 'image/webp' && matched) {
+        const webpMarker = buffer.slice(8, 12).toString('ascii');
+        if (webpMarker !== 'WEBP') return 'File content does not match WebP format.';
+    }
+
+    // SVG extra check — must not contain script tags
+    if (mimeType === 'image/svg+xml') {
+        const text = buffer.slice(0, Math.min(buffer.length, 4096)).toString('utf8').toLowerCase();
+        if (text.includes('<script') || text.includes('javascript:') || text.includes('onload=') || text.includes('onerror=')) {
+            return 'SVG file contains potentially dangerous content.';
+        }
+        return null;
+    }
+
+    return matched ? null : `File content does not match declared type (${mimeType}). Upload rejected for security.`;
+};
+
+/**
+ * Classify a MIME type into a broad mediaType category.
+ * Used to populate MediaFile.mediaType for gallery tab filtering.
+ */
+const classifyMediaType = (mimeType) => {
+    if (!mimeType) return 'other';
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/') || mimeType.startsWith('audio/')) return 'video';
+    if (
+        mimeType === 'application/pdf' ||
+        mimeType === 'text/csv' ||
+        mimeType === 'text/plain' ||
+        mimeType === 'text/markdown' ||
+        mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        mimeType === 'application/msword' ||
+        mimeType === 'application/vnd.ms-excel' ||
+        mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ) return 'document';
+    return 'other';
+};
 
 // Default limits if none provided
 const DEFAULT_LIMITS = { fileSize: 200 * 1024 * 1024 }; // 200MB max
@@ -33,6 +117,43 @@ const generalImageFilter = (req, file, cb) => {
     } else {
         cb(new Error('Only JPG, PNG, and WebP images are allowed.'));
     }
+};
+
+/**
+ * Secure media gallery filter — accepts images + videos + documents.
+ * MIME type is cross-checked against file extension. Magic bytes are
+ * validated after multer parses the buffer to prevent spoofed uploads.
+ */
+const secureMediaFilter = (req, file, cb) => {
+    // Allowed MIME types with their required extensions
+    const ALLOWED = {
+        'image/jpeg':  ['.jpg', '.jpeg'],
+        'image/png':   ['.png'],
+        'image/webp':  ['.webp'],
+        'image/gif':   ['.gif'],
+        'image/svg+xml': ['.svg'],
+        'video/mp4':   ['.mp4'],
+        'video/webm':  ['.webm'],
+        'video/3gpp':  ['.3gp', '.3gpp'],
+        'application/pdf': ['.pdf'],
+        'text/csv':        ['.csv'],
+        'text/plain':      ['.txt'],
+        'text/markdown':   ['.md'],
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+    };
+
+    const allowedExts = ALLOWED[file.mimetype];
+    if (!allowedExts) {
+        return cb(new Error(`File type '${file.mimetype}' is not allowed. Permitted: images (JPG/PNG/WebP/GIF/SVG), videos (MP4/WebM), documents (PDF/CSV/TXT/DOCX).`));
+    }
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowedExts.includes(ext)) {
+        return cb(new Error(`File extension '${ext}' does not match its declared type '${file.mimetype}'. Upload rejected.`));
+    }
+
+    // Magic bytes check is done post-buffer in the middleware (see Step 2b below)
+    cb(null, true);
 };
 
 const whatsappImageFilter = (req, file, cb) => {
@@ -218,6 +339,16 @@ const storageProvider = (folderName, options = {}) => {
                         // No file uploaded (optional fields) — continue
                         if (!req.file) return next();
 
+                        // ── Step 2b: Magic Bytes Validation (security hardening) ──────────────
+                        // Validate that the buffer's actual bytes match the declared MIME type.
+                        // This catches files that are renamed (e.g., malware.exe → image.jpg).
+                        if (req.file.buffer && (options.fileFilter === secureMediaFilter || options.validateMagicBytes)) {
+                            const magicError = validateMagicBytes(req.file.buffer, req.file.mimetype);
+                            if (magicError) {
+                                return res.status(400).json({ error: `Security check failed: ${magicError}` });
+                            }
+                        }
+
                         try {
                             // ── Step 2: Quota Check (trackMedia routes only) ───────────────────────
                             if (options.trackMedia && req.user && req.user.id) {
@@ -394,7 +525,7 @@ const storageProvider = (folderName, options = {}) => {
                                             where: { id: req.user.id }
                                         });
 
-                                        await MediaFile.create({
+                                        const mf = await MediaFile.create({
                                             userId: req.user.id,
                                             source: options.mediaSource || 'general_media',
                                             url: req.file.publicUrl,
@@ -402,8 +533,10 @@ const storageProvider = (folderName, options = {}) => {
                                             fileName: req.file.originalname,
                                             mimeType: req.file.mimetype,
                                             sizeBytes: req.file.size,
-                                            folder: folderName || null
+                                            folder: folderName || null,
+                                            mediaType: classifyMediaType(req.file.mimetype)
                                         });
+                                        console.log(`[Media Tracking] MediaFile created: id=${mf.id} source=${mf.source} type=${mf.mediaType} user=${req.user.id}`);
                                     } catch (e) {
                                         console.error("[Media Tracking] Error creating MediaFile record:", e.message);
                                     }
@@ -414,7 +547,7 @@ const storageProvider = (folderName, options = {}) => {
                                 // touch mediaStorageUsed (quota counter is only for wastore/vcard)
                                 if (options.registerMedia && !options.trackMedia) {
                                     try {
-                                        await MediaFile.create({
+                                        const mf = await MediaFile.create({
                                             userId: req.user.id,
                                             source: options.mediaSource || 'general_media',
                                             url: req.file.publicUrl,
@@ -422,8 +555,10 @@ const storageProvider = (folderName, options = {}) => {
                                             fileName: req.file.originalname,
                                             mimeType: req.file.mimetype,
                                             sizeBytes: req.file.size,
-                                            folder: folderName || null
+                                            folder: folderName || null,
+                                            mediaType: classifyMediaType(req.file.mimetype)
                                         });
+                                        console.log(`[Media Register] MediaFile created: id=${mf.id} source=${mf.source} type=${mf.mediaType} user=${req.user.id}`);
                                     } catch (e) {
                                         console.error("[Media Register] Error creating MediaFile record:", e.message);
                                     }
@@ -526,8 +661,11 @@ const deleteStorageFile = async (url) => {
 
 module.exports = storageProvider;
 module.exports.generalImageFilter = generalImageFilter;
+module.exports.secureMediaFilter = secureMediaFilter;
 module.exports.whatsappImageFilter = whatsappImageFilter;
 module.exports.documentFilter = documentFilter;
 module.exports.videoFilter = videoFilter;
 module.exports.whatsappMediaFilter = whatsappMediaFilter;
 module.exports.deleteStorageFile = deleteStorageFile;
+module.exports.classifyMediaType = classifyMediaType;
+module.exports.validateMagicBytes = validateMagicBytes;

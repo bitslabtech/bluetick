@@ -4,102 +4,15 @@ import axios from 'axios';
 import {
     Store, Globe, Phone, Mail, MapPin, Image as ImageIcon,
     Save, ExternalLink, Copy, Upload, X, CheckCircle, AlertCircle, Loader2,
-    Search, ChevronDown
+    Search, ChevronDown, FolderOpen
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import MediaPickerModal from '../../components/MediaPickerModal';
 
-// ─── Allowed MIME types & extensions ─────────────────────────────────────────
-const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
-const ALLOWED_EXT  = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
-const VIDEO_MIME   = ['video/mp4', 'video/webm', 'video/ogg'];
-const VIDEO_EXT    = ['.mp4', '.webm', '.ogg'];
-const MAX_SIZE_MB   = 5;
-const MAX_VIDEO_MB  = 15;
 
-function validateImageFile(file, acceptVideo = false) {
-    const ext = '.' + file.name.split('.').pop().toLowerCase();
-    
-    let allowedMime = [...ALLOWED_MIME];
-    let allowedExt = [...ALLOWED_EXT];
-    let maxSize = MAX_SIZE_MB;
-
-    if (acceptVideo) {
-        allowedMime = [...allowedMime, ...VIDEO_MIME];
-        allowedExt = [...allowedExt, ...VIDEO_EXT];
-        maxSize = MAX_VIDEO_MB;
-    }
-
-    if (!allowedMime.includes(file.type) && !allowedExt.includes(ext)) {
-        return `Invalid format. Allowed: ${allowedExt.join(', ')}`;
-    }
-    if (file.size > maxSize * 1024 * 1024) {
-        return `File too large. Max size is ${maxSize} MB.`;
-    }
-    return null;
-}
 
 // ─── Reusable image uploader component ───────────────────────────────────────
-function ImageUploader({ label, hint, fieldName, endpoint, currentUrl, onUploaded, acceptVideo = false, objectFit = 'cover' }) {
-    const inputRef = useRef(null);
-    const [uploading, setUploading] = useState(false);
-    const [dragOver, setDragOver]   = useState(false);
-    const [error, setError]         = useState(null);
-    const [preview, setPreview]     = useState(currentUrl || '');
-
-    // Sync preview when parent changes url (e.g. after save)
-    useEffect(() => { setPreview(currentUrl || ''); }, [currentUrl]);
-
-    const handleFile = async (file) => {
-        setError(null);
-        const validationError = validateImageFile(file, acceptVideo);
-        if (validationError) { setError(validationError); return; }
-
-        // Show local preview immediately
-        const objectUrl = URL.createObjectURL(file);
-        setPreview(objectUrl);
-
-        setUploading(true);
-        try {
-            const form = new FormData();
-            form.append(fieldName, file);
-            const res = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/wastore/${endpoint}`,
-                form,
-                {
-                    headers: {
-                        
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }
-            );
-            setPreview(res.data.url);
-            onUploaded(res.data.url);
-            toast.success(`${label} uploaded!`);
-        } catch (err) {
-            setError(err.response?.data?.error || 'Upload failed. Please try again.');
-            setPreview(currentUrl || '');
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const onInputChange = (e) => {
-        if (e.target.files?.[0]) handleFile(e.target.files[0]);
-    };
-
-    const onDrop = (e) => {
-        e.preventDefault();
-        setDragOver(false);
-        if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]);
-    };
-
-    const clearImage = () => {
-        setPreview('');
-        onUploaded('');
-        setError(null);
-        if (inputRef.current) inputRef.current.value = '';
-    };
-
+function ImageUploader({ label, hint, currentUrl, onUploaded, objectFit = 'cover', onOpenPicker }) {
     return (
         <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -107,87 +20,50 @@ function ImageUploader({ label, hint, fieldName, endpoint, currentUrl, onUploade
                 {label}
             </label>
 
-            {/* Drop zone */}
-            <div
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={onDrop}
-                onClick={() => !uploading && inputRef.current?.click()}
-                className={`relative group cursor-pointer rounded-2xl border-2 border-dashed transition-all overflow-hidden
-                    ${dragOver
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 bg-slate-50 dark:bg-slate-800/50'
-                    }
-                    ${preview ? 'h-48' : 'h-36'}
-                `}
-            >
-                {preview ? (
-                    <>
-                        {preview.match(/\.(mp4|webm|ogg)(\?.*)?$/i) ? (
-                            <video src={preview} autoPlay muted loop playsInline className={`w-full h-full object-${objectFit}`} />
-                        ) : (
-                            <img src={preview} alt={label} className={`w-full h-full object-${objectFit}`} onError={() => setPreview('')} />
+            {currentUrl ? (
+                <div className="relative group rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden h-48 bg-slate-100 dark:bg-slate-800">
+                    {currentUrl.match(/\.(mp4|webm|ogg)(\?.*)?$/i) ? (
+                        <video src={currentUrl} autoPlay muted loop playsInline className={`w-full h-full object-${objectFit}`} />
+                    ) : (
+                        <img src={currentUrl} alt={label} className={`w-full h-full object-${objectFit}`} />
+                    )}
+                    
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
+                        {onOpenPicker && (
+                            <button
+                                type="button"
+                                onClick={onOpenPicker}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-white text-slate-800 rounded-xl text-xs font-bold shadow-lg hover:bg-slate-100 transition-colors"
+                            >
+                                <Camera className="w-3 h-3" /> Change
+                            </button>
                         )}
-                        {/* Overlay on hover */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <div className="text-white text-sm font-medium flex items-center gap-2">
-                                <Upload className="w-4 h-4" /> Change Image
-                            </div>
-                        </div>
-                        {/* Clear button */}
                         <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); clearImage(); }}
-                            className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-500 text-white rounded-full transition-colors z-10"
-                            title="Remove image"
+                            onClick={() => onUploaded('')}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-rose-600 transition-colors"
                         >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="w-3 h-3" /> Remove
                         </button>
-                    </>
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center gap-2 text-slate-400 px-4">
-                        {uploading ? (
-                            <>
-                                <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-                                <p className="text-sm font-medium text-indigo-500">Uploading…</p>
-                            </>
-                        ) : (
-                            <>
-                                <Upload className="w-8 h-8" />
-                                <p className="text-sm font-medium">Click or drag & drop to upload</p>
-                                <p className="text-xs text-center">
-                                    Allowed: {acceptVideo ? [...ALLOWED_EXT, ...VIDEO_EXT].join(', ') : ALLOWED_EXT.join(', ')} &nbsp;|&nbsp; Max {acceptVideo ? MAX_VIDEO_MB : MAX_SIZE_MB} MB
-                                </p>
-                            </>
-                        )}
                     </div>
-                )}
-
-                {/* Uploading overlay while image already shown */}
-                {uploading && preview && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-white" />
-                    </div>
-                )}
-            </div>
-
-            {/* Hidden file input */}
-            <input
-                ref={inputRef}
-                type="file"
-                accept={acceptVideo ? [...ALLOWED_MIME, ...VIDEO_MIME].join(',') : ALLOWED_MIME.join(',')}
-                className="hidden"
-                onChange={onInputChange}
-            />
-
-
-
-            {/* Error */}
-            {error && (
-                <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {error}
                 </div>
+            ) : (
+                <>
+                    {onOpenPicker && (
+                        <button
+                            type="button"
+                            onClick={onOpenPicker}
+                            className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50 dark:bg-slate-800/50 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all group"
+                        >
+                            <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-2 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-colors">
+                                <ImageIcon className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                            </div>
+                            <p className="font-semibold text-sm text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                Add Image
+                            </p>
+                        </button>
+                    )}
+                </>
             )}
 
             {hint && <p className="text-xs text-slate-400">{hint}</p>}
@@ -300,6 +176,13 @@ export default function WaStoreBasicDetails() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving]   = useState(false);
+
+    // ── Media Picker state ────────────────────────────────────────────────────
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [pickerConfig, setPickerConfig] = useState({ allowedTypes: 'image', onSelect: null });
+
+    const openPicker = (config) => { setPickerConfig(config); setPickerOpen(true); };
+    const closePicker = () => setPickerOpen(false);
 
     useEffect(() => {
         const fetchStore = async () => {
@@ -446,6 +329,7 @@ export default function WaStoreBasicDetails() {
                                 currentUrl={store.logo || ''}
                                 onUploaded={(url) => set('logo', url)}
                                 objectFit="contain"
+                                onOpenPicker={() => openPicker({ allowedTypes: 'image', multiple: false, title: 'Select Store Logo', onSelect: (url) => set('logo', url) })}
                             />
                         </div>
                     </div>
@@ -502,6 +386,12 @@ export default function WaStoreBasicDetails() {
                                         endpoint="upload/slide"
                                         currentUrl={slide.imageUrl || ''}
                                         acceptVideo={true}
+                                        onOpenPicker={() => openPicker({
+                                            allowedTypes: 'all',
+                                            multiple: false,
+                                            title: `Select Slide ${idx + 1} Media`,
+                                            onSelect: (url) => { const s = [...(store.heroSlides || [])]; s[idx] = { ...s[idx], imageUrl: url }; set('heroSlides', s); }
+                                        })}
                                         onUploaded={(url) => {
                                             const s = [...(store.heroSlides || [])];
                                             s[idx] = { ...s[idx], imageUrl: url };
@@ -674,6 +564,18 @@ export default function WaStoreBasicDetails() {
                     </button>
                 </div>
             </form>
+
+            {/* ── Media Picker Modal ─────────────────────────────────────── */}
+            <MediaPickerModal
+                isOpen={pickerOpen}
+                onClose={closePicker}
+                onSelect={(url) => { if (pickerConfig.onSelect) pickerConfig.onSelect(url); }}
+                accessMode="restricted"
+                allowedTypes={pickerConfig.allowedTypes || 'image'}
+                multiple={false}
+                title={pickerConfig.title || 'Select Media'}
+                mimeConstraints={pickerConfig.mimeConstraints || null}
+            />
         </div>
     );
 }

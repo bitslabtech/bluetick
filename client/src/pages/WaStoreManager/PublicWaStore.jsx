@@ -4,6 +4,7 @@ import axios from 'axios';
 import { ShoppingBag, ShoppingCart, X, Plus, Minus, Search, ArrowRight, MapPin, Mail, Phone, MessageCircle, ChevronLeft, ChevronRight, Filter, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import StoreNotFound from '../../components/StoreNotFound';
 
 const API_BASE = `${import.meta.env.VITE_API_URL}`;
 const imgUrl = (url) => {
@@ -165,7 +166,7 @@ export default function PublicWaStore() {
     };
 
     if (loading) return <div className="h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-black" /></div>;
-    if (!store) return <div className="h-screen flex items-center justify-center bg-white"><h1 className="text-2xl font-medium text-gray-900">Store Not Found</h1></div>;
+    if (!store) return <StoreNotFound slug={slug} />;
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-black selection:text-white pb-24" style={{ scrollbarGutter: 'stable' }}>

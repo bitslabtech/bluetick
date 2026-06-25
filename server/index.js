@@ -313,6 +313,51 @@ app.use((err, req, res, next) => {
 // Start Server
 const PORT = process.env.PORT || 5000;
 
+// ── One-time startup migration: backfill mediaType for legacy MediaFile rows ──
+// Runs silently every boot; no-ops instantly if all rows are already classified.
+async function backfillMediaTypes() {
+    try {
+        const MediaFile = require('./models/MediaFile');
+        const { Op } = require('sequelize');
+
+        function deriveMediaType(mimeType, url) {
+            const mime = (mimeType || '').toLowerCase();
+            const u = (url || '').toLowerCase();
+            if (mime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|bmp|avif)(\?|$)/.test(u)) return 'image';
+            if (mime.startsWith('video/') || /\.(mp4|webm|3gp|ogg|mov|avi)(\?|$)/.test(u))           return 'video';
+            if (
+                mime === 'application/pdf' || mime.startsWith('text/') ||
+                mime.includes('document') || mime.includes('spreadsheet') ||
+                /\.(pdf|csv|txt|docx|xlsx|md)(\?|$)/.test(u)
+            ) return 'document';
+            return 'other';
+        }
+
+        const rows = await MediaFile.findAll({
+            where: { [Op.or]: [{ mediaType: null }, { mediaType: 'other' }] },
+            attributes: ['id', 'mimeType', 'url', 'mediaType']
+        });
+
+        if (rows.length === 0) return; // already clean — skip silently
+
+        let updated = 0;
+        await Promise.all(rows.map(async (row) => {
+            const derived = deriveMediaType(row.mimeType, row.url);
+            if (derived !== row.mediaType) {
+                await row.update({ mediaType: derived }).catch(() => {});
+                updated++;
+            }
+        }));
+
+        if (updated > 0) {
+            console.log(`[MediaType Migration] Backfilled ${updated} record(s) with correct mediaType.`);
+        }
+    } catch (err) {
+        // Non-fatal — don't block startup if migration fails
+        console.error('[MediaType Migration] Backfill error (non-fatal):', err.message);
+    }
+}
+
 const startServer = async () => {
     try {
         await createDbIfNotExists(); // Create DB if not exists
@@ -323,6 +368,9 @@ const startServer = async () => {
         require('./models/MediaFile');     // Ensure MediaFile is loaded before sync
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');
+
+        // Run one-time mediaType backfill (fixes legacy records on production after deploy)
+        await backfillMediaTypes();
 
         // Initialize Scheduler
         const { initScheduler } = require('./utils/scheduler');

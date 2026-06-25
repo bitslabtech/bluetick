@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import WaStoreFooter from '../components/WaStoreFooter';
 import WaStoreHeader from '../components/WaStoreHeader';
 import WaStoreCheckoutModal from '../components/WaStoreCheckoutModal';
+import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
 
@@ -310,7 +311,7 @@ export default function PublicWaStore({ customSlug }) {
     };
 
     if (loading) return <div className="h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-black" /></div>;
-    if (!store) return <div className="h-screen flex items-center justify-center bg-white"><h1 className="text-2xl font-medium text-gray-900">Store Not Found</h1></div>;
+    if (!store) return <StoreNotFound slug={slug} />;
 
     return (
         <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-20 md:pb-0`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>

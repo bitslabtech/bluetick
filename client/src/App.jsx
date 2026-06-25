@@ -108,6 +108,7 @@ const AboutUs = React.lazy(() => import('./pages/AboutUs'));
 const ContactUs = React.lazy(() => import('./pages/ContactUs'));
 const PartnerWithUs = React.lazy(() => import('./pages/PartnerWithUs'));
 const MediaGallery = React.lazy(() => import('./pages/MediaGallery'));
+const NotFound404 = React.lazy(() => import('./pages/NotFound404'));
 
 // Simple Loading Component
 const Loading = () => (
@@ -397,6 +398,7 @@ function App() {
                                                  <Route path="/media-gallery" element={<MediaGallery />} />
                                              </Route>
                                         </Route>
+                                        <Route path="*" element={<NotFound404 />} />
                                     </Routes>
                                     </CustomDomainRouter>
                                 </Suspense>

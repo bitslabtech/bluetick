@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { Package, Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight, Check } from 'lucide-react';
+import { Package, Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight, Check, FolderOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
+import MediaPickerModal from '../../components/MediaPickerModal';
 
 // ─── Allowed MIME types & extensions ─────────────────────────────────────────
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
@@ -23,46 +24,7 @@ function validateImageFile(file) {
 // ─── Multi-Image Uploader Component ─────────────────────────────────────────
 const MAX_IMAGES = 6;
 
-function MultiImageUploader({ imageUrls, onImagesChange }) {
-    const inputRef = useRef(null);
-    const [uploading, setUploading] = useState(false);
-    const [dragOver, setDragOver] = useState(false);
-    const [error, setError] = useState(null);
-
-    const handleFiles = async (files) => {
-        setError(null);
-        const remaining = MAX_IMAGES - imageUrls.length;
-        const filesToUpload = Array.from(files).slice(0, remaining);
-        if (filesToUpload.length === 0) {
-            setError(`Maximum ${MAX_IMAGES} images allowed.`);
-            return;
-        }
-        for (const file of filesToUpload) {
-            const err = validateImageFile(file);
-            if (err) { setError(err); return; }
-        }
-        setUploading(true);
-        try {
-            const uploaded = [];
-            for (const file of filesToUpload) {
-                const form = new FormData();
-                form.append('product', file);
-                const res = await axios.post(
-                    `${import.meta.env.VITE_API_URL}/api/wastore/upload/product`,
-                    form,
-                    { headers: {  'Content-Type': 'multipart/form-data' } }
-                );
-                uploaded.push(res.data.url);
-            }
-            onImagesChange([...imageUrls, ...uploaded]);
-            toast.success(`${uploaded.length} image${uploaded.length > 1 ? 's' : ''} uploaded!`);
-        } catch (err) {
-            setError(err.response?.data?.error || 'Upload failed.');
-        } finally {
-            setUploading(false);
-            if (inputRef.current) inputRef.current.value = '';
-        }
-    };
+function MultiImageUploader({ imageUrls, onImagesChange, onOpenPicker }) {
 
     const removeImage = (idx) => {
         const next = imageUrls.filter((_, i) => i !== idx);
@@ -137,100 +99,33 @@ function MultiImageUploader({ imageUrls, onImagesChange }) {
                 </div>
             )}
 
-            {/* Upload Drop Zone */}
-            {imageUrls.length < MAX_IMAGES && (
-                <div
-                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); }}
-                    onClick={() => !uploading && inputRef.current?.click()}
-                    className={`cursor-pointer rounded-2xl border-2 border-dashed transition-all h-28 flex flex-col items-center justify-center gap-2 ${
-                        dragOver
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                            : 'border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/50'
-                    }`}
+            {/* Add Image Button (Media Library) */}
+            {imageUrls.length < MAX_IMAGES && onOpenPicker && (
+                <button
+                    type="button"
+                    onClick={onOpenPicker}
+                    className="w-full h-28 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/50 text-slate-500 hover:text-indigo-600"
                 >
-                    {uploading ? (
-                        <>
-                            <Loader2 className="w-7 h-7 animate-spin text-indigo-500" />
-                            <p className="text-sm font-medium text-indigo-500">Uploading…</p>
-                        </>
-                    ) : (
-                        <>
-                            <Upload className="w-7 h-7 text-slate-400" />
-                            <p className="text-sm font-medium text-slate-500">
-                                {imageUrls.length === 0 ? 'Add product images' : 'Add more images'}
-                            </p>
-                            <p className="text-xs text-slate-400">Up to {MAX_IMAGES - imageUrls.length} more · Max {MAX_SIZE_MB}MB each</p>
-                        </>
-                    )}
-                </div>
+                    <ImageIcon className="w-7 h-7 text-slate-400" />
+                    <p className="text-sm font-medium">Add Image</p>
+                    <p className="text-xs text-slate-400">({MAX_IMAGES - imageUrls.length} slots left)</p>
+                </button>
             )}
-
-            <input
-                ref={inputRef}
-                type="file"
-                accept={ALLOWED_MIME.join(',')}
-                multiple
-                className="hidden"
-                onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }}
-            />
-            {error && <div className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</div>}
         </div>
     );
 }
 
 // ─── Single Variant Image Uploader Component ────────────────────────────────
-function VariantImageUploader({ onUploaded }) {
-    const inputRef = useRef(null);
-    const [uploading, setUploading] = useState(false);
-
-    const handleFile = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        
-        const err = validateImageFile(file);
-        if (err) { toast.error(err); return; }
-        
-        setUploading(true);
-        try {
-            const form = new FormData();
-            form.append('product', file);
-            const res = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/wastore/upload/product`,
-                form,
-                { headers: {  'Content-Type': 'multipart/form-data' } }
-            );
-            onUploaded(res.data.url);
-        } catch (err) {
-            toast.error(err.response?.data?.error || 'Upload failed.');
-        } finally {
-            setUploading(false);
-            if (inputRef.current) inputRef.current.value = '';
-        }
-    };
-
+function VariantImageUploader({ onOpenPicker }) {
     return (
         <div className="relative inline-block ml-1">
-            <input
-                ref={inputRef}
-                type="file"
-                accept={ALLOWED_MIME.join(',')}
-                className="hidden"
-                onChange={handleFile}
-            />
             <button
                 type="button"
-                onClick={() => !uploading && inputRef.current?.click()}
-                disabled={uploading}
-                title="Upload unique image for this variant"
-                className="w-10 h-10 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors disabled:opacity-50"
+                onClick={onOpenPicker}
+                title="Choose image for this variant"
+                className="w-10 h-10 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors"
             >
-                {uploading ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
-                ) : (
-                    <Upload className="w-4 h-4 text-slate-400" />
-                )}
+                <ImageIcon className="w-4 h-4 text-slate-400" />
             </button>
         </div>
     );
@@ -274,6 +169,12 @@ export default function WaProductList() {
     const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
     const [isVariationsOpen, setIsVariationsOpen] = useState(false);
     const [isSeoOpen, setIsSeoOpen] = useState(false);
+
+    // ── Media Picker state ────────────────────────────────────────────────────
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [pickerConfig, setPickerConfig] = useState({ allowedTypes: 'image', multiple: true, onSelect: null });
+    const openPicker = (config) => { setPickerConfig(config); setPickerOpen(true); };
+    const closePicker = () => setPickerOpen(false);
 
     const getCurrencySymbol = (code) => {
         const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
@@ -599,6 +500,17 @@ export default function WaProductList() {
                                         <MultiImageUploader
                                             imageUrls={form.imageUrls || []}
                                             onImagesChange={(urls) => setForm({ ...form, imageUrls: urls })}
+                                            onOpenPicker={() => openPicker({
+                                                allowedTypes: 'image',
+                                                multiple: true,
+                                                title: 'Select Product Images',
+                                                onSelect: (urls) => {
+                                                    const arr = Array.isArray(urls) ? urls : [urls];
+                                                    const current = form.imageUrls || [];
+                                                    const available = MAX_IMAGES - current.length;
+                                                    setForm(f => ({ ...f, imageUrls: [...current, ...arr.slice(0, available)] }));
+                                                }
+                                            })}
                                         />
                                     </div>
 
@@ -952,17 +864,22 @@ export default function WaProductList() {
                                                                                     })()}
                                                                                     
                                                                                     <VariantImageUploader 
-                                                                                        onUploaded={(url) => {
-                                                                                            const updated = [...form.variants];
-                                                                                            updated[idx] = { ...updated[idx], imageUrl: url };
-                                                                                            
-                                                                                            const nextUrls = [...(form.imageUrls || [])];
-                                                                                            if (!nextUrls.includes(url) && nextUrls.length < MAX_IMAGES) {
-                                                                                                nextUrls.push(url);
+                                                                                        onOpenPicker={() => setPickerConfig({
+                                                                                            isOpen: true,
+                                                                                            allowedTypes: 'image',
+                                                                                            multiple: false,
+                                                                                            onSelect: (url) => {
+                                                                                                const updated = [...form.variants];
+                                                                                                updated[idx] = { ...updated[idx], imageUrl: url };
+                                                                                                
+                                                                                                const nextUrls = [...(form.imageUrls || [])];
+                                                                                                if (!nextUrls.includes(url) && nextUrls.length < MAX_IMAGES) {
+                                                                                                    nextUrls.push(url);
+                                                                                                }
+                                                                                                
+                                                                                                setForm({ ...form, variants: updated, imageUrls: nextUrls });
                                                                                             }
-                                                                                            
-                                                                                            setForm({ ...form, variants: updated, imageUrls: nextUrls });
-                                                                                        }} 
+                                                                                        })}
                                                                                     />
                                                                                 </div>
                                                                             </td>
@@ -1049,6 +966,18 @@ export default function WaProductList() {
                     </div>
                 </div>
             )}
+
+            {/* ── Media Picker Modal ─────────────────────────────────────────── */}
+            <MediaPickerModal
+                isOpen={pickerOpen}
+                onClose={closePicker}
+                onSelect={(urls) => { if (pickerConfig.onSelect) pickerConfig.onSelect(urls); }}
+                accessMode="restricted"
+                allowedTypes={pickerConfig.allowedTypes || 'image'}
+                multiple={pickerConfig.multiple || false}
+                title={pickerConfig.title || 'Select Media'}
+                mimeConstraints={pickerConfig.mimeConstraints || null}
+            />
         </div>
     );
 }

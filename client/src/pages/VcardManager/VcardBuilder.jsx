@@ -5,6 +5,8 @@ import { Save, ArrowLeft, Image as ImageIcon, Link as LinkIcon, Briefcase, Messa
 import { useAuth } from '../../context/AuthContext';
 import { useUI } from '../../context/UIContext';
 import { getThemeComponent } from '../VcardThemes';
+import MediaGallery from '../MediaGallery';
+import MediaPickerModal from '../../components/MediaPickerModal';
 
 export default function VcardBuilder() {
     const { id } = useParams();
@@ -21,12 +23,19 @@ export default function VcardBuilder() {
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [uploadingHero, setUploadingHero] = useState(false);
     const [whatsappFieldError, setWhatsappFieldError] = useState(false);
-    const [uploadingProfile, setUploadingProfile] = useState(false);
-    const [uploadingCover, setUploadingCover] = useState(false);
-    const [uploadingArrayImg, setUploadingArrayImg] = useState({ type: null, index: null });
     const [activeTab, setActiveTab] = useState('basic'); // basic, theme, socials, services, seo
+
+    // ── Media Picker state ────────────────────────────────────────────────────
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [pickerConfig, setPickerConfig] = useState({ allowedTypes: 'image', multiple: false, title: 'Select Media', onSelect: null });
+
+    // Opens the picker with a config and a callback that receives the selected URL
+    const openPicker = (config) => {
+        setPickerConfig(config);
+        setPickerOpen(true);
+    };
+    const closePicker = () => setPickerOpen(false);
 
     const [vcard, setVcard] = useState({
         slug: '',
@@ -111,133 +120,6 @@ export default function VcardBuilder() {
             showToast(err.response?.data?.error || 'Failed to save veCard', 'error');
         } finally {
             setSaving(false);
-        }
-    };
-
-    const handleHeroUpload = async (e, type) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setUploadingHero(true);
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const endpoint = type === 'image' ? '/api/vcards/upload/hero-image' : '/api/vcards/upload/hero-video';
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}${endpoint}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, url: res.data.url } }));
-            showToast('Media uploaded successfully!', 'success');
-        } catch (error) {
-            showToast(error.response?.data?.error || 'Upload failed', 'error');
-        } finally {
-            setUploadingHero(false);
-            e.target.value = null;
-        }
-    };
-    const handleHeroArrayUpload = async (e, idx) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setUploadingArrayImg({ type: 'hero', index: idx });
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/vcards/upload/hero-image`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            setVcard(p => {
-                const urls = p.heroMedia?.urls?.length > 0 ? [...p.heroMedia.urls] : (p.heroMedia?.url ? [p.heroMedia.url] : []);
-                urls[idx] = res.data.url;
-                return { ...p, heroMedia: { ...p.heroMedia, urls, url: urls[0] || '' } };
-            });
-            showToast('Image uploaded successfully!', 'success');
-        } catch (error) {
-            showToast(error.response?.data?.error || 'Upload failed', 'error');
-        } finally {
-            setUploadingArrayImg({ type: null, index: null });
-            e.target.value = null;
-        }
-    };
-
-
-    // Upload profile or cover image via the same hero-image endpoint
-    const handleImageUpload = async (e, field) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Validation
-        const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        if (!validTypes.includes(file.type)) {
-            showToast('Unsupported format. Please upload JPG, PNG, WEBP, or GIF.', 'error');
-            e.target.value = null;
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) { // 5MB
-            showToast('File size must be less than 5MB.', 'error');
-            e.target.value = null;
-            return;
-        }
-
-        const setSt = field === 'profileImage' ? setUploadingProfile : setUploadingCover;
-        setSt(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/vcards/upload/hero-image`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            setVcard(p => ({ ...p, [field]: res.data.url }));
-            showToast('Image uploaded successfully!', 'success');
-        } catch (err) {
-            showToast(err.response?.data?.error || 'Upload failed', 'error');
-        } finally {
-            setSt(false);
-            e.target.value = null;
-        }
-    };
-
-    const handleArrayImageUpload = async (e, arrayName, index, fieldName) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Validation
-        const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        if (!validTypes.includes(file.type)) {
-            showToast('Unsupported format. Please upload JPG, PNG, WEBP, or GIF.', 'error');
-            e.target.value = null;
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) { // 5MB
-            showToast('File size must be less than 5MB.', 'error');
-            e.target.value = null;
-            return;
-        }
-
-        setUploadingArrayImg({ type: arrayName, index });
-        const formData = new FormData();
-        formData.append('file', file);
-        try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/vcards/upload/hero-image`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            setVcard(p => {
-                const arr = [...p[arrayName]];
-                arr[index][fieldName] = res.data.url;
-                return { ...p, [arrayName]: arr };
-            });
-            showToast('Image uploaded successfully!', 'success');
-        } catch (err) {
-            showToast(err.response?.data?.error || 'Upload failed', 'error');
-        } finally {
-            setUploadingArrayImg({ type: null, index: null });
-            e.target.value = null;
         }
     };
 
@@ -332,6 +214,7 @@ export default function VcardBuilder() {
                             { key: 'booking', icon: <CalendarCheck className="w-4 h-4" />, label: 'Booking' },
                             { key: 'instagram', icon: <Instagram className="w-4 h-4" />, label: 'Instagram' },
                             { key: 'seo', icon: <LinkIcon className="w-4 h-4" />, label: 'SEO & Tracking' },
+                            { key: 'media', icon: <ImageIcon className="w-4 h-4" />, label: 'Media Manager' },
                         ].map(({ key, icon, label }) => (
                             <button
                                 key={key}
@@ -382,11 +265,14 @@ export default function VcardBuilder() {
                                             <p className="text-sm font-bold text-slate-800 dark:text-white">Profile / Logo Image</p>
                                             <p className="text-xs text-slate-400 mt-0.5">Appears as your avatar on the veCard. Upload a photo or logo.</p>
                                         </div>
-                                        <label className="flex items-center justify-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl px-4 py-2.5 transition-colors w-full shadow-md shadow-indigo-500/20">
+                                        <button
+                                            type="button"
+                                            onClick={() => openPicker({ allowedTypes: 'image', multiple: false, title: 'Select Profile / Logo Image', onSelect: (url) => setVcard(p => ({ ...p, profileImage: url })) })}
+                                            className="flex items-center justify-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl px-4 py-2.5 transition-colors w-full shadow-md shadow-indigo-500/20"
+                                        >
                                             <ImageIcon className="w-4 h-4" />
-                                            {uploadingProfile ? 'Uploading...' : 'Upload Photo / Logo'}
-                                            <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'profileImage')} className="hidden" disabled={uploadingProfile} />
-                                        </label>
+                                            Choose / Upload Photo
+                                        </button>
                                         <input
                                             type="url"
                                             name="profileImage"
@@ -785,18 +671,20 @@ export default function VcardBuilder() {
                                                             </button>
                                                         )}
                                                     </div>
-                                                    
                                                     <div className={`flex-1 rounded-xl border-2 border-dashed border-slate-300 dark:border-white/20 overflow-hidden bg-slate-50 dark:bg-slate-800 transition-all hover:border-indigo-400 flex items-center justify-center ${currentUrl ? 'p-1' : 'min-h-[120px]'}`}>
                                                         {currentUrl ? (
                                                             <img src={currentUrl} className="w-full h-[120px] object-cover rounded-lg" alt={`Hero ${idx + 1}`} />
                                                         ) : (
-                                                            <label className="flex flex-col items-center justify-center h-full w-full cursor-pointer text-center p-4">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openPicker({ allowedTypes: 'image', multiple: false, title: `Select Hero Image ${idx + 1}`, onSelect: (url) => { const newUrls = [...urls]; newUrls[idx] = url; setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, urls: newUrls, url: newUrls[0] || '' } })); } })}
+                                                                className="flex flex-col items-center justify-center h-full w-full cursor-pointer text-center p-4"
+                                                            >
                                                                 <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 rounded-full flex items-center justify-center mb-2">
                                                                     <Upload className="w-4 h-4" />
                                                                 </div>
-                                                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{uploadingArrayImg?.index === idx ? 'Uploading...' : 'Upload Image'}</span>
-                                                                <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleHeroArrayUpload(e, idx)} disabled={uploadingArrayImg?.index === idx} />
-                                                            </label>
+                                                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Choose / Upload Image</span>
+                                                            </button>
                                                         )}
                                                     </div>
                                                     
@@ -873,14 +761,17 @@ export default function VcardBuilder() {
                                             <div className="space-y-4">
                                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Upload Video File</label>
                                                 <div className="rounded-xl border-2 border-dashed border-slate-300 dark:border-white/20 overflow-hidden bg-white dark:bg-slate-900 transition-all hover:border-indigo-400">
-                                                    <label className="flex flex-col items-center justify-center h-32 cursor-pointer text-center p-4 md:p-6">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openPicker({ allowedTypes: 'video', multiple: false, title: 'Select Hero Video', onSelect: (url) => setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, url } })) })}
+                                                        className="flex flex-col items-center justify-center h-32 cursor-pointer text-center p-4 md:p-6 w-full"
+                                                    >
                                                         <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 rounded-full flex items-center justify-center mb-3">
                                                             <Upload className="w-6 h-6" />
                                                         </div>
-                                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{uploadingHero ? 'Uploading Video...' : 'Click to Browse .mp4 Files'}</span>
+                                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Choose / Upload .mp4 File</span>
                                                         <span className="text-xs text-slate-400 mt-1">Keep it short! Max size: 50MB</span>
-                                                        <input type="file" className="hidden" accept="video/mp4,video/webm" onChange={(e) => handleHeroUpload(e, 'video')} disabled={uploadingHero} />
-                                                    </label>
+                                                    </button>
                                                 </div>
                                                 
                                                 <div className="relative">
@@ -983,22 +874,25 @@ export default function VcardBuilder() {
                                                     </div>
                                                 </>
                                             ) : (
-                                                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
-                                                    {(uploadingArrayImg.type === 'gallery' && uploadingArrayImg.index === idx) ? (
-                                                        <div className="flex flex-col items-center gap-2">
-                                                            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                                                            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Uploading</span>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                                                <ImageIcon className="w-4 h-4" />
-                                                            </div>
-                                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Upload</span>
-                                                        </>
-                                                    )}
-                                                    <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => handleArrayImageUpload(e, 'gallery', idx, 'url')} disabled={uploadingArrayImg.type === 'gallery' && uploadingArrayImg.index === idx} />
-                                                </label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openPicker({
+                                                        allowedTypes: 'image',
+                                                        multiple: false,
+                                                        title: `Select Gallery Image ${idx + 1}`,
+                                                        onSelect: (url) => {
+                                                            const g = [...vcard.gallery];
+                                                            g[idx].url = url;
+                                                            setVcard(p => ({ ...p, gallery: g }));
+                                                        }
+                                                    })}
+                                                    className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
+                                                >
+                                                    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                        <ImageIcon className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Add Image</span>
+                                                </button>
                                             )}
                                         </div>
                                     ))}
@@ -1077,20 +971,23 @@ export default function VcardBuilder() {
                                                     
                                                     {/* Explicit Upload Button */}
                                                     <div className="flex flex-col gap-1.5">
-                                                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-lg transition-colors border border-indigo-100 dark:border-indigo-500/20 w-max shadow-sm active:scale-95">
-                                                            {(uploadingArrayImg.type === 'testimonials' && uploadingArrayImg.index === idx) ? (
-                                                                <>
-                                                                    <div className="w-3.5 h-3.5 border-2 border-indigo-500/30 border-t-indigo-600 rounded-full animate-spin" />
-                                                                    <span>Uploading...</span>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Upload className="w-3.5 h-3.5" />
-                                                                    <span>{t.imageUrl ? 'Change Photo' : 'Upload Photo'}</span>
-                                                                </>
-                                                            )}
-                                                            <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => handleArrayImageUpload(e, 'testimonials', idx, 'imageUrl')} disabled={uploadingArrayImg.type === 'testimonials' && uploadingArrayImg.index === idx} />
-                                                        </label>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => openPicker({
+                                                                allowedTypes: 'image',
+                                                                multiple: false,
+                                                                title: 'Select Client Photo',
+                                                                onSelect: (url) => {
+                                                                    const arr = [...vcard.testimonials];
+                                                                    arr[idx].imageUrl = url;
+                                                                    setVcard(p => ({ ...p, testimonials: arr }));
+                                                                }
+                                                            })}
+                                                            className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-lg transition-colors border border-indigo-100 dark:border-indigo-500/20 w-max shadow-sm active:scale-95"
+                                                        >
+                                                            <ImageIcon className="w-3.5 h-3.5" />
+                                                            <span>{t.imageUrl ? 'Change Photo' : 'Add Photo'}</span>
+                                                        </button>
                                                         {t.imageUrl && (
                                                             <button onClick={() => { const arr = [...vcard.testimonials]; arr[idx].imageUrl = ''; setVcard(p => ({ ...p, testimonials: arr })); }} className="text-[10px] text-rose-500 hover:text-rose-600 font-semibold text-left ml-1 w-max">Remove Image</button>
                                                         )}
@@ -1431,6 +1328,13 @@ export default function VcardBuilder() {
                                 </div>
                             </div>
                         )}
+
+                        {/* --- MEDIA MANAGER TAB --- */}
+                        {activeTab === 'media' && (
+                            <div className="animate-in slide-in-from-right-4 h-full min-h-[500px]">
+                                <MediaGallery accessMode="restricted" />
+                            </div>
+                        )}
                     </div>
                 </div>{/* end body flex */}
             </div>
@@ -1492,6 +1396,18 @@ export default function VcardBuilder() {
                     </div>
                 </div>
             </div>
+
+            {/* ── Media Picker Modal ─────────────────────────────────────────────── */}
+            <MediaPickerModal
+                isOpen={pickerOpen}
+                onClose={closePicker}
+                onSelect={(url) => { if (pickerConfig.onSelect) pickerConfig.onSelect(url); }}
+                accessMode="restricted"
+                allowedTypes={pickerConfig.allowedTypes || 'image'}
+                multiple={pickerConfig.multiple || false}
+                title={pickerConfig.title || 'Select Media'}
+                mimeConstraints={pickerConfig.mimeConstraints || null}
+            />
 
         </div>
     );
