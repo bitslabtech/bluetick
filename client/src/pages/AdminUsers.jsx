@@ -792,6 +792,15 @@ const GrantTrialModal = ({ user, plans, onClose, onSave }) => {
 // ════════════════════════════════════════════
 const ViewUserModal = ({ user, details, loading, onClose }) => {
     const [activeTab, setActiveTab] = useState('profile');
+    const [topupAmount, setTopupAmount] = useState('');
+    const [isToppingUp, setIsToppingUp] = useState(false);
+    const [localTokenBalance, setLocalTokenBalance] = useState(details?.user?.aiTokenBalance || 0);
+
+    useEffect(() => {
+        if (details?.user?.aiTokenBalance !== undefined) {
+            setLocalTokenBalance(details.user.aiTokenBalance);
+        }
+    }, [details]);
 
     const tabs = [
         { id: 'profile', label: 'Profile', icon: User },
@@ -815,6 +824,29 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
+    };
+
+    const handleTopUpTokens = async (e) => {
+        e.preventDefault();
+        const amount = Number(topupAmount);
+        if (!amount || amount <= 0 || amount > 5000) {
+            alert('Please enter a valid amount up to 5,000');
+            return;
+        }
+        setIsToppingUp(true);
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/users/${user.id}/topup-tokens`, { amount });
+            if (res.data.success) {
+                setLocalTokenBalance(res.data.aiTokenBalance);
+                setTopupAmount('');
+                alert('Successfully added tokens');
+            }
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.error || 'Failed to top up tokens');
+        } finally {
+            setIsToppingUp(false);
+        }
     };
 
     return (
@@ -951,6 +983,42 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                             <p className="text-2xl font-black text-slate-900 dark:text-white relative z-10">{formatBytes(details.usage?.storageUsed)}</p>
                                             <p className="text-xs font-bold text-slate-500 uppercase mt-1 relative z-10">Disk Storage</p>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8">
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-4">AI Token Management</h4>
+                                    <div className="bg-slate-50 dark:bg-white/5 p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                                        <div>
+                                            <p className="text-sm text-slate-500 mb-1">Current Token Balance</p>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center">
+                                                    <Zap className="w-5 h-5" />
+                                                </div>
+                                                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                                                    {localTokenBalance.toLocaleString()}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <form onSubmit={handleTopUpTokens} className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="5000"
+                                                placeholder="Top-up amount (max 5000)"
+                                                value={topupAmount}
+                                                onChange={(e) => setTopupAmount(e.target.value)}
+                                                className="w-full sm:w-auto sm:min-w-[220px] px-4 py-2 bg-white dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={isToppingUp || !topupAmount}
+                                                className="w-full sm:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                            >
+                                                {isToppingUp ? 'Adding...' : 'Add Tokens'}
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>

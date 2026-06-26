@@ -55,16 +55,18 @@ const AdminActivityLogs = () => {
         if (a.includes('error') || a.includes('failed')) return <AlertCircle className="w-4 h-4 text-red-500" />;
         if (a.includes('delete') || a.includes('remove')) return <Trash2 className="w-4 h-4 text-red-500" />;
         if (a.includes('update') || a.includes('edit')) return <Edit className="w-4 h-4 text-blue-500" />;
+        if (a.includes('token')) return <Activity className="w-4 h-4 text-amber-500" />;
         return <Activity className="w-4 h-4 text-slate-500" />;
     };
 
     const getActionColor = (action) => {
         const a = action.toLowerCase();
-        if (a.includes('create') || a.includes('add') || a.includes('success')) return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400';
+        if (a.includes('create') || a.includes('add') || a.includes('success') || a.includes('assigned')) return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400';
         if (a.includes('update') || a.includes('edit') || a.includes('change')) return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400';
         if (a.includes('delete') || a.includes('remove')) return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400';
         if (a.includes('impersonation')) return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400';
         if (a.includes('broadcast') || a.includes('notification')) return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400';
+        if (a.includes('token')) return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400';
         return 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-white/5 dark:text-slate-400';
     };
 
@@ -108,7 +110,7 @@ const AdminActivityLogs = () => {
                                 </button>
                                 <div className="absolute right-0 top-full pt-2 w-48 hidden group-hover:block z-20">
                                     <div className="bg-white dark:bg-surface-dark rounded-xl shadow-xl border border-slate-100 dark:border-white/10 p-1">
-                                        {['All', 'User', 'Plan', 'Login', 'Impersonation', 'KB', 'Ticket', 'Setting', 'Broadcast'].map(type => (
+                                        {['All', 'User', 'Plan', 'Login', 'Impersonation', 'KB', 'Ticket', 'Setting', 'Broadcast', 'Tokens'].map(type => (
                                             <button
                                                 key={type}
                                                 onClick={() => setFilterAction(type)}

@@ -469,6 +469,40 @@ router.put('/users/:id', async (req, res) => {
     }
 });
 
+// POST Add AI Tokens (Superadmin controlled)
+router.post('/users/:id/topup-tokens', async (req, res) => {
+    try {
+        let { amount } = req.body;
+        amount = Number(amount);
+        
+        if (!amount || isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ error: 'Valid positive amount is required' });
+        }
+        if (amount > 5000) {
+            return res.status(400).json({ error: 'Maximum top-up amount at a time is 5,000' });
+        }
+
+        const targetUser = await User.findByPk(req.params.id);
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        const previousBalance = targetUser.aiTokenBalance || 0;
+        targetUser.aiTokenBalance = previousBalance + amount;
+        await targetUser.save();
+
+        // Log Activity
+        await ActivityLog.create({
+            userId: req.user.id,
+            action: 'AI Tokens Assigned',
+            details: `Superadmin manually added ${amount.toLocaleString()} AI tokens to user ${targetUser.email}. Balance changed from ${previousBalance.toLocaleString()} to ${targetUser.aiTokenBalance.toLocaleString()}`
+        });
+
+        res.json({ success: true, aiTokenBalance: targetUser.aiTokenBalance });
+    } catch (err) {
+        console.error("Top-up Tokens Error:", err);
+        res.status(500).json({ error: 'Server Error: ' + err.message });
+    }
+});
+
 // POST Grant Trial to User (Superadmin controlled)
 router.post('/users/:id/grant-trial', async (req, res) => {
     try {

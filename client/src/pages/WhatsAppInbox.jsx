@@ -184,8 +184,15 @@ const WhatsAppInbox = () => {
 
         const joinRooms = () => {
             if (user?.id) {
+                // Join own personal room (for direct notifications like assignment)
                 socket.emit('join_waba', user.id);
                 socket.emit('join_personal', user.id);
+                // Also register in team presence room — critical for sub-members so they
+                // join team_${parentId} and receive new_message events from the webhook
+                socket.emit('user_connected', {
+                    userId: user.id,
+                    parentId: user.parentUserId || null
+                });
             }
         };
 

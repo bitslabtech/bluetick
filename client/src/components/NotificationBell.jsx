@@ -152,16 +152,6 @@ const NotificationBell = () => {
     return (
         <div className="relative flex items-center gap-1" ref={containerRef}>
 
-            {/* Mute / Unmute sound toggle */}
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={toggleMute}
-                title={muted ? 'Notification sound off – click to enable' : 'Notification sound on – click to mute'}
-                className="flex items-center justify-center size-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors focus:outline-none"
-            >
-                {muted ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-            </motion.button>
 
             {/* Main notification bell */}
             <motion.button

@@ -89,8 +89,36 @@ router.post('/:userId', (req, res, next) => {
             return res.sendStatus(404);
         }
 
-        const userId = req.params.userId;
-        const user = await User.findByPk(userId);
+        let userId = req.params.userId;
+        let user = null;
+
+        // In Embedded Signup, a single Meta App receives webhooks for multiple users.
+        // The webhook URL might be hardcoded to an admin's userId in the App Dashboard.
+        // So we must dynamically route the webhook to the correct User based on the phone_number_id or WABA ID in the payload.
+        try {
+            let foundSettings = null;
+            for (const entry of body.entry) {
+                const wabaId = entry.id;
+                for (const change of entry.changes) {
+                    const phoneNumberId = change.value?.metadata?.phone_number_id;
+                    if (phoneNumberId) {
+                        foundSettings = await Settings.findOne({ where: { metaPhoneNumberId: String(phoneNumberId) } });
+                    }
+                    if (!foundSettings && wabaId) {
+                        foundSettings = await Settings.findOne({ where: { metaBusinessAccountId: String(wabaId) } });
+                    }
+                    if (foundSettings) {
+                        userId = foundSettings.userId;
+                        break;
+                    }
+                }
+                if (foundSettings) break;
+            }
+        } catch (e) {
+            console.error('[WEBHOOK ERROR] Failed to dynamically resolve userId:', e.message);
+        }
+
+        user = await User.findByPk(userId);
         if (!user) {
             console.error(`[WEBHOOK ERROR] Unknown User ID: ${userId}`);
             return res.sendStatus(404);
@@ -362,9 +390,17 @@ router.post('/:userId', (req, res, next) => {
                         });
 
                         if (created) {
-                            console.log(`[WEBHOOK] Message saved. Emitting new_message to socket room: ${userId}`);
+                            console.log(`[WEBHOOK] Message saved. Emitting new_message to owner room: ${userId} and team room: team_${userId}`);
                             try {
-                                getIo().to(userId).emit('new_message', {
+                                const io = getIo();
+                                // Emit to the owner's personal room (joined via join_waba / join_personal)
+                                io.to(userId).emit('new_message', {
+                                    conversation,
+                                    message: chatMessage
+                                });
+                                // Also emit to the team room so sub-members using join_waba with their own userId
+                                // can still receive the event (they join team_${parentId} via user_connected)
+                                io.to(`team_${userId}`).emit('new_message', {
                                     conversation,
                                     message: chatMessage
                                 });

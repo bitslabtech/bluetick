@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Check, Eye, EyeOff } from 'lucide-react';
+import { LayoutDashboard, Check, Eye, EyeOff, MessageSquare, Users, Layers, TrendingUp, Sparkles, Shield } from 'lucide-react';
 import axios from 'axios';
 import { useUI } from '../context/UIContext';
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -192,176 +192,373 @@ const Register = () => {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50">
-            <div className="w-full max-w-md p-6 sm:p-4 md:p-8 space-y-6 bg-white rounded-xl shadow-lg border border-slate-100 mx-4 sm:mx-0">
-                <div className="text-center space-y-2">
-                    <div className="flex justify-center mb-4">
-                        {publicSettings?.logoUrl ? (
-                            <img src={publicSettings.logoUrl} alt="Logo" className="h-16 w-auto object-contain rounded-xl" />
-                        ) : (
-                            <div className="p-3 bg-primary rounded-xl">
-                                <LayoutDashboard className="h-8 w-8 text-white" />
-                            </div>
-                        )}
-                    </div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent mt-2">
-                        Create Account
-                    </h1>
-                    <p className="text-slate-500 min-h-[1.5rem] flex items-center justify-center">
-                        {!publicSettingsLoading && `Get started with ${publicSettings?.appName || 'Bluetick'}`}
-                    </p>
+        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-display transition-colors duration-300">
+            {/* Left Column - Branding & Plan/Platform Details (Only visible on desktop) */}
+            <div className="hidden md:flex md:w-[40%] xl:w-[35%] bg-slate-100/50 dark:bg-slate-900 text-slate-900 dark:text-white flex-col justify-between p-10 lg:p-12 relative overflow-hidden border-r border-slate-200 dark:border-slate-800/50">
+                
+                {/* Logo & App Name Header */}
+                <div className="relative z-10 flex items-center gap-3">
+                    {publicSettings?.logoUrl ? (
+                        <img src={publicSettings.logoUrl} alt="Logo" className="h-10 w-auto object-contain rounded-lg" />
+                    ) : (
+                        <div className="p-2 bg-primary rounded-lg">
+                            <LayoutDashboard className="h-5 w-5 text-white" />
+                        </div>
+                    )}
+                    <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        {publicSettings?.appName || 'Bluetick'}
+                    </span>
                 </div>
 
-                {/* Selected Plan Display */}
-                {selectedPlan && (() => {
-                    const sym = CURRENCY_SYMBOLS[publicSettings?.currency] || publicSettings?.currency || '$';
-                    const interval = selectedPlan.interval || 'month';
-                    let displayPrice = parseFloat(selectedPlan.price) || 0;
-                    let intervalLabel = '/mo';
-                    if (interval === 'month' && parseFloat(selectedPlan.monthlyPrice) > 0) {
-                        displayPrice = parseFloat(selectedPlan.monthlyPrice);
-                        intervalLabel = '/mo';
-                    } else if (interval === 'half-year' && parseFloat(selectedPlan.halfYearlyPrice) > 0) {
-                        displayPrice = parseFloat(selectedPlan.halfYearlyPrice);
-                        intervalLabel = '/6 months';
-                    } else if (interval === 'year' && parseFloat(selectedPlan.yearlyPrice) > 0) {
-                        displayPrice = parseFloat(selectedPlan.yearlyPrice);
-                        intervalLabel = '/year';
-                    }
-                    return (
-                        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-                            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                                <Check className="w-4 h-4 text-primary" />
-                                {selectedPlan.startTrial ? `🎉 Starting ${selectedPlan.trialDays}-Day Free Trial` : `Selected Plan: ${selectedPlan.name}`}
-                            </h3>
-                            {selectedPlan.startTrial && (
-                                <div className="mb-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-semibold">
-                                    ✅ No payment needed now. You'll get full access to <strong>{selectedPlan.name}</strong> for {selectedPlan.trialDays} days free.
+                {/* Main Content Pane */}
+                <div className="relative z-10 my-auto py-6">
+                    {selectedPlan ? (() => {
+                        const sym = CURRENCY_SYMBOLS[publicSettings?.currency] || publicSettings?.currency || '$';
+                        const interval = selectedPlan.interval || 'month';
+                        let displayPrice = parseFloat(selectedPlan.price) || 0;
+                        let intervalLabel = ' / mo';
+                        if (interval === 'month' && parseFloat(selectedPlan.monthlyPrice) > 0) {
+                            displayPrice = parseFloat(selectedPlan.monthlyPrice);
+                            intervalLabel = ' / mo';
+                        } else if (interval === 'half-year' && parseFloat(selectedPlan.halfYearlyPrice) > 0) {
+                            displayPrice = parseFloat(selectedPlan.halfYearlyPrice);
+                            intervalLabel = ' / 6 months';
+                        } else if (interval === 'year' && parseFloat(selectedPlan.yearlyPrice) > 0) {
+                            displayPrice = parseFloat(selectedPlan.yearlyPrice);
+                            intervalLabel = ' / yr';
+                        }
+
+                        return (
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 lg:p-8 shadow-sm space-y-6">
+                                <div className="space-y-2">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
+                                        <Sparkles className="w-3.5 h-3.5" />
+                                        Selected Plan
+                                    </span>
+                                    <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                                        {selectedPlan.name}
+                                    </h2>
+                                    <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                        {selectedPlan.description || 'Unlock the full potential of your business communication.'}
+                                    </p>
+                                </div>
+
+                                {selectedPlan.startTrial && (
+                                    <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl space-y-1">
+                                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-sm font-semibold">
+                                            <span className="flex h-2 w-2 relative">
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                            </span>
+                                            {selectedPlan.trialDays}-Day Free Trial Active
+                                        </div>
+                                        <p className="text-xs text-emerald-600/80 dark:text-slate-300">
+                                            Enjoy full access for free. No charges will be made today.
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="py-4 border-y border-slate-100 dark:border-slate-800/60">
+                                    <div className="flex items-baseline gap-1 text-slate-900 dark:text-white">
+                                        <span className="text-4xl font-extrabold tracking-tight">{sym}{displayPrice.toLocaleString()}</span>
+                                        <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">{intervalLabel}</span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">What's included</h4>
+                                    <ul className="space-y-3.5">
+                                        <li className="flex items-start gap-3">
+                                            <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                <Check className="w-3.5 h-3.5" />
+                                            </div>
+                                            <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                                                <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.messageLimit?.toLocaleString()}</strong> messages per month
+                                            </span>
+                                        </li>
+
+                                        <li className="flex items-start gap-3">
+                                            <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                <Check className="w-3.5 h-3.5" />
+                                            </div>
+                                            <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                                                <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.contactLimit?.toLocaleString()}</strong> contacts
+                                            </span>
+                                        </li>
+
+                                        {selectedPlan.templateLimit > 0 && (
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                    <Check className="w-3.5 h-3.5" />
+                                                </div>
+                                                <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                                                    <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.templateLimit}</strong> message templates
+                                                </span>
+                                            </li>
+                                        )}
+
+                                        {selectedPlan.teamMemberLimit > 0 && (
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                    <Check className="w-3.5 h-3.5" />
+                                                </div>
+                                                <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                                                    <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.teamMemberLimit}</strong> team members
+                                                </span>
+                                            </li>
+                                        )}
+
+                                        {Array.isArray(selectedPlan.features) && selectedPlan.features.map((feature, idx) => feature?.trim() && (
+                                            <li key={idx} className="flex items-start gap-3">
+                                                <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                    <Check className="w-3.5 h-3.5" />
+                                                </div>
+                                                <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">{feature}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        );
+                    })() : (
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 lg:p-8 shadow-sm space-y-6">
+                            <div className="space-y-2">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    Smart Platform
+                                </span>
+                                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                                    Scale Customer Conversations
+                                </h2>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                    Connect, engage, and grow your sales with powerful WhatsApp integrations.
+                                </p>
+                            </div>
+
+                            <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800/60">
+                                <div className="flex gap-3.5">
+                                    <div className="mt-0.5 shrink-0 p-1.5 bg-primary/10 rounded-lg text-primary">
+                                        <MessageSquare className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Shared Team Inbox</h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Allow multiple agents to reply to incoming customer messages simultaneously.</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3.5">
+                                    <div className="mt-0.5 shrink-0 p-1.5 bg-primary/10 rounded-lg text-primary">
+                                        <TrendingUp className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Broadcast Campaigns</h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send personalized templates and automated notifications to thousands in seconds.</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3.5">
+                                    <div className="mt-0.5 shrink-0 p-1.5 bg-primary/10 rounded-lg text-primary">
+                                        <Layers className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Chatbots & Routing</h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Build instant automated replies and direct chats to the right team members.</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3.5">
+                                    <div className="mt-0.5 shrink-0 p-1.5 bg-primary/10 rounded-lg text-primary">
+                                        <Shield className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Enterprise Security</h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Robust privacy, security checks, and reliable APIs keeping your account safe.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer Quote / Social Proof */}
+                <div className="relative z-10 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/80 pt-6">
+                    <p className="italic">"Bluetick has transformed how we engage with customers. Highly recommended!"</p>
+                    <p className="mt-2 font-semibold text-slate-700 dark:text-slate-300">— FastGrowth Retail Co.</p>
+                </div>
+            </div>
+
+            {/* Right Column - Registration Form */}
+            <div className="w-full md:w-[60%] xl:w-[65%] flex items-center justify-center p-6 sm:p-12 lg:p-16 overflow-y-auto">
+                <div className="w-full max-w-lg space-y-8 bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-2xl border border-slate-200/80 dark:border-slate-800/50 shadow-sm">
+                    
+                    {/* Header for Mobile/Fallback (Hidden on Desktop) */}
+                    <div className="text-center md:text-left space-y-3">
+                        <div className="flex justify-center md:justify-start mb-2">
+                            {publicSettings?.logoUrl ? (
+                                <img src={publicSettings.logoUrl} alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
+                            ) : (
+                                <div className="p-3 bg-primary rounded-xl md:hidden">
+                                    <LayoutDashboard className="h-6 w-6 text-white" />
                                 </div>
                             )}
-                            <p className="text-sm text-slate-600 mb-2">
-                                {sym}{displayPrice.toLocaleString()}{intervalLabel}{selectedPlan.description ? ` — ${selectedPlan.description}` : ''}
-                            </p>
-                            <ul className="text-xs text-primary space-y-1">
-                                <li>• {selectedPlan.messageLimit?.toLocaleString()} messages/month</li>
-                                <li>• {selectedPlan.contactLimit?.toLocaleString()} contacts</li>
-                                {selectedPlan.templateLimit > 0 && <li>• {selectedPlan.templateLimit} templates</li>}
-                                {selectedPlan.teamMemberLimit > 0 && <li>• {selectedPlan.teamMemberLimit} team members</li>}
-                            </ul>
                         </div>
-                    );
-                })()}
-
-                {error && (
-                    <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-slate-700">Full Name</label>
-                        <input
-                            type="text"
-                            required
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                            placeholder="John Doe"
-                        />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-slate-700">Email</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                            placeholder="you@example.com"
-                        />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-slate-700">Phone Number</label>
-                        <div className="flex gap-2">
-                            {/* Country Code Selector */}
-                            <select
-                                value={dialCode}
-                                onChange={(e) => setDialCode(e.target.value)}
-                                className="w-32 shrink-0 px-2 py-2 border border-slate-200 rounded-lg text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
-                            >
-                                {COUNTRY_CODES.map(c => (
-                                    <option key={c.code + c.dial} value={c.dial}>
-                                        {c.flag} {c.dial}
-                                    </option>
-                                ))}
-                            </select>
-                            {/* Local Number */}
-                            <input
-                                type="tel"
-                                required
-                                value={localNumber}
-                                onChange={(e) => setLocalNumber(e.target.value.replace(/\D/g, ''))}
-                                className="flex-1 min-w-0 px-4 py-2 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                                placeholder="9876543210"
-                                maxLength={12}
-                            />
-                        </div>
-                        <p className="text-xs text-slate-400">Enter number without leading zero</p>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-slate-700">Password</label>
-                        <div className="relative">
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-2 pr-10 border border-slate-200 rounded-lg text-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                                placeholder="••••••••"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(v => !v)}
-                                className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600 transition-colors"
-                                tabIndex={-1}
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                            >
-                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                        </div>
+                        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                            Create Account
+                        </h1>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">
+                            {!publicSettingsLoading && `Get started with ${publicSettings?.appName || 'Bluetick'}`}
+                        </p>
                     </div>
 
-                    {TURNSTILE_SITE_KEY && (
-                        <div className="flex justify-center mt-4">
-                            <Turnstile 
-                                siteKey={TURNSTILE_SITE_KEY} 
-                                onSuccess={(token) => setTurnstileToken(token)}
-                                onError={() => setError('Captcha verification failed. Please refresh.')}
-                                onExpire={() => setTurnstileToken('')}
-                            />
+                    {/* Mobile-Only Selected Plan Summary Card */}
+                    {selectedPlan && (() => {
+                        const sym = CURRENCY_SYMBOLS[publicSettings?.currency] || publicSettings?.currency || '$';
+                        const interval = selectedPlan.interval || 'month';
+                        let displayPrice = parseFloat(selectedPlan.price) || 0;
+                        let intervalLabel = '/mo';
+                        if (interval === 'month' && parseFloat(selectedPlan.monthlyPrice) > 0) {
+                            displayPrice = parseFloat(selectedPlan.monthlyPrice);
+                            intervalLabel = '/mo';
+                        } else if (interval === 'half-year' && parseFloat(selectedPlan.halfYearlyPrice) > 0) {
+                            displayPrice = parseFloat(selectedPlan.halfYearlyPrice);
+                            intervalLabel = '/6m';
+                        } else if (interval === 'year' && parseFloat(selectedPlan.yearlyPrice) > 0) {
+                            displayPrice = parseFloat(selectedPlan.yearlyPrice);
+                            intervalLabel = '/yr';
+                        }
+
+                        return (
+                            <div className="md:hidden p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+                                        {selectedPlan.startTrial ? `🎉 Free Trial: ${selectedPlan.name}` : `Selected: ${selectedPlan.name}`}
+                                    </span>
+                                    <span className="text-sm font-semibold text-primary">
+                                        {sym}{displayPrice.toLocaleString()}{intervalLabel}
+                                    </span>
+                                </div>
+                                {selectedPlan.startTrial && (
+                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                        ✅ {selectedPlan.trialDays} days free trial. No credit card required.
+                                    </p>
+                                )}
+                            </div>
+                        );
+                    })()}
+
+                    {error && (
+                        <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 rounded-xl border border-red-100 dark:border-red-900/30">
+                            {error}
                         </div>
                     )}
 
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full py-2.5 bg-primary text-white rounded-lg hover:opacity-90 font-medium transition-colors shadow-sm shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                        {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                        {isSubmitting ? 'Processing...' : (selectedPlan?.startTrial
-                            ? `🎉 Start ${selectedPlan.trialDays}-Day Free Trial`
-                            : selectedPlan && selectedPlan.price > 0
-                            ? 'Continue to Payment'
-                            : 'Create Account')}
-                    </button>
-                </form>
+                    {/* Registration Form */}
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400"
+                                    placeholder="John Doe"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400"
+                                    placeholder="you@example.com"
+                                />
+                            </div>
+                        </div>
 
-                <div className="text-center text-sm text-slate-500">
-                    Already have an account?{' '}
-                    <Link to="/login" className="text-primary hover:opacity-80 font-medium">
-                        Sign in
-                    </Link>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Phone Number</label>
+                            <div className="flex gap-2">
+                                <select
+                                    value={dialCode}
+                                    onChange={(e) => setDialCode(e.target.value)}
+                                    className="w-32 shrink-0 px-2 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-white dark:bg-slate-950 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer font-medium text-sm"
+                                >
+                                    {COUNTRY_CODES.map(c => (
+                                        <option key={c.code + c.dial} value={c.dial} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900">
+                                            {c.flag} {c.dial}
+                                        </option>
+                                    ))}
+                                </select>
+                                <input
+                                    type="tel"
+                                    required
+                                    value={localNumber}
+                                    onChange={(e) => setLocalNumber(e.target.value.replace(/\D/g, ''))}
+                                    className="flex-1 min-w-0 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400"
+                                    placeholder="9876543210"
+                                    maxLength={12}
+                                />
+                            </div>
+                            <p className="text-xs text-slate-400 dark:text-slate-500">Enter number without leading zero</p>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full px-4 py-2.5 pr-10 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400"
+                                    placeholder="••••••••"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(v => !v)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-455 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                                    tabIndex={-1}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {TURNSTILE_SITE_KEY && (
+                            <div className="flex justify-center mt-4">
+                                <Turnstile 
+                                    siteKey={TURNSTILE_SITE_KEY} 
+                                    onSuccess={(token) => setTurnstileToken(token)}
+                                    onError={() => setError('Captcha verification failed. Please refresh.')}
+                                    onExpire={() => setTurnstileToken('')}
+                                />
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full mt-2 py-2.5 bg-primary text-white rounded-xl hover:opacity-90 font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                            {isSubmitting ? 'Processing...' : (selectedPlan?.startTrial
+                                ? `🎉 Start ${selectedPlan.trialDays}-Day Free Trial`
+                                : selectedPlan && selectedPlan.price > 0
+                                ? 'Continue to Payment'
+                                : 'Create Account')}
+                        </button>
+                    </form>
+
+                    <div className="text-center text-sm text-slate-500 dark:text-slate-400 pt-2">
+                        Already have an account?{' '}
+                        <Link to="/login" className="text-primary hover:underline font-semibold">
+                            Sign in
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>

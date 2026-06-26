@@ -1449,7 +1449,7 @@ function FAQSection({ faqs }) {
             {/* Ambient background */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] max-w-full h-[400px] bg-indigo-400/5 dark:bg-indigo-500/8 rounded-full blur-[100px] pointer-events-none" />
 
-            <div className="max-w-4xl mx-auto px-4 md:px-6 relative z-10">
+            <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
@@ -1464,7 +1464,7 @@ function FAQSection({ faqs }) {
                 </motion.div>
 
                 {/* Accordion */}
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
                     {displayedFaqs.map((faq, i) => {
                         const isOpen = openIdx === i;
                         return (
