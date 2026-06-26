@@ -374,7 +374,6 @@ export default function MediaPickerModal({
                         <span className="font-medium">This context only accepts: {constraintLabel}</span>
                     </div>
                 )}
-                </div>
 
                 {/* Type Tabs */}
                 <div className="flex items-center gap-1 px-4 pt-3 pb-0 border-b border-slate-100 dark:border-white/10 overflow-x-auto flex-shrink-0">
