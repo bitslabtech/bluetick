@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Papa from 'papaparse';
+import ExcelJS from 'exceljs';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import ThemeToggle from '../components/ThemeToggle';
@@ -54,10 +55,15 @@ const normaliseCSVRow = (row) => {
         const key = Object.keys(row).find(k => patterns.some(p => p.test(k)));
         return key ? String(row[key] || '').trim() : '';
     };
+    
+    const tagsStr = find([/^group$/i, /^tag$/i, /^tags$/i, /^label$/i, /^list$/i]);
+    const parsedTags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+    
     return {
         name: find([/^name$/i, /^full.?name$/i, /^contact.?name$/i, /^first.?name$/i]),
         phone: find([/^phone$/i, /^mobile$/i, /^tel/i, /^number$/i, /^whatsapp$/i, /^cell$/i]),
         email: find([/^email$/i, /^e-mail$/i, /^mail$/i]),
+        tags: parsedTags
     };
 };
 
@@ -1456,21 +1462,71 @@ const Contacts = () => {
                                 <div className="p-4 md:p-6 space-y-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <p className="text-sm text-slate-600 dark:text-text-secondary leading-relaxed">
-                                            Upload a <span className="text-slate-900 dark:text-white font-semibold">.csv</span> or{' '}
+                                            Upload an <span className="text-slate-900 dark:text-white font-semibold">.xlsx</span>, <span className="text-slate-900 dark:text-white font-semibold">.csv</span> or{' '}
                                             <span className="text-slate-900 dark:text-white font-semibold">.vcf</span> (vCard) file to bulk-import contacts.
                                         </p>
                                         <button
-                                            onClick={() => {
-                                                const csv = "Name,Phone,Email\nJohn Doe,+1234567890,john@example.com\nJane Smith,+9876543210,jane@test.com";
-                                                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                                                const url = URL.createObjectURL(blob);
-                                                const a = document.createElement('a');
-                                                a.href = url; a.download = 'contacts_template.csv';
-                                                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                                            onClick={async () => {
+                                                try {
+                                                    const workbook = new ExcelJS.Workbook();
+                                                    const sheet = workbook.addWorksheet('Contacts');
+                                                    
+                                                    // Add hidden sheet for data validation source
+                                                    const metaSheet = workbook.addWorksheet('ValidationData', { state: 'hidden' });
+                                                    const groupNames = availableGroups.map(g => g.name);
+                                                    if (groupNames.length > 0) {
+                                                        // Put them in column A of metaSheet
+                                                        groupNames.forEach((name, idx) => {
+                                                            metaSheet.getCell(`A${idx + 1}`).value = name;
+                                                        });
+                                                    }
+
+                                                    // Setup main sheet columns
+                                                    sheet.columns = [
+                                                        { header: 'Name', key: 'name', width: 20 },
+                                                        { header: 'Phone', key: 'phone', width: 20 },
+                                                        { header: 'Email', key: 'email', width: 25 },
+                                                        { header: 'Group/Tag', key: 'group', width: 20 }
+                                                    ];
+                                                    
+                                                    // Apply headers styling
+                                                    sheet.getRow(1).font = { bold: true };
+                                                    
+                                                    // Add sample data
+                                                    sheet.addRow({ name: 'John Doe', phone: '+1234567890', email: 'john@example.com', group: groupNames[0] || '' });
+                                                    sheet.addRow({ name: 'Jane Smith', phone: '+9876543210', email: 'jane@test.com', group: groupNames[0] || '' });
+
+                                                    // Add Data Validation to Group/Tag column (Column D)
+                                                    if (groupNames.length > 0) {
+                                                        for (let i = 2; i <= 1000; i++) {
+                                                            sheet.getCell(`D${i}`).dataValidation = {
+                                                                type: 'list',
+                                                                allowBlank: true,
+                                                                // Reference the hidden sheet A1:A<length>
+                                                                formulae: [`ValidationData!$A$1:$A$${groupNames.length}`]
+                                                            };
+                                                        }
+                                                    }
+
+                                                    // Generate buffer and download
+                                                    const buffer = await workbook.xlsx.writeBuffer();
+                                                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url; 
+                                                    a.download = 'contacts_template.xlsx';
+                                                    document.body.appendChild(a); 
+                                                    a.click(); 
+                                                    document.body.removeChild(a);
+                                                    URL.revokeObjectURL(url);
+                                                } catch (err) {
+                                                    showToast({ type: 'error', title: 'Error', message: 'Could not generate template' });
+                                                    console.error(err);
+                                                }
                                             }}
                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg text-xs font-medium text-slate-700 dark:text-white transition-colors border border-slate-200 dark:border-white/10 shrink-0"
                                         >
-                                            <Download className="w-3.5 h-3.5" /> CSV Template
+                                            <Download className="w-3.5 h-3.5" /> Excel Template (.xlsx)
                                         </button>
                                     </div>
 
@@ -1479,11 +1535,11 @@ const Contacts = () => {
                                         <p className="text-sm text-slate-500 dark:text-text-secondary">
                                             <span className="font-bold text-primary">Click to upload</span> or drag and drop
                                         </p>
-                                        <p className="text-xs text-slate-400 dark:text-text-secondary mt-1">.csv or .vcf — max 5MB</p>
+                                        <p className="text-xs text-slate-400 dark:text-text-secondary mt-1">.xlsx, .csv, or .vcf — max 5MB</p>
                                         <input
                                             type="file"
                                             className="hidden"
-                                            accept=".csv,.vcf,text/vcard,text/csv,application/vnd.ms-excel"
+                                            accept=".xlsx,.csv,.vcf,text/vcard,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                             onChange={(e) => {
                                                 const file = e.target.files[0];
                                                 if (!file) return;
@@ -1522,10 +1578,63 @@ const Contacts = () => {
                                                             name: c.name || c.phone,
                                                             phone: c.phone,
                                                             email: c.email || '',
-                                                            tags: ['Apple Contacts']
+                                                            tags: []
                                                         })));
                                                     };
                                                     reader.readAsText(file);
+                                                } else if (ext === 'xlsx') {
+                                                    // Excel
+                                                    const reader = new FileReader();
+                                                    reader.onload = async (ev) => {
+                                                        try {
+                                                            const workbook = new ExcelJS.Workbook();
+                                                            await workbook.xlsx.load(ev.target.result);
+                                                            const worksheet = workbook.worksheets[0];
+                                                            
+                                                            if (!worksheet) {
+                                                                showToast({ type: 'error', title: 'Parse Error', message: 'No worksheets found in Excel file.' });
+                                                                return;
+                                                            }
+                                                            
+                                                            const contacts = [];
+                                                            let headers = [];
+                                                            
+                                                            worksheet.eachRow((row, rowNumber) => {
+                                                                if (rowNumber === 1) {
+                                                                    // Map headers
+                                                                    headers = row.values.map(v => String(v || '').trim());
+                                                                } else {
+                                                                    // Build row object
+                                                                    const rowObj = {};
+                                                                    row.values.forEach((val, idx) => {
+                                                                        if (headers[idx]) {
+                                                                            // Get value, handle rich text or formulas if any
+                                                                            let finalVal = val;
+                                                                            if (val && typeof val === 'object') {
+                                                                                if (val.richText) {
+                                                                                    finalVal = val.richText.map(rt => rt.text).join('');
+                                                                                } else if (val.result) {
+                                                                                    finalVal = val.result;
+                                                                                } else if (val.text) {
+                                                                                    finalVal = val.text;
+                                                                                }
+                                                                            }
+                                                                            rowObj[headers[idx]] = String(finalVal || '').trim();
+                                                                        }
+                                                                    });
+                                                                    
+                                                                    const norm = normaliseCSVRow(rowObj);
+                                                                    if (norm.name && norm.phone) {
+                                                                        contacts.push(norm);
+                                                                    }
+                                                                }
+                                                            });
+                                                            doImport(contacts);
+                                                        } catch (err) {
+                                                            showToast({ type: 'error', title: 'Parse Error', message: 'Could not read Excel file: ' + err.message });
+                                                        }
+                                                    };
+                                                    reader.readAsArrayBuffer(file);
                                                 } else {
                                                     // CSV (flexible column detection)
                                                     Papa.parse(file, {

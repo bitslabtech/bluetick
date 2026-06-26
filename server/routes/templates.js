@@ -147,6 +147,44 @@ router.post('/upload-message-media', storageProvider('campaign-media', { fileFil
     }
 });
 
+// POST upload media for SENDING messages (Standard Media API) - from a URL
+router.post('/upload-message-media-url', async (req, res) => {
+    try {
+        const { url } = req.body;
+        if (!url) return res.status(400).json({ error: 'No url provided' });
+
+        const settings = await Settings.findOne({ where: { userId: req.user.id } });
+        if (!settings || !settings.metaAccessToken || !settings.metaPhoneNumberId) {
+            return res.status(403).json({ error: 'Please configure your WhatsApp API settings first.' });
+        }
+
+        // Stream from the URL
+        const fileStreamRes = await axios.get(url, { responseType: 'stream' });
+
+        // Upload to Meta for actual sending using axios and form-data (Node compatible)
+        const form = new FormData();
+        const filename = url.split('/').pop().split('?')[0] || 'media_file';
+        form.append('file', fileStreamRes.data, { filename });
+        form.append('messaging_product', 'whatsapp');
+
+        const uploadRes = await axios.post(
+            `https://graph.facebook.com/v17.0/${settings.metaPhoneNumberId}/media`,
+            form,
+            {
+                headers: {
+                    ...form.getHeaders(),
+                    'Authorization': `Bearer ${settings.metaAccessToken}`
+                }
+            }
+        );
+
+        res.json({ mediaId: uploadRes.data.id, localUrl: url });
+    } catch (err) {
+        console.error("Upload Message Media URL Error:", err.response?.data || err.message);
+        res.status(500).json({ error: err.response?.data?.error?.message || err.message });
+    }
+});
+
 // CREATE template
 router.post('/', async (req, res) => {
     try {

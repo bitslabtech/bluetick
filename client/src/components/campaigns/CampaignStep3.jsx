@@ -6,6 +6,7 @@ import {
     CheckCheck, Check, ArrowLeft, Calendar, Zap, Sparkles,
     Image as ImageIcon, Link2, Phone, CreditCard, Layers, AlertTriangle, Users, Type
 } from 'lucide-react';
+import MediaPickerModal, { MIME_PRESETS } from '../MediaPickerModal';
 
 // ─── Carousel Card Config Panel ───────────────────────────────────────────────
 const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, onCardImageChange }) => {
@@ -33,9 +34,10 @@ const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, on
                             <span className="text-red-400 ml-1">*</span>
                         </label>
                         <div className="relative flex items-center gap-3">
-                            <label
-                                htmlFor={`card-img-${cardIndex}`}
-                                className="flex-1 flex items-center gap-3 bg-white dark:bg-background-dark border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl p-3 cursor-pointer hover:border-primary/50 hover:bg-blue-50/30 dark:hover:bg-blue-950/10 transition-all group"
+                            <button
+                                type="button"
+                                onClick={() => onCardImageChange(cardIndex, card.headerType)}
+                                className="flex-1 flex items-center gap-3 bg-white dark:bg-background-dark border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl p-3 cursor-pointer hover:border-primary/50 hover:bg-blue-50/30 dark:hover:bg-blue-950/10 transition-all group text-left"
                             >
                                 <div className="bg-blue-500/10 p-2 rounded-lg group-hover:bg-blue-500/20 transition-colors">
                                     <ImageIcon className="w-4 h-4 text-blue-500" />
@@ -43,16 +45,9 @@ const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, on
                                 <span className="text-sm text-slate-500 dark:text-slate-400">
                                     {cardParams[`__file_${cardIndex}`]?.name
                                         ? <span className="text-green-600 dark:text-green-400 font-medium">✓ {cardParams[`__file_${cardIndex}`].name}</span>
-                                        : 'Click to upload image / video'}
+                                        : 'Select media from library'}
                                 </span>
-                                <input
-                                    id={`card-img-${cardIndex}`}
-                                    type="file"
-                                    accept={card.headerType === 'IMAGE' ? 'image/*' : 'video/*'}
-                                    className="hidden"
-                                    onChange={(e) => onCardImageChange(cardIndex, e.target.files[0])}
-                                />
-                            </label>
+                            </button>
                         </div>
                         <p className="text-xs text-slate-400 mt-1.5">This media will be uploaded to Meta before sending.</p>
                     </div>
@@ -124,13 +119,12 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
 
     // For carousel card images & params (keyed by `card_${i}_var_x` or `card_${i}_btn_x_url`)
     const [cardParams, setCardParams] = useState({});
-    // Actual File objects for upload, keyed by card index
-    const [cardFiles, setCardFiles] = useState({});
-    // Object URL previews for carousel card images, keyed by card index
+    // Object URL/Media URL previews for carousel card images, keyed by card index
     const [cardPreviewUrls, setCardPreviewUrls] = useState({});
     // Header media for standard (non-carousel) image/video templates
-    const [headerFile, setHeaderFile] = useState(null);
     const [headerPreviewUrl, setHeaderPreviewUrl] = useState(null);
+    // MediaPicker configuration
+    const [mediaPickerConfig, setMediaPickerConfig] = useState({ isOpen: false, type: null, index: null, mimeConstraints: [] });
     // Body parameter personalisation state
     const [paramModes, setParamModes] = useState({});      // 'static' | 'contact_column'
     const [paramFallbacks, setParamFallbacks] = useState({});
@@ -285,23 +279,32 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         setCardParams(prev => ({ ...prev, [`card_${cardIndex}_${key}`]: value }));
     };
 
-    const handleCardImageChange = (cardIndex, file) => {
-        if (file) {
-            setCardFiles(prev => ({ ...prev, [cardIndex]: file }));
-            setCardParams(prev => ({ ...prev, [`__file_${cardIndex}`]: { name: file.name } }));
-            // Create an object URL for live preview
-            const url = URL.createObjectURL(file);
-            setCardPreviewUrls(prev => ({ ...prev, [cardIndex]: url }));
-        }
+    const handleCardImageChange = (cardIndex, headerType) => {
+        setMediaPickerConfig({
+            isOpen: true,
+            type: 'card',
+            index: cardIndex,
+            mimeConstraints: headerType === 'VIDEO' ? ["video/mp4", "video/3gpp"] : MIME_PRESETS.whatsapp_image
+        });
     };
 
-    const handleHeaderFileChange = (file) => {
-        if (file) {
-            setHeaderFile(file);
-            if (headerPreviewUrl) URL.revokeObjectURL(headerPreviewUrl);
-            const url = URL.createObjectURL(file);
+    const handleHeaderFileChange = (headerType) => {
+        setMediaPickerConfig({
+            isOpen: true,
+            type: 'header',
+            index: null,
+            mimeConstraints: headerType === 'VIDEO' ? ["video/mp4", "video/3gpp"] : MIME_PRESETS.whatsapp_image
+        });
+    };
+
+    const handleMediaSelect = (url) => {
+        if (mediaPickerConfig.type === 'header') {
             setHeaderPreviewUrl(url);
+        } else if (mediaPickerConfig.type === 'card' && mediaPickerConfig.index !== null) {
+            setCardPreviewUrls(prev => ({ ...prev, [mediaPickerConfig.index]: url }));
+            setCardParams(prev => ({ ...prev, [`__file_${mediaPickerConfig.index}`]: { name: url.split('/').pop().split('?')[0] || 'media' } }));
         }
+        setMediaPickerConfig({ isOpen: false, type: null, index: null, mimeConstraints: [] });
     };
 
     const getPreviewText = () => {
@@ -322,15 +325,8 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         return text;
     };
 
-    const uploadMedia = async (file) => {
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload-message-media`, fd, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        });
-        // Return both mediaId (for Meta API) and localUrl (for inbox image display)
+    const uploadMedia = async (url) => {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload-message-media-url`, { url });
         return { mediaId: res.data.mediaId, localUrl: res.data.localUrl };
     };
 
@@ -357,30 +353,30 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
 
             // --- Handle standard header media upload (non-carousel IMAGE/VIDEO templates) ---
             let resolvedCardParams = { ...cardParams };
-            if (!isCarousel && headerFile && (selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE' || selectedTemplate.type === 'VIDEO' || selectedTemplate.headerType === 'VIDEO')) {
-                showModal({ type: 'info', title: 'Uploading', message: 'Uploading header media...' });
-                const { mediaId, localUrl } = await uploadMedia(headerFile);
+            if (!isCarousel && headerPreviewUrl && (selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE' || selectedTemplate.type === 'VIDEO' || selectedTemplate.headerType === 'VIDEO')) {
+                showModal({ type: 'info', title: 'Uploading', message: 'Uploading header media to Meta...' });
+                const { mediaId, localUrl } = await uploadMedia(headerPreviewUrl);
                 resolvedCardParams['headerMediaId'] = mediaId;
                 if (localUrl) resolvedCardParams['headerLocalUrl'] = localUrl;
             }
 
             // --- Handle Carousel card media uploads ---
             if (isCarousel) {
-                // Validation: Ensure all required media for cards are uploaded before proceeding
+                // Validation: Ensure all required media for cards are selected before proceeding
                 for (let i = 0; i < selectedTemplate.cards.length; i++) {
                     const card = selectedTemplate.cards[i];
                     if (card.headerType === 'IMAGE' || card.headerType === 'VIDEO') {
-                        if (!cardFiles[i]) {
-                            throw new Error(`Media is missing for Card ${i + 1}. Please upload all required images/videos for the carousel before sending.`);
+                        if (!cardPreviewUrls[i]) {
+                            throw new Error(`Media is missing for Card ${i + 1}. Please select all required images/videos for the carousel before sending.`);
                         }
                     }
                 }
 
                 for (let i = 0; i < selectedTemplate.cards.length; i++) {
-                    const file = cardFiles[i];
-                    if (file) {
-                        showModal({ type: 'info', title: 'Uploading', message: `Uploading media for Card ${i + 1}...` });
-                        const { mediaId, localUrl } = await uploadMedia(file);
+                    const url = cardPreviewUrls[i];
+                    if (url) {
+                        showModal({ type: 'info', title: 'Uploading', message: `Uploading media for Card ${i + 1} to Meta...` });
+                        const { mediaId, localUrl } = await uploadMedia(url);
                         resolvedCardParams[`card_${i}_headerMediaId`] = mediaId;
                         if (localUrl) resolvedCardParams[`card_${i}_headerLocalUrl`] = localUrl;
                     }
@@ -801,35 +797,23 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                                 {headerPreviewUrl ? (
                                                     <img className="w-full h-full object-cover" src={headerPreviewUrl} alt="Header" />
                                                 ) : (
-                                                    <label
-                                                        htmlFor="header-img-upload"
-                                                        className="absolute inset-0 flex flex-col items-center justify-center gap-1 cursor-pointer bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20 transition-all group"
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleHeaderFileChange('IMAGE')}
+                                                        className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20 transition-all group"
                                                     >
                                                         <ImageIcon className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
-                                                        <span className="text-[9px] text-slate-400 group-hover:text-primary font-medium transition-colors">Upload image</span>
-                                                        <input
-                                                            id="header-img-upload"
-                                                            type="file"
-                                                            accept="image/*"
-                                                            className="hidden"
-                                                            onChange={(e) => handleHeaderFileChange(e.target.files[0])}
-                                                        />
-                                                    </label>
+                                                        <span className="text-[9px] text-slate-400 group-hover:text-primary font-medium transition-colors">Select image from library</span>
+                                                    </button>
                                                 )}
                                                 {headerPreviewUrl && (
-                                                    <label
-                                                        htmlFor="header-img-upload"
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleHeaderFileChange('IMAGE')}
                                                         className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded cursor-pointer hover:bg-black/80 transition-colors"
                                                     >
                                                         Change
-                                                        <input
-                                                            id="header-img-upload"
-                                                            type="file"
-                                                            accept="image/*"
-                                                            className="hidden"
-                                                            onChange={(e) => handleHeaderFileChange(e.target.files[0])}
-                                                        />
-                                                    </label>
+                                                    </button>
                                                 )}
                                             </div>
                                         )}
@@ -838,35 +822,23 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                                 {headerPreviewUrl ? (
                                                     <video className="w-full h-full object-cover" src={headerPreviewUrl} muted playsInline />
                                                 ) : (
-                                                    <label
-                                                        htmlFor="header-vid-upload"
-                                                        className="absolute inset-0 flex flex-col items-center justify-center gap-1 cursor-pointer bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20 transition-all group"
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleHeaderFileChange('VIDEO')}
+                                                        className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20 transition-all group"
                                                     >
                                                         <ImageIcon className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
-                                                        <span className="text-[9px] text-slate-400 group-hover:text-primary font-medium transition-colors">Upload video</span>
-                                                        <input
-                                                            id="header-vid-upload"
-                                                            type="file"
-                                                            accept="video/*"
-                                                            className="hidden"
-                                                            onChange={(e) => handleHeaderFileChange(e.target.files[0])}
-                                                        />
-                                                    </label>
+                                                        <span className="text-[9px] text-slate-400 group-hover:text-primary font-medium transition-colors">Select video from library</span>
+                                                    </button>
                                                 )}
                                                 {headerPreviewUrl && (
-                                                    <label
-                                                        htmlFor="header-vid-upload"
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleHeaderFileChange('VIDEO')}
                                                         className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded cursor-pointer hover:bg-black/80 transition-colors"
                                                     >
                                                         Change
-                                                        <input
-                                                            id="header-vid-upload"
-                                                            type="file"
-                                                            accept="video/*"
-                                                            className="hidden"
-                                                            onChange={(e) => handleHeaderFileChange(e.target.files[0])}
-                                                        />
-                                                    </label>
+                                                    </button>
                                                 )}
                                             </div>
                                         )}
@@ -954,6 +926,14 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                     {sending ? 'Processing...' : 'Send'}
                 </button>
             </div>
+
+            <MediaPickerModal
+                isOpen={mediaPickerConfig.isOpen}
+                onClose={() => setMediaPickerConfig({ isOpen: false, type: null, index: null, mimeConstraints: [] })}
+                onSelect={handleMediaSelect}
+                mimeConstraints={mediaPickerConfig.mimeConstraints}
+                multiple={false}
+            />
         </div>
     );
 };
