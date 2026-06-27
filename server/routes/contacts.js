@@ -9,6 +9,30 @@ const { getUserPlanLimits, checkLimit, getContactCount } = require('../utils/pla
 const { applyPrivacyMask } = require('../utils/privacy');
 const SystemConfig = require('../models/SystemConfig');
 const Group = require('../models/Group');
+const crypto = require('crypto');
+
+// Short-lived in-memory store for Google contacts pending relay to frontend
+// Token → { contacts, expiresAt }
+const pendingGoogleContacts = new Map();
+
+// Auto-cleanup expired tokens every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, data] of pendingGoogleContacts.entries()) {
+        if (data.expiresAt < now) pendingGoogleContacts.delete(token);
+    }
+}, 5 * 60 * 1000);
+
+// GET /api/contacts/google/pending/:token — relay page fetches contacts by token (no auth, one-time use)
+router.get('/google/pending/:token', (req, res) => {
+    const data = pendingGoogleContacts.get(req.params.token);
+    if (!data || data.expiresAt < Date.now()) {
+        return res.status(404).json({ error: 'Token expired or not found' });
+    }
+    pendingGoogleContacts.delete(req.params.token); // One-time use
+    res.json({ contacts: data.contacts });
+});
+
 
 // GET /api/contacts/google/callback
 // Google redirects here after user grants consent. No auth middleware (Google hits this directly).
@@ -75,92 +99,19 @@ router.get('/google/callback', async (req, res) => {
             .filter(c => c.phone);
         console.log(`[GOOGLE OAUTH] Step 5 - Contacts with valid phone numbers: ${contactsToImport.length}`);
 
-        console.log(`[GOOGLE OAUTH] SUCCESS - Fetched ${contactsToImport.length} contacts. Sending to frontend via postMessage.`);
-        
-        // Escape the JSON to prevent XSS issues in the HTML context
-        const safeContactsJson = JSON.stringify(contactsToImport)
-            .replace(/</g, '\\u003c')
-            .replace(/>/g, '\\u003e')
-            .replace(/&/g, '\\u0026');
+        console.log(`[GOOGLE OAUTH] SUCCESS - Fetched ${contactsToImport.length} contacts. Storing for relay.`);
 
-        const htmlResponse = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Contacts Import</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f172a;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            flex-direction: column;
-            gap: 16px;
-            text-align: center;
-            padding: 24px;
-        }
-        .icon { font-size: 48px; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        h2 { font-size: 20px; font-weight: 700; }
-        p { font-size: 14px; color: #94a3b8; }
-        #status { font-size: 13px; color: #22c55e; font-weight: 600; margin-top: 8px; }
-        button {
-            display: none;
-            margin-top: 12px;
-            padding: 10px 24px;
-            background: #6366f1;
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        button:hover { background: #4f46e5; }
-    </style>
-</head>
-<body>
-    <div class="icon">✅</div>
-    <h2>Contacts Ready!</h2>
-    <p>Sending your contacts to the dashboard...</p>
-    <div id="status">Closing this window...</div>
-    <button id="closeBtn" onclick="window.close()">Close This Tab</button>
-    <script>
-        try {
-            if (window.opener && !window.opener.closed) {
-                window.opener.postMessage({
-                    type: 'GOOGLE_CONTACTS',
-                    contacts: ${safeContactsJson}
-                }, '*');
-                // Try to auto-close after a short delay
-                setTimeout(function() { window.close(); }, 300);
-                // Always show the fallback button after 1.5s in case close failed
-                setTimeout(function() {
-                    document.getElementById('status').textContent = 'All done! You can now close this tab.';
-                    document.getElementById('closeBtn').style.display = 'inline-block';
-                    document.querySelector('.icon').style.animation = 'none';
-                    document.querySelector('.icon').textContent = '🎉';
-                }, 1500);
-            } else {
-                document.getElementById('status').textContent = 'Could not reach the main window.';
-                document.getElementById('closeBtn').style.display = 'inline-block';
-                document.querySelector('h2').textContent = 'Please Try Again';
-                document.querySelector('p').textContent = 'Open the import dialog from the main Contacts page and try connecting Google again.';
-                document.querySelector('.icon').textContent = '⚠️';
-            }
-        } catch(e) {
-            document.getElementById('status').textContent = 'Done! You can close this tab.';
-            document.getElementById('closeBtn').style.display = 'inline-block';
-        }
-    </script>
-</body>
-</html>`;
-        res.send(htmlResponse);
+        // Store contacts in memory with a one-time token (expires in 5 minutes)
+        const token = crypto.randomUUID();
+        pendingGoogleContacts.set(token, {
+            contacts: contactsToImport,
+            expiresAt: Date.now() + 5 * 60 * 1000
+        });
+
+        // Redirect the popup to the frontend relay page (same origin as opener = window.close() works!)
+        const relayUrl = `${process.env.FRONTEND_URL || ''}/google-relay?token=${token}`;
+        console.log(`[GOOGLE OAUTH] Redirecting popup to relay: ${relayUrl}`);
+        res.redirect(relayUrl);
 
     } catch (err) {
         console.error('[GOOGLE OAUTH] FATAL ERROR:', err.message);

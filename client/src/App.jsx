@@ -68,6 +68,7 @@ const Referrals = React.lazy(() => import('./pages/Referrals'));
 const TechPartner = React.lazy(() => import('./pages/TechPartner'));
 const NfcSetup = React.lazy(() => import('./pages/NfcSetup'));
 const CTWAAnalytics = React.lazy(() => import('./pages/CTWAAnalytics'));
+const GoogleRelay = React.lazy(() => import('./pages/GoogleRelay'));
 const WALinksGenerator = React.lazy(() => import('./pages/WALinksGenerator'));
 const MetaAdsDashboard = React.lazy(() => import('./pages/MetaAdsManager/MetaAdsDashboard'));
 const MetaAdsWizard = React.lazy(() => import('./pages/MetaAdsManager/MetaAdsWizard'));
@@ -309,6 +310,9 @@ function App() {
                                         <Route path="/about" element={<AboutUs />} />
                                         <Route path="/contact" element={<ContactUs />} />
                                         <Route path="/partner" element={<PartnerWithUs />} />
+
+                                        {/* Google OAuth Relay — must be public, no auth */}
+                                        <Route path="/google-relay" element={<GoogleRelay />} />
 
                                         <Route element={<ProtectedRoute />}>
                                             <Route element={<Layout />}>
