@@ -189,6 +189,26 @@ const Contacts = () => {
         }
     }, [importValidationPreview?.length]);
 
+
+    const [availableGroups, setAvailableGroups] = useState([]);
+    const [groupSearchTerm, setGroupSearchTerm] = useState('');
+    const [contactLimit, setContactLimit] = useState(-1);
+    const [editingContact, setEditingContact] = useState(null); // for edit modal
+    const navigate = useNavigate();
+
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalContacts, setTotalContacts] = useState(0);
+    const limit = 50;
+
+    // Label & Group Picker States for Slide-over
+    const [availableLabels, setAvailableLabels] = useState([]);
+    const [showLabelsModal, setShowLabelsModal] = useState(false);
+    const [showLabelPickerFor, setShowLabelPickerFor] = useState(null); // contact id
+    const [showGroupPickerFor, setShowGroupPickerFor] = useState(null); // contact id
+    const [isUpdatingLabel, setIsUpdatingLabel] = useState(false);
+
     // Google Contacts Popup Message Listener
     useEffect(() => {
         const handleMessage = (event) => {
@@ -252,24 +272,6 @@ const Contacts = () => {
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
     }, [bulkImportGroups, bulkImportLabelIds, availableLabels, countryCodePrefix, showToast]);
-    const [availableGroups, setAvailableGroups] = useState([]);
-    const [groupSearchTerm, setGroupSearchTerm] = useState('');
-    const [contactLimit, setContactLimit] = useState(-1);
-    const [editingContact, setEditingContact] = useState(null); // for edit modal
-    const navigate = useNavigate();
-
-    // Pagination
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalContacts, setTotalContacts] = useState(0);
-    const limit = 50;
-
-    // Label & Group Picker States for Slide-over
-    const [availableLabels, setAvailableLabels] = useState([]);
-    const [showLabelsModal, setShowLabelsModal] = useState(false);
-    const [showLabelPickerFor, setShowLabelPickerFor] = useState(null); // contact id
-    const [showGroupPickerFor, setShowGroupPickerFor] = useState(null); // contact id
-    const [isUpdatingLabel, setIsUpdatingLabel] = useState(false);
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
