@@ -10,7 +10,80 @@ const { applyPrivacyMask } = require('../utils/privacy');
 const SystemConfig = require('../models/SystemConfig');
 const Group = require('../models/Group');
 
-// Apply auth middleware to all routes
+// GET /api/contacts/google/callback
+// Google redirects here after user grants consent. No auth middleware (Google hits this directly).
+router.get('/google/callback', async (req, res) => {
+    try {
+        const { code, state: userId } = req.query;
+        if (!code || !userId) return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=missing_params`);
+
+        const config = await SystemConfig.getConfig();
+        const g = config.integrations?.google || {};
+
+        if (!g.clientId || !g.clientSecret || !g.redirectUri) {
+            return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=not_configured`);
+        }
+
+        const { google } = require('googleapis');
+        const oauth2Client = new google.auth.OAuth2(g.clientId, g.clientSecret, g.redirectUri);
+        const { tokens } = await oauth2Client.getToken(code);
+        oauth2Client.setCredentials(tokens);
+
+        const people = google.people({ version: 'v1', auth: oauth2Client });
+        let allConnections = [];
+        let pageToken;
+
+        // Paginate through all contacts (Google returns max 1000/page)
+        do {
+            const result = await people.people.connections.list({
+                resourceName: 'people/me',
+                pageSize: 1000,
+                pageToken,
+                personFields: 'names,phoneNumbers,emailAddresses'
+            });
+            allConnections = allConnections.concat(result.data.connections || []);
+            pageToken = result.data.nextPageToken;
+        } while (pageToken);
+
+        // Normalise to Contact schema
+        const contactsToImport = allConnections
+            .filter(p => p.phoneNumbers?.length)
+            .map(p => ({
+                name: p.names?.[0]?.displayName || 'Unknown',
+                phone: (p.phoneNumbers[0].value || '').replace(/[\s\-\(\)]/g, ''),
+                email: p.emailAddresses?.[0]?.value || '',
+                tags: ['Google Contacts'],
+                userId
+            }))
+            .filter(c => c.phone);
+
+        // Plan limit check
+        const limits = await getUserPlanLimits(userId);
+        const currentCount = await getContactCount(userId);
+        if (limits.contactLimit !== -1 && currentCount >= limits.contactLimit) {
+            return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&count=0&error=limit_reached`);
+        }
+
+        // Bulk insert in chunks of 1000
+        const CHUNK = 1000;
+        let totalCreated = 0;
+        for (let i = 0; i < contactsToImport.length; i += CHUNK) {
+            const chunk = contactsToImport.slice(i, i + CHUNK).map(c => ({
+                ...c,
+                phone: String(c.phone).replace(/\D/g, '')
+            }));
+            const created = await Contact.bulkCreate(chunk, { ignoreDuplicates: true, validate: true });
+            totalCreated += created.length;
+        }
+
+        res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&count=${totalCreated}`);
+    } catch (err) {
+        console.error('Google callback error:', err);
+        res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=${encodeURIComponent(err.message)}`);
+    }
+});
+
+// Apply auth middleware to all other routes
 router.use(auth);
 
 // GET unique groups (tags)
@@ -501,78 +574,4 @@ router.get('/google/auth-url', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-// GET /api/contacts/google/callback
-// Google redirects here after user grants consent. No auth middleware (Google hits this directly).
-router.get('/google/callback', async (req, res) => {
-    try {
-        const { code, state: userId } = req.query;
-        if (!code || !userId) return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=missing_params`);
-
-        const config = await SystemConfig.getConfig();
-        const g = config.integrations?.google || {};
-
-        if (!g.clientId || !g.clientSecret || !g.redirectUri) {
-            return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=not_configured`);
-        }
-
-        const { google } = require('googleapis');
-        const oauth2Client = new google.auth.OAuth2(g.clientId, g.clientSecret, g.redirectUri);
-        const { tokens } = await oauth2Client.getToken(code);
-        oauth2Client.setCredentials(tokens);
-
-        const people = google.people({ version: 'v1', auth: oauth2Client });
-        let allConnections = [];
-        let pageToken;
-
-        // Paginate through all contacts (Google returns max 1000/page)
-        do {
-            const result = await people.people.connections.list({
-                resourceName: 'people/me',
-                pageSize: 1000,
-                pageToken,
-                personFields: 'names,phoneNumbers,emailAddresses'
-            });
-            allConnections = allConnections.concat(result.data.connections || []);
-            pageToken = result.data.nextPageToken;
-        } while (pageToken);
-
-        // Normalise to Contact schema
-        const contactsToImport = allConnections
-            .filter(p => p.phoneNumbers?.length)
-            .map(p => ({
-                name: p.names?.[0]?.displayName || 'Unknown',
-                phone: (p.phoneNumbers[0].value || '').replace(/[\s\-\(\)]/g, ''),
-                email: p.emailAddresses?.[0]?.value || '',
-                tags: ['Google Contacts'],
-                userId
-            }))
-            .filter(c => c.phone);
-
-        // Plan limit check
-        const limits = await getUserPlanLimits(userId);
-        const currentCount = await getContactCount(userId);
-        if (limits.contactLimit !== -1 && currentCount >= limits.contactLimit) {
-            return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&count=0&error=limit_reached`);
-        }
-
-        // Bulk insert in chunks of 1000
-        const CHUNK = 1000;
-        let totalCreated = 0;
-        for (let i = 0; i < contactsToImport.length; i += CHUNK) {
-            const chunk = contactsToImport.slice(i, i + CHUNK).map(c => ({
-                ...c,
-                phone: String(c.phone).replace(/\D/g, '')
-            }));
-            const created = await Contact.bulkCreate(chunk, { ignoreDuplicates: true, validate: true });
-            totalCreated += created.length;
-        }
-
-        res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&count=${totalCreated}`);
-    } catch (err) {
-        console.error('Google callback error:', err);
-        res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=${encodeURIComponent(err.message)}`);
-    }
-});
-
 module.exports = router;
