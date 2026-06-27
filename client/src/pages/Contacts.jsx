@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Papa from 'papaparse';
 import ExcelJS from 'exceljs';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import ThemeToggle from '../components/ThemeToggle';
@@ -13,7 +14,7 @@ import {
     FolderCog, Upload, UserPlus, MoreVertical, Trash2, FolderPlus, Download,
     ChevronLeft, ChevronRight, Menu, HelpCircle, Bell, User, UploadCloud, Plus,
     X, MessageSquare, Clock, CheckCircle2, ChevronDown, AlertCircle, Tags, Lock, AlertTriangle, Phone,
-    Zap, ToggleLeft, ToggleRight, Edit2, Save, Hash, Type, Code2, MousePointerClick, Sparkles
+    Zap, ToggleLeft, ToggleRight, Edit2, Save, Hash, Type, Code2, MousePointerClick, Sparkles, XCircle, Loader2
 } from 'lucide-react';
 import ManageLabelsModal from '../components/ManageLabelsModal';
 
@@ -56,15 +57,97 @@ const normaliseCSVRow = (row) => {
         return key ? String(row[key] || '').trim() : '';
     };
     
-    const tagsStr = find([/^group$/i, /^tag$/i, /^tags$/i, /^label$/i, /^list$/i]);
-    const parsedTags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const groupStr = find([/^group$/i, /^list$/i]);
+    const parsedGroups = groupStr ? groupStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+    
+    const tagStr = find([/^tag$/i, /^tags$/i, /^label$/i, /^labels$/i]);
+    const parsedTags = tagStr ? tagStr.split(',').map(t => t.trim()).filter(Boolean) : [];
     
     return {
         name: find([/^name$/i, /^full.?name$/i, /^contact.?name$/i, /^first.?name$/i]),
         phone: find([/^phone$/i, /^mobile$/i, /^tel/i, /^number$/i, /^whatsapp$/i, /^cell$/i]),
         email: find([/^email$/i, /^e-mail$/i, /^mail$/i]),
-        tags: parsedTags
+        tags: parsedGroups, // Backend 'tags' field holds Groups
+        csvLabels: parsedTags // We'll map these to label objects inside the component
     };
+};
+
+const MultiSelectDropdown = ({ options, value, onChange, placeholder }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const filteredOptions = options.filter(opt => opt.label.toLowerCase().includes(search.toLowerCase()));
+
+    const handleSelect = (val) => {
+        if (value.includes(val)) {
+            onChange(value.filter(v => v !== val));
+        } else {
+            onChange([...value, val]);
+        }
+    };
+
+    const removeValue = (val, e) => {
+        e.stopPropagation();
+        onChange(value.filter(v => v !== val));
+    };
+
+    return (
+        <div className="relative w-full" ref={dropdownRef}>
+            <div 
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full min-h-[42px] bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 flex flex-wrap gap-1 items-center cursor-pointer transition-all focus-within:border-primary"
+            >
+                {value.length === 0 && <span className="text-slate-400 text-sm px-1">{placeholder}</span>}
+                {value.map(val => {
+                    const opt = options.find(o => o.value === val);
+                    return (
+                        <span key={val} className="bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1">
+                            {opt?.label || val}
+                            <X className="w-3 h-3 hover:text-red-500" onClick={(e) => removeValue(val, e)} />
+                        </span>
+                    );
+                })}
+            </div>
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl shadow-lg max-h-60 flex flex-col">
+                    <div className="sticky top-0 bg-white dark:bg-surface-dark p-2 border-b border-slate-200 dark:border-white/10 z-10">
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full bg-slate-100 dark:bg-black/20 text-slate-700 dark:text-white text-sm px-3 py-2 rounded-lg outline-none"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                    <div className="p-1 overflow-y-auto">
+                        {filteredOptions.length === 0 && <div className="p-2 text-sm text-slate-500 text-center">No results found</div>}
+                        {filteredOptions.map(opt => (
+                            <div
+                                key={opt.value}
+                                onClick={() => handleSelect(opt.value)}
+                                className="px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer rounded-lg flex items-center gap-2"
+                            >
+                                <input type="checkbox" checked={value.includes(opt.value)} readOnly className="rounded border-slate-300 text-primary focus:ring-0" />
+                                {opt.label}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 };
 
 const Contacts = () => {
@@ -90,7 +173,21 @@ const Contacts = () => {
     const [showContactModal, setShowContactModal] = useState(false); // unified add/import modal
     const [contactModalTab, setContactModalTab] = useState('file'); // 'file' | 'google' | 'manual'
     const [newContact, setNewContact] = useState({ name: '', phone: '', email: '', tags: '', labelId: '' });
+    const [bulkImportGroups, setBulkImportGroups] = useState([]);
+    const [bulkImportLabelIds, setBulkImportLabelIds] = useState([]);
+    const [countryCodePrefix, setCountryCodePrefix] = useState('');
+    const [importValidationPreview, setImportValidationPreview] = useState(null);
+    const [isImporting, setIsImporting] = useState(false);
+    const [activeFilter, setActiveFilter] = useState('all');
     const [showGroupsModal, setShowGroupsModal] = useState(false);
+
+    const importListRef = useRef(null);
+
+    useEffect(() => {
+        if (importListRef.current) {
+            importListRef.current.scrollTop = importListRef.current.scrollHeight;
+        }
+    }, [importValidationPreview?.length]);
     const [availableGroups, setAvailableGroups] = useState([]);
     const [groupSearchTerm, setGroupSearchTerm] = useState('');
     const [contactLimit, setContactLimit] = useState(-1);
@@ -1411,7 +1508,7 @@ const Contacts = () => {
             {/* ── Unified Contact Modal (3 tabs) ─────────────────────────── */}
             {showContactModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden flex flex-col max-h-[92vh]">
+                    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-[600px] shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden flex flex-col max-h-[95vh] min-h-[85vh]">
 
                         {/* Header */}
                         <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
@@ -1425,7 +1522,15 @@ const Contacts = () => {
                                 </div>
                             </div>
                             <button
-                                onClick={() => { setShowContactModal(false); setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' }); }}
+                                onClick={() => { 
+                                    setShowContactModal(false); 
+                                    setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' }); 
+                                    setBulkImportGroups([]);
+                                    setBulkImportLabelIds([]);
+                                    setCountryCodePrefix('');
+                                    setImportValidationPreview(null);
+                                    setActiveFilter('all');
+                                }}
                                 className="p-2 rounded-lg text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                             >
                                 <X className="w-5 h-5" />
@@ -1457,15 +1562,230 @@ const Contacts = () => {
                         {/* Tab Content */}
                         <div className="overflow-y-auto flex-1 custom-scrollbar">
 
-                            {/* ── Tab 1: Upload CSV / VCF ── */}
                             {contactModalTab === 'file' && (
                                 <div className="p-4 md:p-6 space-y-4">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <p className="text-sm text-slate-600 dark:text-text-secondary leading-relaxed">
-                                            Upload an <span className="text-slate-900 dark:text-white font-semibold">.xlsx</span>, <span className="text-slate-900 dark:text-white font-semibold">.csv</span> or{' '}
-                                            <span className="text-slate-900 dark:text-white font-semibold">.vcf</span> (vCard) file to bulk-import contacts.
-                                        </p>
-                                        <button
+                                    {importValidationPreview ? (
+                                        <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                                            <div className="flex flex-col items-center justify-center gap-3 border-b border-slate-100 dark:border-white/5 pb-3 text-center">
+                                                <div>
+                                                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center justify-center gap-2">
+                                                        <span>Validation Report</span>
+                                                        <span className="text-[10px] bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-text-secondary px-2 py-0.5 rounded-full font-medium">Ready</span>
+                                                    </h4>
+                                                    <p className="text-[11px] text-slate-500 dark:text-text-secondary mt-0.5">Filter results to inspect import errors</p>
+                                                </div>
+                                                
+                                                {/* Interactive Filters */}
+                                                <div className="flex flex-wrap justify-center gap-1.5 text-xs font-bold shrink-0">
+                                                    <button 
+                                                        onClick={() => setActiveFilter('all')}
+                                                        className={`px-3 py-1.5 rounded-xl transition-all border ${activeFilter === 'all' ? 'bg-slate-950 dark:bg-white text-white dark:text-black border-transparent shadow-sm' : 'bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-text-secondary border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10'}`}
+                                                    >
+                                                        All ({importValidationPreview.length})
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setActiveFilter('valid')}
+                                                        className={`px-3 py-1.5 rounded-xl transition-all border flex items-center gap-1 ${activeFilter === 'valid' ? 'bg-emerald-500 text-white border-transparent shadow-lg shadow-emerald-500/20' : 'bg-slate-50 dark:bg-white/5 text-emerald-600 dark:text-emerald-400 border-slate-200 dark:border-white/5 hover:bg-emerald-50/50 dark:hover:bg-emerald-500/5'}`}
+                                                    >
+                                                        <CheckCircle className="w-3.5 h-3.5" />
+                                                        Valid ({importValidationPreview.filter(c => c.isValid).length})
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setActiveFilter('duplicate')}
+                                                        className={`px-3 py-1.5 rounded-xl transition-all border flex items-center gap-1 ${activeFilter === 'duplicate' ? 'bg-amber-500 text-white border-transparent shadow-lg shadow-amber-500/20' : 'bg-slate-50 dark:bg-white/5 text-amber-600 dark:text-amber-400 border-slate-200 dark:border-white/5 hover:bg-amber-50/50 dark:hover:bg-amber-500/5'}`}
+                                                    >
+                                                        <Tags className="w-3.5 h-3.5" />
+                                                        Duplicate ({importValidationPreview.filter(c => c.isDuplicate).length})
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setActiveFilter('invalid')}
+                                                        className={`px-3 py-1.5 rounded-xl transition-all border flex items-center gap-1 ${activeFilter === 'invalid' ? 'bg-red-500 text-white border-transparent shadow-lg shadow-red-500/20' : 'bg-slate-50 dark:bg-white/5 text-red-600 dark:text-red-400 border-slate-200 dark:border-white/5 hover:bg-red-50/50 dark:hover:bg-red-500/5'}`}
+                                                    >
+                                                        <AlertTriangle className="w-3.5 h-3.5" />
+                                                        Invalid ({importValidationPreview.filter(c => !c.isValid && !c.isDuplicate).length})
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div 
+                                                ref={importListRef}
+                                                className="h-[340px] overflow-y-auto custom-scrollbar border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50/50 dark:bg-black/10 p-3 space-y-2"
+                                            >
+                                                <AnimatePresence mode="popLayout">
+                                                    {importValidationPreview
+                                                        .filter(c => {
+                                                            if (activeFilter === 'valid') return c.isValid;
+                                                            if (activeFilter === 'duplicate') return c.isDuplicate;
+                                                            if (activeFilter === 'invalid') return !c.isValid && !c.isDuplicate;
+                                                            return true;
+                                                        })
+                                                        .map((contact, idx) => (
+                                                            <motion.div
+                                                                key={`${contact.phone || 'no-phone'}-${idx}`}
+                                                                layout
+                                                                initial={{ opacity: 0, x: -100 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                exit={{ opacity: 0, x: 100 }}
+                                                                transition={{ 
+                                                                    type: "spring",
+                                                                    stiffness: 350,
+                                                                    damping: 28
+                                                                }}
+                                                                className={`group relative flex items-center justify-between p-3 rounded-xl text-sm transition-all border hover:shadow-md ${contact.isValid 
+                                                                    ? 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20' 
+                                                                    : 'bg-red-50/40 dark:bg-red-950/10 border-red-100 dark:border-red-900/20 hover:border-red-200 dark:hover:border-red-900/40'}`}
+                                                            >
+                                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                                    <div className={`p-2 rounded-lg ${contact.isValid ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' : 'bg-red-50 dark:bg-red-500/10 text-red-500'}`}>
+                                                                        {contact.isValid ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
+                                                                    </div>
+                                                                    <div className="truncate flex flex-col">
+                                                                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate leading-tight transition-colors group-hover:text-slate-900 dark:group-hover:text-white">
+                                                                            {contact.name || <span className="italic font-normal text-slate-400">Missing Name</span>}
+                                                                        </span>
+                                                                        <span className="text-xs text-slate-500 dark:text-text-secondary truncate mt-0.5 leading-tight">
+                                                                            {contact.phone || <span className="italic text-slate-400">Missing Phone</span>}
+                                                                        </span>
+                                                                        {(contact.tags?.length > 0 || contact.labels?.length > 0) && (
+                                                                            <div className="flex gap-1 mt-1 flex-wrap">
+                                                                                {contact.tags?.map((g, i) => (
+                                                                                    <span key={`g-${i}`} className="text-[9px] bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                                                                                        {g}
+                                                                                    </span>
+                                                                                ))}
+                                                                                {contact.labels?.map((l, i) => (
+                                                                                    <span key={`l-${i}`} className="text-[9px] px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: l.color || '#3B82F6' }}>
+                                                                                        {l.name}
+                                                                                    </span>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                {/* Failure Reason Badges */}
+                                                                {!contact.isValid && (
+                                                                    <div className="flex flex-wrap gap-1 shrink-0 ml-2">
+                                                                        {!contact.name && (
+                                                                            <span className="text-[9px] font-extrabold text-red-500 dark:text-red-400 bg-red-100/50 dark:bg-red-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">No Name</span>
+                                                                        )}
+                                                                        {!contact.phone && (
+                                                                            <span className="text-[9px] font-extrabold text-red-500 dark:text-red-400 bg-red-100/50 dark:bg-red-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">No Phone</span>
+                                                                        )}
+                                                                        {contact.isDuplicate && (
+                                                                            <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">Duplicate In File</span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </motion.div>
+                                                        ))}
+                                                </AnimatePresence>
+                                            </div>
+                                            <div className="flex gap-3 pt-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setImportValidationPreview(null);
+                                                        setActiveFilter('all');
+                                                    }}
+                                                    className="flex-1 py-2.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white rounded-xl font-bold transition-all text-sm border border-slate-200 dark:border-white/5"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    disabled={isImporting || importValidationPreview.filter(c => c.isValid).length === 0}
+                                                    onClick={() => {
+                                                        const validContacts = importValidationPreview.filter(c => c.isValid).map(c => ({
+                                                            name: c.name,
+                                                            phone: c.phone,
+                                                            email: c.email,
+                                                            tags: c.tags,
+                                                            labels: c.labels
+                                                        }));
+                                                        setIsImporting(true);
+                                                        axios.post(`${import.meta.env.VITE_API_URL}/api/contacts/import`, { contacts: validContacts })
+                                                            .then(res => {
+                                                                showToast({ type: 'success', title: 'Import Successful', message: `${res.data.count} contacts imported!` });
+                                                                setShowContactModal(false);
+                                                                setImportValidationPreview(null);
+                                                                fetchContacts();
+                                                            })
+                                                            .catch(err => {
+                                                                showToast({ type: 'error', title: 'Import Failed', message: err.response?.data?.error || err.message });
+                                                            })
+                                                            .finally(() => {
+                                                                setIsImporting(false);
+                                                            });
+                                                    }}
+                                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 text-sm disabled:opacity-50"
+                                                >
+                                                    {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                                                    {isImporting ? 'Importing...' : `Import ${importValidationPreview.filter(c => c.isValid).length} Valid`}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                                            {/* Step 1 */}
+                                            <div className="bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-4 md:p-5">
+                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs shadow-sm">1</span>
+                                                    Apply Tags & Groups <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-text-secondary uppercase tracking-wider">Optional</span>
+                                                </h4>
+                                                <div className="flex flex-col sm:flex-row gap-4">
+                                                    <div className="flex-1">
+                                                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Apply Group to All</label>
+                                                        <MultiSelectDropdown
+                                                            placeholder="Search & Select Groups..."
+                                                            options={availableGroups.map(g => ({ label: g.name, value: g.name }))}
+                                                            value={bulkImportGroups}
+                                                            onChange={setBulkImportGroups}
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Apply Tag to All</label>
+                                                        <MultiSelectDropdown
+                                                            placeholder="Search & Select Tags..."
+                                                            options={availableLabels.map(l => ({ label: l.name, value: l.id }))}
+                                                            value={bulkImportLabelIds}
+                                                            onChange={setBulkImportLabelIds}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Step 2 */}
+                                            <div className="bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-4 md:p-5">
+                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs shadow-sm">2</span>
+                                                    Country Code Prefix <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-text-secondary uppercase tracking-wider">Optional</span>
+                                                </h4>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Add prefix to all contacts (e.g. 91 or +1)</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. 91"
+                                                        value={countryCodePrefix}
+                                                        onChange={(e) => setCountryCodePrefix(e.target.value.replace(/[^0-9+]/g, ''))}
+                                                        className="w-full sm:w-1/2 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-slate-900 dark:text-white focus:border-primary outline-none transition-colors"
+                                                    />
+                                                    <p className="text-[11px] text-slate-500 dark:text-text-secondary mt-1.5">
+                                                        This will automatically prepend the country code to all phone numbers in the file.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Step 3 */}
+                                            <div className="bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-4 md:p-5">
+                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs shadow-sm">3</span>
+                                                    Upload File
+                                                </h4>
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                                                    <p className="text-xs text-slate-600 dark:text-text-secondary leading-relaxed max-w-[280px]">
+                                                        Upload an <span className="text-slate-900 dark:text-white font-semibold">.xlsx</span>, <span className="text-slate-900 dark:text-white font-semibold">.csv</span> or{' '}
+                                                        <span className="text-slate-900 dark:text-white font-semibold">.vcf</span> file.
+                                                    </p>
+                                                <button
                                             onClick={async () => {
                                                 try {
                                                     const workbook = new ExcelJS.Workbook();
@@ -1474,10 +1794,17 @@ const Contacts = () => {
                                                     // Add hidden sheet for data validation source
                                                     const metaSheet = workbook.addWorksheet('ValidationData', { state: 'hidden' });
                                                     const groupNames = availableGroups.map(g => g.name);
+                                                    const tagNames = availableLabels.map(l => l.name);
                                                     if (groupNames.length > 0) {
                                                         // Put them in column A of metaSheet
                                                         groupNames.forEach((name, idx) => {
                                                             metaSheet.getCell(`A${idx + 1}`).value = name;
+                                                        });
+                                                    }
+                                                    if (tagNames.length > 0) {
+                                                        // Put them in column B of metaSheet
+                                                        tagNames.forEach((name, idx) => {
+                                                            metaSheet.getCell(`B${idx + 1}`).value = name;
                                                         });
                                                     }
 
@@ -1486,17 +1813,18 @@ const Contacts = () => {
                                                         { header: 'Name', key: 'name', width: 20 },
                                                         { header: 'Phone', key: 'phone', width: 20 },
                                                         { header: 'Email', key: 'email', width: 25 },
-                                                        { header: 'Group/Tag', key: 'group', width: 20 }
+                                                        { header: 'Group', key: 'group', width: 20 },
+                                                        { header: 'Tag', key: 'tag', width: 20 }
                                                     ];
                                                     
                                                     // Apply headers styling
                                                     sheet.getRow(1).font = { bold: true };
                                                     
                                                     // Add sample data
-                                                    sheet.addRow({ name: 'John Doe', phone: '+1234567890', email: 'john@example.com', group: groupNames[0] || '' });
-                                                    sheet.addRow({ name: 'Jane Smith', phone: '+9876543210', email: 'jane@test.com', group: groupNames[0] || '' });
+                                                    sheet.addRow({ name: 'John Doe', phone: '+1234567890', email: 'john@example.com', group: groupNames[0] || '', tag: tagNames[0] || '' });
+                                                    sheet.addRow({ name: 'Jane Smith', phone: '+9876543210', email: 'jane@test.com', group: groupNames[0] || '', tag: tagNames[0] || '' });
 
-                                                    // Add Data Validation to Group/Tag column (Column D)
+                                                    // Add Data Validation to Group column (Column D) and Tag column (Column E)
                                                     if (groupNames.length > 0) {
                                                         for (let i = 2; i <= 1000; i++) {
                                                             sheet.getCell(`D${i}`).dataValidation = {
@@ -1504,6 +1832,15 @@ const Contacts = () => {
                                                                 allowBlank: true,
                                                                 // Reference the hidden sheet A1:A<length>
                                                                 formulae: [`ValidationData!$A$1:$A$${groupNames.length}`]
+                                                            };
+                                                        }
+                                                    }
+                                                    if (tagNames.length > 0) {
+                                                        for (let i = 2; i <= 1000; i++) {
+                                                            sheet.getCell(`E${i}`).dataValidation = {
+                                                                type: 'list',
+                                                                allowBlank: true,
+                                                                formulae: [`ValidationData!$B$1:$B$${tagNames.length}`]
                                                             };
                                                         }
                                                     }
@@ -1530,6 +1867,8 @@ const Contacts = () => {
                                         </button>
                                     </div>
 
+
+
                                     <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl cursor-pointer bg-slate-50 dark:bg-background-dark/40 hover:bg-slate-100 dark:hover:bg-background-dark hover:border-primary/50 transition-all group">
                                         <UploadCloud className="w-9 h-9 text-slate-400 dark:text-text-secondary group-hover:text-primary mb-2 transition-colors" />
                                         <p className="text-sm text-slate-500 dark:text-text-secondary">
@@ -1546,28 +1885,80 @@ const Contacts = () => {
                                                 const ext = file.name.split('.').pop().toLowerCase();
 
                                                 const doImport = (contactsToImport) => {
-                                                    if (contactsToImport.length === 0) {
-                                                        showToast({ type: 'warning', title: 'No Valid Contacts', message: 'No valid contacts found. Ensure Name and Phone columns are present.' });
+                                                    const seenPhones = new Set();
+                                                    
+                                                    const mappedContacts = contactsToImport.map(c => {
+                                                        const finalGroups = [...(c.tags || [])];
+                                                        bulkImportGroups.forEach(g => {
+                                                            if (!finalGroups.includes(g)) finalGroups.push(g);
+                                                        });
+
+                                                        const finalLabels = [];
+                                                        if (c.csvLabels && c.csvLabels.length > 0) {
+                                                            c.csvLabels.forEach(tagName => {
+                                                                const matchedLabel = availableLabels.find(l => l.name.toLowerCase() === tagName.toLowerCase());
+                                                                if (matchedLabel && !finalLabels.some(l => l.id === matchedLabel.id)) {
+                                                                    finalLabels.push(matchedLabel);
+                                                                }
+                                                            });
+                                                        }
+
+                                                        bulkImportLabelIds.forEach(id => {
+                                                            const matchedLabel = availableLabels.find(l => l.id === id);
+                                                            if (matchedLabel && !finalLabels.some(l => l.id === matchedLabel.id)) {
+                                                                finalLabels.push(matchedLabel);
+                                                            }
+                                                        });
+
+                                                        let originalPhoneStr = c.phone ? c.phone.toString() : '';
+                                                        let phoneWithPrefix = originalPhoneStr;
+                                                        if (countryCodePrefix && originalPhoneStr) {
+                                                            phoneWithPrefix = countryCodePrefix + originalPhoneStr;
+                                                        }
+
+                                                        const rawPhone = phoneWithPrefix.replace(/\D/g, '');
+                                                        const isDuplicate = rawPhone && seenPhones.has(rawPhone);
+                                                        if (rawPhone) {
+                                                            seenPhones.add(rawPhone);
+                                                        }
+
+                                                        const isValid = !!(c.name && phoneWithPrefix && !isDuplicate);
+
+                                                        return {
+                                                            name: c.name,
+                                                            phone: phoneWithPrefix,
+                                                            email: c.email,
+                                                            tags: finalGroups,
+                                                            labels: finalLabels,
+                                                            isValid,
+                                                            isDuplicate
+                                                        };
+                                                    });
+
+                                                    if (mappedContacts.length === 0) {
+                                                        showToast({ type: 'warning', title: 'No Contacts Found', message: 'The file appears to be empty or improperly formatted.' });
                                                         return;
                                                     }
-                                                    showModal({
-                                                        type: 'info',
-                                                        title: 'Confirm Import',
-                                                        message: `Found ${contactsToImport.length} valid contact(s). Import them now?`,
-                                                        confirmText: 'Import',
-                                                        cancelText: 'Cancel',
-                                                        onConfirm: () => {
-                                                            axios.post(`${import.meta.env.VITE_API_URL}/api/contacts/import`, { contacts: contactsToImport })
-                                                                .then(res => {
-                                                                    showToast({ type: 'success', title: 'Import Successful', message: `${res.data.count} contacts imported!` });
-                                                                    setShowContactModal(false);
-                                                                    fetchContacts();
-                                                                })
-                                                                .catch(err => {
-                                                                    showToast({ type: 'error', title: 'Import Failed', message: err.response?.data?.error || err.message });
-                                                                });
+                                                    
+                                                    setImportValidationPreview([]);
+                                                    const totalContacts = mappedContacts.length;
+                                                    let batchSize = 1;
+                                                    if (totalContacts > 200) {
+                                                        batchSize = Math.ceil(totalContacts / 40);
+                                                    } else if (totalContacts > 50) {
+                                                        batchSize = 5;
+                                                    }
+
+                                                    let currentIdx = 0;
+                                                    const timer = setInterval(() => {
+                                                        if (currentIdx < totalContacts) {
+                                                            const nextBatch = mappedContacts.slice(currentIdx, currentIdx + batchSize);
+                                                            setImportValidationPreview(prev => [...(prev || []), ...nextBatch]);
+                                                            currentIdx += batchSize;
+                                                        } else {
+                                                            clearInterval(timer);
                                                         }
-                                                    });
+                                                    }, 30);
                                                 };
 
                                                 if (ext === 'vcf') {
@@ -1578,7 +1969,8 @@ const Contacts = () => {
                                                             name: c.name || c.phone,
                                                             phone: c.phone,
                                                             email: c.email || '',
-                                                            tags: []
+                                                            tags: [],
+                                                            csvLabels: []
                                                         })));
                                                     };
                                                     reader.readAsText(file);
@@ -1654,18 +2046,10 @@ const Contacts = () => {
                                                 e.target.value = ''; // reset input
                                             }}
                                         />
-                                    </label>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4 border border-slate-200 dark:border-white/5">
-                                            <p className="text-xs font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-1.5">📄 CSV Files</p>
-                                            <p className="text-[10px] text-slate-500 dark:text-text-secondary leading-relaxed">Exported from Excel, Google Sheets. Columns: <span className="text-slate-800 dark:text-white font-medium">Name</span>, <span className="text-slate-800 dark:text-white font-medium">Phone</span>, Email.</p>
+                                            </label>
+                                            </div>
                                         </div>
-                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4 border border-slate-200 dark:border-white/5">
-                                            <p className="text-xs font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-1.5">📱 VCF / vCard</p>
-                                            <p className="text-[10px] text-slate-500 dark:text-text-secondary leading-relaxed">From iPhone, Android, iCloud, Mac Address Book, or Google Takeout.</p>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 
