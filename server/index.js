@@ -296,8 +296,12 @@ if (fs.existsSync(distIndex)) {
         }
     });
 
-    // General SPA catch-all for all other routes
+    // General SPA catch-all for all non-API routes (enables React Router)
+    // Explicitly skip /api/ so backend routes are never swallowed by the SPA handler
     app.get('*', (req, res) => {
+        if (req.path.startsWith('/api/')) {
+            return res.status(404).json({ error: `Route not found: ${req.method} ${req.path}` });
+        }
         res.sendFile(distIndex);
     });
 }

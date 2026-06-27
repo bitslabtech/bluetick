@@ -13,25 +13,38 @@ const Group = require('../models/Group');
 // GET /api/contacts/google/callback
 // Google redirects here after user grants consent. No auth middleware (Google hits this directly).
 router.get('/google/callback', async (req, res) => {
+    console.log('[GOOGLE OAUTH] ===== CALLBACK HIT =====');
+    console.log('[GOOGLE OAUTH] Query params:', JSON.stringify(req.query));
+    console.log('[GOOGLE OAUTH] FRONTEND_URL env:', process.env.FRONTEND_URL || '(not set)');
     try {
         const { code, state: userId } = req.query;
-        if (!code || !userId) return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=missing_params`);
+        console.log('[GOOGLE OAUTH] Step 1 - code present:', !!code, '| userId from state:', userId);
+        if (!code || !userId) {
+            console.error('[GOOGLE OAUTH] MISSING code or userId - aborting');
+            return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=missing_params`);
+        }
 
         const config = await SystemConfig.getConfig();
         const g = config.integrations?.google || {};
+        console.log('[GOOGLE OAUTH] Step 2 - Config: enabled=', g.enabled, '| hasClientId=', !!g.clientId, '| hasSecret=', !!g.clientSecret, '| redirectUri=', g.redirectUri);
 
         if (!g.clientId || !g.clientSecret || !g.redirectUri) {
+            console.error('[GOOGLE OAUTH] Google OAuth NOT configured in admin panel');
             return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=not_configured`);
         }
 
         const { google } = require('googleapis');
         const oauth2Client = new google.auth.OAuth2(g.clientId, g.clientSecret, g.redirectUri);
+        console.log('[GOOGLE OAUTH] Step 3 - Exchanging code for tokens...');
         const { tokens } = await oauth2Client.getToken(code);
         oauth2Client.setCredentials(tokens);
+        console.log('[GOOGLE OAUTH] Step 3 OK - hasAccessToken:', !!tokens.access_token);
 
         const people = google.people({ version: 'v1', auth: oauth2Client });
         let allConnections = [];
         let pageToken;
+        let pageNum = 0;
+        console.log('[GOOGLE OAUTH] Step 4 - Fetching contacts from Google People API...');
 
         // Paginate through all contacts (Google returns max 1000/page)
         do {
@@ -41,9 +54,13 @@ router.get('/google/callback', async (req, res) => {
                 pageToken,
                 personFields: 'names,phoneNumbers,emailAddresses'
             });
-            allConnections = allConnections.concat(result.data.connections || []);
+            const batch = result.data.connections || [];
+            allConnections = allConnections.concat(batch);
             pageToken = result.data.nextPageToken;
+            pageNum++;
+            console.log(`[GOOGLE OAUTH] Step 4 - Page ${pageNum}: ${batch.length} contacts fetched (running total: ${allConnections.length})`);
         } while (pageToken);
+        console.log(`[GOOGLE OAUTH] Step 4 OK - Total raw contacts: ${allConnections.length}`);
 
         // Normalise to Contact schema
         const contactsToImport = allConnections
@@ -56,10 +73,12 @@ router.get('/google/callback', async (req, res) => {
                 userId
             }))
             .filter(c => c.phone);
+        console.log(`[GOOGLE OAUTH] Step 5 - Contacts with valid phone numbers: ${contactsToImport.length}`);
 
         // Plan limit check
         const limits = await getUserPlanLimits(userId);
         const currentCount = await getContactCount(userId);
+        console.log(`[GOOGLE OAUTH] Step 6 - Plan contactLimit: ${limits.contactLimit}, currentCount: ${currentCount}`);
         if (limits.contactLimit !== -1 && currentCount >= limits.contactLimit) {
             return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&count=0&error=limit_reached`);
         }
@@ -74,12 +93,18 @@ router.get('/google/callback', async (req, res) => {
             }));
             const created = await Contact.bulkCreate(chunk, { ignoreDuplicates: true, validate: true });
             totalCreated += created.length;
+            console.log(`[GOOGLE OAUTH] Step 7 - Chunk ${Math.floor(i/CHUNK)+1} saved: ${created.length} contacts`);
         }
 
-        res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&count=${totalCreated}`);
+        const finalUrl = `${process.env.FRONTEND_URL || ''}/contacts?import=google&count=${totalCreated}`;
+        console.log(`[GOOGLE OAUTH] SUCCESS - Imported ${totalCreated} contacts. Redirecting to: ${finalUrl}`);
+        res.redirect(finalUrl);
     } catch (err) {
-        console.error('Google callback error:', err);
-        res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=${encodeURIComponent(err.message)}`);
+        console.error('[GOOGLE OAUTH] FATAL ERROR:', err.message);
+        console.error('[GOOGLE OAUTH] Stack:', err.stack);
+        const errUrl = `${process.env.FRONTEND_URL || ''}/contacts?import=google&error=${encodeURIComponent(err.message)}`;
+        console.log('[GOOGLE OAUTH] Redirecting to error URL:', errUrl);
+        res.redirect(errUrl);
     }
 });
 
