@@ -191,6 +191,23 @@ router.get('/google/callback', async (req, res) => {
 // Apply auth middleware to all other routes
 router.use(auth);
 
+// GET existing phone numbers for duplicate preview check
+router.get('/existing-phones', async (req, res) => {
+    try {
+        const contacts = await Contact.findAll({
+            attributes: ['phone'],
+            where: { userId: req.user.id },
+            raw: true
+        });
+        const phones = contacts
+            .map(c => (c.phone || '').replace(/\D/g, ''))
+            .filter(Boolean);
+        res.json({ phones });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET unique groups (tags)
 router.get('/groups', async (req, res) => {
     try {
@@ -209,6 +226,7 @@ router.get('/groups', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 // GET campaign selection summary (groups with counts + total contacts)
 router.get('/campaign-summary', async (req, res) => {

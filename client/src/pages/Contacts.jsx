@@ -211,9 +211,17 @@ const Contacts = () => {
 
     // Google Contacts Popup Message Listener
     useEffect(() => {
-        const handleMessage = (event) => {
+        const handleMessage = async (event) => {
             if (event.data?.type === 'GOOGLE_CONTACTS') {
                 const contactsToImport = event.data.contacts || [];
+                
+                // Fetch existing phones from DB for duplicate detection
+                let existingPhonesSet = new Set();
+                try {
+                    const existRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/existing-phones`);
+                    (existRes.data.phones || []).forEach(p => existingPhonesSet.add(p));
+                } catch (e) { /* non-fatal, skip DB check */ }
+                
                 const seenPhones = new Set();
                 const mappedContacts = contactsToImport.map(c => {
                     const finalGroups = [...(c.tags || [])];
@@ -234,11 +242,12 @@ const Contacts = () => {
                     }
                     const rawPhone = phoneWithPrefix.replace(/\D/g, '');
                     const isDuplicate = rawPhone && seenPhones.has(rawPhone);
+                    const alreadyExists = rawPhone && existingPhonesSet.has(rawPhone);
                     if (rawPhone) { seenPhones.add(rawPhone); }
-                    const isValid = !!(c.name && phoneWithPrefix && !isDuplicate);
+                    const isValid = !!(c.name && phoneWithPrefix && !isDuplicate && !alreadyExists);
                     return {
                         name: c.name, phone: phoneWithPrefix, email: c.email,
-                        tags: finalGroups, labels: finalLabels, isValid, isDuplicate
+                        tags: finalGroups, labels: finalLabels, isValid, isDuplicate, alreadyExists
                     };
                 });
                 
@@ -272,6 +281,7 @@ const Contacts = () => {
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
     }, [bulkImportGroups, bulkImportLabelIds, availableLabels, countryCodePrefix, showToast]);
+
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
@@ -1664,11 +1674,18 @@ const Contacts = () => {
                                                         Duplicate ({importValidationPreview.filter(c => c.isDuplicate).length})
                                                     </button>
                                                     <button 
+                                                        onClick={() => setActiveFilter('exists')}
+                                                        className={`px-3 py-1.5 rounded-xl transition-all border flex items-center gap-1 ${activeFilter === 'exists' ? 'bg-blue-500 text-white border-transparent shadow-lg shadow-blue-500/20' : 'bg-slate-50 dark:bg-white/5 text-blue-600 dark:text-blue-400 border-slate-200 dark:border-white/5 hover:bg-blue-50/50 dark:hover:bg-blue-500/5'}`}
+                                                    >
+                                                        <CheckCircle className="w-3.5 h-3.5" />
+                                                        Exists ({importValidationPreview.filter(c => c.alreadyExists).length})
+                                                    </button>
+                                                    <button 
                                                         onClick={() => setActiveFilter('invalid')}
                                                         className={`px-3 py-1.5 rounded-xl transition-all border flex items-center gap-1 ${activeFilter === 'invalid' ? 'bg-red-500 text-white border-transparent shadow-lg shadow-red-500/20' : 'bg-slate-50 dark:bg-white/5 text-red-600 dark:text-red-400 border-slate-200 dark:border-white/5 hover:bg-red-50/50 dark:hover:bg-red-500/5'}`}
                                                     >
                                                         <AlertTriangle className="w-3.5 h-3.5" />
-                                                        Invalid ({importValidationPreview.filter(c => !c.isValid && !c.isDuplicate).length})
+                                                        Invalid ({importValidationPreview.filter(c => !c.isValid && !c.isDuplicate && !c.alreadyExists).length})
                                                     </button>
                                                 </div>
                                             </div>
@@ -1682,7 +1699,8 @@ const Contacts = () => {
                                                         .filter(c => {
                                                             if (activeFilter === 'valid') return c.isValid;
                                                             if (activeFilter === 'duplicate') return c.isDuplicate;
-                                                            if (activeFilter === 'invalid') return !c.isValid && !c.isDuplicate;
+                                                            if (activeFilter === 'exists') return c.alreadyExists;
+                                                            if (activeFilter === 'invalid') return !c.isValid && !c.isDuplicate && !c.alreadyExists;
                                                             return true;
                                                         })
                                                         .map((contact, idx) => (
@@ -1729,20 +1747,25 @@ const Contacts = () => {
                                                                     </div>
                                                                 </div>
                                                                 
-                                                                {/* Failure Reason Badges */}
-                                                                {!contact.isValid && (
-                                                                    <div className="flex flex-wrap gap-1 shrink-0 ml-2">
-                                                                        {!contact.name && (
-                                                                            <span className="text-[9px] font-extrabold text-red-500 dark:text-red-400 bg-red-100/50 dark:bg-red-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">No Name</span>
-                                                                        )}
-                                                                        {!contact.phone && (
-                                                                            <span className="text-[9px] font-extrabold text-red-500 dark:text-red-400 bg-red-100/50 dark:bg-red-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">No Phone</span>
-                                                                        )}
-                                                                        {contact.isDuplicate && (
-                                                                            <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">Duplicate In File</span>
-                                                                        )}
-                                                                    </div>
-                                                                )}
+                                                                {/* Status Badges */}
+                                                                <div className="flex flex-wrap gap-1 shrink-0 ml-2">
+                                                                    {contact.alreadyExists && (
+                                                                        <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">Already Exists</span>
+                                                                    )}
+                                                                    {!contact.isValid && !contact.alreadyExists && (
+                                                                        <>
+                                                                            {!contact.name && (
+                                                                                <span className="text-[9px] font-extrabold text-red-500 dark:text-red-400 bg-red-100/50 dark:bg-red-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">No Name</span>
+                                                                            )}
+                                                                            {!contact.phone && (
+                                                                                <span className="text-[9px] font-extrabold text-red-500 dark:text-red-400 bg-red-100/50 dark:bg-red-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">No Phone</span>
+                                                                            )}
+                                                                            {contact.isDuplicate && (
+                                                                                <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">Duplicate In File</span>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                </div>
                                                             </motion.div>
                                                         ))}
                                                 </AnimatePresence>
@@ -1760,7 +1783,7 @@ const Contacts = () => {
                                                 <button
                                                     disabled={isImporting || importValidationPreview.filter(c => c.isValid).length === 0}
                                                     onClick={() => {
-                                                        const validContacts = importValidationPreview.filter(c => c.isValid).map(c => ({
+                                                        const validContacts = importValidationPreview.filter(c => c.isValid && !c.alreadyExists).map(c => ({
                                                             name: c.name,
                                                             phone: c.phone,
                                                             email: c.email,
@@ -1785,7 +1808,7 @@ const Contacts = () => {
                                                     className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 text-sm disabled:opacity-50"
                                                 >
                                                     {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                                                    {isImporting ? 'Importing...' : `Import ${importValidationPreview.filter(c => c.isValid).length} Valid`}
+                                                    {isImporting ? 'Importing...' : `Import ${importValidationPreview.filter(c => c.isValid && !c.alreadyExists).length} New`}
                                                 </button>
                                             </div>
                                         </div>
@@ -1950,7 +1973,14 @@ const Contacts = () => {
                                                 if (!file) return;
                                                 const ext = file.name.split('.').pop().toLowerCase();
 
-                                                const doImport = (contactsToImport) => {
+                                                const doImport = async (contactsToImport) => {
+                                                    // Fetch existing phones from DB for duplicate detection
+                                                    let existingPhonesSet = new Set();
+                                                    try {
+                                                        const existRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/existing-phones`);
+                                                        (existRes.data.phones || []).forEach(p => existingPhonesSet.add(p));
+                                                    } catch (e) { /* non-fatal, skip DB check */ }
+
                                                     const seenPhones = new Set();
                                                     
                                                     const mappedContacts = contactsToImport.map(c => {
@@ -1984,11 +2014,12 @@ const Contacts = () => {
 
                                                         const rawPhone = phoneWithPrefix.replace(/\D/g, '');
                                                         const isDuplicate = rawPhone && seenPhones.has(rawPhone);
+                                                        const alreadyExists = rawPhone && existingPhonesSet.has(rawPhone);
                                                         if (rawPhone) {
                                                             seenPhones.add(rawPhone);
                                                         }
 
-                                                        const isValid = !!(c.name && phoneWithPrefix && !isDuplicate);
+                                                        const isValid = !!(c.name && phoneWithPrefix && !isDuplicate && !alreadyExists);
 
                                                         return {
                                                             name: c.name,
@@ -1997,7 +2028,8 @@ const Contacts = () => {
                                                             tags: finalGroups,
                                                             labels: finalLabels,
                                                             isValid,
-                                                            isDuplicate
+                                                            isDuplicate,
+                                                            alreadyExists
                                                         };
                                                     });
 
