@@ -241,8 +241,8 @@ const Contacts = () => {
                         phoneWithPrefix = countryCodePrefix + originalPhoneStr;
                     }
                     const rawPhone = phoneWithPrefix.replace(/\D/g, '');
-                    const isDuplicate = rawPhone && seenPhones.has(rawPhone);
                     const alreadyExists = rawPhone && existingPhonesSet.has(rawPhone);
+                    const isDuplicate = rawPhone && seenPhones.has(rawPhone) && !alreadyExists;
                     if (rawPhone) { seenPhones.add(rawPhone); }
                     const isValid = !!(c.name && phoneWithPrefix && !isDuplicate && !alreadyExists);
                     return {
@@ -2015,8 +2015,8 @@ const Contacts = () => {
                                                         }
 
                                                         const rawPhone = phoneWithPrefix.replace(/\D/g, '');
-                                                        const isDuplicate = rawPhone && seenPhones.has(rawPhone);
                                                         const alreadyExists = rawPhone && existingPhonesSet.has(rawPhone);
+                                                        const isDuplicate = rawPhone && seenPhones.has(rawPhone) && !alreadyExists;
                                                         if (rawPhone) {
                                                             seenPhones.add(rawPhone);
                                                         }
