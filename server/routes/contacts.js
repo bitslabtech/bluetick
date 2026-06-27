@@ -75,36 +75,58 @@ router.get('/google/callback', async (req, res) => {
             .filter(c => c.phone);
         console.log(`[GOOGLE OAUTH] Step 5 - Contacts with valid phone numbers: ${contactsToImport.length}`);
 
-        // Plan limit check
-        const limits = await getUserPlanLimits(userId);
-        const currentCount = await getContactCount(userId);
-        console.log(`[GOOGLE OAUTH] Step 6 - Plan contactLimit: ${limits.contactLimit}, currentCount: ${currentCount}`);
-        if (limits.contactLimit !== -1 && currentCount >= limits.contactLimit) {
-            return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&count=0&error=limit_reached`);
-        }
+        console.log(`[GOOGLE OAUTH] SUCCESS - Fetched ${contactsToImport.length} contacts. Sending to frontend via postMessage.`);
+        
+        // Escape the JSON to prevent XSS issues in the HTML context
+        const safeContactsJson = JSON.stringify(contactsToImport)
+            .replace(/</g, '\\u003c')
+            .replace(/>/g, '\\u003e')
+            .replace(/&/g, '\\u0026');
 
-        // Bulk insert in chunks of 1000
-        const CHUNK = 1000;
-        let totalCreated = 0;
-        for (let i = 0; i < contactsToImport.length; i += CHUNK) {
-            const chunk = contactsToImport.slice(i, i + CHUNK).map(c => ({
-                ...c,
-                phone: String(c.phone).replace(/\D/g, '')
-            }));
-            const created = await Contact.bulkCreate(chunk, { ignoreDuplicates: true, validate: true });
-            totalCreated += created.length;
-            console.log(`[GOOGLE OAUTH] Step 7 - Chunk ${Math.floor(i/CHUNK)+1} saved: ${created.length} contacts`);
-        }
-
-        const finalUrl = `${process.env.FRONTEND_URL || ''}/contacts?import=google&count=${totalCreated}`;
-        console.log(`[GOOGLE OAUTH] SUCCESS - Imported ${totalCreated} contacts. Redirecting to: ${finalUrl}`);
-        res.redirect(finalUrl);
+        const htmlResponse = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Importing Google Contacts...</title></head>
+        <body>
+            <p>Importing contacts, please wait...</p>
+            <script>
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'GOOGLE_CONTACTS',
+                        contacts: ${safeContactsJson}
+                    }, '*');
+                    window.close();
+                } else {
+                    document.body.innerHTML = 'Error: Cannot communicate with the main window. Please close this tab and try again.';
+                }
+            </script>
+        </body>
+        </html>
+        `;
+        res.send(htmlResponse);
     } catch (err) {
         console.error('[GOOGLE OAUTH] FATAL ERROR:', err.message);
         console.error('[GOOGLE OAUTH] Stack:', err.stack);
-        const errUrl = `${process.env.FRONTEND_URL || ''}/contacts?import=google&error=${encodeURIComponent(err.message)}`;
-        console.log('[GOOGLE OAUTH] Redirecting to error URL:', errUrl);
-        res.redirect(errUrl);
+        
+        const errorHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Error</title></head>
+        <body>
+            <p>An error occurred: ${err.message}</p>
+            <script>
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'GOOGLE_CONTACTS_ERROR',
+                        error: "${err.message.replace(/"/g, '\\"')}"
+                    }, '*');
+                    setTimeout(() => window.close(), 3000);
+                }
+            </script>
+        </body>
+        </html>
+        `;
+        res.send(errorHtml);
     }
 });
 

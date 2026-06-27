@@ -188,6 +188,70 @@ const Contacts = () => {
             importListRef.current.scrollTop = importListRef.current.scrollHeight;
         }
     }, [importValidationPreview?.length]);
+
+    // Google Contacts Popup Message Listener
+    useEffect(() => {
+        const handleMessage = (event) => {
+            if (event.data?.type === 'GOOGLE_CONTACTS') {
+                const contactsToImport = event.data.contacts || [];
+                const seenPhones = new Set();
+                const mappedContacts = contactsToImport.map(c => {
+                    const finalGroups = [...(c.tags || [])];
+                    bulkImportGroups.forEach(g => {
+                        if (!finalGroups.includes(g)) finalGroups.push(g);
+                    });
+                    const finalLabels = [];
+                    bulkImportLabelIds.forEach(id => {
+                        const matchedLabel = availableLabels.find(l => l.id === id);
+                        if (matchedLabel && !finalLabels.some(l => l.id === matchedLabel.id)) {
+                            finalLabels.push(matchedLabel);
+                        }
+                    });
+                    let originalPhoneStr = c.phone ? c.phone.toString() : '';
+                    let phoneWithPrefix = originalPhoneStr;
+                    if (countryCodePrefix && originalPhoneStr) {
+                        phoneWithPrefix = countryCodePrefix + originalPhoneStr;
+                    }
+                    const rawPhone = phoneWithPrefix.replace(/\D/g, '');
+                    const isDuplicate = rawPhone && seenPhones.has(rawPhone);
+                    if (rawPhone) { seenPhones.add(rawPhone); }
+                    const isValid = !!(c.name && phoneWithPrefix && !isDuplicate);
+                    return {
+                        name: c.name, phone: phoneWithPrefix, email: c.email,
+                        tags: finalGroups, labels: finalLabels, isValid, isDuplicate
+                    };
+                });
+                
+                if (mappedContacts.length === 0) {
+                    showToast({ type: 'warning', title: 'No Contacts Found', message: 'No valid contacts with phone numbers found in Google Contacts.' });
+                    return;
+                }
+                
+                // Switch back to 'file' tab to show the preview list
+                setContactModalTab('file');
+                setImportValidationPreview([]);
+                
+                const totalContacts = mappedContacts.length;
+                let batchSize = totalContacts > 200 ? Math.ceil(totalContacts / 40) : (totalContacts > 50 ? 5 : 1);
+                let currentIdx = 0;
+                
+                const timer = setInterval(() => {
+                    if (currentIdx < totalContacts) {
+                        const nextBatch = mappedContacts.slice(currentIdx, currentIdx + batchSize);
+                        setImportValidationPreview(prev => [...(prev || []), ...nextBatch]);
+                        currentIdx += batchSize;
+                    } else {
+                        clearInterval(timer);
+                    }
+                }, 30);
+            }
+            if (event.data?.type === 'GOOGLE_CONTACTS_ERROR') {
+                showToast({ type: 'error', title: 'Google Sync Error', message: event.data.error || 'Failed to fetch Google contacts.' });
+            }
+        };
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [bulkImportGroups, bulkImportLabelIds, availableLabels, countryCodePrefix, showToast]);
     const [availableGroups, setAvailableGroups] = useState([]);
     const [groupSearchTerm, setGroupSearchTerm] = useState('');
     const [contactLimit, setContactLimit] = useState(-1);
@@ -2072,7 +2136,18 @@ const Contacts = () => {
                                         onClick={async () => {
                                             try {
                                                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/google/auth-url`);
-                                                window.location.href = res.data.url;
+                                                
+                                                // Open in a centered popup window
+                                                const width = 500;
+                                                const height = 650;
+                                                const left = window.screenX + (window.outerWidth - width) / 2;
+                                                const top = window.screenY + (window.outerHeight - height) / 2;
+                                                
+                                                window.open(
+                                                    res.data.url, 
+                                                    'GoogleAuth', 
+                                                    `width=${width},height=${height},left=${left},top=${top},location=no,status=no`
+                                                );
                                             } catch {
                                                 showToast({
                                                     type: 'warning',
