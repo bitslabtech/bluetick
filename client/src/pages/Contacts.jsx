@@ -256,7 +256,8 @@ const Contacts = () => {
                     return;
                 }
                 
-                // Switch back to 'file' tab to show the preview list
+                // Ensure the modal is open and switch to file tab to show preview list
+                setShowContactModal(true);
                 setContactModalTab('file');
                 setImportValidationPreview([]);
                 

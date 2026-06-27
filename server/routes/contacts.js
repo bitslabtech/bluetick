@@ -137,15 +137,15 @@ router.get('/google/callback', async (req, res) => {
                     type: 'GOOGLE_CONTACTS',
                     contacts: ${safeContactsJson}
                 }, '*');
-                // Give the message time to be received, then close
+                // Try to auto-close after a short delay
+                setTimeout(function() { window.close(); }, 300);
+                // Always show the fallback button after 1.5s in case close failed
                 setTimeout(function() {
-                    window.close();
-                    // If still open after 800ms, show manual close button
-                    setTimeout(function() {
-                        document.getElementById('status').textContent = 'All done! You can close this tab.';
-                        document.getElementById('closeBtn').style.display = 'inline-block';
-                    }, 800);
-                }, 300);
+                    document.getElementById('status').textContent = 'All done! You can now close this tab.';
+                    document.getElementById('closeBtn').style.display = 'inline-block';
+                    document.querySelector('.icon').style.animation = 'none';
+                    document.querySelector('.icon').textContent = '🎉';
+                }, 1500);
             } else {
                 document.getElementById('status').textContent = 'Could not reach the main window.';
                 document.getElementById('closeBtn').style.display = 'inline-block';
