@@ -256,9 +256,8 @@ const Contacts = () => {
                     return;
                 }
                 
-                // Ensure the modal is open and switch to file tab to show preview list
+                // Ensure the modal is open and clear previous previews
                 setShowContactModal(true);
-                setContactModalTab('file');
                 setImportValidationPreview([]);
                 
                 const totalContacts = mappedContacts.length;
@@ -1615,31 +1614,33 @@ const Contacts = () => {
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex border-b border-white/10 shrink-0">
-                            {[
-                                { id: 'file', label: 'Upload CSV/VCF', shortLabel: 'Upload', icon: UploadCloud },
-                                { id: 'google', label: 'Google Contacts', shortLabel: 'Google', icon: Users },
-                                { id: 'manual', label: 'Add Manually', shortLabel: 'Manual', icon: UserPlus },
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setContactModalTab(tab.id)}
-                                    className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 text-xs font-bold transition-all border-b-2 ${contactModalTab === tab.id
-                                            ? 'text-indigo-600 dark:text-white border-indigo-600 dark:border-white bg-indigo-50 dark:bg-white/10'
-                                            : 'text-slate-500 dark:text-text-secondary border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
-                                        }`}
-                                >
-                                    <tab.icon className="w-3.5 h-3.5" />
-                                    <span className="hidden sm:inline">{tab.label}</span>
-                                    <span className="sm:hidden">{tab.shortLabel}</span>
-                                </button>
-                            ))}
-                        </div>
+                        {!importValidationPreview && (
+                            <div className="flex border-b border-white/10 shrink-0">
+                                {[
+                                    { id: 'file', label: 'Upload CSV/VCF', shortLabel: 'Upload', icon: UploadCloud },
+                                    { id: 'google', label: 'Google Contacts', shortLabel: 'Google', icon: Users },
+                                    { id: 'manual', label: 'Add Manually', shortLabel: 'Manual', icon: UserPlus },
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setContactModalTab(tab.id)}
+                                        className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 text-xs font-bold transition-all border-b-2 ${contactModalTab === tab.id
+                                                ? 'text-indigo-600 dark:text-white border-indigo-600 dark:border-white bg-indigo-50 dark:bg-white/10'
+                                                : 'text-slate-500 dark:text-text-secondary border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
+                                            }`}
+                                    >
+                                        <tab.icon className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">{tab.label}</span>
+                                        <span className="sm:hidden">{tab.shortLabel}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         {/* Tab Content */}
                         <div className="overflow-y-auto flex-1 custom-scrollbar">
 
-                            {contactModalTab === 'file' && (
+                            {(contactModalTab === 'file' || importValidationPreview) && (
                                 <div className="p-4 md:p-6 space-y-4">
                                     {importValidationPreview ? (
                                         <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
@@ -2153,7 +2154,7 @@ const Contacts = () => {
                             )}
 
                             {/* ── Tab 2: Google Contacts ── */}
-                            {contactModalTab === 'google' && (
+                            {!importValidationPreview && contactModalTab === 'google' && (
                                 <div className="p-4 md:p-8 flex flex-col items-center text-center gap-5">
                                     <div className="w-20 h-20 rounded-2xl bg-white dark:bg-white/5 border border-white/10 flex items-center justify-center shadow-lg">
                                         <svg width="42" height="42" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
@@ -2209,7 +2210,7 @@ const Contacts = () => {
                             )}
 
                             {/* ── Tab 3: Add Manually ── */}
-                            {contactModalTab === 'manual' && (
+                            {!importValidationPreview && contactModalTab === 'manual' && (
                                 <div className="p-4 md:p-6">
                                     <form onSubmit={handleAddContact} className="space-y-4">
                                         <div>
