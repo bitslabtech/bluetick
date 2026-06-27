@@ -83,27 +83,85 @@ router.get('/google/callback', async (req, res) => {
             .replace(/>/g, '\\u003e')
             .replace(/&/g, '\\u0026');
 
-        const htmlResponse = `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Importing Google Contacts...</title></head>
-        <body>
-            <p>Importing contacts, please wait...</p>
-            <script>
-                if (window.opener) {
-                    window.opener.postMessage({
-                        type: 'GOOGLE_CONTACTS',
-                        contacts: ${safeContactsJson}
-                    }, '*');
+        const htmlResponse = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Contacts Import</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            flex-direction: column;
+            gap: 16px;
+            text-align: center;
+            padding: 24px;
+        }
+        .icon { font-size: 48px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        h2 { font-size: 20px; font-weight: 700; }
+        p { font-size: 14px; color: #94a3b8; }
+        #status { font-size: 13px; color: #22c55e; font-weight: 600; margin-top: 8px; }
+        button {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 24px;
+            background: #6366f1;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover { background: #4f46e5; }
+    </style>
+</head>
+<body>
+    <div class="icon">✅</div>
+    <h2>Contacts Ready!</h2>
+    <p>Sending your contacts to the dashboard...</p>
+    <div id="status">Closing this window...</div>
+    <button id="closeBtn" onclick="window.close()">Close This Tab</button>
+    <script>
+        try {
+            if (window.opener && !window.opener.closed) {
+                window.opener.postMessage({
+                    type: 'GOOGLE_CONTACTS',
+                    contacts: ${safeContactsJson}
+                }, '*');
+                // Give the message time to be received, then close
+                setTimeout(function() {
                     window.close();
-                } else {
-                    document.body.innerHTML = 'Error: Cannot communicate with the main window. Please close this tab and try again.';
-                }
-            </script>
-        </body>
-        </html>
-        `;
+                    // If still open after 800ms, show manual close button
+                    setTimeout(function() {
+                        document.getElementById('status').textContent = 'All done! You can close this tab.';
+                        document.getElementById('closeBtn').style.display = 'inline-block';
+                    }, 800);
+                }, 300);
+            } else {
+                document.getElementById('status').textContent = 'Could not reach the main window.';
+                document.getElementById('closeBtn').style.display = 'inline-block';
+                document.querySelector('h2').textContent = 'Please Try Again';
+                document.querySelector('p').textContent = 'Open the import dialog from the main Contacts page and try connecting Google again.';
+                document.querySelector('.icon').textContent = '⚠️';
+            }
+        } catch(e) {
+            document.getElementById('status').textContent = 'Done! You can close this tab.';
+            document.getElementById('closeBtn').style.display = 'inline-block';
+        }
+    </script>
+</body>
+</html>`;
         res.send(htmlResponse);
+
     } catch (err) {
         console.error('[GOOGLE OAUTH] FATAL ERROR:', err.message);
         console.error('[GOOGLE OAUTH] Stack:', err.stack);
