@@ -507,13 +507,13 @@ router.get('/google/auth-url', async (req, res) => {
 router.get('/google/callback', async (req, res) => {
     try {
         const { code, state: userId } = req.query;
-        if (!code || !userId) return res.redirect('/contacts?import=google&error=missing_params');
+        if (!code || !userId) return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=missing_params`);
 
         const config = await SystemConfig.getConfig();
         const g = config.integrations?.google || {};
 
         if (!g.clientId || !g.clientSecret || !g.redirectUri) {
-            return res.redirect('/contacts?import=google&error=not_configured');
+            return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=not_configured`);
         }
 
         const { google } = require('googleapis');
@@ -553,7 +553,7 @@ router.get('/google/callback', async (req, res) => {
         const limits = await getUserPlanLimits(userId);
         const currentCount = await getContactCount(userId);
         if (limits.contactLimit !== -1 && currentCount >= limits.contactLimit) {
-            return res.redirect(`/contacts?import=google&count=0&error=limit_reached`);
+            return res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&count=0&error=limit_reached`);
         }
 
         // Bulk insert in chunks of 1000
@@ -568,10 +568,10 @@ router.get('/google/callback', async (req, res) => {
             totalCreated += created.length;
         }
 
-        res.redirect(`/contacts?import=google&count=${totalCreated}`);
+        res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&count=${totalCreated}`);
     } catch (err) {
         console.error('Google callback error:', err);
-        res.redirect(`/contacts?import=google&error=${encodeURIComponent(err.message)}`);
+        res.redirect(`${process.env.FRONTEND_URL || ''}/contacts?import=google&error=${encodeURIComponent(err.message)}`);
     }
 });
 
