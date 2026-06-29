@@ -949,7 +949,54 @@ const Contacts = () => {
                     </div>
 
                     {/* Contact List View */}
-                    {viewMode === 'list' ? (
+                    {loading ? (
+                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shadow-sm transition-colors duration-300">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm table-fixed md:table-auto">
+                                    <thead className="bg-slate-50 dark:bg-background-dark/50 text-slate-500 dark:text-text-secondary font-semibold border-b border-slate-200 dark:border-white/5">
+                                        <tr>
+                                            <th className="px-1 md:px-6 py-4 w-8 md:w-12 text-center">
+                                                <div className="size-4 rounded bg-slate-200 dark:bg-white/10 animate-pulse mx-auto"></div>
+                                            </th>
+                                            <th className="pl-3 pr-1 md:px-6 py-4 w-auto"><div className="h-4 w-24 bg-slate-200 dark:bg-white/10 rounded animate-pulse"></div></th>
+                                            <th className="hidden md:table-cell px-4 md:px-6 py-4"><div className="h-4 w-32 bg-slate-200 dark:bg-white/10 rounded animate-pulse"></div></th>
+                                            <th className="px-1 md:px-6 py-4 w-[35%] md:w-auto"><div className="h-4 w-20 bg-slate-200 dark:bg-white/10 rounded animate-pulse"></div></th>
+                                            <th className="hidden md:table-cell px-4 md:px-6 py-4"><div className="h-4 w-16 bg-slate-200 dark:bg-white/10 rounded animate-pulse"></div></th>
+                                            <th className="hidden md:table-cell px-4 md:px-6 py-4"><div className="h-4 w-16 bg-slate-200 dark:bg-white/10 rounded animate-pulse"></div></th>
+                                            <th className="hidden md:table-cell px-2 md:px-6 py-4 w-8 md:w-12 text-right"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-700 dark:text-gray-200">
+                                        {[...Array(6)].map((_, i) => (
+                                            <tr key={i}>
+                                                <td className="px-1 md:px-6 py-4 text-center">
+                                                    <div className="size-4 rounded bg-slate-100 dark:bg-white/5 animate-pulse mx-auto"></div>
+                                                </td>
+                                                <td className="pl-3 pr-1 md:px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="size-8 rounded-full bg-slate-100 dark:bg-white/5 animate-pulse shrink-0 hidden md:block"></div>
+                                                        <div className="h-4 w-24 md:w-32 bg-slate-100 dark:bg-white/5 rounded animate-pulse"></div>
+                                                    </div>
+                                                </td>
+                                                <td className="hidden md:table-cell px-4 md:px-6 py-4"><div className="h-4 w-24 bg-slate-100 dark:bg-white/5 rounded animate-pulse"></div></td>
+                                                <td className="px-1 md:px-6 py-4">
+                                                    <div className="flex gap-2">
+                                                        <div className="h-5 w-12 rounded-full bg-slate-100 dark:bg-white/5 animate-pulse"></div>
+                                                        <div className="h-5 w-16 rounded-full bg-slate-100 dark:bg-white/5 animate-pulse hidden md:block"></div>
+                                                    </div>
+                                                </td>
+                                                <td className="hidden md:table-cell px-4 md:px-6 py-4"><div className="h-5 w-20 rounded-md bg-slate-100 dark:bg-white/5 animate-pulse"></div></td>
+                                                <td className="hidden md:table-cell px-4 md:px-6 py-4"><div className="h-5 w-24 rounded-full bg-slate-100 dark:bg-white/5 animate-pulse"></div></td>
+                                                <td className="hidden md:table-cell px-2 md:px-6 py-4 text-right">
+                                                    <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-white/5 animate-pulse ml-auto"></div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ) : viewMode === 'list' ? (
                         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shadow-sm transition-colors duration-300">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm table-fixed md:table-auto">
@@ -2155,56 +2202,105 @@ const Contacts = () => {
 
                             {/* ── Tab 2: Google Contacts ── */}
                             {!importValidationPreview && contactModalTab === 'google' && (
-                                <div className="p-4 md:p-8 flex flex-col items-center text-center gap-5">
-                                    <div className="w-20 h-20 rounded-2xl bg-white dark:bg-white/5 border border-white/10 flex items-center justify-center shadow-lg">
-                                        <svg width="42" height="42" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4" />
-                                            <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853" />
-                                            <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04" />
-                                            <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335" />
-                                        </svg>
+                                <div className="p-4 md:p-6 space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                                    {/* Step 1 */}
+                                    <div className="bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-4 md:p-5">
+                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs shadow-sm">1</span>
+                                            Apply Tags & Groups <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-text-secondary uppercase tracking-wider">Optional</span>
+                                        </h4>
+                                        <div className="flex flex-col sm:flex-row gap-4">
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Apply Group to All</label>
+                                                <MultiSelectDropdown
+                                                    placeholder="Search & Select Groups..."
+                                                    options={availableGroups.map(g => ({ label: g.name, value: g.name }))}
+                                                    value={bulkImportGroups}
+                                                    onChange={setBulkImportGroups}
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Apply Tag to All</label>
+                                                <MultiSelectDropdown
+                                                    placeholder="Search & Select Tags..."
+                                                    options={availableLabels.map(l => ({ label: l.name, value: l.id }))}
+                                                    value={bulkImportLabelIds}
+                                                    onChange={setBulkImportLabelIds}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Import from Google Contacts</h4>
-                                        <p className="text-sm text-slate-500 dark:text-text-secondary max-w-xs leading-relaxed">Connect your Google account to import contacts directly into your list. Read-only access — nothing is stored without your confirmation.</p>
+
+                                    {/* Step 2 */}
+                                    <div className="bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-4 md:p-5">
+                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs shadow-sm">2</span>
+                                            Country Code Prefix <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-text-secondary uppercase tracking-wider">Optional</span>
+                                        </h4>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Add prefix to all contacts (e.g. 91 or +1)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. 91"
+                                                value={countryCodePrefix}
+                                                onChange={(e) => setCountryCodePrefix(e.target.value.replace(/[^0-9+]/g, ''))}
+                                                className="w-full sm:w-1/2 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-slate-900 dark:text-white focus:border-primary outline-none transition-colors"
+                                            />
+                                            <p className="text-[11px] text-slate-500 dark:text-text-secondary mt-1.5">
+                                                This will automatically prepend the country code to all imported phone numbers.
+                                            </p>
+                                        </div>
                                     </div>
-                                    <button
-                                        onClick={async () => {
-                                            try {
-                                                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/google/auth-url`);
-                                                
-                                                // Open in a centered popup window
-                                                const width = 500;
-                                                const height = 650;
-                                                const left = window.screenX + (window.outerWidth - width) / 2;
-                                                const top = window.screenY + (window.outerHeight - height) / 2;
-                                                
-                                                window.open(
-                                                    res.data.url, 
-                                                    'GoogleAuth', 
-                                                    `width=${width},height=${height},left=${left},top=${top},location=no,status=no`
-                                                );
-                                            } catch {
-                                                showToast({
-                                                    type: 'warning',
-                                                    title: 'Not Configured',
-                                                    message: 'Google Contacts integration is not enabled. Ask your administrator to configure Google OAuth in Admin Settings → Integrations.'
-                                                });
-                                            }
-                                        }}
-                                        className="flex items-center gap-3 px-4 md:px-6 py-3 bg-white text-slate-800 font-bold rounded-xl hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
-                                    >
-                                        <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4" />
-                                            <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853" />
-                                            <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04" />
-                                            <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335" />
-                                        </svg>
-                                        Continue with Google
-                                    </button>
-                                    <div className="flex items-start gap-2 bg-amber-50 dark:bg-white/5 rounded-xl p-4 border border-amber-200 dark:border-white/5 text-left max-w-xs">
-                                        <AlertCircle className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
-                                        <p className="text-[10px] text-slate-600 dark:text-text-secondary leading-relaxed">This requires Google OAuth to be configured by your admin in <span className="text-slate-800 dark:text-white font-medium">Superadmin → System Controls → Integrations</span>.</p>
+
+                                    {/* Step 3: Google Import */}
+                                    <div className="bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-4 md:p-5 flex flex-col items-center text-center gap-5">
+                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center self-start gap-2 w-full mb-2">
+                                            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs shadow-sm shrink-0">3</span>
+                                            Connect & Import
+                                        </h4>
+                                        <div className="w-16 h-16 rounded-2xl bg-white dark:bg-white/5 border border-white/10 flex items-center justify-center shadow-lg mb-2">
+                                            <svg width="32" height="32" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M47.532 24.5528C47.532 22.9214 47.3997 21.2811 47.1175 19.6761H24.48V29.0033H37.4434C36.9055 31.983 35.177 34.6127 32.6461 36.3067V42.3007H40.3801C44.9217 38.1454 47.532 31.9387 47.532 24.5528Z" fill="#4285F4" />
+                                                <path d="M24.48 48C30.9529 48 36.4116 45.8748 40.3888 42.3007L32.6548 36.3067C30.5031 37.7582 27.7252 38.5741 24.4888 38.5741C18.2275 38.5741 12.9187 34.3785 11.0139 28.748H3.03296V34.9262C7.10718 43.0263 15.4056 48 24.48 48Z" fill="#34A853" />
+                                                <path d="M11.0051 28.748C10.5143 27.2965 10.2411 25.7527 10.2411 24.1586C10.2411 22.5645 10.5232 21.0207 11.0051 19.5691V13.3909H3.02413C1.38282 16.6386 0.453125 20.3022 0.453125 24.1586C0.453125 28.015 1.38282 31.6786 3.02413 34.9262L11.0051 28.748Z" fill="#FBBC04" />
+                                                <path d="M24.48 9.74337C28.0016 9.74337 31.1716 11.0033 33.6677 13.4552L40.5586 6.56432C36.4027 2.71756 30.9529 0.457275 24.48 0.457275C15.4056 0.457275 7.10718 5.43095 3.03296 13.5228L11.014 19.701C12.9187 14.0706 18.2275 9.74337 24.48 9.74337Z" fill="#EA4335" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-slate-500 dark:text-text-secondary max-w-xs leading-relaxed">Connect your Google account to import contacts directly into your list. Read-only access — nothing is stored without your confirmation.</p>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/google/auth-url`);
+                                                    
+                                                    // Open in a centered popup window
+                                                    const width = 500;
+                                                    const height = 650;
+                                                    const left = window.screenX + (window.outerWidth - width) / 2;
+                                                    const top = window.screenY + (window.outerHeight - height) / 2;
+                                                    
+                                                    window.open(
+                                                        res.data.url, 
+                                                        'GoogleAuth', 
+                                                        `width=${width},height=${height},left=${left},top=${top},location=no,status=no`
+                                                    );
+                                                } catch {
+                                                    showToast({
+                                                        type: 'warning',
+                                                        title: 'Not Configured',
+                                                        message: 'Google Contacts integration is not enabled. Ask your administrator to configure Google OAuth in Admin Settings → Integrations.'
+                                                    });
+                                                }
+                                            }}
+                                            className="flex items-center gap-3 px-4 md:px-6 py-3 bg-white text-slate-800 font-bold rounded-xl hover:bg-slate-100 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 border border-slate-200"
+                                        >
+                                            Continue with Google
+                                        </button>
+                                        <div className="flex items-start gap-2 bg-amber-50 dark:bg-white/5 rounded-xl p-4 border border-amber-200 dark:border-white/5 text-left max-w-xs mt-2">
+                                            <AlertCircle className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] text-slate-600 dark:text-text-secondary leading-relaxed">This requires Google OAuth to be configured by your admin in <span className="text-slate-800 dark:text-white font-medium">Superadmin → System Controls → Integrations</span>.</p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -2246,22 +2342,36 @@ const Contacts = () => {
                                             <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Group <span className="text-slate-400 dark:text-text-secondary text-xs">(optional)</span></label>
                                             <select
                                                 value={newContact.tags}
-                                                onChange={e => setNewContact({ ...newContact, tags: e.target.value })}
+                                                onChange={async (e) => {
+                                                    if (e.target.value === 'CREATE_NEW_GROUP') {
+                                                        setShowGroupsModal(true);
+                                                    } else {
+                                                        setNewContact({ ...newContact, tags: e.target.value });
+                                                    }
+                                                }}
                                                 className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
                                             >
                                                 <option value="">No Group</option>
                                                 {availableGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+                                                <option value="CREATE_NEW_GROUP" className="font-bold text-primary">+ Create New Group</option>
                                             </select>
                                         </div>
                                         <div>
                                             <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Tag <span className="text-slate-400 dark:text-text-secondary text-xs">(optional)</span></label>
                                             <select
                                                 value={newContact.labelId}
-                                                onChange={e => setNewContact({ ...newContact, labelId: e.target.value })}
+                                                onChange={async (e) => {
+                                                    if (e.target.value === 'CREATE_NEW_LABEL') {
+                                                        setShowLabelsModal(true);
+                                                    } else {
+                                                        setNewContact({ ...newContact, labelId: e.target.value });
+                                                    }
+                                                }}
                                                 className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
                                             >
                                                 <option value="">No Tag</option>
                                                 {availableLabels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                                <option value="CREATE_NEW_LABEL" className="font-bold text-primary">+ Create New Tag</option>
                                             </select>
                                         </div>
                                         <div className="flex justify-end gap-3 pt-2">
@@ -2457,26 +2567,40 @@ const Contacts = () => {
                                     <label className="block text-sm text-text-secondary mb-1">Group (Optional)</label>
                                     <select
                                         value={newContact.tags}
-                                        onChange={e => setNewContact({ ...newContact, tags: e.target.value })}
+                                        onChange={async (e) => {
+                                            if (e.target.value === 'CREATE_NEW_GROUP') {
+                                                setShowGroupsModal(true);
+                                            } else {
+                                                setNewContact({ ...newContact, tags: e.target.value });
+                                            }
+                                        }}
                                         className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none appearance-none cursor-pointer"
                                     >
                                         <option value="">Select Group (None)</option>
                                         {availableGroups.map(group => (
                                             <option key={group.id} value={group.name}>{group.name}</option>
                                         ))}
+                                        <option value="CREATE_NEW_GROUP" className="font-bold text-primary">+ Create New Group</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm text-text-secondary mb-1">Label (Optional)</label>
                                     <select
                                         value={newContact.labelId}
-                                        onChange={e => setNewContact({ ...newContact, labelId: e.target.value })}
+                                        onChange={async (e) => {
+                                            if (e.target.value === 'CREATE_NEW_LABEL') {
+                                                setShowLabelsModal(true);
+                                            } else {
+                                                setNewContact({ ...newContact, labelId: e.target.value });
+                                            }
+                                        }}
                                         className="w-full bg-background-dark border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none appearance-none cursor-pointer"
                                     >
                                         <option value="">Select Label (None)</option>
                                         {availableLabels.map(label => (
                                             <option key={label.id} value={label.id}>{label.name}</option>
                                         ))}
+                                        <option value="CREATE_NEW_LABEL" className="font-bold text-primary">+ Create New Label</option>
                                     </select>
                                 </div>
                                 <div className="flex justify-end gap-3 pt-4">
@@ -2500,7 +2624,7 @@ const Contacts = () => {
             {/* Manage Groups Modal */}
             {
                 showGroupsModal && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200]">
                         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]">
                             <div className="flex justify-between items-center mb-6 shrink-0">
                                 <div>

@@ -333,7 +333,6 @@ function App() {
                                                     <Route path="list" element={<VcardList />} />
                                                     <Route path="enquiries" element={<VcardEnquiries />} />
                                                     <Route path="bookings" element={<VcardBookings />} />
-                                                    <Route path="media" element={<MediaGallery accessMode="restricted" />} />
                                                     <Route path="settings" element={<VcardSettings />} />
                                                 </Route>
                                                 <Route path="/vcards/builder" element={<VcardBuilder />} />

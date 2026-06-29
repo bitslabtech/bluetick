@@ -93,7 +93,6 @@ router.get('/google/callback', async (req, res) => {
                 name: p.names?.[0]?.displayName || 'Unknown',
                 phone: (p.phoneNumbers[0].value || '').replace(/[\s\-\(\)]/g, ''),
                 email: p.emailAddresses?.[0]?.value || '',
-                tags: ['Google Contacts'],
                 userId
             }))
             .filter(c => c.phone);

@@ -123,8 +123,29 @@ const FlowList = () => {
                     </div>
 
                     {loading ? (
-                        <div className="flex items-center justify-center py-20">
-                            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {[...Array(6)].map((_, i) => (
+                                <div key={i} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                    <div className="p-4 pb-3 animate-pulse">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex-1 min-w-0 space-y-2">
+                                                <div className="w-3/4 h-5 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                                <div className="w-16 h-4 bg-slate-200 dark:bg-slate-700 rounded-full mt-1"></div>
+                                            </div>
+                                            <div className="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></div>
+                                        </div>
+                                        <div className="space-y-2 mt-4">
+                                            <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                            <div className="w-2/3 h-3 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                            <div className="w-1/2 h-3 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                        </div>
+                                    </div>
+                                    <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-2 animate-pulse">
+                                        <div className="flex-1 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                                        <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg ml-auto"></div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : filteredFlows.length === 0 ? (
                         /* Empty State */

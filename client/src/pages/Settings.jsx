@@ -900,7 +900,40 @@ const Settings = () => {
         }
     };
 
-    if (loading) return <div className="p-4 md:p-8 text-center text-slate-500">Loading settings...</div>;
+    if (loading) return (
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-y-auto animate-pulse">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0">
+                <div className="w-64 h-10 bg-slate-200 dark:bg-surface-dark rounded-lg"></div>
+                <div className="flex gap-4">
+                    <div className="w-8 h-8 bg-slate-200 dark:bg-surface-dark rounded-full"></div>
+                    <div className="w-8 h-8 bg-slate-200 dark:bg-surface-dark rounded-full"></div>
+                    <div className="w-8 h-8 bg-slate-200 dark:bg-surface-dark rounded-full"></div>
+                </div>
+            </header>
+            <main className="w-full px-4 sm:px-8 lg:px-24 pt-6 md:pt-8 space-y-6 md:space-y-8 pb-32">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="space-y-2">
+                        <div className="w-48 h-8 bg-slate-200 dark:bg-surface-dark rounded-lg"></div>
+                        <div className="w-64 h-4 bg-slate-200 dark:bg-surface-dark rounded-lg"></div>
+                    </div>
+                </div>
+                <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+                    <div className="w-full lg:w-64 shrink-0 space-y-2">
+                        {[...Array(8)].map((_, i) => <div key={i} className="w-full h-12 bg-slate-200 dark:bg-surface-dark rounded-xl"></div>)}
+                    </div>
+                    <div className="flex-1 bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 md:p-8 space-y-6">
+                        <div className="w-1/3 h-6 bg-slate-200 dark:bg-white/5 rounded-lg mb-8"></div>
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="space-y-2">
+                                <div className="w-1/4 h-4 bg-slate-200 dark:bg-white/5 rounded"></div>
+                                <div className="w-full h-10 bg-slate-200 dark:bg-white/5 rounded-lg"></div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
 
     const emailCategories = [
         {

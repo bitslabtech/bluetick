@@ -560,7 +560,7 @@ export default function WhatsAppSettings() {
             </div>
 
             {/* Sticky Bottom Actions */}
-            <div className="-mx-4 md:-mx-6 -mb-7 sm:-mb-20 px-4 pt-4 pb-4 md:px-6 sm:py-6 shrink-0 bg-white dark:bg-surface-dark border-t border-slate-200 dark:border-white/5 transition-colors duration-300 z-10 relative shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div className="px-4 py-3 md:px-6 shrink-0 bg-white/95 dark:bg-surface-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-white/5 transition-colors duration-300 z-10 relative shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <div className="max-w-6xl mx-auto flex items-center justify-end gap-3">
                     <button
                         onClick={handleSyncProfile}

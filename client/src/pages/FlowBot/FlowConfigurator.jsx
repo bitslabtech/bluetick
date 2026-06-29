@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, FolderOpen } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import MediaPickerModal, { MIME_PRESETS } from '../../components/MediaPickerModal';
 
 const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
 const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
+    const token = localStorage.getItem('token');
     // Local state to prevent constant re-renders on every keystroke in input fields
     const [localData, setLocalData] = useState(node.data || {});
     const [tags, setTags] = useState([]);
@@ -19,6 +21,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     const [isLoadingFlows, setIsLoadingFlows] = useState(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
     const [teamMembers, setTeamMembers] = useState([]);
     const [isLoadingTeam, setIsLoadingTeam] = useState(false);
 
@@ -120,35 +123,14 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
         }
     };
 
-    const handleFileUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const res = await axios.post(`${API_BASE}/api/flows/upload`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            if (res.data?.url) {
-                handleChanges({
-                    mediaUrl: res.data.url,
-                    originalName: res.data.originalName,
-                    sourceType: 'upload',
-                    mediaType: localData.mediaType || 'image'
-                });
-            }
-        } catch (error) {
-            console.error('Upload failed:', error);
-            alert('Failed to upload media. Please try again.');
-        } finally {
-            setIsUploading(false);
-        }
+    const handleMediaManagerSelect = (url) => {
+        handleChanges({
+            mediaUrl: url,
+            originalName: url.split('/').pop(),
+            sourceType: 'upload',
+            mediaType: localData.mediaType || 'image'
+        });
+        setMediaPickerOpen(false);
     };
 
     // Upload media for template card headers (matches campaign flow)
@@ -783,7 +765,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                                     onClick={() => handleChange('sourceType', 'upload')}
                                     className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${(!localData.sourceType || localData.sourceType === 'upload') ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                 >
-                                    Upload File
+                                    Media Manager
                                 </button>
                                 <button
                                     onClick={() => handleChange('sourceType', 'url')}
@@ -795,35 +777,37 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
 
                             {(!localData.sourceType || localData.sourceType === 'upload') ? (
                                 <div className="space-y-2">
-                                    <div className={`border-2 border-dashed ${isUploading ? 'border-indigo-300 bg-indigo-50/50' : 'border-slate-200 dark:border-slate-700'} rounded-xl p-4 text-center transition-all`}>
-                                        {isUploading ? (
-                                            <div className="space-y-2 py-2">
-                                                <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mx-auto"></div>
-                                                <p className="text-xs text-slate-500">Uploading media...</p>
+                                    {localData.mediaUrl && localData.sourceType !== 'url' ? (
+                                        <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2">
+                                            <div className="bg-slate-100 dark:bg-slate-900 rounded-lg p-2 truncate text-[10px] text-slate-500">
+                                                {localData.originalName || localData.mediaUrl.split('/').pop() || 'File selected'}
                                             </div>
-                                        ) : localData.mediaUrl && localData.sourceType !== 'url' ? (
-                                            <div className="space-y-2">
-                                                <div className="bg-slate-100 dark:bg-slate-900 rounded-lg p-2 truncate text-[10px] text-slate-500 mb-2">
-                                                    {localData.originalName || 'File uploaded'}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <label className="cursor-pointer text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:underline">
-                                                        Change File
-                                                        <input type="file" className="hidden" onChange={handleFileUpload} />
-                                                    </label>
-                                                    <span className="text-slate-300 dark:text-slate-700">|</span>
-                                                    <a href={localData.mediaUrl} target="_blank" rel="noopener noreferrer" className="text-slate-500 text-xs hover:underline">View File</a>
-                                                </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setMediaPickerOpen(true)}
+                                                    className="text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:underline"
+                                                >
+                                                    Change File
+                                                </button>
+                                                <span className="text-slate-300 dark:text-slate-700">|</span>
+                                                <a href={localData.mediaUrl} target="_blank" rel="noopener noreferrer" className="text-slate-500 text-xs hover:underline">View File</a>
                                             </div>
-                                        ) : (
-                                            <label className="flex flex-col items-center cursor-pointer group">
-                                                <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">📤</span>
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Click to upload</span>
-                                                <span className="text-[10px] text-slate-400">Max 10MB</span>
-                                                <input type="file" className="hidden" onChange={handleFileUpload} />
-                                            </label>
-                                        )}
-                                    </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => setMediaPickerOpen(true)}
+                                            className="w-full border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center gap-2 transition-all group"
+                                        >
+                                            <FolderOpen className="w-8 h-8 text-slate-300 dark:text-slate-600 group-hover:text-indigo-400 transition-colors" />
+                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Pick from Media Manager</span>
+                                            <span className="text-[10px] text-slate-400">
+                                                {localData.mediaType === 'image' ? 'Images (JPG, PNG, WebP)' :
+                                                 localData.mediaType === 'video' ? 'Videos (MP4, WebM, 3GP)' :
+                                                 localData.mediaType === 'audio' ? 'Audio files' :
+                                                 'Documents (PDF, DOCX, CSV, TXT)'}
+                                            </span>
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
                                 <div>
@@ -1545,6 +1529,26 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                 </div>
             )}
         </aside>
+        <MediaPickerModal
+            isOpen={mediaPickerOpen}
+            onClose={() => setMediaPickerOpen(false)}
+            onSelect={handleMediaManagerSelect}
+            allowedTypes={
+                localData.mediaType === 'image' ? 'image' :
+                localData.mediaType === 'video' ? 'video' :
+                localData.mediaType === 'document' ? 'document' :
+                'all'
+            }
+            mimeConstraints={
+                localData.mediaType === 'image' ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] :
+                localData.mediaType === 'video' ? ['video/mp4', 'video/webm', 'video/3gpp'] :
+                localData.mediaType === 'document' ? ['application/pdf', 'text/csv', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'] :
+                localData.mediaType === 'audio' ? ['audio/mpeg', 'audio/ogg', 'audio/wav'] :
+                null
+            }
+            title={`Pick ${localData.mediaType || 'Media'} from Library`}
+            multiple={false}
+        />
         </>
     );
 };

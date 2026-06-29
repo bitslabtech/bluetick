@@ -73,6 +73,7 @@ const Support = () => {
     const [categories, setCategories] = useState([]);
     const [selectedArticle, setSelectedArticle] = useState(null);
     const [activeConfettiId, setActiveConfettiId] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     const fetchKB = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/kb`); setKbArticles(res.data); } catch (e) { console.error(e); } };
     const fetchCategories = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/kb/categories`); setCategories(res.data); } catch (e) { console.error(e); } };
@@ -82,16 +83,55 @@ const Support = () => {
     const [visibleRoadmapCount, setVisibleRoadmapCount] = useState(8);
 
     useEffect(() => {
-        fetchKB();
-        fetchCategories();
-        fetchRoadmap();
-        fetchTickets();
+        Promise.all([
+            fetchKB(),
+            fetchCategories(),
+            fetchRoadmap(),
+            fetchTickets()
+        ]).finally(() => {
+            setLoading(false);
+        });
     }, []);
 
     const filteredArticles = kbArticles.filter(a =>
         a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.content.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (loading) return (
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-hidden animate-pulse">
+            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0">
+                <div className="w-64 h-10 bg-slate-200 dark:bg-surface-dark rounded-lg"></div>
+                <div className="flex gap-4">
+                    <div className="w-8 h-8 bg-slate-200 dark:bg-surface-dark rounded-full"></div>
+                    <div className="w-8 h-8 bg-slate-200 dark:bg-surface-dark rounded-full"></div>
+                    <div className="w-8 h-8 bg-slate-200 dark:bg-surface-dark rounded-full"></div>
+                </div>
+            </header>
+            <div className="flex-1 p-4 sm:p-6 lg:p-8">
+                <div className="max-w-6xl mx-auto space-y-8">
+                    <div className="space-y-2">
+                        <div className="w-48 h-8 bg-slate-200 dark:bg-surface-dark rounded-lg"></div>
+                        <div className="w-64 h-4 bg-slate-200 dark:bg-surface-dark rounded-lg"></div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 md:gap-6">
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="p-2 md:p-6 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/5 bg-white dark:bg-surface-dark h-32"></div>
+                        ))}
+                    </div>
+                    <div className="space-y-4">
+                        <div className="w-full h-14 bg-slate-200 dark:bg-surface-dark rounded-xl"></div>
+                        <div className="flex gap-2">
+                            {[...Array(4)].map((_, i) => <div key={i} className="w-24 h-8 bg-slate-200 dark:bg-surface-dark rounded-full"></div>)}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                            {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-slate-200 dark:bg-surface-dark rounded-xl"></div>)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 
     return (

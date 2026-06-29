@@ -123,7 +123,7 @@ export default function CampaignList() {
                         <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
                         <input
                             type="text"
-                            placeholder="Search campaigns..."
+                            placeholder="Search broadcasts..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary text-sm focus:outline-none ml-2"
@@ -145,7 +145,7 @@ export default function CampaignList() {
                         <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
                         <input
                             type="text"
-                            placeholder="Search campaigns..."
+                            placeholder="Search broadcasts..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary text-sm focus:outline-none ml-2"
@@ -157,7 +157,7 @@ export default function CampaignList() {
             {/* Filters & Actions */}
             <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-surface-dark flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 bg-white/95 dark:bg-background-dark/95 backdrop-blur-sm z-10 transition-colors duration-300">
                 <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto w-full sm:w-auto custom-scrollbar pb-2 sm:pb-0">
-                    <h2 className="hidden sm:block text-xl font-bold text-slate-900 dark:text-white shrink-0">Campaigns</h2>
+                    <h2 className="hidden sm:block text-xl font-bold text-slate-900 dark:text-white shrink-0">Broadcast History</h2>
                     <div className="flex bg-slate-100 dark:bg-surface-dark rounded-lg p-1 border border-slate-200 dark:border-white/5 transition-colors duration-300 shrink-0">
                         {['all', 'active', 'scheduled', 'completed', 'failed'].map((status) => (
                             <button
@@ -179,7 +179,7 @@ export default function CampaignList() {
                         className="w-full justify-center sm:w-auto px-4 py-2.5 sm:py-2 text-sm font-bold text-white bg-primary rounded-lg shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-colors flex items-center gap-2 shrink-0"
                     >
                         <Plus className="w-4 h-4" />
-                        New Campaign
+                        New Broadcast
                     </Link>
                 </div>
             </div>
@@ -187,8 +187,29 @@ export default function CampaignList() {
             {/* Main Content List */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-4 md:p-6 scroll-smooth">
                 {loading ? (
-                    <div className="flex items-center justify-center h-full">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    <div className="grid grid-cols-1 gap-4">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="block bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/5 p-5">
+                                <div className="flex flex-col md:flex-row items-center gap-6 animate-pulse">
+                                    <div className="w-24 h-6 bg-slate-200 dark:bg-white/10 rounded-full shrink-0"></div>
+                                    <div className="flex-1 w-full flex flex-col items-center md:items-start gap-2">
+                                        <div className="w-48 h-5 bg-slate-200 dark:bg-white/10 rounded"></div>
+                                        <div className="w-32 h-3 bg-slate-200 dark:bg-white/10 rounded mt-1"></div>
+                                    </div>
+                                    <div className="flex items-center justify-between sm:justify-around md:justify-center gap-2 sm:gap-6 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-200 dark:border-white/5 pt-4 md:pt-0 md:pl-6">
+                                        {[...Array(4)].map((_, j) => (
+                                            <div key={j} className="flex flex-col items-center gap-1.5 min-w-[60px]">
+                                                <div className="w-6 h-6 bg-slate-200 dark:bg-white/10 rounded"></div>
+                                                <div className="w-12 h-2 bg-slate-200 dark:bg-white/10 rounded mt-1"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="hidden md:flex items-center justify-end w-20">
+                                        <div className="w-8 h-8 bg-slate-200 dark:bg-white/10 rounded-lg"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : filteredCampaigns.length > 0 ? (
                     <div className="grid grid-cols-1 gap-4">
@@ -279,14 +300,14 @@ export default function CampaignList() {
                         <div className="bg-primary/10 p-4 rounded-full mb-4">
                             <MessageSquare className="w-8 h-8 text-primary" />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No campaigns found</h3>
-                        <p className="text-slate-500 dark:text-text-secondary text-sm max-w-xs mb-6">You haven't created any campaigns yet. Start your first one today!</p>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No broadcasts found</h3>
+                        <p className="text-slate-500 dark:text-text-secondary text-sm max-w-xs mb-6">You haven't created any broadcasts yet. Start your first one today!</p>
                         <Link
                             to="/campaigns"
                             className="px-4 md:px-6 py-2.5 text-sm font-bold text-white bg-primary rounded-lg hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
                         >
                             <Plus className="w-4 h-4" />
-                            Create Campaign
+                            Create Broadcast
                         </Link>
                     </div>
                 )}

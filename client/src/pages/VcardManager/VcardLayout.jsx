@@ -56,7 +56,6 @@ export default function VcardLayout() {
         { path: '/vcards/list', icon: <Contact className="w-5 h-5" />, label: 'veCards', exact: false },
         { path: '/vcards/enquiries', icon: <ClipboardList className="w-5 h-5" />, label: 'Enquiries', exact: false },
         { path: '/vcards/bookings', icon: <CalendarCheck className="w-5 h-5" />, label: 'Bookings', exact: false },
-        { path: '/vcards/media', icon: <Image className="w-5 h-5" />, label: 'Media Manager', exact: false },
         { path: '/vcards/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings', exact: false },
     ];
 
