@@ -859,7 +859,15 @@ class FlowRunner {
                 action: { buttons }
             }
         };
-        await this.dispatchToMeta(payload, `[Buttons] ${bodyText}`, 'interactive');
+
+        const templateData = {
+            components: [
+                { type: 'BODY', text: bodyText },
+                { type: 'BUTTONS', buttons: buttonLabels.map(btn => ({ type: 'QUICK_REPLY', text: btn.substring(0, 20) })) }
+            ]
+        };
+
+        await this.dispatchToMeta(payload, bodyText, 'template', { templateData });
     }
 
     async sendWhatsAppList(bodyText, title, rows) {
@@ -885,7 +893,15 @@ class FlowRunner {
                 }
             }
         };
-        await this.dispatchToMeta(payload, `[List] ${bodyText}`, 'interactive');
+
+        const templateData = {
+            components: [
+                { type: 'BODY', text: bodyText },
+                { type: 'BUTTONS', buttons: [{ type: 'QUICK_REPLY', text: `☰ ${title.substring(0, 20)}` }] }
+            ]
+        };
+
+        await this.dispatchToMeta(payload, bodyText, 'template', { templateData });
     }
 
     async interpolate(text, contactId) {
@@ -940,7 +956,7 @@ class FlowRunner {
             to: this.conversation.phoneNumber,
             ...mediaPayload
         };
-        await this.dispatchToMeta(payload, `[${mediaType}] ${caption || mediaUrl}`, mediaType);
+        await this.dispatchToMeta(payload, caption || 'Media', mediaType, { mediaUrl });
     }
 
     async sendWhatsAppLocationRequest(bodyText) {
@@ -955,10 +971,18 @@ class FlowRunner {
                 action: { name: "send_location" }
             }
         };
-        await this.dispatchToMeta(payload, `[Location Request] ${bodyText}`, 'interactive');
+
+        const templateData = {
+            components: [
+                { type: 'BODY', text: bodyText },
+                { type: 'BUTTONS', buttons: [{ type: 'QUICK_REPLY', text: '📍 Send Location' }] }
+            ]
+        };
+
+        await this.dispatchToMeta(payload, bodyText, 'template', { templateData });
     }
 
-    async dispatchToMeta(payload, logBody, logType) {
+    async dispatchToMeta(payload, logBody, logType, extraData = {}) {
         try {
             const res = await fetch(`https://graph.facebook.com/v21.0/${this.settings.metaPhoneNumberId}/messages`, {
                 method: 'POST',
@@ -978,6 +1002,8 @@ class FlowRunner {
                     type: logType,
                     body: logBody,
                     status: 'sent',
+                    mediaUrl: extraData.mediaUrl || null,
+                    templateData: extraData.templateData || null,
                     timestamp: new Date()
                 });
                 this.conversation.lastMessage = logBody;

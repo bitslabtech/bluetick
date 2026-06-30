@@ -989,9 +989,9 @@ router.get('/insights', async (req, res) => {
                         frequency:   fbData.frequency ? parseFloat(fbData.frequency).toFixed(2) : '0.00',
                         updatedAt:   new Date().toISOString()
                     };
-
-                    campaign.insights = insights;
-                    await campaign.save();
+                    
+                    // Update cache safely
+                    campaign.update({ insights }).catch(e => console.error('[Meta Ads] Failed to cache insights:', e.message));
                 } catch (fbErr) {
                     const errorObj = fbErr.response?.data?.error || {};
                     const msg = errorObj.message || fbErr.message;
@@ -1000,7 +1000,7 @@ router.get('/insights', async (req, res) => {
                     // Safe Fallback: if Meta says it doesn't exist, mark as Error locally
                     if (errorObj.code === 100 || msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('invalid parameter')) {
                         campaign.status = 'Error';
-                        await campaign.save();
+                        await campaign.save().catch(e => null);
                     }
                 }
             }

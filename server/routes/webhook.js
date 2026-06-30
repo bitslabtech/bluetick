@@ -20,6 +20,7 @@ const ContactFlowState = require('../models/ContactFlowState'); // NEW
 const FlowRunner = require('../services/FlowRunner'); // NEW
 const { getMonthlyMessageCount, getUserPlanLimits } = require('../utils/planLimits');
 const { applyAutoTags } = require('../services/AutoTagger'); // Auto-Tagging Engine
+const { processAndStoreBuffer } = require('../utils/storageProvider');
 const path = require('path');
 const fs = require('fs');
 
@@ -289,19 +290,82 @@ router.post('/:userId', (req, res, next) => {
 
                         let messageType = message.type;
                         let messageBody = '';
+                        let downloadedMediaUrl = null;
+
+                        // --- DOWNLOAD INCOMING MEDIA ---
+                        if (['image', 'document', 'audio', 'video', 'sticker'].includes(messageType)) {
+                            try {
+                                const mediaObj = message[messageType];
+                                if (mediaObj && mediaObj.id && foundSettings && foundSettings.metaAccessToken) {
+                                    console.log(`[WEBHOOK] Downloading ${messageType} media ID: ${mediaObj.id}`);
+                                    
+                                    // 1. Get Media URL from Meta
+                                    const mediaUrlRes = await axios.get(`https://graph.facebook.com/v22.0/${mediaObj.id}`, {
+                                        headers: { 'Authorization': `Bearer ${foundSettings.metaAccessToken}` }
+                                    });
+                                    
+                                    if (mediaUrlRes.data && mediaUrlRes.data.url) {
+                                        const metaMediaUrl = mediaUrlRes.data.url;
+                                        
+                                        // 2. Download Binary Data
+                                        const fileRes = await axios.get(metaMediaUrl, {
+                                            headers: { 'Authorization': `Bearer ${foundSettings.metaAccessToken}` },
+                                            responseType: 'arraybuffer'
+                                        });
+                                        
+                                        // 3. Process, compress, and save (R2/S3/Local) + add to Media Manager
+                                        let mimeToUse = mediaObj.mime_type || 'application/octet-stream';
+                                        let ext = 'bin';
+                                        if (mimeToUse.includes('pdf')) ext = 'pdf';
+                                        else if (mimeToUse.includes('png')) ext = 'png';
+                                        else if (mimeToUse.includes('jpeg') || mimeToUse.includes('jpg')) ext = 'jpg';
+                                        else if (mimeToUse.includes('mp4')) ext = 'mp4';
+                                        else if (mimeToUse.includes('ogg')) ext = 'ogg';
+                                        else if (mimeToUse.includes('webp')) ext = 'webp';
+                                        else if (mimeToUse.includes('msword')) ext = 'doc';
+                                        else if (mimeToUse.includes('openxmlformats')) ext = 'docx';
+
+                                        const fileName = `whatsapp_inbox_${messageId.replace(/[^a-zA-Z0-9]/g, '')}.${ext}`;
+                                        
+                                        downloadedMediaUrl = await processAndStoreBuffer(
+                                            Buffer.from(fileRes.data, 'binary'),
+                                            fileName,
+                                            mimeToUse,
+                                            'whatsapp_inbox',
+                                            userId,
+                                            { 
+                                                convertToWebp: false, // Do not convert incoming images to WebP
+                                                registerMedia: true, // Show in Media Manager!
+                                                mediaSource: 'whatsapp_inbox'
+                                            }
+                                        );
+                                        
+                                        console.log(`[WEBHOOK] Successfully processed and stored ${messageType} to ${downloadedMediaUrl}`);
+                                    }
+                                }
+                            } catch (err) {
+                                console.error(`[WEBHOOK ERROR] Failed to download media:`, err.response?.data || err.message);
+                            }
+                        }
 
                         switch (messageType) {
                             case 'text':
                                 messageBody = message.text.body;
                                 break;
                             case 'image':
-                                messageBody = '📸 Image Attachment';
+                                messageBody = downloadedMediaUrl ? '📸 Image Received' : '📸 Image Attachment';
                                 break;
                             case 'document':
-                                messageBody = '📄 Document Attachment';
+                                messageBody = downloadedMediaUrl ? (message.document?.filename || '📄 Document Received') : '📄 Document Attachment';
                                 break;
                             case 'audio':
-                                messageBody = '🎤 Audio Message';
+                                messageBody = downloadedMediaUrl ? '🎤 Audio Received' : '🎤 Audio Message';
+                                break;
+                            case 'video':
+                                messageBody = downloadedMediaUrl ? '🎥 Video Received' : '🎥 Video Message';
+                                break;
+                            case 'sticker':
+                                messageBody = downloadedMediaUrl ? '🖼️ Sticker Received' : '🖼️ Sticker Attachment';
                                 break;
                             case 'button':
                                 messageBody = message.button.text;
@@ -384,6 +448,7 @@ router.post('/:userId', (req, res, next) => {
                                 type: messageType,
                                 body: messageBody,
                                 status: 'delivered',
+                                mediaUrl: downloadedMediaUrl,
                                 timestamp: new Date(timestamp),
                                 referral: referralData // CTWA: store ad referral data on the message
                             }

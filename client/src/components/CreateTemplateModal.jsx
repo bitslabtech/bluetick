@@ -5,6 +5,7 @@ import {
     Smartphone, CheckCircle2, AlertCircle, Plus, Trash2, Phone, Zap, Sparkles
 } from 'lucide-react';
 import axios from 'axios';
+import MediaPickerModal from './MediaPickerModal';
 
 // The predefined archetypes to pick from
 const TEMPLATE_ARCHETYPES = [
@@ -113,6 +114,44 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
 
     // Card preview URLs — one per card
     const [cardPreviewUrls, setCardPreviewUrls] = useState([]);
+    const [mediaPickerConfig, setMediaPickerConfig] = useState({ isOpen: false, target: null, mimeConstraints: null });
+
+    const handleMediaPickerSelect = async (url) => {
+        setMediaPickerConfig({ ...mediaPickerConfig, isOpen: false });
+        showToast({ type: 'info', title: 'Importing Media', message: 'Fetching from Media Manager and uploading to Meta...' });
+        
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload-url`, { url });
+            const handle = res.data.handle;
+            
+            if (mediaPickerConfig.target === 'header') {
+                setFormData(prev => ({ ...prev, headerHandle: handle, headerFile: { name: 'Linked from Media Manager' } }));
+                setHeaderPreviewUrl(url); // Override preview
+            } else if (mediaPickerConfig.target.startsWith('card-')) {
+                const cardIndex = parseInt(mediaPickerConfig.target.split('-')[1]);
+                
+                // Auto-detect type
+                const ext = url.split('.').pop().toLowerCase();
+                const headerType = ['mp4'].includes(ext) ? 'VIDEO' : 'IMAGE';
+
+                const newCards = [...formData.cards];
+                newCards[cardIndex].headerHandle = handle;
+                newCards[cardIndex].mediaFile = { name: 'Linked from Media Manager' };
+                newCards[cardIndex].headerType = headerType;
+                
+                setFormData(prev => ({ ...prev, cards: newCards }));
+                
+                const newPreviewUrls = [...cardPreviewUrls];
+                newPreviewUrls[cardIndex] = url;
+                setCardPreviewUrls(newPreviewUrls);
+            }
+            showToast({ type: 'success', title: 'Media Imported', message: 'Media successfully linked for template approval.' });
+        } catch (err) {
+            console.error("MediaPicker Upload URL Error:", err);
+            showToast({ type: 'error', title: 'Import Failed', message: err.response?.data?.error || err.message });
+        }
+    };
+
     useEffect(() => {
         const urls = formData.cards.map(card => card.mediaFile ? URL.createObjectURL(card.mediaFile) : null);
         setCardPreviewUrls(urls);
@@ -489,8 +528,8 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         setIsSubmitting(true);
         try {
             // 1. Process Media Uploads to Meta's Resumable API
-            let uploadedHeaderHandle = null;
-            if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(formData.headerType) && formData.headerFile) {
+            let uploadedHeaderHandle = formData.headerHandle || null; // Use pre-fetched handle from Media Manager if exists
+            if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(formData.headerType) && formData.headerFile && !uploadedHeaderHandle) {
                 showToast({ type: 'info', title: 'Processing', message: 'Uploading master header media...' });
                 uploadedHeaderHandle = await uploadMedia(formData.headerFile);
             }
@@ -499,8 +538,8 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
             if (selectedArchetype?.id === 'carousel' && formData.cards.length > 0) {
                 for (let i = 0; i < formData.cards.length; i++) {
                     const card = formData.cards[i];
-                    let cardHeaderHandle = null;
-                    if (['IMAGE', 'VIDEO'].includes(card.headerType) && card.mediaFile) {
+                    let cardHeaderHandle = card.headerHandle || null;
+                    if (['IMAGE', 'VIDEO'].includes(card.headerType) && card.mediaFile && !cardHeaderHandle) {
                         showToast({ type: 'info', title: 'Processing', message: `Uploading media for Card ${i + 1}...` });
                         cardHeaderHandle = await uploadMedia(card.mediaFile);
                     }
@@ -973,12 +1012,26 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                         setFormData({ ...formData, headerFile: file });
                                                     }}
                                                 />
-                                                <label
-                                                    htmlFor="header-media-upload"
-                                                    className="mt-4 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white px-4 py-2 rounded-lg text-sm font-semibold hover:border-primary transition-colors cursor-pointer inline-block"
-                                                >
-                                                    {formData.headerFile ? 'Change File' : 'Select File'}
-                                                </label>
+                                                <div className="flex items-center gap-3 mt-4">
+                                                    <label
+                                                        htmlFor="header-media-upload"
+                                                        className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white px-4 py-2 rounded-lg text-sm font-semibold hover:border-primary transition-colors cursor-pointer inline-block"
+                                                    >
+                                                        {formData.headerFile ? 'Change File' : 'Upload File'}
+                                                    </label>
+                                                    <span className="text-slate-400 text-xs font-bold">OR</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setMediaPickerConfig({
+                                                            isOpen: true,
+                                                            target: 'header',
+                                                            mimeConstraints: formData.headerType === 'IMAGE' ? ['image/jpeg', 'image/png'] : formData.headerType === 'VIDEO' ? ['video/mp4'] : ['application/pdf']
+                                                        })}
+                                                        className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                                                    >
+                                                        Browse Media Manager
+                                                    </button>
+                                                </div>
                                                 {validationErrors.headerMedia && (
                                                     <div className="w-full mt-3 flex items-start gap-2 text-red-500 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg px-3 py-2">
                                                         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -1340,45 +1393,59 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                 {/* Card Header (Image/Video) */}
                                                 <div className="mb-4">
                                                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Card Media</label>
-                                                    <label htmlFor={`card-media-upload-${activeCardIndex}`} className="p-4 md:p-6 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl flex flex-col items-center justify-center bg-white dark:bg-white/5 text-center transition-colors hover:border-primary cursor-pointer cursor-pointer">
-                                                        <div className="bg-primary/10 text-primary p-2 rounded-full mb-3">
-                                                            <ImageIcon className="w-5 h-5" />
+                                                        <div className="flex flex-col gap-3 w-full">
+                                                            <label htmlFor={`card-media-upload-${activeCardIndex}`} className="w-full p-4 md:p-6 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl flex flex-col items-center justify-center bg-white dark:bg-white/5 text-center transition-colors hover:border-primary cursor-pointer">
+                                                                <div className="bg-primary/10 text-primary p-2 rounded-full mb-3">
+                                                                    <ImageIcon className="w-5 h-5" />
+                                                                </div>
+                                                                <h4 className="text-slate-900 dark:text-white text-sm font-semibold">
+                                                                    {formData.cards[activeCardIndex].mediaFile ? formData.cards[activeCardIndex].mediaFile.name : 'Upload Local Image/Video'}
+                                                                </h4>
+                                                                <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">Supported: JPG, PNG, MP4</p>
+                                                                <input
+                                                                    type="file"
+                                                                    id={`card-media-upload-${activeCardIndex}`}
+                                                                    className="hidden"
+                                                                    accept="image/jpeg, image/png, image/jpg, video/mp4"
+                                                                    onChange={(e) => {
+                                                                        const file = e.target.files[0];
+                                                                        if (!file) return;
+
+                                                                        if (!['image/jpeg', 'image/png', 'image/jpg', 'video/mp4'].includes(file.type)) {
+                                                                            showToast({ type: 'error', title: 'Invalid File Type', message: 'Meta only allows JPG, PNG, or MP4 files for carousel cards.' });
+                                                                            e.target.value = '';
+                                                                            return;
+                                                                        }
+
+                                                                        const isVid = file.type === 'video/mp4';
+                                                                        const maxSize = isVid ? 16 : 5;
+                                                                        
+                                                                        if (file.size > maxSize * 1024 * 1024) {
+                                                                            showToast({ type: 'error', title: 'File Too Large', message: `Maximum allowed size is ${maxSize}MB.` });
+                                                                            e.target.value = '';
+                                                                            return;
+                                                                        }
+
+                                                                        const newCards = [...formData.cards];
+                                                                        newCards[activeCardIndex].mediaFile = file;
+                                                                        newCards[activeCardIndex].headerHandle = null; // reset if they uploaded a new local file
+                                                                        newCards[activeCardIndex].headerType = isVid ? 'VIDEO' : 'IMAGE'; 
+                                                                        setFormData({ ...formData, cards: newCards });
+                                                                    }}
+                                                                />
+                                                            </label>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setMediaPickerConfig({
+                                                                    isOpen: true,
+                                                                    target: `card-${activeCardIndex}`,
+                                                                    mimeConstraints: ['image/jpeg', 'image/png', 'video/mp4']
+                                                                })}
+                                                                className="w-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                                                            >
+                                                                <ImageIcon className="w-4 h-4" /> Browse Media Manager
+                                                            </button>
                                                         </div>
-                                                        <h4 className="text-slate-900 dark:text-white text-sm font-semibold">
-                                                            {formData.cards[activeCardIndex].mediaFile ? formData.cards[activeCardIndex].mediaFile.name : 'Upload Card Image/Video'}
-                                                        </h4>
-                                                        <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">Supported: JPG, PNG, MP4</p>
-                                                        <input
-                                                            type="file"
-                                                            id={`card-media-upload-${activeCardIndex}`}
-                                                            className="hidden"
-                                                            accept="image/jpeg, image/png, image/jpg, video/mp4"
-                                                            onChange={(e) => {
-                                                                const file = e.target.files[0];
-                                                                if (!file) return;
-
-                                                                if (!['image/jpeg', 'image/png', 'image/jpg', 'video/mp4'].includes(file.type)) {
-                                                                    showToast({ type: 'error', title: 'Invalid File Type', message: 'Meta only allows JPG, PNG, or MP4 files for carousel cards.' });
-                                                                    e.target.value = '';
-                                                                    return;
-                                                                }
-
-                                                                const isVid = file.type === 'video/mp4';
-                                                                const maxSize = isVid ? 16 : 5;
-                                                                
-                                                                if (file.size > maxSize * 1024 * 1024) {
-                                                                    showToast({ type: 'error', title: 'File Too Large', message: `Maximum allowed size is ${maxSize}MB.` });
-                                                                    e.target.value = '';
-                                                                    return;
-                                                                }
-
-                                                                const newCards = [...formData.cards];
-                                                                newCards[activeCardIndex].mediaFile = file;
-                                                                newCards[activeCardIndex].headerType = isVid ? 'VIDEO' : 'IMAGE'; // Automatically sync the internal type
-                                                                setFormData({ ...formData, cards: newCards });
-                                                            }}
-                                                        />
-                                                    </label>
                                                 </div>
 
                                                 {/* Card Body */}
@@ -1435,7 +1502,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                                 <optgroup label="Quick Replies">
                                                                     <option
                                                                         value="QUICK_REPLY"
-                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 2 || formData.cards[activeCardIndex].buttons.some(b => b.type !== 'QUICK_REPLY')}
+                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 2}
                                                                     >
                                                                         Custom Quick Reply
                                                                     </option>
@@ -1444,13 +1511,13 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                                 <optgroup label="Call to Action">
                                                                     <option
                                                                         value="URL"
-                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 2 || formData.cards[activeCardIndex].buttons.some(b => b.type === 'QUICK_REPLY') || formData.cards[activeCardIndex].buttons.filter(b => b.type === 'URL').length >= 2}
+                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 2 || formData.cards[activeCardIndex].buttons.filter(b => b.type === 'URL').length >= 2}
                                                                     >
                                                                         Visit Website
                                                                     </option>
                                                                     <option
                                                                         value="PHONE_NUMBER"
-                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 2 || formData.cards[activeCardIndex].buttons.some(b => b.type === 'QUICK_REPLY') || formData.cards[activeCardIndex].buttons.some(b => b.type === 'PHONE_NUMBER')}
+                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 2 || formData.cards[activeCardIndex].buttons.some(b => b.type === 'PHONE_NUMBER')}
                                                                     >
                                                                         Call Phone Number
                                                                     </option>
@@ -1769,6 +1836,14 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                     )}
                 </div>
             </div>
+            
+            {/* Media Manager Picker */}
+            <MediaPickerModal
+                isOpen={mediaPickerConfig.isOpen}
+                onClose={() => setMediaPickerConfig({ ...mediaPickerConfig, isOpen: false })}
+                onSelect={handleMediaPickerSelect}
+                mimeConstraints={mediaPickerConfig.mimeConstraints}
+            />
         </div>
     );
 };

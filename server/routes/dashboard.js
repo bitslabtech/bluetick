@@ -160,15 +160,22 @@ router.get('/stats', async (req, res) => {
                 include: [messageInclude]
             });
             deliveredCount = await MessageLog.count({
-                where: { ...logWhere, status: { [Op.in]: ['DELIVERED', 'READ'] } },
+                where: { ...logWhere, [Op.or]: [
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('MessageLog.status')), 'delivered'),
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('MessageLog.status')), 'read')
+                ]},
                 include: [messageInclude]
             });
             readCount = await MessageLog.count({
-                where: { ...logWhere, status: 'READ' },
+                where: { ...logWhere, [Op.and]: [
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('MessageLog.status')), 'read')
+                ]},
                 include: [messageInclude]
             });
             failedCount = await MessageLog.count({
-                where: { ...logWhere, status: 'FAILED' },
+                where: { ...logWhere, [Op.and]: [
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('MessageLog.status')), 'failed')
+                ]},
                 include: [messageInclude]
             });
             totalAttempted = await MessageLog.count({
@@ -201,15 +208,22 @@ router.get('/stats', async (req, res) => {
                 include: chatInclude
             });
             deliveredCount = await ChatMessage.count({
-                where: { ...chatLogWhere, status: { [Op.in]: ['delivered', 'read'] } },
+                where: { ...chatLogWhere, [Op.or]: [
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('ChatMessage.status')), 'delivered'),
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('ChatMessage.status')), 'read')
+                ]},
                 include: chatInclude
             });
             readCount = await ChatMessage.count({
-                where: { ...chatLogWhere, status: 'read' },
+                where: { ...chatLogWhere, [Op.and]: [
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('ChatMessage.status')), 'read')
+                ]},
                 include: chatInclude
             });
             failedCount = await ChatMessage.count({
-                where: { ...chatLogWhere, status: 'failed' },
+                where: { ...chatLogWhere, [Op.and]: [
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('ChatMessage.status')), 'failed')
+                ]},
                 include: chatInclude
             });
             totalAttempted = await ChatMessage.count({
@@ -586,6 +600,9 @@ router.get('/ai-token-history', async (req, res) => {
             order: [['createdAt', 'ASC']]
         });
 
+        // Collect all unique features from the logs so we don't miss any (like meta ads or wastore)
+        const uniqueFeatures = [...new Set(logs.map(l => l.feature))];
+
         // ── Build daily buckets ──
         const dailyMap = {};
         for (let i = 0; i < days; i++) {
@@ -593,22 +610,22 @@ router.get('/ai-token-history', async (req, res) => {
             d.setDate(d.getDate() - (days - 1 - i));
             d.setHours(0, 0, 0, 0);
             const key = d.toISOString().split('T')[0];
-            dailyMap[key] = {
+            
+            const bucket = {
                 date: key,
                 label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                ai_chatbot: 0,
-                ai_form_generator: 0,
-                ai_template_draft: 0,
-                ai_template_enhancer: 0,
                 total: 0,
-                runningBalance: null  // will fill from last log
+                runningBalance: null
             };
+            // initialize all discovered features to 0
+            uniqueFeatures.forEach(f => bucket[f] = 0);
+            dailyMap[key] = bucket;
         }
 
         for (const log of logs) {
             const key = new Date(log.createdAt).toISOString().split('T')[0];
             if (dailyMap[key]) {
-                dailyMap[key][log.feature] += log.tokensUsed;
+                dailyMap[key][log.feature] = (dailyMap[key][log.feature] || 0) + log.tokensUsed;
                 dailyMap[key].total += log.tokensUsed;
                 dailyMap[key].runningBalance = log.balanceAfter; // last log of the day wins
             }
@@ -632,42 +649,37 @@ router.get('/ai-token-history', async (req, res) => {
         }
 
         // ── Feature breakdown totals (all-time in range) ──
-        const chatbotTotal = logs.filter(l => l.feature === 'ai_chatbot').reduce((s, l) => s + l.tokensUsed, 0);
-        const formTotal = logs.filter(l => l.feature === 'ai_form_generator').reduce((s, l) => s + l.tokensUsed, 0);
-        const templateDraftTotal = logs.filter(l => l.feature === 'ai_template_draft').reduce((s, l) => s + l.tokensUsed, 0);
-        const templateEnhancerTotal = logs.filter(l => l.feature === 'ai_template_enhancer').reduce((s, l) => s + l.tokensUsed, 0);
-        const grandTotal = chatbotTotal + formTotal + templateDraftTotal + templateEnhancerTotal;
+        const featureBreakdown = [];
+        
+        // Define human-readable names and colors for features
+        const featureLabels = {
+            'ai_chatbot': { name: 'AI Chatbot', color: '#6366f1' },
+            'ai_form_generator': { name: 'Form Generator', color: '#8b5cf6' },
+            'ai_template_draft': { name: 'Template Draft', color: '#f59e0b' },
+            'ai_template_enhancer': { name: 'Template Enhancer', color: '#10b981' },
+            'ai_meta_ads_research': { name: 'Meta Ads Research', color: '#3b82f6' },
+            'ai_meta_ads_copy': { name: 'Meta Ads Copy', color: '#ec4899' },
+            'ai_meta_ads_image': { name: 'Meta Ads Image', color: '#f43f5e' },
+            'ai_store_copilot': { name: 'Store Copilot', color: '#14b8a6' },
+            'ai_wastore_product_desc': { name: 'Store Descriptions', color: '#06b6d4' }
+        };
+        const defaultColors = ['#6366f1', '#8b5cf6', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#f43f5e', '#14b8a6', '#06b6d4'];
 
-        const featureBreakdown = [
-            {
-                name: 'AI Chatbot',
-                key: 'ai_chatbot',
-                tokens: chatbotTotal,
-                percent: grandTotal > 0 ? Math.round((chatbotTotal / grandTotal) * 100) : 0,
-                color: '#6366f1'
-            },
-            {
-                name: 'Form Generator',
-                key: 'ai_form_generator',
-                tokens: formTotal,
-                percent: grandTotal > 0 ? Math.round((formTotal / grandTotal) * 100) : 0,
-                color: '#8b5cf6'
-            },
-            {
-                name: 'Template Draft',
-                key: 'ai_template_draft',
-                tokens: templateDraftTotal,
-                percent: grandTotal > 0 ? Math.round((templateDraftTotal / grandTotal) * 100) : 0,
-                color: '#f59e0b'
-            },
-            {
-                name: 'Template Enhancer',
-                key: 'ai_template_enhancer',
-                tokens: templateEnhancerTotal,
-                percent: grandTotal > 0 ? Math.round((templateEnhancerTotal / grandTotal) * 100) : 0,
-                color: '#10b981'
+        const grandTotal = logs.reduce((s, l) => s + l.tokensUsed, 0);
+
+        uniqueFeatures.forEach((featureKey, i) => {
+            const tokens = logs.filter(l => l.feature === featureKey).reduce((s, l) => s + l.tokensUsed, 0);
+            if (tokens > 0) {
+                const conf = featureLabels[featureKey] || { name: featureKey, color: defaultColors[i % defaultColors.length] };
+                featureBreakdown.push({
+                    name: conf.name,
+                    key: featureKey,
+                    tokens: tokens,
+                    percent: grandTotal > 0 ? Math.round((tokens / grandTotal) * 100) : 0,
+                    color: conf.color
+                });
             }
-        ];
+        });
 
         // ── Weekly summary (group dailyData into 7-day buckets) ──
         const weeklySummary = [];
@@ -675,22 +687,22 @@ router.get('/ai-token-history', async (req, res) => {
             const weekDays = dailyData.slice(w * 7, (w + 1) * 7);
             if (weekDays.length === 0) continue;
             const weekLabel = weekDays[0].label + (weekDays.length > 1 ? ` – ${weekDays[weekDays.length - 1].label}` : '');
-            weeklySummary.push({
+            
+            const wBucket = {
                 week: `Wk ${w + 1}`,
                 label: weekLabel,
-                total: weekDays.reduce((s, d) => s + d.total, 0),
-                ai_chatbot: weekDays.reduce((s, d) => s + d.ai_chatbot, 0),
-                ai_form_generator: weekDays.reduce((s, d) => s + d.ai_form_generator, 0),
-                ai_template_draft: weekDays.reduce((s, d) => s + d.ai_template_draft, 0),
-                ai_template_enhancer: weekDays.reduce((s, d) => s + d.ai_template_enhancer, 0)
+                total: weekDays.reduce((s, d) => s + d.total, 0)
+            };
+            uniqueFeatures.forEach(f => {
+                wBucket[f] = weekDays.reduce((s, d) => s + d[f], 0);
             });
+            weeklySummary.push(wBucket);
         }
 
         // ── Summary stats ──
         const peakDayUsage = Math.max(0, ...dailyData.map(d => d.total));
         const daysWithUsage = dailyData.filter(d => d.total > 0).length;
         const avgDailyUsage = daysWithUsage > 0 ? Math.round(grandTotal / daysWithUsage) : 0;
-        // totalUsed: use sum from logs (real events) not allowance math
         const totalUsed = grandTotal;
         const usagePercent = totalAllowance > 0 ? Math.round((currentBalance / totalAllowance * 100)) : 0;
 

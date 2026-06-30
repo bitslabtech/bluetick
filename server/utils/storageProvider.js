@@ -659,6 +659,94 @@ const deleteStorageFile = async (url) => {
     }
 };
 
+/**
+ * Processes and stores a raw buffer (compression + R2/Local save + tracking).
+ * Designed for webhook / background usage without an express request.
+ */
+const processAndStoreBuffer = async (buffer, originalname, mimetype, folderName, userId, options = {}) => {
+    const opt = { convertToWebp: false, registerMedia: true, trackMedia: false, mediaSource: 'inbox_media', ...options };
+    const storageConf = await getStorageConfig(folderName);
+    let fileBuffer = buffer;
+    
+    if (isCompressibleImage(mimetype)) {
+        const result = await compressImage(fileBuffer, mimetype, { convertToWebp: opt.convertToWebp });
+        fileBuffer = result.buffer;
+        if (result.compressed && result.format === 'webp' && mimetype !== 'image/webp') {
+            mimetype = 'image/webp';
+            originalname = originalname.replace(/\.[^/.]+$/, "") + ".webp";
+        }
+    }
+
+    const uniqueSuffix = Date.now().toString() + '-' + Math.round(Math.random() * 1e9);
+    let publicUrl = null;
+    let fileKey = null;
+    let size = fileBuffer.length;
+
+    if (storageConf.type === 's3') {
+        const safeName = originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const key = folderName ? `${folderName}/${uniqueSuffix}-${safeName}` : `${uniqueSuffix}-${safeName}`;
+        await storageConf.s3Client.send(new PutObjectCommand({
+            Bucket: storageConf.s3Conf.bucket,
+            Key: key,
+            Body: fileBuffer,
+            ContentType: mimetype,
+            ACL: storageConf.s3Conf.acl || 'public-read'
+        }));
+        const location = buildS3Location(storageConf.s3Conf, storageConf.endpoint, storageConf.forcePathStyleVal, key);
+        if (storageConf.s3Conf.publicUrlPrefix) {
+            const prefix = storageConf.s3Conf.publicUrlPrefix.replace(/\/$/, '');
+            publicUrl = `${prefix}/${key}`;
+        } else {
+            publicUrl = location;
+        }
+        fileKey = key;
+    } else if (storageConf.type === 'r2') {
+        const safeName = originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const key = folderName ? `${folderName}/${uniqueSuffix}-${safeName}` : `${uniqueSuffix}-${safeName}`;
+        await storageConf.s3Client.send(new PutObjectCommand({
+            Bucket: storageConf.r2Conf.bucket,
+            Key: key,
+            Body: fileBuffer,
+            ContentType: mimetype
+        }));
+        publicUrl = buildR2Location(storageConf.r2Conf, storageConf.endpoint, key);
+        fileKey = key;
+    } else {
+        const filename = uniqueSuffix + path.extname(originalname);
+        const filePath = path.join(storageConf.uploadDir, filename);
+        fs.writeFileSync(filePath, fileBuffer);
+        const subPath = folderName ? `${folderName}/${filename}` : filename;
+        const fallbackHost = process.env.VITE_API_URL || 'http://localhost:5000';
+        publicUrl = `${fallbackHost.replace(/\/$/, '')}/uploads/${subPath}`;
+        fileKey = subPath;
+    }
+
+    if (userId && size) {
+        try { await User.increment('storageUsed', { by: size, where: { id: userId } }); } catch (e) { }
+        if (opt.registerMedia || opt.trackMedia) {
+            if (opt.trackMedia) {
+                try { await User.increment('mediaStorageUsed', { by: size, where: { id: userId } }); } catch (e) {}
+            }
+            try {
+                await MediaFile.create({
+                    userId: userId,
+                    source: opt.mediaSource,
+                    url: publicUrl,
+                    fileKey: fileKey,
+                    fileName: originalname,
+                    mimeType: mimetype,
+                    sizeBytes: size,
+                    folder: folderName || null,
+                    mediaType: classifyMediaType(mimetype)
+                });
+            } catch (e) {
+                console.error("[processAndStoreBuffer] MediaFile error:", e.message);
+            }
+        }
+    }
+    return publicUrl;
+};
+
 module.exports = storageProvider;
 module.exports.generalImageFilter = generalImageFilter;
 module.exports.secureMediaFilter = secureMediaFilter;
@@ -667,5 +755,7 @@ module.exports.documentFilter = documentFilter;
 module.exports.videoFilter = videoFilter;
 module.exports.whatsappMediaFilter = whatsappMediaFilter;
 module.exports.deleteStorageFile = deleteStorageFile;
+module.exports.classifyMediaType = classifyMediaType;
+module.exports.processAndStoreBuffer = processAndStoreBuffer;
 module.exports.classifyMediaType = classifyMediaType;
 module.exports.validateMagicBytes = validateMagicBytes;

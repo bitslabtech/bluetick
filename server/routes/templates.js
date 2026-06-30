@@ -97,6 +97,97 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }
 });
 
+// POST upload media for template via URL (Bridges Media Manager to Meta Resumable Upload API)
+router.post('/upload-url', async (req, res) => {
+    try {
+        const { url } = req.body;
+        if (!url) return res.status(400).json({ error: 'No URL provided' });
+
+        const settings = await Settings.findOne({ where: { userId: req.user.id } });
+        if (!settings || !settings.metaAccessToken) {
+            return res.status(403).json({ error: 'Please configure your WhatsApp API settings first.' });
+        }
+
+        const appId = process.env.FB_CLIENT_ID;
+        const fbToken = settings.metaAccessToken;
+
+        if (!appId) {
+            return res.status(500).json({ error: 'FB_CLIENT_ID is not configured in server environment.' });
+        }
+
+        // 1. Fetch file buffer and mimetype from the URL
+        const fileStreamRes = await axios.get(url, { responseType: 'arraybuffer' });
+        let fileBuffer = Buffer.from(fileStreamRes.data, 'binary');
+        let mimeType = fileStreamRes.headers['content-type'] || 'application/octet-stream';
+        let fileSize = fileBuffer.length;
+
+        // Ensure basic mimetypes are resolved if server returns generic stream (AWS/S3 sometimes does)
+        if (mimeType === 'application/octet-stream') {
+            if (url.toLowerCase().endsWith('.jpg') || url.toLowerCase().endsWith('.jpeg')) mimeType = 'image/jpeg';
+            else if (url.toLowerCase().endsWith('.png')) mimeType = 'image/png';
+            else if (url.toLowerCase().endsWith('.mp4')) mimeType = 'video/mp4';
+            else if (url.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf';
+        }
+
+        // Validate types
+        if (!['image/jpeg', 'image/png', 'image/jpg', 'video/mp4', 'application/pdf'].includes(mimeType)) {
+            return res.status(400).json({ error: `Unsupported file type (${mimeType}) fetched from URL.` });
+        }
+
+        // Check Max Sizes (5MB image, 16MB video, 100MB PDF)
+        const isVid = mimeType === 'video/mp4';
+        const isDoc = mimeType === 'application/pdf';
+        const isImg = mimeType.startsWith('image/');
+        const maxSize = isVid ? 16 : isDoc ? 100 : 5;
+        
+        if (fileSize > maxSize * 1024 * 1024) {
+            return res.status(400).json({ error: `File too large (${(fileSize/1024/1024).toFixed(2)}MB). Max allowed for this type is ${maxSize}MB.` });
+        }
+
+        // 2. Compress image before uploading to Meta (if applicable)
+        if (isCompressibleImage(mimeType)) {
+            const result = await compressImage(fileBuffer, mimeType);
+            fileBuffer = result.buffer;
+            fileSize = fileBuffer.length;
+            if (result.compressed) {
+                console.log(`[TEMPLATE URL UPLOAD] Compressed URL Media: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB`);
+            }
+        }
+
+        // 3. Create Resumable Upload Session
+        const sessionUrl = `https://graph.facebook.com/v21.0/${appId}/uploads?file_length=${fileSize}&file_type=${encodeURIComponent(mimeType)}`;
+        const sessionRes = await fetch(sessionUrl, {
+            method: 'POST',
+            headers: { 'Authorization': `OAuth ${fbToken}` }
+        });
+
+        const sessionData = await sessionRes.json();
+        if (!sessionRes.ok) throw new Error(sessionData.error?.message || 'Failed to create upload session with Meta.');
+
+        const sessionId = sessionData.id;
+
+        // 4. Upload File Data
+        const uploadUrl = `https://graph.facebook.com/v21.0/${sessionId}`;
+        const uploadRes = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `OAuth ${fbToken}`,
+                'file_offset': '0'
+            },
+            body: fileBuffer
+        });
+
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(uploadData.error?.message || 'Failed to upload media data to Meta.');
+
+        // Success - return the handle and the original URL for local UI state keeping
+        res.json({ handle: uploadData.h, localUrl: url });
+    } catch (err) {
+        console.error("Upload Media URL Error:", err.response?.data || err.message);
+        res.status(500).json({ error: err.response?.data?.error?.message || err.message });
+    }
+});
+
 // POST upload media for SENDING messages (Standard Media API) - also saves locally or S3 for inbox display
 const FormData = require('form-data');
 const axios = require('axios');

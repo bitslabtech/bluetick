@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Search, Plus, Check, Globe, Image as ImageIcon, FileText, Lock, ArrowRight, ArrowLeft, AlertTriangle, Signal, Wifi, Battery, CheckCheck } from 'lucide-react';
+import { Search, Plus, Check, Globe, Image as ImageIcon, FileText, Lock, Film, FileIcon, ArrowRight, ArrowLeft, AlertTriangle, Signal, Wifi, Battery, CheckCheck } from 'lucide-react';
 import { useUI } from '../../context/UIContext';
 
 const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
@@ -204,9 +204,12 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                             {template.language}
                                         </div>
                                         <div className="flex items-center gap-2 text-slate-500 dark:text-text-secondary text-xs font-medium">
-                                            {template.type === 'IMAGE' && <><ImageIcon className="w-4 h-4" /> Image Header</>}
-                                            {template.type === 'TEXT' && <><FileText className="w-4 h-4" /> Text Only</>}
-                                            {template.type === 'SECURITY' && <><Lock className="w-4 h-4" /> Security</>}
+                                            {(template.headerType === 'IMAGE' || template.type === 'IMAGE') && <><ImageIcon className="w-4 h-4" /> Image Header</>}
+                                            {(template.headerType === 'VIDEO' || template.type === 'VIDEO') && <><Film className="w-4 h-4" /> Video Header</>}
+                                            {(template.headerType === 'DOCUMENT' || template.type === 'DOCUMENT') && <><FileIcon className="w-4 h-4" /> Document Header</>}
+                                            {(template.headerType === 'TEXT' || template.type === 'TEXT') && <><FileText className="w-4 h-4" /> Text Only</>}
+                                            {(template.headerType === 'SECURITY' || template.type === 'SECURITY') && <><Lock className="w-4 h-4" /> Security</>}
+                                            {(!template.headerType || template.headerType === 'NONE') && !template.type && <><FileText className="w-4 h-4" /> Text Only</>}
                                         </div>
                                     </div>
                                 </div>
@@ -298,9 +301,27 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                                     <svg viewBox="0 0 8 13" width="8" height="13" className="absolute top-0 -left-2 text-white dark:text-[#202c33] fill-current">
                                                         <path d="M1.533,3.568L8,12.193V1H2.812C1.042,1,0.474,2.156,1.533,3.568z"></path>
                                                     </svg>
-                                                    {selectedTemplate.type === 'IMAGE' && (
-                                                        <div className="w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2">
-                                                            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=400" alt="Header" />
+                                                    {/* Media Header Preview — IMAGE */}
+                                                    {['IMAGE'].includes((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase()) && (
+                                                        <div className="w-full aspect-video bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 rounded-xl overflow-hidden mb-2 flex items-center justify-center relative">
+                                                            <ImageIcon className="w-10 h-10 text-slate-400 dark:text-slate-500" />
+                                                            <span className="absolute bottom-1.5 left-2 text-[10px] font-bold text-white bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded">IMAGE</span>
+                                                        </div>
+                                                    )}
+                                                    {/* Media Header Preview — VIDEO */}
+                                                    {['VIDEO'].includes((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase()) && (
+                                                        <div className="w-full aspect-video bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl overflow-hidden mb-2 flex flex-col items-center justify-center relative">
+                                                            <Film className="w-10 h-10 text-white/40" />
+                                                            <span className="mt-1 text-[10px] font-bold text-white/60">Video</span>
+                                                            <span className="absolute bottom-1.5 left-2 text-[10px] font-bold text-white bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded">VIDEO</span>
+                                                        </div>
+                                                    )}
+                                                    {/* Media Header Preview — DOCUMENT */}
+                                                    {['DOCUMENT'].includes((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase()) && (
+                                                        <div className="w-full py-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl overflow-hidden mb-2 flex flex-col items-center justify-center gap-1 relative">
+                                                            <FileIcon className="w-9 h-9 text-blue-500" />
+                                                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">PDF Document</span>
+                                                            <span className="absolute bottom-1.5 left-2 text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-200/50 dark:bg-blue-900/50 px-1.5 py-0.5 rounded">DOCUMENT</span>
                                                         </div>
                                                     )}
                                                     <div className="px-1.5 pb-1 pt-0.5">

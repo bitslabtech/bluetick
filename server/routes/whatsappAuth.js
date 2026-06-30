@@ -221,6 +221,24 @@ router.post('/exchange-token', auth, async (req, res) => {
             console.warn('[WA DEBUG] ⚠️ metaPhoneNumberId could not be determined. User must set it manually.');
         }
 
+        // --- Fetch WABA Portfolio Limit ---
+        if (wabaId) {
+            try {
+                const wabaRes = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}`, {
+                    params: {
+                        fields: 'whatsapp_business_manager_messaging_limit',
+                        access_token: accessToken
+                    }
+                });
+                if (wabaRes.data && wabaRes.data.whatsapp_business_manager_messaging_limit) {
+                    user.metaTier = wabaRes.data.whatsapp_business_manager_messaging_limit.toString();
+                    console.log('[WA DEBUG] Set WABA Portfolio Limit:', user.metaTier);
+                }
+            } catch (wabaErr) {
+                console.warn('[WA DEBUG] Could not fetch WABA portfolio limit during OAuth:', wabaErr.response?.data?.error?.message || wabaErr.message);
+            }
+        }
+
         // 3a. Generate a permanent System User Token (never expires)
         console.log('[WA DEBUG] Step 3a: Generating permanent System User Token...');
         let permanentToken = null;
@@ -421,9 +439,28 @@ router.get('/status', auth, async (req, res) => {
             user.metaPhoneNumberId      = phoneData.id;
             user.metaDisplayPhoneNumber = phoneData.display_phone_number;
             user.metaQualityRating       = phoneData.quality_rating;
-            user.metaTier                = phoneData.messaging_limit_tier;
             user.metaVerifiedName        = phoneData.verified_name;
             user.metaNameStatus          = phoneData.name_status;
+
+            // Fetch new portfolio-level messaging limit from WABA
+            let portfolioLimit = null;
+            try {
+                const wabaRes = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}`, {
+                    params: {
+                        fields: 'whatsapp_business_manager_messaging_limit',
+                        access_token: accessToken
+                    }
+                });
+                if (wabaRes.data && wabaRes.data.whatsapp_business_manager_messaging_limit) {
+                    portfolioLimit = wabaRes.data.whatsapp_business_manager_messaging_limit.toString();
+                }
+            } catch (err) {
+                console.warn('[WA STATUS] Could not fetch WABA portfolio limit, falling back to legacy tier:', err.response?.data?.error?.message || err.message);
+            }
+
+            // Prefer new portfolio limit if available, otherwise fallback to legacy phone tier
+            user.metaTier = portfolioLimit || phoneData.messaging_limit_tier || 'UNKNOWN';
+
             await user.save();
         }
 

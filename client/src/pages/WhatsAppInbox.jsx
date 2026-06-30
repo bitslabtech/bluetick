@@ -1218,6 +1218,12 @@ const WhatsAppInbox = () => {
                                                 {item.type === 'image' && item.mediaUrl && (
                                                     <img src={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl} alt="img" className="rounded-xl max-w-full max-h-60 object-cover mb-1" />
                                                 )}
+                                                {item.type === 'video' && item.mediaUrl && (
+                                                    <video src={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl} controls className="rounded-xl max-w-full max-h-60 object-cover mb-1" />
+                                                )}
+                                                {item.type === 'audio' && item.mediaUrl && (
+                                                    <audio src={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl} controls className="max-w-full mb-1 h-10 w-60" />
+                                                )}
                                                 {item.type === 'document' && item.mediaUrl && (
                                                     <a href={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl} target="_blank" rel="noopener noreferrer"
                                                         className="flex items-center gap-2 bg-black/5 dark:bg-white/5 rounded-lg px-3 py-2 mb-1 hover:bg-black/10 transition-colors">
