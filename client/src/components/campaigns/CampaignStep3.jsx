@@ -1,26 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useUI } from '../../context/UIContext';
 import {
     FileText, User, ChevronDown, Clock, Send, Signal, Wifi, Battery,
     CheckCheck, Check, ArrowLeft, Calendar, Zap, Sparkles,
-    Image as ImageIcon, Link2, Phone, CreditCard, Layers, AlertTriangle, Users, Type
+    Image as ImageIcon, Link2, Phone, CreditCard, Layers, AlertTriangle, Users, Type, Film, FileIcon, XCircle
 } from 'lucide-react';
 import MediaPickerModal, { MIME_PRESETS } from '../MediaPickerModal';
 
 // ─── Carousel Card Config Panel ───────────────────────────────────────────────
-const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, onCardImageChange }) => {
+const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, onCardImageChange, hasMediaError, validationErrors = {}, cardRef }) => {
     const variables = card.content ? (card.content.match(/\{\{([^}]+)\}\}/g) || []).map(v => v.replace(/\{\{|\}\}/g, '')) : [];
 
     return (
-        <div className="bg-slate-50 dark:bg-background-dark/60 rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
+        <div ref={cardRef} className={`rounded-2xl border-2 overflow-hidden transition-colors ${
+            hasMediaError
+                ? 'border-red-400 dark:border-red-500 shadow-lg shadow-red-500/10'
+                : 'border-slate-200 dark:border-white/10'
+        } bg-slate-50 dark:bg-background-dark/60`}>
             {/* Card Header */}
-            <div className="px-5 py-3 border-b border-slate-200 dark:border-white/10 flex items-center gap-3 bg-white dark:bg-surface-dark">
-                <div className="bg-purple-500/20 p-2 rounded-lg">
-                    <Layers className="w-4 h-4 text-purple-400" />
+            <div className={`px-5 py-3 border-b flex items-center gap-3 ${
+                hasMediaError
+                    ? 'border-red-200 dark:border-red-700/50 bg-red-50 dark:bg-red-900/10'
+                    : 'border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark'
+            }`}>
+                <div className={`p-2 rounded-lg ${ hasMediaError ? 'bg-red-500/20' : 'bg-purple-500/20' }`}>
+                    <Layers className={`w-4 h-4 ${ hasMediaError ? 'text-red-400' : 'text-purple-400' }`} />
                 </div>
                 <h4 className="text-slate-900 dark:text-white font-bold text-sm">Card {cardIndex + 1}</h4>
-                {card.content && (
+                {validationErrors[`card_${cardIndex}`] && (
+                    <span className="ml-auto flex items-center gap-1 text-xs font-bold text-red-500 dark:text-red-400">
+                        <XCircle className="w-3.5 h-3.5" /> Action required
+                    </span>
+                )}
+                {card.content && !validationErrors[`card_${cardIndex}`] && (
                     <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-xs">— {card.content.substring(0, 60)}</p>
                 )}
             </div>
@@ -37,19 +50,34 @@ const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, on
                             <button
                                 type="button"
                                 onClick={() => onCardImageChange(cardIndex, card.headerType)}
-                                className="flex-1 flex items-center gap-3 bg-white dark:bg-background-dark border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl p-3 cursor-pointer hover:border-primary/50 hover:bg-blue-50/30 dark:hover:bg-blue-950/10 transition-all group text-left"
+                                className={`flex-1 flex items-center gap-3 border-2 rounded-xl p-3 cursor-pointer transition-all group text-left ${
+                                    hasMediaError
+                                        ? 'bg-red-50 dark:bg-red-900/10 border-red-400 dark:border-red-500 hover:border-red-500'
+                                        : 'bg-white dark:bg-background-dark border-dashed border-slate-200 dark:border-white/10 hover:border-primary/50 hover:bg-blue-50/30 dark:hover:bg-blue-950/10'
+                                }`}
                             >
-                                <div className="bg-blue-500/10 p-2 rounded-lg group-hover:bg-blue-500/20 transition-colors">
-                                    <ImageIcon className="w-4 h-4 text-blue-500" />
+                                <div className={`p-2 rounded-lg transition-colors ${
+                                    hasMediaError ? 'bg-red-500/10 group-hover:bg-red-500/20' : 'bg-blue-500/10 group-hover:bg-blue-500/20'
+                                }`}>
+                                    <ImageIcon className={`w-4 h-4 ${ hasMediaError ? 'text-red-400' : 'text-blue-500' }`} />
                                 </div>
                                 <span className="text-sm text-slate-500 dark:text-slate-400">
                                     {cardParams[`__file_${cardIndex}`]?.name
                                         ? <span className="text-green-600 dark:text-green-400 font-medium">✓ {cardParams[`__file_${cardIndex}`].name}</span>
-                                        : 'Select media from library'}
+                                        : hasMediaError
+                                            ? <span className="text-red-500 dark:text-red-400 font-medium">⚠ Select {card.headerType === 'IMAGE' ? 'an image' : 'a video'} — required!</span>
+                                            : 'Select media from library'}
                                 </span>
                             </button>
                         </div>
-                        <p className="text-xs text-slate-400 mt-1.5">This media will be uploaded to Meta before sending.</p>
+                        {hasMediaError && (
+                            <p className="text-xs text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1">
+                                <XCircle className="w-3 h-3" /> This card requires a {card.headerType === 'IMAGE' ? 'image' : 'video'} before sending.
+                            </p>
+                        )}
+                        {!hasMediaError && (
+                            <p className="text-xs text-slate-400 mt-1.5">This media will be uploaded to Meta before sending.</p>
+                        )}
                     </div>
                 )}
 
@@ -58,17 +86,28 @@ const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, on
                     <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-white mb-3 uppercase tracking-wider">📝 Body Variables</label>
                         <div className="space-y-3">
-                            {variables.map((varName, vIdx) => (
-                                <div key={vIdx} className="flex items-center gap-3">
-                                    <span className="text-xs font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg border border-blue-200 dark:border-blue-800 whitespace-nowrap">{`{{${varName}}}`}</span>
-                                    <input
-                                        className="flex-1 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                                        placeholder={`Value for {{${varName}}}`}
-                                        value={cardParams[`card_${cardIndex}_var_${varName}`] || ''}
-                                        onChange={(e) => onCardParamChange(cardIndex, `var_${varName}`, e.target.value)}
-                                    />
-                                </div>
-                            ))}
+                            {variables.map((varName, vIdx) => {
+                                const errKey = `card_${cardIndex}_var_${varName}`;
+                                const hasError = validationErrors[errKey];
+                                return (
+                                    <div key={vIdx} className="flex items-start gap-3">
+                                        <span className="text-xs font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg border border-blue-200 dark:border-blue-800 whitespace-nowrap mt-1">{`{{${varName}}}`}</span>
+                                        <div className="flex-1">
+                                            <input
+                                                className={`w-full bg-white dark:bg-background-dark border-2 rounded-xl px-3 py-2 text-sm outline-none transition-colors ${
+                                                    hasError
+                                                        ? 'border-red-400 text-red-900 focus:border-red-500 focus:ring-red-400 placeholder-red-300 dark:text-red-100'
+                                                        : 'border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:border-primary focus:ring-primary'
+                                                }`}
+                                                placeholder={`Value for {{${varName}}}`}
+                                                value={cardParams[errKey] || ''}
+                                                onChange={(e) => onCardParamChange(cardIndex, `var_${varName}`, e.target.value)}
+                                            />
+                                            {hasError && <p className="text-xs text-red-500 mt-1"><XCircle className="w-3 h-3 inline mr-1" />Required</p>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -78,22 +117,31 @@ const CarouselCardConfig = ({ card, cardIndex, cardParams, onCardParamChange, on
                     <div>
                         <label className="block text-xs font-bold text-slate-700 dark:text-white mb-3 uppercase tracking-wider">🔗 Button URLs</label>
                         <div className="space-y-3">
-                            {card.buttons.filter(b => b.type === 'URL').map((btn, bIdx) => (
-                                <div key={bIdx} className="flex items-center gap-3">
-                                    <div className="bg-green-500/10 p-2 rounded-lg flex-shrink-0">
-                                        <Link2 className="w-4 h-4 text-green-500" />
+                            {card.buttons.filter(b => b.type === 'URL').map((btn, bIdx) => {
+                                const errKey = `card_${cardIndex}_btn_${bIdx}`;
+                                const hasError = validationErrors[errKey];
+                                return (
+                                    <div key={bIdx} className="flex items-start gap-3">
+                                        <div className={`p-2 rounded-lg flex-shrink-0 mt-1 ${hasError ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
+                                            <Link2 className={`w-4 h-4 ${hasError ? 'text-red-500' : 'text-green-500'}`} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">"{btn.text}" URL</p>
+                                            <input
+                                                className={`w-full bg-white dark:bg-background-dark border-2 rounded-xl px-3 py-2 text-sm outline-none transition-colors ${
+                                                    hasError
+                                                        ? 'border-red-400 text-red-900 focus:border-red-500 focus:ring-red-400 placeholder-red-300 dark:text-red-100'
+                                                        : 'border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:border-primary focus:ring-primary'
+                                                }`}
+                                                placeholder={btn.url || 'https://...'}
+                                                value={cardParams[`${errKey}_url`] || btn.url || ''}
+                                                onChange={(e) => onCardParamChange(cardIndex, `btn_${bIdx}_url`, e.target.value)}
+                                            />
+                                            {hasError && <p className="text-xs text-red-500 mt-1"><XCircle className="w-3 h-3 inline mr-1" />URL is required</p>}
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">"{btn.text}" URL</p>
-                                        <input
-                                            className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                                            placeholder={btn.url || 'https://...'}
-                                            value={cardParams[`card_${cardIndex}_btn_${bIdx}_url`] || btn.url || ''}
-                                            onChange={(e) => onCardParamChange(cardIndex, `btn_${bIdx}_url`, e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -129,6 +177,16 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     const [paramModes, setParamModes] = useState({});      // 'static' | 'contact_column'
     const [paramFallbacks, setParamFallbacks] = useState({});
     const [fieldCoverage, setFieldCoverage] = useState({});
+
+    // ── Validation ──────────────────────────────────────────────────────────
+    // { header: true, card_0: true, card_2: true, ... }
+    const [validationErrors, setValidationErrors] = useState({});
+
+    // Refs for scroll-to-error
+    const headerSectionRef = useRef(null);
+    const paramsSectionRef = useRef(null);
+    const cardRefs = useRef([]);  // array of refs per carousel card
+    const carouselSectionRef = useRef(null);
 
     const selectedTemplate = data.template || {};
     const isCarousel = selectedTemplate.archetype === 'carousel' && Array.isArray(selectedTemplate.cards) && selectedTemplate.cards.length > 0;
@@ -300,6 +358,10 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     const handleMediaSelect = (url) => {
         if (mediaPickerConfig.type === 'header') {
             setHeaderPreviewUrl(url);
+            // Clear header validation error when user picks media
+            if (validationErrors.header) {
+                setValidationErrors(prev => { const n = {...prev}; delete n.header; return n; });
+            }
         } else if (mediaPickerConfig.type === 'card' && mediaPickerConfig.index !== null) {
             setCardPreviewUrls(prev => ({ ...prev, [mediaPickerConfig.index]: url }));
             setCardParams(prev => ({ ...prev, [`__file_${mediaPickerConfig.index}`]: { name: url.split('/').pop().split('?')[0] || 'media' } }));
@@ -330,7 +392,101 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         return { mediaId: res.data.mediaId, localUrl: res.data.localUrl };
     };
 
+    /**
+     * Validates all required fields before sending.
+     * Returns true if valid, false if there are errors (also sets state + scrolls).
+     */
+    const validateBeforeSend = useCallback(() => {
+        const errors = {};
+        let firstErrorRef = null;
+
+        // ── 1. Standard template ────────────
+        if (!isCarousel) {
+            // Header
+            const hType = (selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase();
+            const needsMedia = ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(hType);
+            if (needsMedia && !headerPreviewUrl) {
+                errors.header = true;
+                if (!firstErrorRef) firstErrorRef = headerSectionRef;
+            }
+
+            // Body Variables
+            variables.forEach((variable) => {
+                const rawVal = data.params?.[variable] || '';
+                const mode = paramModes[variable] || 'static';
+                // If static text is selected, it must not be empty.
+                if (mode === 'static' && (!rawVal || !rawVal.trim())) {
+                    errors[`var_${variable}`] = true;
+                    if (!firstErrorRef) firstErrorRef = paramsSectionRef;
+                }
+            });
+        }
+
+        // ── 2. Carousel cards ─────────────────────────────────────────────────
+        if (isCarousel && Array.isArray(selectedTemplate.cards)) {
+            selectedTemplate.cards.forEach((card, i) => {
+                let cardHasError = false;
+
+                // Media
+                if (card.headerType === 'IMAGE' || card.headerType === 'VIDEO') {
+                    if (!cardPreviewUrls[i]) {
+                        errors[`card_${i}_media`] = true;
+                        cardHasError = true;
+                    }
+                }
+
+                // Variables
+                const cardVars = card.content ? (card.content.match(/\{\{([^}]+)\}\}/g) || []).map(v => v.replace(/\{\{|\}\}/g, '')) : [];
+                cardVars.forEach(varName => {
+                    const val = cardParams[`card_${i}_var_${varName}`] || '';
+                    if (!val.trim()) {
+                        errors[`card_${i}_var_${varName}`] = true;
+                        cardHasError = true;
+                    }
+                });
+
+                // Button URLs
+                if (card.buttons) {
+                    card.buttons.forEach((btn, bIdx) => {
+                        if (btn.type === 'URL') {
+                            const val = cardParams[`card_${i}_btn_${bIdx}_url`] || btn.url || '';
+                            if (!val.trim()) {
+                                errors[`card_${i}_btn_${bIdx}`] = true;
+                                cardHasError = true;
+                            }
+                        }
+                    });
+                }
+
+                if (cardHasError) {
+                    errors[`card_${i}`] = true;
+                    if (!firstErrorRef && cardRefs.current[i]) {
+                        firstErrorRef = { current: cardRefs.current[i] };
+                    }
+                }
+            });
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            // Scroll to first error after state update
+            setTimeout(() => {
+                const el = firstErrorRef?.current;
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 80);
+            return false;
+        }
+
+        setValidationErrors({});
+        return true;
+    }, [isCarousel, selectedTemplate, headerPreviewUrl, cardPreviewUrls, data.params, paramModes, variables, cardParams]);
+
     const handleSend = async () => {
+        // Clear old errors and run full validation first
+        if (!validateBeforeSend()) return;
+
         setSending(true);
         try {
             if (scheduleType === 'later') {
@@ -351,9 +507,9 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                 throw new Error('Please select at least one recipient group or enter manual recipients.');
             }
 
-            // --- Handle standard header media upload (non-carousel IMAGE/VIDEO templates) ---
+            // --- Handle standard header media upload (non-carousel IMAGE/VIDEO/DOCUMENT) ---
             let resolvedCardParams = { ...cardParams };
-            if (!isCarousel && headerPreviewUrl && (selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE' || selectedTemplate.type === 'VIDEO' || selectedTemplate.headerType === 'VIDEO')) {
+            if (!isCarousel && headerPreviewUrl) {
                 showModal({ type: 'info', title: 'Uploading', message: 'Uploading header media to Meta...' });
                 const { mediaId, localUrl } = await uploadMedia(headerPreviewUrl);
                 resolvedCardParams['headerMediaId'] = mediaId;
@@ -362,16 +518,6 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
 
             // --- Handle Carousel card media uploads ---
             if (isCarousel) {
-                // Validation: Ensure all required media for cards are selected before proceeding
-                for (let i = 0; i < selectedTemplate.cards.length; i++) {
-                    const card = selectedTemplate.cards[i];
-                    if (card.headerType === 'IMAGE' || card.headerType === 'VIDEO') {
-                        if (!cardPreviewUrls[i]) {
-                            throw new Error(`Media is missing for Card ${i + 1}. Please select all required images/videos for the carousel before sending.`);
-                        }
-                    }
-                }
-
                 for (let i = 0; i < selectedTemplate.cards.length; i++) {
                     const url = cardPreviewUrls[i];
                     if (url) {
@@ -382,6 +528,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                     }
                 }
             }
+
 
             const payload = {
                 templateId: data.templateId,
@@ -466,8 +613,12 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
 
                     {/* ── Body Parameters (fully dynamic) ── */}
                     {variables.length > 0 && (
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
-                            <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                        <div ref={paramsSectionRef} className={`bg-white dark:bg-surface-dark rounded-2xl border-2 overflow-hidden shadow-sm transition-colors duration-300 ${
+                            variables.some(v => validationErrors[`var_${v}`]) ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-white/5'
+                        }`}>
+                            <div className={`px-4 md:px-6 py-4 border-b flex items-center gap-3 ${
+                                variables.some(v => validationErrors[`var_${v}`]) ? 'border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-900/10' : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/5'
+                            }`}>
                                 <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400"><User className="w-5 h-5" /></div>
                                 <div>
                                     <h3 className="text-slate-900 dark:text-white font-bold text-lg leading-tight">Body Parameters</h3>
@@ -481,8 +632,11 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                     const selectedColKey = rawVal.startsWith('__col__') ? rawVal.replace('__col__', '') : 'name';
                                     const coverage = fieldCoverage[variable];
                                     const fallback = paramFallbacks[variable] || '';
+                                    const hasError = validationErrors[`var_${variable}`];
                                     return (
-                                        <div key={idx} className="rounded-2xl border border-slate-100 dark:border-white/8 overflow-hidden">
+                                        <div key={idx} className={`rounded-2xl border-2 overflow-hidden transition-all ${
+                                            hasError ? 'border-red-300 dark:border-red-500/60 shadow-sm shadow-red-500/10' : 'border-slate-100 dark:border-white/8'
+                                        }`}>
                                             {/* Row header: var badge + mode toggle */}
                                             <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
                                                 <div className="flex items-center gap-2">
@@ -508,13 +662,25 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                                 {mode === 'static' ? (
                                                     <div>
                                                         <input
-                                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                                            className={`w-full bg-slate-50 dark:bg-background-dark border-2 rounded-xl px-4 py-3 text-sm outline-none transition-colors ${
+                                                                hasError
+                                                                    ? 'border-red-400 text-red-900 focus:border-red-500 focus:ring-red-400 placeholder-red-300 dark:text-red-100'
+                                                                    : 'border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:border-primary focus:ring-primary placeholder-slate-400'
+                                                            }`}
                                                             type="text"
                                                             placeholder={`E.g. "Dear Customer", "Sale ends today!"`}
                                                             value={rawVal.startsWith('__col__') ? '' : rawVal}
-                                                            onChange={(e) => handleParamChange(variable, e.target.value)}
+                                                            onChange={(e) => {
+                                                                if (hasError) setValidationErrors(prev => { const n = {...prev}; delete n[`var_${variable}`]; return n; });
+                                                                handleParamChange(variable, e.target.value);
+                                                            }}
                                                         />
-                                                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">This exact text will be sent to <strong>every</strong> recipient.</p>
+                                                        {hasError && (
+                                                            <p className="text-xs text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> This parameter cannot be empty.</p>
+                                                        )}
+                                                        {!hasError && (
+                                                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">This exact text will be sent to <strong>every</strong> recipient.</p>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-3">
@@ -580,8 +746,16 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
 
                     {/* ── Carousel Card Configuration ── */}
                     {isCarousel && (
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
-                            <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                        <div ref={carouselSectionRef} className={`bg-white dark:bg-surface-dark rounded-2xl border-2 overflow-hidden shadow-sm transition-all duration-300 ${
+                            Object.keys(validationErrors).some(k => k.startsWith('card_'))
+                                ? 'border-red-400 dark:border-red-500'
+                                : 'border-slate-200 dark:border-white/5'
+                        }`}>
+                            <div className={`px-4 md:px-6 py-4 border-b flex items-center gap-3 ${
+                                Object.keys(validationErrors).some(k => k.startsWith('card_'))
+                                    ? 'border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-900/10'
+                                    : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/5'
+                            }`}>
                                 <div className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 p-2 rounded-lg">
                                     <CreditCard className="w-5 h-5 text-pink-400" />
                                 </div>
@@ -589,9 +763,17 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                     <h3 className="text-slate-900 dark:text-white font-bold text-lg">Carousel Cards</h3>
                                     <p className="text-xs text-slate-500 dark:text-text-secondary">Configure each card's image, variables, and buttons</p>
                                 </div>
-                                <span className="ml-auto text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-1 rounded-full">
-                                    {selectedTemplate.cards.length} Cards
-                                </span>
+                                <div className="ml-auto flex items-center gap-2">
+                                    {Object.keys(validationErrors).some(k => k.startsWith('card_')) && (
+                                        <span className="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-full border border-red-200 dark:border-red-700/50">
+                                            <XCircle className="w-3.5 h-3.5" />
+                                            {Object.keys(validationErrors).filter(k => k.startsWith('card_')).length} missing
+                                        </span>
+                                    )}
+                                    <span className="text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-1 rounded-full">
+                                        {selectedTemplate.cards.length} Cards
+                                    </span>
+                                </div>
                             </div>
                             <div className="p-4 md:p-6 space-y-5">
                                 {selectedTemplate.cards.map((card, idx) => (
@@ -600,8 +782,29 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                         card={card}
                                         cardIndex={idx}
                                         cardParams={cardParams}
-                                        onCardParamChange={handleCardParamChange}
-                                        onCardImageChange={handleCardImageChange}
+                                        onCardParamChange={(cIdx, key, val) => {
+                                            if (validationErrors[`card_${cIdx}_${key}`]) {
+                                                setValidationErrors(prev => { const n = {...prev}; delete n[`card_${cIdx}_${key}`]; return n; });
+                                            }
+                                            // btn_x_url -> btn_x error mapping
+                                            if (key.includes('_url')) {
+                                                const btnKey = key.replace('_url', '');
+                                                if (validationErrors[`card_${cIdx}_${btnKey}`]) {
+                                                    setValidationErrors(prev => { const n = {...prev}; delete n[`card_${cIdx}_${btnKey}`]; return n; });
+                                                }
+                                            }
+                                            handleCardParamChange(cIdx, key, val);
+                                        }}
+                                        onCardImageChange={(i, t) => {
+                                            // Clear error on interaction
+                                            if (validationErrors[`card_${i}_media`]) {
+                                                setValidationErrors(prev => { const n = {...prev}; delete n[`card_${i}_media`]; return n; });
+                                            }
+                                            handleCardImageChange(i, t);
+                                        }}
+                                        hasMediaError={!!validationErrors[`card_${idx}_media`]}
+                                        validationErrors={validationErrors}
+                                        cardRef={el => { cardRefs.current[idx] = el; }}
                                     />
                                 ))}
                             </div>
@@ -617,6 +820,89 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                             </div>
                             <div className="p-4 md:p-8 text-center text-slate-500 dark:text-text-secondary">
                                 No dynamic variables found in this template.
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Validation Error Summary Banner ── */}
+                    {Object.keys(validationErrors).length > 0 && (
+                        <div ref={headerSectionRef} className="bg-red-50 dark:bg-red-900/15 border-2 border-red-400 dark:border-red-500 rounded-2xl px-5 py-4 space-y-3 shadow-lg shadow-red-500/10">
+                            <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
+                                    <XCircle className="w-5 h-5 text-red-500" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-red-700 dark:text-red-300">Required fields are missing</p>
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">Please complete all required fields before sending the campaign.</p>
+                                </div>
+                            </div>
+                            <ul className="space-y-1.5 pl-11">
+                                {Object.keys(validationErrors).map(key => {
+                                    if (key === 'header') {
+                                        return (
+                                            <li key={key} className="flex items-center gap-2 text-xs font-medium text-red-600 dark:text-red-400">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                                                Header {['VIDEO'].includes((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase()) ? 'Video' : (selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase() === 'DOCUMENT' ? 'Document' : 'Image'} is required — click the placeholder in the Message Preview on the right.
+                                            </li>
+                                        );
+                                    }
+                                    if (key.startsWith('var_')) {
+                                        const varName = key.replace('var_', '');
+                                        return (
+                                            <li key={key} className="flex items-center gap-2 text-xs font-medium text-red-600 dark:text-red-400">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                                                Body Parameter <strong>{`{{${varName}}}`}</strong> is empty.
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { paramsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}
+                                                    className="ml-auto underline text-red-500 hover:text-red-700 dark:hover:text-red-300 font-semibold"
+                                                >Fix parameter →</button>
+                                            </li>
+                                        );
+                                    }
+                                    if (key.startsWith('card_')) {
+                                        if (key.match(/^card_\d+$/)) return null; // skip the general card marker
+                                        const parts = key.split('_');
+                                        const idx = parseInt(parts[1]);
+                                        
+                                        let message = '';
+                                        if (key.endsWith('_media')) message = 'Media is required';
+                                        else if (key.includes('_var_')) message = `Variable {{${parts.slice(3).join('_')}}} is required`;
+                                        else if (key.includes('_btn_')) message = `Button ${parseInt(parts[3]) + 1} URL is required`;
+                                        
+                                        return (
+                                            <li key={key} className="flex items-center gap-2 text-xs font-medium text-red-600 dark:text-red-400">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                                                Card {idx + 1}: {message}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { cardRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}
+                                                    className="ml-auto underline text-red-500 hover:text-red-700 dark:hover:text-red-300 font-semibold"
+                                                >Jump to Card {idx + 1} →</button>
+                                            </li>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* ── Soft Warning (no error yet, just informational) ── */}
+                    {Object.keys(validationErrors).length === 0 && !isCarousel && (
+                        (selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE' ||
+                         selectedTemplate.type === 'VIDEO' || selectedTemplate.headerType === 'VIDEO' ||
+                         selectedTemplate.type === 'DOCUMENT' || selectedTemplate.headerType === 'DOCUMENT') && !headerPreviewUrl
+                    ) && (
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700/50 rounded-2xl px-5 py-4 flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                                    Header {['VIDEO'].includes((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase()) ? 'Video' : (selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase() === 'DOCUMENT' ? 'Document' : 'Image'} Required
+                                </p>
+                                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                                    This template has a media header. Click the placeholder in the <strong>Message Preview</strong> on the right to select it.
+                                </p>
                             </div>
                         </div>
                     )}
@@ -793,17 +1079,25 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                             <path d="M1.533,3.568L8,12.193V1H2.812C1.042,1,0.474,2.156,1.533,3.568z"></path>
                                         </svg>
                                         {(selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE') && (
-                                            <div className="w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2 relative">
+                                            <div className={`w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2 relative ring-2 transition-all ${
+                                                validationErrors.header ? 'ring-red-400' : 'ring-transparent'
+                                            }`}>
                                                 {headerPreviewUrl ? (
                                                     <img className="w-full h-full object-cover" src={headerPreviewUrl} alt="Header" />
                                                 ) : (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleHeaderFileChange('IMAGE')}
-                                                        className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20 transition-all group"
+                                                        className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all group ${
+                                                            validationErrors.header
+                                                                ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
+                                                                : 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20'
+                                                        }`}
                                                     >
-                                                        <ImageIcon className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
-                                                        <span className="text-[9px] text-slate-400 group-hover:text-primary font-medium transition-colors">Select image from library</span>
+                                                        <ImageIcon className={`w-6 h-6 transition-colors ${ validationErrors.header ? 'text-red-400 group-hover:text-red-500' : 'text-slate-400 group-hover:text-primary' }`} />
+                                                        <span className={`text-[9px] font-medium transition-colors ${ validationErrors.header ? 'text-red-400 group-hover:text-red-500' : 'text-slate-400 group-hover:text-primary' }`}>
+                                                            {validationErrors.header ? '⚠ Required — select image' : 'Select image from library'}
+                                                        </span>
                                                     </button>
                                                 )}
                                                 {headerPreviewUrl && (
@@ -818,17 +1112,25 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                             </div>
                                         )}
                                         {(selectedTemplate.type === 'VIDEO' || selectedTemplate.headerType === 'VIDEO') && (
-                                            <div className="w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2 relative">
+                                            <div className={`w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2 relative ring-2 transition-all ${
+                                                validationErrors.header ? 'ring-red-400' : 'ring-transparent'
+                                            }`}>
                                                 {headerPreviewUrl ? (
                                                     <video className="w-full h-full object-cover" src={headerPreviewUrl} muted playsInline />
                                                 ) : (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleHeaderFileChange('VIDEO')}
-                                                        className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20 transition-all group"
+                                                        className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all group ${
+                                                            validationErrors.header
+                                                                ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
+                                                                : 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20'
+                                                        }`}
                                                     >
-                                                        <ImageIcon className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
-                                                        <span className="text-[9px] text-slate-400 group-hover:text-primary font-medium transition-colors">Select video from library</span>
+                                                        <ImageIcon className={`w-6 h-6 transition-colors ${ validationErrors.header ? 'text-red-400 group-hover:text-red-500' : 'text-slate-400 group-hover:text-primary' }`} />
+                                                        <span className={`text-[9px] font-medium transition-colors ${ validationErrors.header ? 'text-red-400 group-hover:text-red-500' : 'text-slate-400 group-hover:text-primary' }`}>
+                                                            {validationErrors.header ? '⚠ Required — select video' : 'Select video from library'}
+                                                        </span>
                                                     </button>
                                                 )}
                                                 {headerPreviewUrl && (

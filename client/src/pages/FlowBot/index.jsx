@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import axios from 'axios';
@@ -29,6 +29,7 @@ const FlowBotBuilder = () => {
     const { token } = useAuth();
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const reactFlowWrapper = useRef(null);
     const initialLoadDone = useRef(false);
 
@@ -55,8 +56,16 @@ const FlowBotBuilder = () => {
         } else {
             // New flow
             initialLoadDone.current = false;
-            setNodes([{ ...defaultTriggerNode }]);
-            setEdges([]);
+            // Check if AI-generated nodes were passed via navigation state (from FlowList Smart Flow Builder)
+            const aiNodes = location.state?.aiNodes;
+            const aiEdges = location.state?.aiEdges;
+            if (aiNodes && aiNodes.length > 0) {
+                setNodes(aiNodes);
+                setEdges(aiEdges || []);
+            } else {
+                setNodes([{ ...defaultTriggerNode }]);
+                setEdges([]);
+            }
             setActiveFlowId(null);
             setFlowName('Untitled Flow');
             setFlowStatus('draft');
@@ -66,7 +75,7 @@ const FlowBotBuilder = () => {
             setTimeout(() => { initialLoadDone.current = true; }, 100);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+    }, [id, location.state]);
 
     useEffect(() => {
         if (initialLoadDone.current) {

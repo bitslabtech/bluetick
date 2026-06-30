@@ -383,6 +383,32 @@ const AdminAITokenUsers = () => {
                                     </div>
                                 </div>
 
+                                {/* AI Flowbot Builder Setting */}
+                                <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-bold text-slate-800 dark:text-slate-200">AI Flowbot Builder Multiplier</h3>
+                                            <p className="text-sm text-slate-500 mt-1">Scales the base cost based on actual Gemini token usage. Default is 5x.</p>
+                                        </div>
+                                        <div className="p-2 bg-indigo-100 dark:bg-indigo-500/10 rounded-lg">
+                                            <Sparkles className="w-5 h-5 text-indigo-500" />
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <span className="text-slate-400 font-bold">x</span>
+                                        </div>
+                                        <input 
+                                            type="number" 
+                                            step="0.1" 
+                                            min="0"
+                                            className="w-full pl-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white rounded-xl py-3 pr-4 font-bold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                            value={globalTokens.ai_flowbot_builder ?? 5}
+                                            onChange={(e) => setGlobalTokens({ ...globalTokens, ai_flowbot_builder: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Meta Ads Builder Setting */}
                                 <div className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 p-4 md:p-6 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-shadow">
                                     <div className="flex justify-between items-start">
