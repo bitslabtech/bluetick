@@ -444,7 +444,7 @@ router.post('/submit/:id', async (req, res) => {
 
 
                     await axios.post(
-                        `https://graph.facebook.com/v17.0/${settings.metaPhoneNumberId}/messages`,
+                        `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`,
                         {
                             messaging_product: 'whatsapp',
                             to: contactNumber.replace(/\D/g, ''),

@@ -402,7 +402,7 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                 }
 
                 // Verify credentials by fetching phone number info
-                const response = await fetch(`https://graph.facebook.com/v17.0/${whatsappSettings.metaPhoneNumberId}`, {
+                const response = await fetch(`https://graph.facebook.com/v21.0/${whatsappSettings.metaPhoneNumberId}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${whatsappSettings.metaAccessToken}`

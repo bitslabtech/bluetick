@@ -783,7 +783,7 @@ router.post('/:userId', (req, res, next) => {
                                             };
 
                                             // Make asynchronous call
-                                            fetch(`https://graph.facebook.com/v19.0/${settings.metaPhoneNumberId}/messages`, {
+                                            fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
                                                 method: 'POST',
                                                 headers: {
                                                     'Authorization': `Bearer ${settings.metaAccessToken}`,
@@ -853,7 +853,7 @@ router.post('/:userId', (req, res, next) => {
                                             text: { preview_url: false, body: aiReplyText }
                                         };
 
-                                        fetch(`https://graph.facebook.com/v19.0/${settings.metaPhoneNumberId}/messages`, {
+                                        fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
                                             method: 'POST',
                                             headers: {
                                                 'Authorization': `Bearer ${settings.metaAccessToken}`,

@@ -314,7 +314,7 @@ router.post('/', async (req, res) => {
                         };
 
                         const profileRes = await fetch(
-                            `https://graph.facebook.com/v19.0/${settings.metaPhoneNumberId}/whatsapp_business_profile`,
+                            `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/whatsapp_business_profile`,
                             {
                                 method: 'POST',
                                 headers: {
@@ -349,7 +349,7 @@ router.post('/', async (req, res) => {
         if (settings.metaBusinessAccountId && settings.metaAccessToken) {
             try {
                 const subRes = await fetch(
-                    `https://graph.facebook.com/v19.0/${settings.metaBusinessAccountId}/subscribed_apps`,
+                    `https://graph.facebook.com/v21.0/${settings.metaBusinessAccountId}/subscribed_apps`,
                     {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${settings.metaAccessToken}` }
@@ -508,7 +508,7 @@ router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, 
 
         // Step 1: Initialize Resumable Upload Session
         console.log(`[WABA PROFILE DP] Init Upload Session for ${phoneId}`);
-        const initRes = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/uploads?file_length=${fileSize}&file_type=${fileType}`, {
+        const initRes = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/uploads?file_length=${fileSize}&file_type=${fileType}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -523,7 +523,7 @@ router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, 
 
         // Step 2: Upload File Bytes
         console.log(`[WABA PROFILE DP] Uploading bytes to session ${uploadSessionId}`);
-        const uploadRes = await fetch(`https://graph.facebook.com/v19.0/${uploadSessionId}`, {
+        const uploadRes = await fetch(`https://graph.facebook.com/v21.0/${uploadSessionId}`, {
             method: 'POST',
             headers: {
                 'Authorization': `OAuth ${token}`,
@@ -542,7 +542,7 @@ router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, 
 
         // Step 3: Set Web Profile Picture
         console.log(`[WABA PROFILE DP] Setting profile picture with handle ${fileHandle}`);
-        const setRes = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/whatsapp_business_profile`, {
+        const setRes = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/whatsapp_business_profile`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -583,7 +583,7 @@ router.get('/sync-whatsapp-profile', auth, async (req, res) => {
         const token = settings.metaAccessToken;
         const phoneId = settings.metaPhoneNumberId;
 
-        const response = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`, {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -640,7 +640,7 @@ router.post('/subscribe-waba', async (req, res) => {
         console.log(`[SUBSCRIBE-WABA] Subscribing app to WABA: ${wabaId}`);
 
         const response = await fetch(
-            `https://graph.facebook.com/v19.0/${wabaId}/subscribed_apps`,
+            `https://graph.facebook.com/v21.0/${wabaId}/subscribed_apps`,
             {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -691,7 +691,7 @@ router.post('/test', auth, async (req, res) => {
         // If a test phone number is provided, try to send a message
         if (req.body.testPhoneNumber) {
             const sendTestMessage = async (langCode) => {
-                return axios.post(`https://graph.facebook.com/v19.0/${metaPhoneNumberId}/messages`, {
+                return axios.post(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`, {
                     messaging_product: 'whatsapp',
                     to: req.body.testPhoneNumber,
                     type: 'template',
@@ -739,7 +739,7 @@ router.post('/test', auth, async (req, res) => {
 
         // Fallback: Just check GET request if no phone number (Verification only)
         try {
-            const response = await axios.get(`https://graph.facebook.com/v19.0/${metaPhoneNumberId}`, {
+            const response = await axios.get(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}`, {
                 headers: {
                     'Authorization': `Bearer ${metaAccessToken}`
                 }

@@ -317,7 +317,7 @@ function initScheduler() {
                             + `Let us know if you need any help!`;
                             
                         try {
-                            await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
+                            await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/messages`, {
                                 messaging_product: 'whatsapp',
                                 recipient_type: 'individual',
                                 to: phone,

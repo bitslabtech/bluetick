@@ -268,7 +268,7 @@ const processCampaign = async (campaignId) => {
                         }
                     }
 
-                    const metaRes = await fetch(`https://graph.facebook.com/v17.0/${settings.metaPhoneNumberId}/messages`, {
+                    const metaRes = await fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${settings.metaAccessToken}`,

@@ -63,7 +63,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         }
 
         // Step 1: Create Resumable Upload Session
-        const sessionUrl = `https://graph.facebook.com/v17.0/${appId}/uploads?file_length=${fileSize}&file_type=${encodeURIComponent(req.file.mimetype)}`;
+        const sessionUrl = `https://graph.facebook.com/v21.0/${appId}/uploads?file_length=${fileSize}&file_type=${encodeURIComponent(req.file.mimetype)}`;
         const sessionRes = await fetch(sessionUrl, {
             method: 'POST',
             headers: {
@@ -77,7 +77,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         const sessionId = sessionData.id;
 
         // Step 2: Upload File Data
-        const uploadUrl = `https://graph.facebook.com/v17.0/${sessionId}`;
+        const uploadUrl = `https://graph.facebook.com/v21.0/${sessionId}`;
         const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
@@ -130,7 +130,7 @@ router.post('/upload-message-media', storageProvider('campaign-media', { fileFil
         form.append('messaging_product', 'whatsapp');
 
         const uploadRes = await axios.post(
-            `https://graph.facebook.com/v17.0/${settings.metaPhoneNumberId}/media`,
+            `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/media`,
             form,
             {
                 headers: {
@@ -168,7 +168,7 @@ router.post('/upload-message-media-url', async (req, res) => {
         form.append('messaging_product', 'whatsapp');
 
         const uploadRes = await axios.post(
-            `https://graph.facebook.com/v17.0/${settings.metaPhoneNumberId}/media`,
+            `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/media`,
             form,
             {
                 headers: {
@@ -277,7 +277,8 @@ router.post('/', async (req, res) => {
                 if (headerType === 'TEXT' && headerContent) {
                     headerComp.text = headerContent;
                     if (req.body.headerVariables && req.body.headerVariables.length > 0) {
-                        headerComp.example = { header_text: req.body.headerVariables };
+                        // Meta requires header_text as an array of arrays: [["sample_value"]]
+                        headerComp.example = { header_text: [req.body.headerVariables] };
                     }
                 } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerType) && headerHandle) {
                     headerComp.example = { header_handle: [headerHandle] };
@@ -302,6 +303,8 @@ router.post('/', async (req, res) => {
                     if (btn.type === 'URL') return { type: 'URL', text: btn.text, url: btn.url };
                     if (btn.type === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: btn.text, phone_number: btn.phoneNumber };
                     if (btn.type === 'COPY_CODE') return { type: 'COPY_CODE', text: 'Copy offer code', example: [btn.couponCode || ''] };
+                    // Authentication OTP button — Meta requires this exact structure
+                    if (btn.type === 'OTP') return { type: 'OTP', otp_type: btn.otp_type || 'COPY_CODE', text: btn.text || 'Copy Code' };
                     return { type: 'QUICK_REPLY', text: btn.text };
                 });
                 components.push({ type: "BUTTONS", buttons: standardBtns });
@@ -318,7 +321,7 @@ router.post('/', async (req, res) => {
         };
 
         // Send to Meta Graph API
-        const response = await fetch(`https://graph.facebook.com/v17.0/${settings.metaBusinessAccountId}/message_templates`, {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${settings.metaBusinessAccountId}/message_templates`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${settings.metaAccessToken}`,
@@ -392,7 +395,7 @@ router.delete('/:id', async (req, res) => {
         if (settings && settings.metaBusinessAccountId && settings.metaAccessToken) {
             try {
                 // Meta API for deleting template requires the name parameter
-                const response = await fetch(`https://graph.facebook.com/v17.0/${settings.metaBusinessAccountId}/message_templates?name=${template.name}`, {
+                const response = await fetch(`https://graph.facebook.com/v21.0/${settings.metaBusinessAccountId}/message_templates?name=${template.name}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${settings.metaAccessToken}`
@@ -433,7 +436,7 @@ router.post('/sync', async (req, res) => {
         const { metaBusinessAccountId, metaAccessToken } = settings;
 
         // Fetch templates from Meta
-        const response = await fetch(`https://graph.facebook.com/v17.0/${metaBusinessAccountId}/message_templates?limit=100`, {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${metaBusinessAccountId}/message_templates?limit=100`, {
             headers: { 'Authorization': `Bearer ${metaAccessToken}` }
         });
 
@@ -507,7 +510,11 @@ router.post('/sync', async (req, res) => {
             let archetype = 'simple_text';
             if (carouselComponent) archetype = 'carousel';
             else if (buttons && buttons.length > 0) {
-                if (buttons.some(b => ['URL', 'PHONE_NUMBER', 'COPY_CODE'].includes(b.type))) {
+                const hasQR = buttons.some(b => b.type === 'QUICK_REPLY');
+                const hasCTA = buttons.some(b => ['URL', 'PHONE_NUMBER', 'COPY_CODE'].includes(b.type));
+                if (hasQR && hasCTA) {
+                    archetype = 'mixed_buttons';
+                } else if (hasCTA) {
                     archetype = 'call_to_action';
                 } else {
                     archetype = 'quick_replies';

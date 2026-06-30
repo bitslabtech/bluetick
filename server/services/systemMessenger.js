@@ -36,7 +36,7 @@ const sendSystemMessage = async (to, type, payload) => {
 
         const token = adminSettings.metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
         const phoneId = adminSettings.metaPhoneNumberId.replace(/[^\x20-\x7E]/g, '').trim();
-        const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
+        const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
         
         let data = {
             messaging_product: "whatsapp",

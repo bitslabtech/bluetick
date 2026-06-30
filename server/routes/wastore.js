@@ -369,7 +369,7 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
         form.append('type', 'document');
         form.append('messaging_product', 'whatsapp');
 
-        const uploadRes = await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/media`, form, {
+        const uploadRes = await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/media`, form, {
             headers: {
                 ...form.getHeaders(),
                 'Authorization': `Bearer ${user.fbAccessToken}`
@@ -378,7 +378,7 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
 
         const mediaId = uploadRes.data.id;
 
-        await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
+        await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/messages`, {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
             to: phone,
@@ -460,7 +460,7 @@ async function sendOrderNotification(triggerKey, store, user, order, extras = {}
             components.push({ type: 'body', parameters });
         }
 
-        await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
+        await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/messages`, {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
             to: phone,
@@ -1199,7 +1199,7 @@ router.post('/:storeId/orders/:orderId/fulfill', async (req, res) => {
                 + `Thank you for shopping with us!`;
 
             try {
-                await axios.post(`https://graph.facebook.com/v19.0/${user.metaPhoneNumberId}/messages`, {
+                await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/messages`, {
                     messaging_product: 'whatsapp',
                     recipient_type: 'individual',
                     to: phone,

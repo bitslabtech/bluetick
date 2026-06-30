@@ -960,7 +960,7 @@ class FlowRunner {
 
     async dispatchToMeta(payload, logBody, logType) {
         try {
-            const res = await fetch(`https://graph.facebook.com/v19.0/${this.settings.metaPhoneNumberId}/messages`, {
+            const res = await fetch(`https://graph.facebook.com/v21.0/${this.settings.metaPhoneNumberId}/messages`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${this.settings.metaAccessToken}`,

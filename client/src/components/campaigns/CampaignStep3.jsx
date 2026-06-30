@@ -4,7 +4,7 @@ import { useUI } from '../../context/UIContext';
 import {
     FileText, User, ChevronDown, Clock, Send, Signal, Wifi, Battery,
     CheckCheck, Check, ArrowLeft, Calendar, Zap, Sparkles,
-    Image as ImageIcon, Link2, Phone, CreditCard, Layers, AlertTriangle, Users, Type, Film, FileIcon, XCircle
+    Image as ImageIcon, Link2, ExternalLink, Phone, CreditCard, Layers, AlertTriangle, Users, Type, Film, FileIcon, XCircle
 } from 'lucide-react';
 import MediaPickerModal, { MIME_PRESETS } from '../MediaPickerModal';
 
@@ -194,6 +194,9 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     // Extract variables from template content
     const variables = selectedTemplate.content ? (selectedTemplate.content.match(/\{\{([^}]+)\}\}/g) || []).map(v => v.replace(/\{\{|\}\}/g, '')) : [];
 
+    const headerMediaType = (selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase();
+    const needsStandardMedia = !isCarousel && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerMediaType);
+
     // --- Dynamic Cost Calculation State ---
     const [totalRecipientsCount, setTotalRecipientsCount] = useState(0);
     const [calculatingCost, setCalculatingCost] = useState(false);
@@ -347,11 +350,15 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
     };
 
     const handleHeaderFileChange = (headerType) => {
+        let mimeConstraints = MIME_PRESETS.whatsapp_image;
+        if (headerType === 'VIDEO') mimeConstraints = ["video/mp4", "video/3gpp"];
+        else if (headerType === 'DOCUMENT') mimeConstraints = ["application/pdf", "text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+        
         setMediaPickerConfig({
             isOpen: true,
             type: 'header',
             index: null,
-            mimeConstraints: headerType === 'VIDEO' ? ["video/mp4", "video/3gpp"] : MIME_PRESETS.whatsapp_image
+            mimeConstraints
         });
     };
 
@@ -611,6 +618,68 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                         </div>
                     </div>
 
+                    {/* ── Header Media Upload (Standard Template) ── */}
+                    {needsStandardMedia && (
+                        <div ref={headerSectionRef} className={`bg-white dark:bg-surface-dark rounded-2xl border-2 overflow-hidden shadow-sm transition-colors duration-300 ${
+                            validationErrors.header ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-white/5'
+                        }`}>
+                            <div className={`px-4 md:px-6 py-4 border-b flex items-center gap-3 ${
+                                validationErrors.header ? 'border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-900/10' : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/5'
+                            }`}>
+                                <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><Layers className="w-5 h-5" /></div>
+                                <div>
+                                    <h3 className="text-slate-900 dark:text-white font-bold text-lg leading-tight">Header Media</h3>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Upload a {headerMediaType === 'VIDEO' ? 'video' : headerMediaType === 'DOCUMENT' ? 'document' : 'image'} to include at the top of your message</p>
+                                </div>
+                            </div>
+                            <div className="p-4 md:p-6 space-y-4">
+                                <label className="block text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wider">
+                                    {headerMediaType === 'IMAGE' ? '🖼️ Header Image' : headerMediaType === 'VIDEO' ? '🎬 Header Video' : '📄 Header Document'}
+                                    <span className="text-red-400 ml-1">*</span>
+                                </label>
+                                
+                                <div className="relative flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleHeaderFileChange(headerMediaType)}
+                                        className={`flex-1 flex items-center gap-3 border-2 rounded-xl p-3 cursor-pointer transition-all group text-left ${
+                                            validationErrors.header
+                                                ? 'bg-red-50 dark:bg-red-900/10 border-red-400 dark:border-red-500 hover:border-red-500'
+                                                : 'bg-white dark:bg-background-dark border-dashed border-slate-200 dark:border-white/10 hover:border-primary/50 hover:bg-blue-50/30 dark:hover:bg-blue-950/10'
+                                        }`}
+                                    >
+                                        <div className={`p-2 rounded-lg transition-colors ${
+                                            validationErrors.header ? 'bg-red-500/10 group-hover:bg-red-500/20' : 'bg-blue-500/10 group-hover:bg-blue-500/20'
+                                        }`}>
+                                            {headerMediaType === 'VIDEO' ? (
+                                                <Film className={`w-4 h-4 ${ validationErrors.header ? 'text-red-400' : 'text-blue-500' }`} />
+                                            ) : headerMediaType === 'DOCUMENT' ? (
+                                                <FileIcon className={`w-4 h-4 ${ validationErrors.header ? 'text-red-400' : 'text-blue-500' }`} />
+                                            ) : (
+                                                <ImageIcon className={`w-4 h-4 ${ validationErrors.header ? 'text-red-400' : 'text-blue-500' }`} />
+                                            )}
+                                        </div>
+                                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                                            {headerPreviewUrl
+                                                ? <span className="text-green-600 dark:text-green-400 font-medium">✓ {headerPreviewUrl.split('/').pop().split('?')[0]}</span>
+                                                : validationErrors.header
+                                                    ? <span className="text-red-500 dark:text-red-400 font-medium">⚠ Select a {headerMediaType.toLowerCase()} — required!</span>
+                                                    : 'Select media from library'}
+                                        </span>
+                                    </button>
+                                </div>
+                                {validationErrors.header && (
+                                    <p className="text-xs text-red-500 dark:text-red-400 mt-1.5 flex items-center gap-1">
+                                        <XCircle className="w-3 h-3" /> This template requires a {headerMediaType.toLowerCase()} header before sending.
+                                    </p>
+                                )}
+                                {!validationErrors.header && (
+                                    <p className="text-xs text-slate-400 mt-1.5">This media will be uploaded to Meta before sending.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* ── Body Parameters (fully dynamic) ── */}
                     {variables.length > 0 && (
                         <div ref={paramsSectionRef} className={`bg-white dark:bg-surface-dark rounded-2xl border-2 overflow-hidden shadow-sm transition-colors duration-300 ${
@@ -811,8 +880,53 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                         </div>
                     )}
 
+                    {/* ── Standard template: Dynamic URL Button overrides ── */}
+                    {!isCarousel && Array.isArray(selectedTemplate.buttons) && selectedTemplate.buttons.some(b => b.type === 'URL' && b.url && b.url.includes('{{')) && (
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
+                            <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
+                                <div className="bg-emerald-500/20 p-2 rounded-lg text-emerald-400">
+                                    <ExternalLink className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-slate-900 dark:text-white font-bold text-lg">Dynamic Button URLs</h3>
+                                    <p className="text-xs text-slate-500 dark:text-text-secondary">These buttons have dynamic parts — enter the value to complete the URL</p>
+                                </div>
+                            </div>
+                            <div className="p-4 md:p-6 space-y-4">
+                                {selectedTemplate.buttons
+                                    .map((btn, idx) => ({ btn, idx }))
+                                    .filter(({ btn }) => btn.type === 'URL' && btn.url && btn.url.includes('{{'))
+                                    .map(({ btn, idx }) => {
+                                        const paramKey = `btn_${idx}_url`;
+                                        const currentVal = (data.params || {})[paramKey] || '';
+                                        const urlDisplay = btn.url.replace(/\{\{[^}]+\}\}/g, '[dynamic-value]');
+                                        return (
+                                            <div key={idx} className="flex items-start gap-3">
+                                                <div className="bg-emerald-500/10 p-2 rounded-lg flex-shrink-0 mt-1">
+                                                    <ExternalLink className="w-4 h-4 text-emerald-500" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">"{btn.text}"</p>
+                                                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 font-mono break-all">{urlDisplay}</p>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full bg-slate-50 dark:bg-background-dark border-2 border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/30 transition-all"
+                                                        placeholder="Enter the dynamic value for this URL…"
+                                                        value={currentVal}
+                                                        onChange={e => updateData({ params: { ...(data.params || {}), [paramKey]: e.target.value } })}
+                                                    />
+                                                    <p className="text-xs text-slate-400 mt-1">This value replaces the {'{{...}}'} placeholder in the button URL at send time.</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                }
+                            </div>
+                        </div>
+                    )}
+
                     {/* Standard template — show "no variables" placeholder */}
-                    {!isCarousel && variables.length === 0 && (
+                    {!isCarousel && variables.length === 0 && !(Array.isArray(selectedTemplate.buttons) && selectedTemplate.buttons.some(b => b.type === 'URL' && b.url && b.url.includes('{{'))) && (
                         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm transition-colors duration-300">
                             <div className="px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center gap-3 bg-slate-50 dark:bg-white/5">
                                 <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400"><User className="w-5 h-5" /></div>
@@ -888,24 +1002,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                         </div>
                     )}
 
-                    {/* ── Soft Warning (no error yet, just informational) ── */}
-                    {Object.keys(validationErrors).length === 0 && !isCarousel && (
-                        (selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE' ||
-                         selectedTemplate.type === 'VIDEO' || selectedTemplate.headerType === 'VIDEO' ||
-                         selectedTemplate.type === 'DOCUMENT' || selectedTemplate.headerType === 'DOCUMENT') && !headerPreviewUrl
-                    ) && (
-                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700/50 rounded-2xl px-5 py-4 flex items-start gap-3">
-                            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
-                                    Header {['VIDEO'].includes((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase()) ? 'Video' : (selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase() === 'DOCUMENT' ? 'Document' : 'Image'} Required
-                                </p>
-                                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                                    This template has a media header. Click the placeholder in the <strong>Message Preview</strong> on the right to select it.
-                                </p>
-                            </div>
-                        </div>
-                    )}
+                    {/* Soft warning removed since we now show an explicit media upload field above */}
 
                     {/* Scheduling */}
                     <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 overflow-visible shadow-sm transition-colors duration-300 ring-1 ring-slate-100 dark:ring-white/5">
@@ -1078,7 +1175,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                         <svg viewBox="0 0 8 13" width="8" height="13" className="absolute top-0 -left-2 text-white dark:text-[#202c33] fill-current">
                                             <path d="M1.533,3.568L8,12.193V1H2.812C1.042,1,0.474,2.156,1.533,3.568z"></path>
                                         </svg>
-                                        {(selectedTemplate.type === 'IMAGE' || selectedTemplate.headerType === 'IMAGE') && (
+                                        {((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase() === 'IMAGE') && (
                                             <div className={`w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2 relative ring-2 transition-all ${
                                                 validationErrors.header ? 'ring-red-400' : 'ring-transparent'
                                             }`}>
@@ -1111,7 +1208,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                                 )}
                                             </div>
                                         )}
-                                        {(selectedTemplate.type === 'VIDEO' || selectedTemplate.headerType === 'VIDEO') && (
+                                        {((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase() === 'VIDEO') && (
                                             <div className={`w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2 relative ring-2 transition-all ${
                                                 validationErrors.header ? 'ring-red-400' : 'ring-transparent'
                                             }`}>
@@ -1137,6 +1234,42 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleHeaderFileChange('VIDEO')}
+                                                        className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded cursor-pointer hover:bg-black/80 transition-colors"
+                                                    >
+                                                        Change
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                        {((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase() === 'DOCUMENT') && (
+                                            <div className={`w-full aspect-video bg-black/5 rounded-xl overflow-hidden mb-2 relative ring-2 transition-all ${
+                                                validationErrors.header ? 'ring-red-400' : 'ring-transparent'
+                                            }`}>
+                                                {headerPreviewUrl ? (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/20">
+                                                        <FileIcon className="w-8 h-8 text-blue-500 mb-2" />
+                                                        <span className="text-[10px] text-blue-700 dark:text-blue-300 font-medium px-2 text-center truncate w-full">{headerPreviewUrl.split('/').pop().split('?')[0]}</span>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleHeaderFileChange('DOCUMENT')}
+                                                        className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1 cursor-pointer transition-all group ${
+                                                            validationErrors.header
+                                                                ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
+                                                                : 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-950/30 dark:hover:to-blue-900/20'
+                                                        }`}
+                                                    >
+                                                        <FileIcon className={`w-6 h-6 transition-colors ${ validationErrors.header ? 'text-red-400 group-hover:text-red-500' : 'text-slate-400 group-hover:text-primary' }`} />
+                                                        <span className={`text-[9px] font-medium transition-colors ${ validationErrors.header ? 'text-red-400 group-hover:text-red-500' : 'text-slate-400 group-hover:text-primary' }`}>
+                                                            {validationErrors.header ? '⚠ Required — select document' : 'Select document'}
+                                                        </span>
+                                                    </button>
+                                                )}
+                                                {headerPreviewUrl && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleHeaderFileChange('DOCUMENT')}
                                                         className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded cursor-pointer hover:bg-black/80 transition-colors"
                                                     >
                                                         Change

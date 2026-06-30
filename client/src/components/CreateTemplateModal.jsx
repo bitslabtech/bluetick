@@ -41,7 +41,7 @@ const TEMPLATE_ARCHETYPES = [
     {
         id: 'quick_replies',
         title: 'Interactive Quick Replies',
-        description: 'Provide up to 3 preset buttons users can tap to instantly reply to your message.',
+        description: 'Provide up to 10 preset buttons users can tap to instantly reply to your message.',
         icon: MousePointerClick,
         color: 'text-orange-500',
         bgColor: 'bg-orange-500/10',
@@ -283,7 +283,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
     };
 
     const handleAddButton = (type) => {
-        // Meta limits: Max 3 Quick Replies, Max 1 Phone, Max 2 URL, Max 1 COPY_CODE
+        // Meta limits: Max 10 total buttons. Max 10 Quick Replies, Max 2 URL, Max 1 Phone, Max 1 COPY_CODE. Quick Replies & CTAs can be mixed.
         const currentQRs = formData.buttons.filter(b => b.type === 'QUICK_REPLY').length;
         const currentURLs = formData.buttons.filter(b => b.type === 'URL').length;
         const currentPhones = formData.buttons.filter(b => b.type === 'PHONE_NUMBER').length;
@@ -311,18 +311,22 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
     };
 
     const handleAddCardButton = (cardIndex, type) => {
+        // Meta API: Carousel cards do NOT support COPY_CODE buttons
+        if (type === 'COPY_CODE') return showToast({ type: 'error', title: 'Not Supported', message: 'Copy Code buttons are not allowed in carousel cards per Meta policy.' });
+
         const cardClass = formData.cards[cardIndex];
+        const currentTotal = cardClass.buttons.length;
         const currentQRs = cardClass.buttons.filter(b => b.type === 'QUICK_REPLY').length;
         const currentURLs = cardClass.buttons.filter(b => b.type === 'URL').length;
         const currentPhones = cardClass.buttons.filter(b => b.type === 'PHONE_NUMBER').length;
-        const currentCopyCodes = cardClass.buttons.filter(b => b.type === 'COPY_CODE').length;
 
-        if (type === 'QUICK_REPLY' && currentQRs >= 3) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 3 Quick Replies allowed.' });
-        if (type === 'URL' && currentURLs >= 2) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 2 URL buttons allowed.' });
-        if (type === 'PHONE_NUMBER' && currentPhones >= 1) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 1 Phone button allowed.' });
-        if (type === 'COPY_CODE' && currentCopyCodes >= 1) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 1 Copy Code button allowed.' });
+        // Meta API: Max 2 buttons per carousel card
+        if (currentTotal >= 2) return showToast({ type: 'error', title: 'Limit Reached', message: 'Carousel cards support a maximum of 2 buttons per Meta policy.' });
+        if (type === 'QUICK_REPLY' && currentQRs >= 2) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 2 Quick Replies per card allowed.' });
+        if (type === 'URL' && currentURLs >= 2) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 2 URL buttons per card allowed.' });
+        if (type === 'PHONE_NUMBER' && currentPhones >= 1) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 1 Phone button per card allowed.' });
 
-        const newBtn = { type, text: type === 'COPY_CODE' ? 'Copy offer code' : '', url: '', phoneNumber: '', couponCode: '' };
+        const newBtn = { type, text: '', url: '', phoneNumber: '', couponCode: '' };
         const newCards = [...formData.cards];
         newCards.forEach(c => {
             c.buttons.push({ ...newBtn });
@@ -430,6 +434,15 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
             errors.headerContent = 'Header text cannot be empty.';
         }
 
+        // 5b. Footer validation (Meta does not allow variables or links in footer)
+        if (formData.footer && formData.footer.trim()) {
+            if (/\{\{\d+\}\}/.test(formData.footer)) {
+                errors.footer = 'Footer cannot contain variables like {{1}}. Meta will reject this.';
+            } else if (/https?:\/\//i.test(formData.footer)) {
+                errors.footer = 'Footer cannot contain links (http/https). Meta will reject this.';
+            }
+        }
+
         // 6. Button validation
         const btnErrors = [];
         formData.buttons.forEach((btn, i) => {
@@ -502,18 +515,31 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
 
             // 2. Submit Final Payload
             showToast({ type: 'info', title: 'Finalizing', message: 'Submitting template to Meta...' });
+
+            // For Authentication templates — auto-inject OTP button (Meta requires this)
+            let finalButtons = formData.buttons;
+            if (selectedArchetype?.id === 'authentication') {
+                // Meta Authentication templates must have exactly one OTP_COPY_CODE action button
+                const hasOtpBtn = finalButtons.some(b => b.type === 'OTP' || b.type === 'COPY_CODE');
+                if (!hasOtpBtn) {
+                    finalButtons = [
+                        { type: 'OTP', otp_type: 'COPY_CODE', text: 'Copy Code' }
+                    ];
+                }
+            }
+
             const payload = {
                 name: formData.name,
                 category: formData.category,
                 language: formData.language,
                 content: formData.content,
-                footer: formData.footer || undefined,
-                headerType: formData.headerType,
+                footer: selectedArchetype?.id === 'authentication' ? undefined : (formData.footer || undefined),
+                headerType: selectedArchetype?.id === 'authentication' ? 'NONE' : formData.headerType,
                 headerContent: formData.headerContent || undefined,
                 headerHandle: uploadedHeaderHandle || undefined,
                 bodyVariables: Object.values(bodyVariables),
                 headerVariables: Object.values(headerVariables),
-                buttons: formData.buttons,
+                buttons: finalButtons,
                 archetype: selectedArchetype?.id,
                 cards: processedCards
             };
@@ -693,8 +719,72 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                             >
                                                 <option value="en_US">English (US)</option>
                                                 <option value="en_GB">English (UK)</option>
-                                                <option value="es_ES">Spanish</option>
-                                                <option value="pt_BR">Portuguese</option>
+                                                <option value="af">Afrikaans</option>
+                                                <option value="sq">Albanian</option>
+                                                <option value="ar">Arabic</option>
+                                                <option value="az">Azerbaijani</option>
+                                                <option value="bn">Bengali</option>
+                                                <option value="bg">Bulgarian</option>
+                                                <option value="ca">Catalan</option>
+                                                <option value="zh_CN">Chinese (Simplified)</option>
+                                                <option value="zh_TW">Chinese (Traditional)</option>
+                                                <option value="hr">Croatian</option>
+                                                <option value="cs">Czech</option>
+                                                <option value="da">Danish</option>
+                                                <option value="nl">Dutch</option>
+                                                <option value="et">Estonian</option>
+                                                <option value="fil">Filipino</option>
+                                                <option value="fi">Finnish</option>
+                                                <option value="fr">French</option>
+                                                <option value="ka">Georgian</option>
+                                                <option value="de">German</option>
+                                                <option value="el">Greek</option>
+                                                <option value="gu">Gujarati</option>
+                                                <option value="ha">Hausa</option>
+                                                <option value="he">Hebrew</option>
+                                                <option value="hi">Hindi</option>
+                                                <option value="hu">Hungarian</option>
+                                                <option value="id">Indonesian</option>
+                                                <option value="ga">Irish</option>
+                                                <option value="it">Italian</option>
+                                                <option value="ja">Japanese</option>
+                                                <option value="kn">Kannada</option>
+                                                <option value="kk">Kazakh</option>
+                                                <option value="ko">Korean</option>
+                                                <option value="ky">Kyrgyz</option>
+                                                <option value="lo">Lao</option>
+                                                <option value="lv">Latvian</option>
+                                                <option value="lt">Lithuanian</option>
+                                                <option value="mk">Macedonian</option>
+                                                <option value="ms">Malay</option>
+                                                <option value="ml">Malayalam</option>
+                                                <option value="mr">Marathi</option>
+                                                <option value="nb">Norwegian</option>
+                                                <option value="fa">Persian</option>
+                                                <option value="pl">Polish</option>
+                                                <option value="pt_BR">Portuguese (Brazil)</option>
+                                                <option value="pt_PT">Portuguese (Portugal)</option>
+                                                <option value="pa">Punjabi</option>
+                                                <option value="ro">Romanian</option>
+                                                <option value="ru">Russian</option>
+                                                <option value="sr">Serbian</option>
+                                                <option value="sk">Slovak</option>
+                                                <option value="sl">Slovenian</option>
+                                                <option value="es">Spanish</option>
+                                                <option value="es_AR">Spanish (Argentina)</option>
+                                                <option value="es_ES">Spanish (Spain)</option>
+                                                <option value="es_MX">Spanish (Mexico)</option>
+                                                <option value="sw">Swahili</option>
+                                                <option value="sv">Swedish</option>
+                                                <option value="ta">Tamil</option>
+                                                <option value="te">Telugu</option>
+                                                <option value="th">Thai</option>
+                                                <option value="tr">Turkish</option>
+                                                <option value="uk">Ukrainian</option>
+                                                <option value="ur">Urdu</option>
+                                                <option value="uz">Uzbek</option>
+                                                <option value="vi">Vietnamese</option>
+                                                <option value="zu">Zulu</option>
                                             </select>
                                         </div>
                                     </div>
@@ -907,6 +997,22 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                             2. Message Content
                                         </h3>
 
+                                        {/* Authentication Template Info Banner */}
+                                        {selectedArchetype?.id === 'authentication' && (
+                                            <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30">
+                                                <ShieldCheck className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm font-bold text-rose-700 dark:text-rose-300 mb-1">Authentication Template Rules</p>
+                                                    <ul className="text-xs text-rose-600 dark:text-rose-400 space-y-1 list-disc list-inside">
+                                                        <li>Body must contain exactly one variable <code className="bg-rose-100 dark:bg-rose-900/40 px-1 rounded">{'{{1}}'}</code> for the OTP code</li>
+                                                        <li>No header, footer, or promotional links allowed</li>
+                                                        <li>A <strong>"Copy Code"</strong> OTP button will be added automatically</li>
+                                                        <li>Category is locked to <strong>AUTHENTICATION</strong></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div>
                                             <div className="flex justify-between items-end mb-2">
                                                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Body Text *</label>
@@ -981,14 +1087,24 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                             <input
                                                 type="text"
                                                 value={formData.footer}
-                                                onChange={(e) => setFormData({ ...formData, footer: e.target.value })}
+                                                onChange={(e) => { setFormData({ ...formData, footer: e.target.value }); if (validationErrors.footer) setValidationErrors(p => ({ ...p, footer: undefined })); }}
                                                 maxLength={60}
-                                                className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                                                className={`w-full bg-slate-50 dark:bg-background-dark border rounded-xl px-4 py-2.5 text-slate-900 dark:text-white focus:ring-1 outline-none transition-all ${
+                                                    validationErrors.footer
+                                                        ? 'border-red-400 dark:border-red-500 focus:border-red-400 focus:ring-red-400/30'
+                                                        : 'border-slate-200 dark:border-white/10 focus:border-primary focus:ring-primary'
+                                                }`}
                                                 placeholder="Reply STOP to unsubscribe."
                                             />
-                                            <p className="text-xs text-slate-500 dark:text-text-secondary mt-1.5 flex items-center gap-1">
-                                                Footers appear in small, grey text at the bottom. No variables or links allowed.
-                                            </p>
+                                            {validationErrors.footer ? (
+                                                <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1 font-medium">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {validationErrors.footer}
+                                                </p>
+                                            ) : (
+                                                <p className="text-xs text-slate-500 dark:text-text-secondary mt-1.5 flex items-center gap-1">
+                                                    Footers appear in small, grey text at the bottom. No variables or links allowed.
+                                                </p>
+                                            )}
                                         </div>
 
                                     </div>
@@ -1000,7 +1116,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                         <div className="flex justify-between items-center bg-slate-50 dark:bg-background-dark p-3 rounded-xl border border-slate-200 dark:border-white/10">
                                             <div>
                                                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Interactive Buttons</h4>
-                                                <p className="text-xs text-slate-500 mt-0.5">Cannot mix Quick Replies with CTA buttons.</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">You can add up to 10 buttons (mix of Quick Replies and CTAs).</p>
                                             </div>
 
                                             {/* Button Config Dropdown */}
@@ -1020,7 +1136,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                     <optgroup label="Quick Replies">
                                                         <option
                                                             value="QUICK_REPLY"
-                                                            disabled={formData.buttons.filter(b => b.type === 'QUICK_REPLY').length >= 10 || formData.buttons.some(b => b.type !== 'QUICK_REPLY')}
+                                                            disabled={formData.buttons.length >= 10}
                                                         >
                                                             Custom Quick Reply
                                                         </option>
@@ -1029,19 +1145,19 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                     <optgroup label="Call to Action">
                                                         <option
                                                             value="URL"
-                                                            disabled={formData.buttons.some(b => b.type === 'QUICK_REPLY') || formData.buttons.filter(b => b.type === 'URL').length >= 2}
+                                                            disabled={formData.buttons.length >= 10 || formData.buttons.filter(b => b.type === 'URL').length >= 2}
                                                         >
                                                             Visit Website
                                                         </option>
                                                         <option
                                                             value="PHONE_NUMBER"
-                                                            disabled={formData.buttons.some(b => b.type === 'QUICK_REPLY') || formData.buttons.some(b => b.type === 'PHONE_NUMBER')}
+                                                            disabled={formData.buttons.length >= 10 || formData.buttons.some(b => b.type === 'PHONE_NUMBER')}
                                                         >
                                                             Call Phone Number
                                                         </option>
                                                         <option
                                                             value="COPY_CODE"
-                                                            disabled={formData.buttons.some(b => b.type === 'QUICK_REPLY') || formData.buttons.some(b => b.type === 'COPY_CODE')}
+                                                            disabled={formData.buttons.length >= 10 || formData.buttons.some(b => b.type === 'COPY_CODE')}
                                                         >
                                                             Copy Code (Coupon)
                                                         </option>
@@ -1319,7 +1435,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                                 <optgroup label="Quick Replies">
                                                                     <option
                                                                         value="QUICK_REPLY"
-                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 3 || formData.cards[activeCardIndex].buttons.some(b => b.type !== 'QUICK_REPLY')}
+                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 2 || formData.cards[activeCardIndex].buttons.some(b => b.type !== 'QUICK_REPLY')}
                                                                     >
                                                                         Custom Quick Reply
                                                                     </option>
@@ -1328,17 +1444,18 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                                 <optgroup label="Call to Action">
                                                                     <option
                                                                         value="URL"
-                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 3 || formData.cards[activeCardIndex].buttons.some(b => b.type === 'QUICK_REPLY') || formData.cards[activeCardIndex].buttons.filter(b => b.type === 'URL').length >= 2}
+                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 2 || formData.cards[activeCardIndex].buttons.some(b => b.type === 'QUICK_REPLY') || formData.cards[activeCardIndex].buttons.filter(b => b.type === 'URL').length >= 2}
                                                                     >
                                                                         Visit Website
                                                                     </option>
                                                                     <option
                                                                         value="PHONE_NUMBER"
-                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 3 || formData.cards[activeCardIndex].buttons.some(b => b.type === 'QUICK_REPLY') || formData.cards[activeCardIndex].buttons.some(b => b.type === 'PHONE_NUMBER')}
+                                                                        disabled={formData.cards[activeCardIndex].buttons.length >= 2 || formData.cards[activeCardIndex].buttons.some(b => b.type === 'QUICK_REPLY') || formData.cards[activeCardIndex].buttons.some(b => b.type === 'PHONE_NUMBER')}
                                                                     >
                                                                         Call Phone Number
                                                                     </option>
                                                                 </optgroup>
+                                                                {/* NOTE: COPY_CODE is NOT supported in carousel cards per Meta policy */}
                                                             </select>
                                                         </div>
                                                     </div>
