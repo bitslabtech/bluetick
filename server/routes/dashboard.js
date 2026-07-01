@@ -161,20 +161,20 @@ router.get('/stats', async (req, res) => {
             });
             deliveredCount = await MessageLog.count({
                 where: { ...logWhere, [Op.or]: [
-                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('MessageLog.status')), 'delivered'),
-                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('MessageLog.status')), 'read')
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'delivered'),
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'read')
                 ]},
                 include: [messageInclude]
             });
             readCount = await MessageLog.count({
                 where: { ...logWhere, [Op.and]: [
-                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('MessageLog.status')), 'read')
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'read')
                 ]},
                 include: [messageInclude]
             });
             failedCount = await MessageLog.count({
                 where: { ...logWhere, [Op.and]: [
-                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('MessageLog.status')), 'failed')
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'failed')
                 ]},
                 include: [messageInclude]
             });
@@ -209,20 +209,20 @@ router.get('/stats', async (req, res) => {
             });
             deliveredCount = await ChatMessage.count({
                 where: { ...chatLogWhere, [Op.or]: [
-                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('ChatMessage.status')), 'delivered'),
-                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('ChatMessage.status')), 'read')
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'delivered'),
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'read')
                 ]},
                 include: chatInclude
             });
             readCount = await ChatMessage.count({
                 where: { ...chatLogWhere, [Op.and]: [
-                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('ChatMessage.status')), 'read')
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'read')
                 ]},
                 include: chatInclude
             });
             failedCount = await ChatMessage.count({
                 where: { ...chatLogWhere, [Op.and]: [
-                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('ChatMessage.status')), 'failed')
+                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'failed')
                 ]},
                 include: chatInclude
             });
@@ -577,18 +577,27 @@ router.get('/ai-token-history', async (req, res) => {
         const userId = req.user.id;
         const { range = '30d' } = req.query;
 
-        let days = 30;
-        if (range === '7d') days = 7;
-        else if (range === '90d') days = 90;
-
         const user = await User.findByPk(userId);
         const userPlan = await Plan.findOne({ where: { name: user.plan || 'Free' } });
 
         const totalAllowance = userPlan ? (userPlan.aiTokensAllowance || 0) : 0;
         const currentBalance = user.aiTokenBalance || 0;
 
+        // Daily Usage Log should start from the day the account was created
+        const accountCreatedDate = new Date(user.createdAt);
+        accountCreatedDate.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = Math.abs(today - accountCreatedDate);
+        let days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include today
+
+        // Optional safety cap so we don't render millions of days if something goes wrong
+        if (days > 365) days = 365;
+
         // ── Query ALL real log records for this user in the date range ──
-        const since = new Date();
+        const since = new Date(today);
         since.setDate(since.getDate() - (days - 1));
         since.setHours(0, 0, 0, 0);
 

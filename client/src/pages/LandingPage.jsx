@@ -2782,7 +2782,11 @@ export default function LandingPage() {
                                                                     <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
                                                                         {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                                                     </div>
-                                                                    <span className={!plan.flowBotEnabled ? "text-slate-900 dark:text-white" : ""}>AI FlowBot Builder</span>
+                                                                    <span className={!plan.flowBotEnabled ? "text-slate-900 dark:text-white" : ""}>
+                                                                        {plan.flowBotEnabled && plan.flowLimit !== undefined
+                                                                            ? `${plan.flowLimit === -1 ? 'Unlimited' : plan.flowLimit} AI FlowBots`
+                                                                            : 'AI FlowBot Builder'}
+                                                                    </span>
                                                                 </li>
                                                                 <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-70' : ''}`}>
                                                                     <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>

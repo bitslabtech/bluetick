@@ -242,8 +242,46 @@ export default function WhatsAppSettings() {
 
     if (loading) {
         return (
-            <div className="flex h-full items-center justify-center bg-slate-50 dark:bg-background-dark">
-                <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+            <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark">
+                <TopHeader />
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full hide-scrollbar">
+                    <div className="mb-8">
+                        <div className="h-8 w-64 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse mb-2"></div>
+                        <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse"></div>
+                    </div>
+                    
+                    <div className="space-y-6">
+                        {/* Section 1 Skeleton */}
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 animate-pulse">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700"></div>
+                                <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl w-full"></div>
+                                    <div className="h-24 bg-slate-200 dark:bg-slate-700 rounded-xl w-full"></div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl w-full"></div>
+                                    <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl w-full"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 2 Skeleton */}
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6 animate-pulse">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700"></div>
+                                <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-xl w-full"></div>
+                                <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-xl w-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

@@ -258,14 +258,23 @@ Rules:
     }
 });
 
-// GET all flows for user
+// GET all flows for user — returns { flows, limit, used }
 router.get('/', auth, async (req, res) => {
     try {
+        const User = require('../models/User');
+        const Plan = require('../models/Plan');
+
         const flows = await Flow.findAll({
             where: { userId: req.user.id },
             order: [['createdAt', 'DESC']]
         });
-        res.json(flows);
+
+        // Determine plan-based limit for the calling user
+        const user = await User.findByPk(req.user.id);
+        const userPlan = await Plan.findOne({ where: { name: user.plan || 'Free' } });
+        const flowLimit = userPlan ? (userPlan.flowLimit ?? 5) : 5;
+
+        res.json({ flows, limit: flowLimit, used: flows.length });
     } catch (err) {
         console.error('Fetch Flows Error:', err);
         res.status(500).json({ error: 'Failed to fetch flows' });
@@ -292,10 +301,29 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
     try {
         const { name, triggerKeyword, isAny, nodes, edges } = req.body;
-        
+
         // Basic validation
         if (!nodes || !Array.isArray(nodes)) {
             return res.status(400).json({ error: 'Nodes array is required' });
+        }
+
+        // ── Plan-based FlowBot limit enforcement ──
+        const User = require('../models/User');
+        const Plan = require('../models/Plan');
+        const user = await User.findByPk(req.user.id);
+        const userPlan = await Plan.findOne({ where: { name: user.plan || 'Free' } });
+        const flowLimit = userPlan ? (userPlan.flowLimit ?? 5) : 5;
+
+        if (flowLimit > 0) { // 0 = unlimited
+            const currentCount = await Flow.count({ where: { userId: req.user.id } });
+            if (currentCount >= flowLimit) {
+                return res.status(403).json({
+                    error: `FlowBot limit reached. Your plan allows a maximum of ${flowLimit} flow${flowLimit !== 1 ? 's' : ''}. Please upgrade your plan to create more.`,
+                    limitReached: true,
+                    limit: flowLimit,
+                    used: currentCount
+                });
+            }
         }
 
         const flow = await Flow.create({

@@ -100,6 +100,11 @@ const Plan = sequelize.define('Plan', {
         defaultValue: false,
         comment: 'Whether this plan includes access to the FlowBot Builder feature'
     },
+    flowLimit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 5,
+        comment: 'Max number of FlowBot flows a user can create. 0 = unlimited.'
+    },
     includedAddons: {
         type: DataTypes.JSON, // Stores array of addon module_keys
         defaultValue: [],

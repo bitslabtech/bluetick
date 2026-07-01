@@ -1,35 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Workflow, Clock, Zap, Search, Sparkles } from 'lucide-react';
-import TopHeader from '../../components/TopHeader';
-import { useAuth } from '../../context/AuthContext';
-import AIGenerateModal from './AIGenerateModal';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { Plus, Pencil, Trash2, Workflow, Clock, Zap, Search, Sparkles, AlertTriangle, Infinity } from "lucide-react";
+import TopHeader from "../../components/TopHeader";
+import { useAuth } from "../../context/AuthContext";
+import AIGenerateModal from "./AIGenerateModal";
 
-const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
+const API = import.meta.env.VITE_API_URL || "";
 
 const FlowList = () => {
     const navigate = useNavigate();
     const { token } = useAuth();
     const [flows, setFlows] = useState([]);
+    const [flowLimit, setFlowLimit] = useState(0);
+    const [flowUsed, setFlowUsed] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState("");
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
-    useEffect(() => {
-        loadFlows();
-    }, []);
+    useEffect(() => { loadFlows(); }, []);
 
     const loadFlows = async () => {
         try {
             const res = await axios.get(`${API}/api/flows`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setFlows(res.data);
+            const data = res.data;
+            if (data && Array.isArray(data.flows)) {
+                setFlows(data.flows);
+                setFlowLimit(data.limit ?? 0);
+                setFlowUsed(data.used ?? data.flows.length);
+            } else {
+                setFlows(Array.isArray(data) ? data : []);
+            }
         } catch (err) {
-            toast.error('Failed to load flows');
+            toast.error("Failed to load flows");
         } finally {
             setLoading(false);
         }
@@ -37,15 +44,13 @@ const FlowList = () => {
 
     const toggleFlowStatus = async (flow) => {
         try {
-            await axios.put(`${API}/api/flows/${flow.id}`, {
-                isActive: !flow.isActive
-            }, {
+            await axios.put(`${API}/api/flows/${flow.id}`, { isActive: !flow.isActive }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            toast.success(flow.isActive ? 'Flow deactivated' : 'Flow activated! 🚀');
+            toast.success(flow.isActive ? "Flow deactivated" : "Flow activated! 🚀");
             loadFlows();
         } catch (err) {
-            toast.error('Failed to update flow');
+            toast.error("Failed to update flow");
         }
     };
 
@@ -54,23 +59,45 @@ const FlowList = () => {
             await axios.delete(`${API}/api/flows/${flowId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            toast.success('Flow deleted');
+            toast.success("Flow deleted");
             setDeleteConfirm(null);
             loadFlows();
         } catch (err) {
-            toast.error('Failed to delete flow');
+            toast.error("Failed to delete flow");
         }
+    };
+
+    const isUnlimited = flowLimit === 0;
+    const isAtLimit = !isUnlimited && flowUsed >= flowLimit;
+    const usagePercent = isUnlimited ? 0 : Math.min(100, Math.round((flowUsed / flowLimit) * 100));
+
+    const handleCreateFlow = () => {
+        if (isAtLimit) {
+            toast.error(`FlowBot limit reached (${flowUsed}/${flowLimit}). Please upgrade your plan.`);
+            return;
+        }
+        navigate("/flowbot/create");
+    };
+
+    const handleAiFlow = () => {
+        if (isAtLimit) {
+            toast.error(`FlowBot limit reached (${flowUsed}/${flowLimit}). Please upgrade your plan.`);
+            return;
+        }
+        setIsAiModalOpen(true);
     };
 
     const filteredFlows = flows.filter(f =>
         f.name.toLowerCase().includes(search.toLowerCase()) ||
-        (f.triggerKeyword || '').toLowerCase().includes(search.toLowerCase())
+        (f.triggerKeyword || "").toLowerCase().includes(search.toLowerCase())
     );
 
     const formatDate = (dateStr) => {
         const d = new Date(dateStr);
-        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     };
+
+    const barColor = isAtLimit ? "bg-red-500" : usagePercent >= 80 ? "bg-amber-500" : "bg-indigo-500";
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 font-sans transition-colors duration-300">
@@ -89,33 +116,101 @@ const FlowList = () => {
                                     <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Build visual WhatsApp automation flows</p>
                                 </div>
                             </div>
-                            {/* Mobile Only Quick Create Button */}
                             <button
-                                onClick={() => navigate('/flowbot/create')}
-                                className="sm:hidden px-3.5 py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all whitespace-nowrap"
+                                onClick={handleCreateFlow}
+                                disabled={isAtLimit}
+                                className={`sm:hidden px-3.5 py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-white rounded-xl shadow-md transition-all whitespace-nowrap ${isAtLimit ? "bg-slate-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"}`}
                             >
                                 <Plus className="w-4 h-4" />
                                 Create
                             </button>
                         </div>
-                        {/* Desktop Buttons */}
                         <div className="hidden sm:flex items-center gap-2">
                             <button
-                                onClick={() => setIsAiModalOpen(true)}
-                                className="flex px-4 py-2.5 text-sm font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-xl transition-all items-center gap-2"
+                                onClick={handleAiFlow}
+                                disabled={isAtLimit}
+                                className={`flex px-4 py-2.5 text-sm font-semibold border rounded-xl transition-all items-center gap-2 ${isAtLimit ? "text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 cursor-not-allowed" : "text-indigo-700 dark:text-indigo-300 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 border-indigo-200 dark:border-indigo-800"}`}
                             >
                                 <Sparkles className="w-4 h-4" />
                                 Smart Ai Flow Builder
                             </button>
                             <button
-                                onClick={() => navigate('/flowbot/create')}
-                                className="flex px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30 items-center gap-2"
+                                onClick={handleCreateFlow}
+                                disabled={isAtLimit}
+                                className={`flex px-5 py-2.5 text-sm font-semibold text-white rounded-xl shadow-md transition-all items-center gap-2 ${isAtLimit ? "bg-slate-400 cursor-not-allowed shadow-none" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30"}`}
                             >
                                 <Plus className="w-4 h-4" />
                                 Create New Flow
                             </button>
                         </div>
                     </div>
+
+                    {/* Usage Bar */}
+                    {!loading && (
+                        <div className="max-w-6xl mx-auto px-4 md:px-6 pb-4">
+                            <div className={`flex flex-col md:flex-row md:items-center gap-4 px-5 py-4 rounded-2xl border shadow-sm ${
+                                isAtLimit 
+                                    ? "bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800/40" 
+                                    : usagePercent >= 80 
+                                        ? "bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/40" 
+                                        : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700"
+                            }`}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                                        isAtLimit ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' 
+                                        : isUnlimited ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
+                                        : usagePercent >= 80 ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
+                                        : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400'
+                                    }`}>
+                                        {isAtLimit ? <AlertTriangle className="w-5 h-5" /> : isUnlimited ? <Infinity className="w-5 h-5" /> : <Workflow className="w-5 h-5" />}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                                            FlowBot Usage Limit
+                                        </h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            {isUnlimited ? "Unlimited flows available on your current plan." : isAtLimit ? "You have reached your plan's maximum flow limit." : "Keep track of your active automation flows."}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 md:ml-auto w-full md:max-w-md pt-2 md:pt-0">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                            {isUnlimited ? "Unlimited Capacity" : (
+                                                <>
+                                                    <span className={isAtLimit ? "text-red-600 dark:text-red-400" : ""}>{flowUsed}</span> / {flowLimit} Flows Used
+                                                </>
+                                            )}
+                                        </span>
+                                        {isAtLimit ? (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400 uppercase tracking-wider">Limit Reached</span>
+                                        ) : !isUnlimited ? (
+                                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{flowLimit - flowUsed} remaining</span>
+                                        ) : (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 uppercase tracking-wider">No Limit</span>
+                                        )}
+                                    </div>
+                                    {!isUnlimited && (
+                                        <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden shadow-inner">
+                                            <div 
+                                                className={`h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden ${
+                                                    isAtLimit ? 'bg-red-500' 
+                                                    : usagePercent >= 80 ? 'bg-amber-500' 
+                                                    : 'bg-gradient-to-r from-indigo-500 to-purple-500'
+                                                }`} 
+                                                style={{ width: `${usagePercent}%` }} 
+                                            >
+                                                {!isAtLimit && (
+                                                    <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <AIGenerateModal
@@ -123,17 +218,13 @@ const FlowList = () => {
                     onClose={() => setIsAiModalOpen(false)}
                     onSuccess={(newNodes, newEdges) => {
                         setIsAiModalOpen(false);
-                        // Pass nodes/edges directly via React Router state — reliable, no race conditions
-                        navigate('/flowbot/create', {
-                            state: { aiNodes: newNodes, aiEdges: newEdges }
-                        });
+                        navigate("/flowbot/create", { state: { aiNodes: newNodes, aiEdges: newEdges } });
                     }}
                 />
 
                 {/* Content */}
                 <div>
                     <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
-                        {/* Search Bar */}
                         <div className="relative mb-6">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input
@@ -152,42 +243,38 @@ const FlowList = () => {
                                         <div className="p-4 pb-3 animate-pulse">
                                             <div className="flex items-start justify-between mb-3">
                                                 <div className="flex-1 min-w-0 space-y-2">
-                                                    <div className="w-3/4 h-5 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                                                    <div className="w-16 h-4 bg-slate-200 dark:bg-slate-700 rounded-full mt-1"></div>
+                                                    <div className="w-3/4 h-5 bg-slate-200 dark:bg-slate-700 rounded" />
+                                                    <div className="w-16 h-4 bg-slate-200 dark:bg-slate-700 rounded-full mt-1" />
                                                 </div>
-                                                <div className="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></div>
+                                                <div className="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0" />
                                             </div>
                                             <div className="space-y-2 mt-4">
-                                                <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                                                <div className="w-2/3 h-3 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                                                <div className="w-1/2 h-3 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                                <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded" />
+                                                <div className="w-2/3 h-3 bg-slate-200 dark:bg-slate-700 rounded" />
+                                                <div className="w-1/2 h-3 bg-slate-200 dark:bg-slate-700 rounded" />
                                             </div>
                                         </div>
                                         <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-2 animate-pulse">
-                                            <div className="flex-1 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-                                            <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg ml-auto"></div>
+                                            <div className="flex-1 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+                                            <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg ml-auto" />
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : filteredFlows.length === 0 ? (
-                            /* Empty State */
                             <div className="flex flex-col items-center justify-center py-20 text-center">
                                 <div className="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
                                     <Workflow className="w-10 h-10 text-slate-300 dark:text-slate-600" />
                                 </div>
                                 <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                    {search ? 'No matching flows' : 'No flows yet'}
+                                    {search ? "No matching flows" : "No flows yet"}
                                 </h3>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm">
-                                    {search
-                                        ? 'Try a different search term.'
-                                        : 'Create your first visual automation flow to engage customers on WhatsApp.'
-                                    }
+                                    {search ? "Try a different search term." : "Create your first visual automation flow to engage customers on WhatsApp."}
                                 </p>
-                                {!search && (
+                                {!search && !isAtLimit && (
                                     <button
-                                        onClick={() => navigate('/flowbot/create')}
+                                        onClick={handleCreateFlow}
                                         className="px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all flex items-center gap-2"
                                     >
                                         <Plus className="w-4 h-4" />
@@ -196,53 +283,43 @@ const FlowList = () => {
                                 )}
                             </div>
                         ) : (
-                            /* Flow Cards Grid */
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {filteredFlows.map((flow) => (
                                     <div
                                         key={flow.id}
                                         className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group"
                                     >
-                                        {/* Card Header */}
                                         <div className="p-4 pb-3">
                                             <div className="flex items-start justify-between mb-3">
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className="font-semibold text-slate-800 dark:text-white truncate">{flow.name}</h3>
                                                     <div className="flex items-center gap-2 mt-1">
-                                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${flow.isActive
-                                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                                : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                                                            }`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${flow.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                                                            {flow.isActive ? 'Live' : 'Draft'}
+                                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${flow.isActive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"}`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${flow.isActive ? "bg-emerald-500" : "bg-slate-400"}`} />
+                                                            {flow.isActive ? "Live" : "Draft"}
                                                         </span>
                                                     </div>
                                                 </div>
-                                                {/* Premium CSS Toggle */}
                                                 <button
                                                     onClick={() => toggleFlowStatus(flow)}
-                                                    className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:focus:ring-offset-slate-900 ${flow.isActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
-                                                        }`}
+                                                    className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:focus:ring-offset-slate-900 ${flow.isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`}
                                                     role="switch"
                                                     aria-checked={flow.isActive}
-                                                    title={flow.isActive ? 'Deactivate Flow' : 'Activate Flow'}
+                                                    title={flow.isActive ? "Deactivate Flow" : "Activate Flow"}
                                                 >
                                                     <span
                                                         aria-hidden="true"
-                                                        className={`pointer-events-none inline-block h-4 w-4 sm:h-5 sm:w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-300 ease-in-out ${flow.isActive ? 'translate-x-4 sm:translate-x-5' : 'translate-x-0'
-                                                            }`}
+                                                        className={`pointer-events-none inline-block h-4 w-4 sm:h-5 sm:w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-300 ease-in-out ${flow.isActive ? "translate-x-4 sm:translate-x-5" : "translate-x-0"}`}
                                                     />
                                                 </button>
                                             </div>
-
-                                            {/* Flow Details */}
                                             <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
                                                 <div className="flex items-center gap-2">
                                                     <Zap className="w-3.5 h-3.5" />
                                                     <span>
                                                         Trigger: {flow.isAny
                                                             ? <span className="text-amber-600 dark:text-amber-400 font-medium">Any Message</span>
-                                                            : <span className="text-indigo-600 dark:text-indigo-400 font-medium">"{flow.triggerKeyword || 'Not set'}"</span>
+                                                            : <span className="text-indigo-600 dark:text-indigo-400 font-medium">"{flow.triggerKeyword || "Not set"}"</span>
                                                         }
                                                     </span>
                                                 </div>
@@ -256,8 +333,6 @@ const FlowList = () => {
                                                 </div>
                                             </div>
                                         </div>
-
-                                        {/* Card Actions */}
                                         <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap sm:flex-nowrap items-center gap-2">
                                             <button
                                                 onClick={() => navigate(`/flowbot/edit/${flow.id}`)}
@@ -268,18 +343,8 @@ const FlowList = () => {
                                             </button>
                                             {deleteConfirm === flow.id ? (
                                                 <div className="flex items-center gap-1 ml-auto">
-                                                    <button
-                                                        onClick={() => deleteFlow(flow.id)}
-                                                        className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                                                    >
-                                                        Confirm
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setDeleteConfirm(null)}
-                                                        className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                                                    >
-                                                        Cancel
-                                                    </button>
+                                                    <button onClick={() => deleteFlow(flow.id)} className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Confirm</button>
+                                                    <button onClick={() => setDeleteConfirm(null)} className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">Cancel</button>
                                                 </div>
                                             ) : (
                                                 <button

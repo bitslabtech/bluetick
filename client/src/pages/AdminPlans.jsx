@@ -796,6 +796,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         taxEnabled: plan?.taxEnabled || false,
         taxText: plan?.taxText || 'excluding 18% GST',
         flowBotEnabled: plan?.flowBotEnabled || false,
+        flowLimit: plan?.flowLimit !== undefined ? plan.flowLimit : 5,
         storageLimitMb: plan?.storageLimitMb !== undefined ? plan.storageLimitMb : 100,
     });
 
@@ -1039,6 +1040,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                         <LimitInputCard name="groupLimit" value={formData.groupLimit} onChange={handleChange} label="Groups" icon={Users} colorClass="text-teal-500" />
                                         <LimitInputCard name="vcardLimit" value={formData.vcardLimit} onChange={handleChange} label="VeCards" icon={CreditCard} colorClass="text-cyan-500" />
                                         <LimitInputCard name="waStoreLimit" value={formData.waStoreLimit} onChange={handleChange} label="Online Stores" icon={Store} colorClass="text-orange-500" />
+                                        <LimitInputCard name="flowLimit" value={formData.flowLimit} onChange={handleChange} label="FlowBots (0=∞)" icon={Layers} colorClass="text-purple-500" />
                                     </div>
                                 </div>
 

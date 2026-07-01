@@ -655,7 +655,24 @@ export default function Team() {
                             </div>
 
                             <div className="grid grid-cols-1 gap-4">
-                                {team.map(member => (
+                                {loading ? (
+                                    [...Array(3)].map((_, i) => (
+                                        <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 animate-pulse">
+                                            <div className="flex gap-4 sm:gap-5 items-center w-full md:w-auto">
+                                                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-slate-200 dark:bg-slate-700 shrink-0"></div>
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-32"></div>
+                                                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-48"></div>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 w-full md:w-auto mt-2 sm:mt-0">
+                                                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-lg w-20"></div>
+                                                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-lg w-20"></div>
+                                            </div>
+                                            <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl w-32 md:w-40 mt-2 sm:mt-0"></div>
+                                        </div>
+                                    ))
+                                ) : team.map(member => (
                                     <div key={member.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-black/50 hover:border-indigo-500/30 transition-all duration-300 group">
 
                                         {/* Identity Block */}

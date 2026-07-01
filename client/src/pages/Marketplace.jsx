@@ -198,69 +198,64 @@ const Marketplace = () => {
                                     )}
 
                                     <Link to={`/marketplace/${addon.slug || addon.id}`} className="flex-grow block hover:no-underline">
-                                        {addon.badge && (
-                                            <div className="absolute top-4 left-4 z-20">
-                                                <span className="bg-pink-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
-                                                    <Tag className="w-3 h-3" /> {addon.badge}
-                                                </span>
-                                            </div>
-                                        )}
                                         {addon.bannerUrl ? (
-                                            <div className={`relative overflow-hidden ${isMobileGridView ? 'h-24 sm:h-40' : 'h-40'}`}>
+                                            <div className="relative overflow-hidden aspect-video bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
                                                 <img
                                                     src={addon.bannerUrl}
                                                     alt={addon.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                                                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700 ease-out"
                                                 />
                                             </div>
                                         ) : (
-                                            <div className={`${isMobileGridView ? 'h-16 sm:h-24' : 'h-24'} bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 flex items-center justify-center`}>
+                                            <div className="aspect-video bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 flex items-center justify-center">
                                                 <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner border border-white dark:border-gray-600">
                                                     <Package className="w-6 h-6" />
                                                 </div>
                                             </div>
                                         )}
                                         <div className={`${isMobileGridView ? 'p-3 sm:p-5' : 'p-5'}`}>
+                                            {addon.badge && (
+                                                <span className="inline-flex items-center gap-1 bg-pink-50 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400 border border-pink-100 dark:border-pink-800 text-[10px] font-bold px-2 py-0.5 rounded-lg mb-2 uppercase tracking-wide">
+                                                    <Tag className="w-3 h-3" /> {addon.badge}
+                                                </span>
+                                            )}
                                             <h3 className={`${isMobileGridView ? 'text-sm sm:text-base line-clamp-1' : 'text-base line-clamp-1 sm:line-clamp-none'} font-bold text-gray-900 dark:text-white mb-1.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors`}>{addon.name}</h3>
                                             <p className={`text-gray-500 dark:text-gray-400 ${isMobileGridView ? 'text-[10px] sm:text-xs min-h-[1.5rem] sm:min-h-[2rem]' : 'text-xs min-h-[2rem]'} leading-relaxed line-clamp-2`}>{addon.description}</p>
                                         </div>
                                     </Link>
 
-                                    <div className={`${isMobileGridView ? 'p-3 sm:p-5' : 'p-5'} bg-gray-50 dark:bg-gray-800/80 border-t border-gray-100 dark:border-gray-700 mt-auto`}>
-                                        <div className={`flex items-center justify-between ${isMobileGridView ? 'mb-2 sm:mb-4' : 'mb-4'}`}>
-                                            <div>
-                                                {addon.price > 0 ? (
-                                                    <div className={`flex items-baseline ${isMobileGridView ? 'gap-0 sm:gap-0.5 flex-wrap' : 'gap-0.5'}`}>
-                                                        <span className={`${isMobileGridView ? 'text-xs sm:text-sm' : 'text-sm'} font-bold text-gray-400 dark:text-gray-500`}>{getCurrencySymbol(addon.currency)}</span>
-                                                        <span className={`${isMobileGridView ? 'text-base sm:text-xl' : 'text-xl'} font-extrabold text-gray-900 dark:text-white tabular-nums`}>
-                                                            {Math.floor(Number(addon.price))}
-                                                        </span>
-                                                        <span className={`text-[10px] text-gray-500 font-medium ${isMobileGridView ? 'ml-0.5 sm:ml-1.5' : 'ml-1.5'} align-baseline`}>
-                                                            {addon.currency} {addon.isRecurring ? `/${addon.recurringInterval}` : 'one-time'}
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <span className={`${isMobileGridView ? 'text-base sm:text-xl' : 'text-xl'} font-extrabold text-green-600 dark:text-green-400`}>Free</span>
-                                                )}
-                                            </div>
+                                    <div className={`${isMobileGridView ? 'p-3 sm:p-4' : 'p-4 sm:p-5'} bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 mt-auto flex items-center justify-between gap-3`}>
+                                        <div className="flex flex-col">
+                                            {addon.price > 0 ? (
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-xs font-bold text-gray-400 dark:text-gray-500">{getCurrencySymbol(addon.currency)}</span>
+                                                    <span className="text-lg font-black text-gray-900 dark:text-white tabular-nums tracking-tight">
+                                                        {Math.floor(Number(addon.price))}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-500 font-medium">
+                                                        /{addon.isRecurring ? addon.recurringInterval.substring(0, 2).toLowerCase() : 'ot'}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 tracking-tight">Free</span>
+                                            )}
                                         </div>
 
                                         {owned ? (
                                             <Link
                                                 to={`/addons/${addon.module_key}`}
-                                                className={`w-full ${isMobileGridView ? 'py-1.5 sm:py-2.5 px-2 sm:px-4' : 'py-2.5 px-4'} bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl flex justify-center items-center gap-2 transition-colors`}
+                                                className="flex-shrink-0 px-3 py-2 bg-gray-200/60 hover:bg-gray-300/60 dark:bg-gray-700 hover:dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl flex justify-center items-center gap-1.5 transition-colors"
                                             >
-                                                <Settings className="w-4 h-4" />
-                                                <span className={isMobileGridView ? 'hidden sm:inline text-xs sm:text-sm' : 'text-sm'}>Manage Settings</span>
+                                                <Settings className="w-3.5 h-3.5" />
+                                                <span className={isMobileGridView ? 'hidden sm:inline' : 'inline'}>Manage</span>
                                             </Link>
                                         ) : (
                                             <Link
                                                 to={`/marketplace/${addon.slug || addon.id}`}
-                                                className={`w-full ${isMobileGridView ? 'py-1.5 sm:py-2.5 px-2 sm:px-4 text-xs sm:text-sm' : 'py-2.5 px-4 text-sm'} bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex justify-center items-center gap-1.5 sm:gap-2 shadow-md shadow-indigo-600/20 transition-all hover:shadow-lg hover:-translate-y-0.5`}
+                                                className="flex-shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex justify-center items-center gap-1.5 shadow-sm shadow-indigo-600/20 transition-all hover:shadow-md hover:-translate-y-0.5"
                                             >
-                                                <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> 
-                                                <span className={isMobileGridView ? 'hidden sm:inline' : ''}>View Details</span>
-                                                <span className={isMobileGridView ? 'inline sm:hidden' : 'hidden'}>View</span>
+                                                <ShoppingCart className="w-3.5 h-3.5" /> 
+                                                <span className={isMobileGridView ? 'hidden sm:inline' : 'inline'}>Get Add-on</span>
                                             </Link>
                                         )}
                                     </div>
