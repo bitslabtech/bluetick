@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Check, Eye, EyeOff, MessageSquare, Users, Layers, TrendingUp, Sparkles, Shield } from 'lucide-react';
+import { LayoutDashboard, Check, Eye, EyeOff, MessageSquare, Users, Layers, TrendingUp, Sparkles, Shield, Store, CreditCard, Megaphone } from 'lucide-react';
 import axios from 'axios';
 import { useUI } from '../context/UIContext';
 import { Turnstile } from '@marsidev/react-turnstile';
+import { motion } from 'framer-motion';
 
 const CURRENCY_SYMBOLS = {
     USD: '$', INR: '₹', EUR: '€', GBP: '£',
@@ -38,6 +39,37 @@ const COUNTRY_CODES = [
     { code: 'EG', dial: '+20', flag: '🇪🇬', name: 'Egypt' },
 ];
 
+const FEATURE_HIGHLIGHTS = [
+    {
+        title: "WhatsApp Automation & CRM",
+        desc: "Automate responses, manage chat flows, and orchestrate customer pipelines.",
+        icon: MessageSquare,
+        colorClass: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border-emerald-500/20",
+        tag: "Automation"
+    },
+    {
+        title: "Online Store Manager",
+        desc: "Launch catalogs, manage checkouts, and handle customer shopping instantly.",
+        icon: Store,
+        colorClass: "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 border-blue-500/20",
+        tag: "E-Commerce"
+    },
+    {
+        title: "VeCards (Virtual Business Cards)",
+        desc: "Create premium digital cards, share them via QR, and track networking engagement.",
+        icon: CreditCard,
+        colorClass: "bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 border-indigo-500/20",
+        tag: "Growth Tools"
+    },
+    {
+        title: "Meta Ads Marketing",
+        desc: "Publish and scale Instagram and Facebook lead-generation ads directly.",
+        icon: Megaphone,
+        colorClass: "bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 border-purple-500/20",
+        tag: "Advertising"
+    }
+];
+
 const Register = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -51,6 +83,31 @@ const Register = () => {
     const [turnstileToken, setTurnstileToken] = useState('');
     const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
     const [selectedPlan, setSelectedPlan] = useState(null);
+    const [mockMessages, setMockMessages] = useState([]);
+
+    useEffect(() => {
+        const conversation = [
+            { id: 1, sender: 'user', text: 'Hi! Are you open today? 👋' },
+            { id: 2, sender: 'bot', text: 'Yes, we are open until 8 PM! How can I help you? 🏪' },
+            { id: 3, sender: 'user', text: 'Awesome! Can you share the store catalog?' },
+            { id: 4, sender: 'bot', text: 'Here is our digital catalog. Click below to browse! 📋', button: 'View Catalog 🛍️' },
+        ];
+        
+        let index = 1;
+        setMockMessages([conversation[0]]);
+        
+        const interval = setInterval(() => {
+            index = (index + 1) % (conversation.length + 1);
+            if (index === 0) {
+                setMockMessages([]);
+            } else {
+                setMockMessages(conversation.slice(0, index));
+            }
+        }, 2500);
+        
+        return () => clearInterval(interval);
+    }, []);
+
     const { register } = useAuth();
     const { publicSettings, publicSettingsLoading } = useUI();
     const navigate = useNavigate();
@@ -194,9 +251,21 @@ const Register = () => {
     return (
         <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-display transition-colors duration-300">
             {/* Left Column - Branding & Plan/Platform Details (Only visible on desktop) */}
-            <div className="hidden md:flex md:w-[40%] xl:w-[35%] bg-slate-100/50 dark:bg-slate-900 text-slate-900 dark:text-white flex-col justify-between p-10 lg:p-12 relative overflow-hidden border-r border-slate-200 dark:border-slate-800/50">
+            <div className="hidden md:flex md:w-[40%] xl:w-[35%] flex-col justify-between p-10 lg:p-12 relative overflow-hidden border-r border-slate-200/50 dark:border-slate-800/50">
                 
-                {/* Logo & App Name Header */}
+                {/* Elegant Static Background */}
+                <div className="absolute inset-0 bg-slate-50/50 dark:bg-slate-900 -z-20" />
+                
+                {/* Subtle Gradient Wash */}
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-emerald-500/5 dark:from-primary/10 dark:via-slate-900/50 dark:to-emerald-500/10 pointer-events-none -z-10" />
+
+                {/* Noise Texture */}
+                <div className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04] pointer-events-none mix-blend-overlay -z-10" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }} />
+
+                {/* Soft Core Glow */}
+                <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/20 dark:bg-primary/10 blur-[120px] pointer-events-none -z-10" />
+
+                {/* Logo Header */}
                 <div className="relative z-10 flex items-center gap-3">
                     {publicSettings?.logoUrl ? (
                         <img src={publicSettings.logoUrl} alt="Logo" className="h-10 w-auto object-contain rounded-lg" />
@@ -205,9 +274,6 @@ const Register = () => {
                             <LayoutDashboard className="h-5 w-5 text-white" />
                         </div>
                     )}
-                    <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                        {publicSettings?.appName || 'Bluetick'}
-                    </span>
                 </div>
 
                 {/* Main Content Pane */}
@@ -319,71 +385,50 @@ const Register = () => {
                                 </div>
                             </div>
                         );
-                    })() : (
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 lg:p-8 shadow-sm space-y-6">
+                    })() : publicSettings?.registerBannerUrl ? (
+                        <div className="flex flex-col items-center justify-center h-full w-full">
+                            <img src={publicSettings.registerBannerUrl} alt="Promotional Banner" className="w-full h-auto max-h-[75vh] object-contain rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]" />
+                        </div>
+                    ) : (
+                        <div className="flex flex-col space-y-6">
                             <div className="space-y-2">
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
                                     <Sparkles className="w-3.5 h-3.5" />
-                                    Smart Platform
+                                    All-In-One Platform
                                 </span>
                                 <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-                                    Scale Customer Conversations
+                                    4-in-1 Business Suite
                                 </h2>
                                 <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                    Connect, engage, and grow your sales with powerful WhatsApp integrations.
+                                    Everything you need to automate conversations, run digital stores, network, and scale marketing.
                                 </p>
                             </div>
 
-                            <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800/60">
-                                <div className="flex gap-3.5">
-                                    <div className="mt-0.5 shrink-0 p-1.5 bg-primary/10 rounded-lg text-primary">
-                                        <MessageSquare className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Shared Team Inbox</h4>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Allow multiple agents to reply to incoming customer messages simultaneously.</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3.5">
-                                    <div className="mt-0.5 shrink-0 p-1.5 bg-primary/10 rounded-lg text-primary">
-                                        <TrendingUp className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Broadcast Campaigns</h4>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send personalized templates and automated notifications to thousands in seconds.</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3.5">
-                                    <div className="mt-0.5 shrink-0 p-1.5 bg-primary/10 rounded-lg text-primary">
-                                        <Layers className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Chatbots & Routing</h4>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Build instant automated replies and direct chats to the right team members.</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3.5">
-                                    <div className="mt-0.5 shrink-0 p-1.5 bg-primary/10 rounded-lg text-primary">
-                                        <Shield className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Enterprise Security</h4>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Robust privacy, security checks, and reliable APIs keeping your account safe.</p>
-                                    </div>
-                                </div>
+                            {/* 2x2 Glassmorphic Bento Grid of 4-in-1 Platform Cards */}
+                            <div className="grid grid-cols-2 gap-4">
+                                {FEATURE_HIGHLIGHTS.map((item, idx) => {
+                                    const IconComponent = item.icon;
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className="p-5 bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl border border-white/80 dark:border-white/5 rounded-3xl shadow-[0_4px_24px_rgb(0,0,0,0.02)] dark:shadow-[0_4px_24px_rgb(0,0,0,0.1)] hover:bg-white dark:hover:bg-slate-800/60 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[160px] group cursor-default"
+                                        >
+                                            <div className={`shrink-0 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-center h-12 w-12 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${item.colorClass}`}>
+                                                <IconComponent className="w-5 h-5" />
+                                            </div>
+                                            <div className="space-y-1.5 mt-4">
+                                                <h4 className="text-[13px] font-extrabold text-slate-900 dark:text-white leading-tight">{item.title.split(' (')[0]}</h4>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug line-clamp-2">{item.desc}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Footer Quote / Social Proof */}
-                <div className="relative z-10 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/80 pt-6">
-                    <p className="italic">"Bluetick has transformed how we engage with customers. Highly recommended!"</p>
-                    <p className="mt-2 font-semibold text-slate-700 dark:text-slate-300">— FastGrowth Retail Co.</p>
-                </div>
+
             </div>
 
             {/* Right Column - Registration Form */}

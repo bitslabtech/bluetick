@@ -98,6 +98,7 @@ router.get('/public', async (req, res) => {
             appTagline: settings.appTagline || 'Business API',
             logoUrl: settings.logoUrl,
             faviconUrl: settings.faviconUrl,
+            registerBannerUrl: settings.registerBannerUrl,
             primaryColor: settings.primaryColor,
             secondaryColor: settings.secondaryColor,
             theme: settings.theme,
@@ -867,6 +868,33 @@ router.post('/upload-favicon', storageProvider('favicons', { fileFilter: storage
         res.json({ success: true, faviconUrl: publicUrl });
     } catch (err) {
         console.error('[FAVICON UPLOAD] Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/upload-register-banner', storageProvider('banners', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true }).single('banner'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const publicUrl = req.file.publicUrl;
+
+        // Save the banner to the user's settings
+        let settings = await Settings.findOne({ where: { userId: req.user.id } });
+        if (!settings) {
+            settings = await Settings.create({ userId: req.user.id, registerBannerUrl: publicUrl });
+        } else {
+            settings.registerBannerUrl = publicUrl;
+            await settings.save();
+        }
+
+        // Invalidate public settings cache
+        invalidatePublicSettingsCache();
+
+        res.json({ success: true, registerBannerUrl: publicUrl });
+    } catch (err) {
+        console.error('[BANNER UPLOAD] Error:', err);
         res.status(500).json({ error: err.message });
     }
 });

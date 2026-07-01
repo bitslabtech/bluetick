@@ -56,6 +56,10 @@ const Settings = sequelize.define('Settings', {
         type: DataTypes.STRING,
         defaultValue: ''
     },
+    registerBannerUrl: {
+        type: DataTypes.STRING,
+        defaultValue: ''
+    },
     // Preferences
     theme: {
         type: DataTypes.ENUM('light', 'dark', 'system'),

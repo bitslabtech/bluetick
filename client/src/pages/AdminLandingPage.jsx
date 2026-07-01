@@ -60,6 +60,7 @@ const AdminLandingPage = () => {
         primaryColor: '#4f46e5',
         logoUrl: '',
         faviconUrl: '',
+        registerBannerUrl: '',
     });
     const [logoUploading, setLogoUploading] = useState(false);
     const logoInputRef = useRef(null);
@@ -101,6 +102,28 @@ const AdminLandingPage = () => {
             showToast({ type: 'error', title: 'Upload Failed', message: err.response?.data?.error || 'Failed to upload favicon.' });
         } finally {
             setFaviconUploading(false);
+        }
+    };
+
+    const [bannerUploading, setBannerUploading] = useState(false);
+    const bannerInputRef = useRef(null);
+
+    const handleBannerUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setBannerUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append('banner', file);
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/upload-register-banner`, fd, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setBrandingSettings(prev => ({ ...prev, registerBannerUrl: res.data.registerBannerUrl }));
+            showToast({ type: 'success', title: 'Banner Uploaded', message: 'Register banner uploaded successfully.' });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Upload Failed', message: err.response?.data?.error || 'Failed to upload register banner.' });
+        } finally {
+            setBannerUploading(false);
         }
     };
 
@@ -292,6 +315,7 @@ const AdminLandingPage = () => {
                 primaryColor: d.primaryColor || '#4f46e5',
                 logoUrl: d.logoUrl || '',
                 faviconUrl: d.faviconUrl || '',
+                registerBannerUrl: d.registerBannerUrl || '',
             });
         } catch (err) {
             console.error('Failed to fetch branding settings:', err);
@@ -1162,6 +1186,46 @@ const AdminLandingPage = () => {
                                                     />
                                                     {brandingSettings.faviconUrl && (
                                                         <button type="button" onClick={() => setBrandingSettings(prev => ({ ...prev, faviconUrl: '' }))} className="text-xs text-red-500 hover:text-red-600 font-semibold">Remove Favicon</button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Register Banner */}
+                                        <div className="pt-4 border-t border-slate-100 dark:border-white/5 space-y-3">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <ImageIcon className="w-4 h-4 text-emerald-500" />
+                                                <span className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">Register Page Banner</span>
+                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">Overrides the default glassmorphism layout on the left side of the registration page. Recommended aspect ratio 9:16 or 3:4.</p>
+                                            <div className="flex items-start gap-6">
+                                                <div
+                                                    onClick={() => bannerInputRef.current?.click()}
+                                                    className="w-16 h-24 rounded-xl bg-slate-50 dark:bg-white/5 border-2 border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center relative overflow-hidden group cursor-pointer shrink-0">
+                                                    {bannerUploading ? (
+                                                        <RefreshCw className="w-4 h-4 text-emerald-500 animate-spin" />
+                                                    ) : brandingSettings.registerBannerUrl ? (
+                                                        <img src={brandingSettings.registerBannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <ImageIcon className="w-5 h-5 text-slate-400" />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                                                        {bannerUploading ? '...' : 'Upload'}
+                                                    </div>
+                                                </div>
+                                                <input ref={bannerInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={handleBannerUpload} />
+                                                <div className="flex-1 space-y-2">
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">Click the preview to upload. PNG, JPG, or WEBP (max 5MB).</p>
+                                                    <p className="text-xs text-slate-400">Or paste a direct URL:</p>
+                                                    <input
+                                                        type="text"
+                                                        value={brandingSettings.registerBannerUrl}
+                                                        onChange={e => setBrandingSettings(prev => ({ ...prev, registerBannerUrl: e.target.value }))}
+                                                        placeholder="https://example.com/banner.jpg"
+                                                        className="w-full px-4 py-2.5 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white"
+                                                    />
+                                                    {brandingSettings.registerBannerUrl && (
+                                                        <button type="button" onClick={() => setBrandingSettings(prev => ({ ...prev, registerBannerUrl: '' }))} className="text-xs text-red-500 hover:text-red-600 font-semibold">Remove Banner</button>
                                                     )}
                                                 </div>
                                             </div>

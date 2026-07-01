@@ -272,7 +272,7 @@ const AddonDetail = () => {
                                             {purchasing ? (
                                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                             ) : (
-                                                <><ShoppingCart className="w-5 h-5 animate-bounce-slow" /> {addon.price > 0 ? 'Purchase Addon' : 'Enable Free Add-on'}</>
+                                                <><ShoppingCart className="w-5 h-5 animate-bounce-slow" /> {addon.price > 0 ? 'Purchase Now' : 'Enable Free Add-on'}</>
                                             )}
                                         </span>
                                     </button>
@@ -332,7 +332,7 @@ const AddonDetail = () => {
                         className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold rounded-xl flex justify-center items-center gap-1 shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-70 disabled:transform-none"
                     >
                         {purchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : (
-                            <><ShoppingCart className="w-4 h-4" /> {addon.price > 0 ? 'Purchase' : 'Enable Free'}</>
+                            <><ShoppingCart className="w-4 h-4" /> {addon.price > 0 ? 'Purchase Now' : 'Enable Free'}</>
                         )}
                     </button>
                 )}
@@ -411,7 +411,7 @@ const AddonDetail = () => {
 
                             {/* Quick Benefits */}
                             <div className="space-y-2">
-                                {['Instant activation', 'Free updates included', 'Cancel anytime'].map((item, i) => (
+                                {['Instant activation', 'Free updates included', 'Seamless integration'].map((item, i) => (
                                     <div key={i} className="flex items-center gap-2.5">
                                         <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                                         <span className="text-sm text-gray-600 dark:text-gray-300">{item}</span>
