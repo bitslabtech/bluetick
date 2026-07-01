@@ -251,33 +251,36 @@ const Register = () => {
     return (
         <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-display transition-colors duration-300">
             {/* Left Column - Branding & Plan/Platform Details (Only visible on desktop) */}
-            <div className="hidden md:flex md:w-[40%] xl:w-[35%] flex-col justify-between p-10 lg:p-12 relative overflow-hidden border-r border-slate-200/50 dark:border-slate-800/50">
-                
-                {/* Elegant Static Background */}
-                <div className="absolute inset-0 bg-slate-50/50 dark:bg-slate-900 -z-20" />
-                
-                {/* Subtle Gradient Wash */}
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-emerald-500/5 dark:from-primary/10 dark:via-slate-900/50 dark:to-emerald-500/10 pointer-events-none -z-10" />
+            <div className={`hidden md:flex md:w-[40%] xl:w-[35%] relative overflow-hidden border-r border-slate-200/50 dark:border-slate-800/50 ${(publicSettings?.registerBannerUrl && !selectedPlan) ? '' : 'flex-col justify-between p-10 lg:p-12'}`}>
+                {(publicSettings?.registerBannerUrl && !selectedPlan) ? (
+                    <img src={publicSettings.registerBannerUrl} alt="Promotional Banner" className="absolute inset-0 w-full h-full object-contain p-6 bg-slate-50 dark:bg-slate-950" />
+                ) : (
+                    <>
+                        {/* Elegant Static Background */}
+                        <div className="absolute inset-0 bg-slate-50/50 dark:bg-slate-900 -z-20" />
+                        
+                        {/* Subtle Gradient Wash */}
+                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-emerald-500/5 dark:from-primary/10 dark:via-slate-900/50 dark:to-emerald-500/10 pointer-events-none -z-10" />
 
-                {/* Noise Texture */}
-                <div className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04] pointer-events-none mix-blend-overlay -z-10" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }} />
+                        {/* Noise Texture */}
+                        <div className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04] pointer-events-none mix-blend-overlay -z-10" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }} />
 
-                {/* Soft Core Glow */}
-                <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/20 dark:bg-primary/10 blur-[120px] pointer-events-none -z-10" />
+                        {/* Soft Core Glow */}
+                        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/20 dark:bg-primary/10 blur-[120px] pointer-events-none -z-10" />
 
-                {/* Logo Header */}
-                <div className="relative z-10 flex items-center gap-3">
-                    {publicSettings?.logoUrl ? (
-                        <img src={publicSettings.logoUrl} alt="Logo" className="h-10 w-auto object-contain rounded-lg" />
-                    ) : (
-                        <div className="p-2 bg-primary rounded-lg">
-                            <LayoutDashboard className="h-5 w-5 text-white" />
+                        {/* Logo Header */}
+                        <div className="relative z-10 flex items-center gap-3">
+                            {publicSettings?.logoUrl ? (
+                                <img src={publicSettings.logoUrl} alt="Logo" className="h-10 w-auto object-contain rounded-lg" />
+                            ) : (
+                                <div className="p-2 bg-primary rounded-lg">
+                                    <LayoutDashboard className="h-5 w-5 text-white" />
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
 
-                {/* Main Content Pane */}
-                <div className="relative z-10 my-auto py-6">
+                        {/* Main Content Pane */}
+                        <div className="relative z-10 my-auto py-6">
                     {selectedPlan ? (() => {
                         const sym = CURRENCY_SYMBOLS[publicSettings?.currency] || publicSettings?.currency || '$';
                         const interval = selectedPlan.interval || 'month';
@@ -385,50 +388,10 @@ const Register = () => {
                                 </div>
                             </div>
                         );
-                    })() : publicSettings?.registerBannerUrl ? (
-                        <div className="flex flex-col items-center justify-center h-full w-full">
-                            <img src={publicSettings.registerBannerUrl} alt="Promotional Banner" className="w-full h-auto max-h-[75vh] object-contain rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]" />
+                    })() : null}
                         </div>
-                    ) : (
-                        <div className="flex flex-col space-y-6">
-                            <div className="space-y-2">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
-                                    <Sparkles className="w-3.5 h-3.5" />
-                                    All-In-One Platform
-                                </span>
-                                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-                                    4-in-1 Business Suite
-                                </h2>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                    Everything you need to automate conversations, run digital stores, network, and scale marketing.
-                                </p>
-                            </div>
-
-                            {/* 2x2 Glassmorphic Bento Grid of 4-in-1 Platform Cards */}
-                            <div className="grid grid-cols-2 gap-4">
-                                {FEATURE_HIGHLIGHTS.map((item, idx) => {
-                                    const IconComponent = item.icon;
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className="p-5 bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl border border-white/80 dark:border-white/5 rounded-3xl shadow-[0_4px_24px_rgb(0,0,0,0.02)] dark:shadow-[0_4px_24px_rgb(0,0,0,0.1)] hover:bg-white dark:hover:bg-slate-800/60 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[160px] group cursor-default"
-                                        >
-                                            <div className={`shrink-0 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-center h-12 w-12 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${item.colorClass}`}>
-                                                <IconComponent className="w-5 h-5" />
-                                            </div>
-                                            <div className="space-y-1.5 mt-4">
-                                                <h4 className="text-[13px] font-extrabold text-slate-900 dark:text-white leading-tight">{item.title.split(' (')[0]}</h4>
-                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug line-clamp-2">{item.desc}</p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-
+                    </>
+                )}
             </div>
 
             {/* Right Column - Registration Form */}

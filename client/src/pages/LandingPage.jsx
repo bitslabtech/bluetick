@@ -2376,11 +2376,11 @@ export default function LandingPage() {
                                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
                                     <div>
                                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-3">
-                                            <Zap className="w-3 h-3" /> Quick Start
+                                            <Zap className="w-3 h-3" /> Guided Setup
                                         </div>
-                                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Setup in 5 minutes</h2>
+                                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Seamless Integration</h2>
                                     </div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs sm:text-right">No coding required. Get your first message out in minutes.</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs sm:text-right">Follow our step-by-step onboarding to safely connect your Meta accounts and avoid restrictions.</p>
                                 </div>
 
                                 {/* Steps — horizontal cards with connecting line */}
