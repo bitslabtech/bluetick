@@ -9,7 +9,8 @@ export default defineConfig({
     viteCompression({ algorithm: 'gzip', ext: '.gz' })
   ],
   build: {
-    modulePreload: false,
+    modulePreload: { polyfill: true }, // Re-enable: lets browser preload JS modules early
+    cssCodeSplit: true,                // Split CSS per-route chunk — reduces render-blocking CSS size
     rollupOptions: {
       output: {
         manualChunks: {

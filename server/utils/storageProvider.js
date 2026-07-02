@@ -107,6 +107,24 @@ const classifyMediaType = (mimeType) => {
 // Default limits if none provided
 const DEFAULT_LIMITS = { fileSize: 200 * 1024 * 1024 }; // 200MB max
 
+// ─── Folder-aware max image dimensions ──────────────────────────────────────
+// Prevents uploading images far larger than their display size.
+// Product cards: 308x205px display → cap at 800px wide (2.6x retina headroom)
+// Hero slides:   707x350px display → cap at 1400px wide (2x retina headroom)
+// Category imgs: ~200px display    → cap at 500px
+// Logos:         ~134px display    → cap at 400px
+// Default:       1200px (safe for most full-width uses)
+const FOLDER_MAX_DIMENSIONS = {
+    'wastore-products':  { maxWidth: 800,  maxHeight: 800  },
+    'wastore-slides':    { maxWidth: 1400, maxHeight: 800  },
+    'wastore-categories':{ maxWidth: 500,  maxHeight: 500  },
+    'wastore-logos':     { maxWidth: 400,  maxHeight: 200  },
+    'vcard':             { maxWidth: 1200, maxHeight: 1200 },
+    'vcard-gallery':     { maxWidth: 1200, maxHeight: 1200 },
+    'hero':              { maxWidth: 1400, maxHeight: 800  },
+};
+const getMaxDimensions = (folder) => FOLDER_MAX_DIMENSIONS[folder] || { maxWidth: 1200, maxHeight: 1200 };
+
 /**
  * File Filters for Multer
  */
@@ -386,7 +404,8 @@ const storageProvider = (folderName, options = {}) => {
                             const originalSize = fileBuffer.length;
 
                             if (isCompressibleImage(req.file.mimetype)) {
-                                const result = await compressImage(fileBuffer, req.file.mimetype, { convertToWebp: options.convertToWebp });
+                                const dims = getMaxDimensions(folderName);
+                                const result = await compressImage(fileBuffer, req.file.mimetype, { convertToWebp: options.convertToWebp, ...dims });
                                 fileBuffer = result.buffer;
                                 if (result.compressed) {
                                     if (result.format === 'webp' && req.file.mimetype !== 'image/webp') {
@@ -669,7 +688,8 @@ const processAndStoreBuffer = async (buffer, originalname, mimetype, folderName,
     let fileBuffer = buffer;
     
     if (isCompressibleImage(mimetype)) {
-        const result = await compressImage(fileBuffer, mimetype, { convertToWebp: opt.convertToWebp });
+        const dims = getMaxDimensions(folderName);
+        const result = await compressImage(fileBuffer, mimetype, { convertToWebp: opt.convertToWebp, ...dims });
         fileBuffer = result.buffer;
         if (result.compressed && result.format === 'webp' && mimetype !== 'image/webp') {
             mimetype = 'image/webp';
