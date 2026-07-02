@@ -70,10 +70,13 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
                         <div className="col-span-2 lg:col-span-2 space-y-6">
                             <div className="flex items-center gap-3 font-extrabold text-2xl tracking-tight text-slate-900">
-                                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                                    <MessageSquare className="w-5 h-5 text-white" />
-                                </div>
-                                {brandName}
+                                {config.brand?.logo ? (
+                                    <img src={config.brand.logo} alt="Logo" className="h-10 object-contain" />
+                                ) : (
+                                    <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                                        <MessageSquare className="w-5 h-5 text-white" />
+                                    </div>
+                                )}
                             </div>
                             <p className="text-slate-500 font-medium max-w-xs">{config.brand?.footerText || 'The operating system for official WhatsApp Business API conversations.'}</p>
                             <div className="flex gap-4">
