@@ -155,11 +155,15 @@ function ReferralCapture() {
 
 // ── Setup Redirect ────────────────────────────────────────────────────────────
 // Checks if the app has been configured. If not, redirects to /setup.
+// Skipped on public-facing routes that don't require setup to function.
 function SetupRedirect() {
     const navigate = useNavigate();
     const location = useLocation();
     useEffect(() => {
-        if (location.pathname === '/setup') return; // Already on setup
+        // Skip on /setup (already there) and public-facing routes that need no check
+        const publicPrefixes = ['/store/', '/v/', '/n/', '/form/', '/verify', '/blog'];
+        if (location.pathname === '/setup') return;
+        if (publicPrefixes.some(prefix => location.pathname.startsWith(prefix))) return;
         axios.get(`${import.meta.env.VITE_API_URL}/api/setup/status`)
             .then(r => {
                 if (!r.data.setupComplete) {

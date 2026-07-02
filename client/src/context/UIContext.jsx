@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X, CheckCircle2, AlertTriangle, Info, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from './AuthContext'; // Import useAuth to get user status
+import { getPublicSettings } from '../utils/publicSettings';
 
 const UIContext = createContext();
 
@@ -28,8 +29,7 @@ export const UIProvider = ({ children }) => {
 
     const fetchPublicSettings = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings/public`);
-            const data = res.data;
+            const data = await getPublicSettings();
             if (data?.logoUrl?.startsWith('/uploads')) {
                 data.logoUrl = `${import.meta.env.VITE_API_URL}${data.logoUrl}`;
             }

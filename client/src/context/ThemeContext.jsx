@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { getPublicSettings } from '../utils/publicSettings';
 
 const ThemeContext = createContext();
 
@@ -9,8 +10,7 @@ export const ThemeProvider = ({ children }) => {
     // On mount, if no user preference is in localStorage, fetch the server default
     useEffect(() => {
         if (!localStorage.getItem('theme')) {
-            fetch(`${import.meta.env.VITE_API_URL}/api/settings/public`)
-                .then(res => res.json())
+            getPublicSettings()
                 .then(data => {
                     const serverTheme = data?.theme || 'system';
                     setTheme(serverTheme);
@@ -63,8 +63,7 @@ export const ThemeProvider = ({ children }) => {
     const resetToServerDefault = () => {
         localStorage.removeItem('theme');
         setTheme(null);
-        fetch(`${import.meta.env.VITE_API_URL}/api/settings/public`)
-            .then(res => res.json())
+        getPublicSettings()
             .then(data => setTheme(data?.theme || 'system'))
             .catch(() => setTheme('system'));
     };

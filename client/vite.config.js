@@ -16,6 +16,9 @@ export default defineConfig({
         manualChunks: {
           // Core React — shared across all pages (~140KB gzipped)
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Lucide icons — bundle ALL icons into ONE chunk to prevent dozens of micro-files
+          // Without this, Vite creates a separate ~0.8KB file for every icon used on a page
+          'vendor-icons': ['lucide-react'],
           // Charts — only loaded on Dashboard, Reports, Campaign pages (~300KB)
           'vendor-charts': ['recharts'],
           // Flow builder — only loaded on FlowBot page (~200KB)
