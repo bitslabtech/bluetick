@@ -125,11 +125,16 @@ const distIndex = path.join(distPath, 'index.html');
 const fs = require('fs');
 if (fs.existsSync(distIndex)) {
     app.use(express.static(distPath, {
-        maxAge: '1y',
+        maxAge: '1y', // Fallback for other files
         setHeaders: (res, filePath) => {
             // Don't cache index.html so updates always reach the user
             if (filePath.endsWith('index.html')) {
-                res.setHeader('Cache-Control', 'no-store, no-cache');
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+            } 
+            // Assets built by Vite have content hashes in their filename (e.g. index-ABC.js)
+            // They can be safely cached FOREVER.
+            else if (filePath.includes('/assets/')) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
             }
         }
     }));
@@ -239,9 +244,19 @@ if (fs.existsSync(distIndex)) {
 
                 // LCP preload — first hero slide image
                 const slides = Array.isArray(store.heroSlides) ? store.heroSlides : [];
-                const lcpImageUrl = slides[0]?.imageUrl || store.coverImage || store.logo;
+                let lcpImageUrl = slides[0]?.imageUrl || store.coverImage || store.logo;
+                
                 if (lcpImageUrl) {
-                    injections.push(`<link rel="preload" as="image" href="${lcpImageUrl}" fetchpriority="high">`);
+                    // Replicate frontend imgUrl() logic to ensure exact match
+                    if (!lcpImageUrl.startsWith('http://') && !lcpImageUrl.startsWith('https://')) {
+                        const apiBase = process.env.APP_URL || 'http://localhost:5000'; // Or frontend API_URL
+                        lcpImageUrl = `${apiBase}/api${lcpImageUrl.startsWith('/') ? '' : '/'}${lcpImageUrl}`;
+                    }
+
+                    // Escape to prevent HTML parser breakage
+                    const safeUrl = lcpImageUrl.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+
+                    injections.push(`<link rel="preload" as="image" href="${safeUrl}" fetchpriority="high">`);
 
                     // Preconnect to the CDN/R2 domain so DNS+TLS is established early
                     try {

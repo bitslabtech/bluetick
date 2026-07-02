@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+/* 
+  Removed @import for Inter font to fix PageSpeed "render-blocking resources" warning.
+  The font is already loaded non-blockingly in index.html.
+*/
 @config "../tailwind.config.js";
 
 @theme {
