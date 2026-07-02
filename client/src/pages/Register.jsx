@@ -251,9 +251,9 @@ const Register = () => {
     return (
         <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-display transition-colors duration-300">
             {/* Left Column - Branding & Plan/Platform Details (Only visible on desktop) */}
-            <div className={`hidden md:flex md:w-[40%] xl:w-[35%] relative overflow-hidden border-r border-slate-200/50 dark:border-slate-800/50 ${(publicSettings?.registerBannerUrl && !selectedPlan) ? '' : 'flex-col justify-between p-10 lg:p-12'}`}>
+            <div className={`hidden md:flex md:w-[40%] xl:w-[35%] relative overflow-hidden ${(publicSettings?.registerBannerUrl && !selectedPlan) ? '' : 'border-r border-slate-200/50 dark:border-slate-800/50 flex-col justify-between p-10 lg:p-12'}`}>
                 {(publicSettings?.registerBannerUrl && !selectedPlan) ? (
-                    <img src={publicSettings.registerBannerUrl} alt="Promotional Banner" className="absolute inset-0 w-full h-full object-contain p-6 bg-slate-50 dark:bg-slate-950" />
+                    <img src={publicSettings.registerBannerUrl} alt="Promotional Banner" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
                     <>
                         {/* Elegant Static Background */}

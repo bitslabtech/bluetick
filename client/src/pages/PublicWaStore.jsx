@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import WaStoreFooter from '../components/WaStoreFooter';
 import WaStoreHeader from '../components/WaStoreHeader';
-import WaStoreCheckoutModal from '../components/WaStoreCheckoutModal';
+const WaStoreCheckoutModal = React.lazy(() => import('../components/WaStoreCheckoutModal'));
 import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
@@ -164,6 +164,22 @@ export default function PublicWaStore({ customSlug }) {
 
         return () => cleanupStoreSeo();
     }, [slug]);
+
+    // PRELOAD HERO IMAGE (LCP Optimization)
+    useEffect(() => {
+        const firstHeroSlide = slides[0];
+        if (firstHeroSlide && firstHeroSlide.imageUrl && !firstHeroSlide.imageUrl.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) {
+            const preloadUrl = imgUrl(firstHeroSlide.imageUrl);
+            if (!document.head.querySelector(`link[rel="preload"][href="${preloadUrl}"]`)) {
+                const link = document.createElement('link');
+                link.rel = 'preload';
+                link.as = 'image';
+                link.href = preloadUrl;
+                document.head.appendChild(link);
+                return () => { if(document.head.contains(link)) document.head.removeChild(link); };
+            }
+        }
+    }, [slides]);
 
 
 
@@ -533,26 +549,24 @@ export default function PublicWaStore({ customSlug }) {
                 {filteredAndSortedProducts.length > 0 ? (() => {
                     const desktopCols = store.gridColumns?.desktop || 4;
                     const mobileCols = store.gridColumns?.mobile || 2;
-                    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-                    const cols = isMobile ? mobileCols : desktopCols;
                     return (
-                        <div
-                            className="grid gap-4 sm:gap-6"
-                            style={{ gridTemplateColumns: `repeat(${mobileCols}, minmax(0, 1fr))` }}
-                            ref={el => {
-                                if (!el) return;
-                                const update = () => {
-                                    const w = window.innerWidth;
-                                    const c = w < 640 ? (store.gridColumns?.mobile || 2)
-                                        : w < 1024 ? Math.min(store.gridColumns?.desktop || 4, 3)
-                                            : (store.gridColumns?.desktop || 4);
-                                    el.style.gridTemplateColumns = `repeat(${c}, minmax(0, 1fr))`;
-                                };
-                                update();
-                                window.addEventListener('resize', update);
-                                el._cleanupGrid = () => window.removeEventListener('resize', update);
-                            }}
-                        >
+                        <>
+                        <style>{`
+                            .dynamic-product-grid {
+                                grid-template-columns: repeat(${mobileCols}, minmax(0, 1fr));
+                            }
+                            @media (min-width: 640px) {
+                                .dynamic-product-grid {
+                                    grid-template-columns: repeat(${Math.min(desktopCols, 3)}, minmax(0, 1fr));
+                                }
+                            }
+                            @media (min-width: 1024px) {
+                                .dynamic-product-grid {
+                                    grid-template-columns: repeat(${desktopCols}, minmax(0, 1fr));
+                                }
+                            }
+                        `}</style>
+                        <div className="grid gap-4 sm:gap-6 dynamic-product-grid">
                             {filteredAndSortedProducts.map(product => {
                                 const isOutOfStock = product.trackQuantity ? product.stockQuantity <= 0 : !product.inStock;
                                 const preventAdd = store.inventoryConfig?.preventCartAdd && isOutOfStock;
@@ -672,6 +686,7 @@ export default function PublicWaStore({ customSlug }) {
                                 );
                             })}
                         </div>
+                        </>
                     );
                 })() : (
                     <div className={`text-center py-24 ${theme.cardStyle} rounded-3xl shadow-sm border border-transparent`}>
@@ -800,15 +815,17 @@ export default function PublicWaStore({ customSlug }) {
 
             {/* ─── CHECKOUT MODAL ─── */}
             {isCheckoutModalOpen && (
-                <WaStoreCheckoutModal
-                    store={store}
-                    cart={cart}
-                    cartSubtotal={cartSubtotal}
-                    shippingCost={shippingCost}
-                    cartTotal={cartTotal}
-                    onClose={() => setIsCheckoutModalOpen(false)}
-                    onCheckoutSuccess={handleCheckoutSuccess}
-                />
+                <React.Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white" /></div>}>
+                    <WaStoreCheckoutModal
+                        store={store}
+                        cart={cart}
+                        cartSubtotal={cartSubtotal}
+                        shippingCost={shippingCost}
+                        cartTotal={cartTotal}
+                        onClose={() => setIsCheckoutModalOpen(false)}
+                        onCheckoutSuccess={handleCheckoutSuccess}
+                    />
+                </React.Suspense>
             )}
 
             {/* ─── MOBILE NAVIGATION DRAWER ─── */}
