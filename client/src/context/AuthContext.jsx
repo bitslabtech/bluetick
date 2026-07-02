@@ -6,32 +6,34 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [isImpersonating, setIsImpersonating] = useState(false);
-    // Prevents route guards from firing during mid-swap auth transitions (impersonation)
-    const [isTransitioning, setIsTransitioning] = useState(false);
-
-    // Initialize Auth State from LocalStorage
-    useEffect(() => {
+    // ── Synchronously initialize state from localStorage to prevent flicker ──
+    const [user, setUser] = useState(() => {
         try {
             const userStr = localStorage.getItem('user');
-            if (userStr && userStr !== "undefined") {
-                const savedUser = JSON.parse(userStr);
-                if (savedUser) {
-                    setUser(savedUser);
-                    
-                    // We can infer impersonation state if the cached user has the origRole flag set by admin.js
-                    if (savedUser.origRole === 'Admin') {
-                        setIsImpersonating(true);
-                    }
-                }
-            }
+            if (userStr && userStr !== "undefined") return JSON.parse(userStr);
         } catch (e) {
             console.error("Auth Init Error", e);
             localStorage.removeItem('user');
         }
+        return null;
+    });
 
+    const [loading, setLoading] = useState(true);
+
+    const [isImpersonating, setIsImpersonating] = useState(() => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr && userStr !== "undefined") {
+                const savedUser = JSON.parse(userStr);
+                return savedUser?.origRole === 'Admin';
+            }
+        } catch (e) { }
+        return false;
+    });
+
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    useEffect(() => {
         // Always attempt to fetch fresh data. The browser will auto-send the HttpOnly cookie.
         fetchUser().finally(() => {
             setLoading(false);
@@ -169,7 +171,7 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={{ user, login, register, logout, loading, impersonate, exitImpersonation, isImpersonating, isTransitioning, fetchUser }}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };
