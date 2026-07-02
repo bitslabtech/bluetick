@@ -124,8 +124,7 @@ export default function PublicWaStore({ customSlug }) {
     useEffect(() => {
         const fetchStore = async (isSilent = false) => {
             try {
-                const timestamp = new Date().getTime();
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}?t=${timestamp}`);
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}`);
                 setStore(res.data.store);
                 setProducts(res.data.products);
 
