@@ -43,7 +43,16 @@ export const UIProvider = ({ children }) => {
     const [publicSettingsLoading, setPublicSettingsLoading] = useState(true);
 
     // Fetch Public Settings on initial load (for branding before login)
+    // SKIP on /store/* — the public store uses its own branding (store.logo, store.themeId)
+    // from window.__STORE_INITIAL_DATA__. Platform-level settings (favicon, primaryColor)
+    // are irrelevant to store visitors and the extra request competes with the LCP image.
+    // Source-code evidence: PublicWaStore.jsx has no reference to UIContext publicSettings.
     useEffect(() => {
+        if (window.location.pathname.startsWith('/store/')) {
+            // Mark as not loading so nothing downstream waits on this
+            setPublicSettingsLoading(false);
+            return;
+        }
         fetchPublicSettings();
     }, []);
 

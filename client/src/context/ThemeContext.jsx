@@ -7,16 +7,21 @@ export const ThemeProvider = ({ children }) => {
     // Initialize from localStorage immediately to avoid flash
     const [theme, setTheme] = useState(localStorage.getItem('theme') || null);
 
-    // On mount, if no user preference is in localStorage, fetch the server default
+    // On mount, if no user preference is in localStorage, fetch the server default.
+    // SKIP on /store/* — the store page applies its own color scheme via store.themeId.
+    // Fetching platform theme setting is irrelevant and wastes a network request.
     useEffect(() => {
         if (!localStorage.getItem('theme')) {
+            if (window.location.pathname.startsWith('/store/')) {
+                setTheme('light'); // Store pages always use light as base; store.themeId overrides
+                return;
+            }
             getPublicSettings()
                 .then(data => {
                     const serverTheme = data?.theme || 'system';
                     setTheme(serverTheme);
                 })
                 .catch(() => {
-                    // If fetch fails, fall back to 'system'
                     setTheme('system');
                 });
         }
