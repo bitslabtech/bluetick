@@ -23,12 +23,12 @@ const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_AP
  * @param {string} url         - Full image URL (already resolved by imgUrl())
  * @param {object} options
  * @param {number} options.width          - Target width in pixels
- * @param {number} [options.quality=82]   - Quality (1-100)
+ * @param {number} [options.quality=92]   - Quality (1-100)
  * @param {string} [options.format='webp']- Output format: webp|avif|jpeg|png
  * @param {string} [options.fit='contain']- Fit mode: contain|cover
  * @returns {string}
  */
-export function cdnImg(url, { width, quality = 82, format = 'webp', fit = 'contain' } = {}) {
+export function cdnImg(url, { width, quality = 92, format = 'webp', fit = 'contain' } = {}) {
     if (!url) return '';
     if (!width) return url;
 

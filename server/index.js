@@ -267,7 +267,7 @@ if (fs.existsSync(distIndex)) {
                         limit: 24
                     }),
                     // Fire-and-forget warm — does NOT block HTML if it fails or is slow
-                    lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 82, format: 'webp', fit: 'contain' }).catch(() => {}) : Promise.resolve()
+                    lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => {}) : Promise.resolve()
                 ]);
 
                 const injections = [];
@@ -291,7 +291,7 @@ if (fs.existsSync(distIndex)) {
                             const params = new URLSearchParams({
                                 url: lcpImageUrl,
                                 w: '800',
-                                q: '82',
+                                q: '92',
                                 f: 'webp',
                                 fit: 'contain'
                             });
