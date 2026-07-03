@@ -360,28 +360,17 @@ export default function PublicWaStore({ customSlug }) {
                                 <video src={imgUrl(slide.imageUrl)} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                             ) : (
                                 <img
-                                    {/*
-                                     * LCP IMAGE RULES:
-                                     *
-                                     * idx === 0 (LCP element):
-                                     *   ✓ Use direct CDN URL — MUST match the server-injected
-                                     *     <link rel="preload"> exactly. Routing through /api/img
-                                     *     proxy creates a different URL → wasted preload + extra
-                                     *     proxy TTFB. Direct CDN URL = preload cache hit.
-                                     *   ✓ No srcSet on LCP — browser already chose the preloaded
-                                     *     URL; a srcSet would cause it to re-evaluate and may
-                                     *     trigger a second download.
-                                     *
-                                     * idx > 0 (non-LCP slides):
-                                     *   ✓ Use proxy + srcSet for correct size per device.
-                                     *   ✓ loading="lazy" — not needed on first paint.
-                                     */}
+                                    // LCP (idx===0): use direct CDN URL — must match the server-injected
+                                    // <link rel="preload"> exactly. Proxy URL ≠ preload URL → double download.
+                                    // Non-LCP (idx>0): use proxy + srcSet for correct size per device.
                                     src={idx === 0
-                                        ? imgUrl(slide.imageUrl)           // direct CDN — matches preload
-                                        : cdnImg(imgUrl(slide.imageUrl), { width: 800 })  // proxy for sizing
+                                        ? imgUrl(slide.imageUrl)          // direct CDN — matches preload
+                                        : cdnImg(imgUrl(slide.imageUrl), { width: 800 })
                                     }
+                                    // No srcSet on LCP slide — browser already has the preloaded URL;
+                                    // adding srcSet causes it to re-evaluate and may trigger a 2nd download.
                                     srcSet={idx === 0
-                                        ? undefined                         // no srcSet on LCP — avoids double-download
+                                        ? undefined
                                         : cdnSrcSet(imgUrl(slide.imageUrl), [480, 800, 1200])
                                     }
                                     sizes={idx === 0
