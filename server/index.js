@@ -382,19 +382,25 @@ img{display:block;vertical-align:middle}
 
                 // Convert blocking stylesheet to async — media="print" swap is more reliable
                 // than the onload trick across all browsers and Lighthouse versions.
-                // Regex matches any Vite 7 attribute ordering (href before/after crossorigin).
+                // Regex matches the href first, then checks for rel="stylesheet" to guarantee
+                // it works regardless of Vite's attribute ordering.
                 html = html.replace(
-                    /<link\b[^>]*rel="stylesheet"[^>]*href="(\/assets\/index-[^"]+\.css)"[^>]*>/,
-                    (_, href) => [
-                        CRITICAL_STORE_CSS,
-                        // media="print" makes browser treat it as non-render-blocking;
-                        // onload swaps it to "all" once downloaded — zero FOUC with critical CSS above.
-                        `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all'">`,
-                        // Preload ensures the full CSS is still fetched at HIGH priority
-                        `<link rel="preload" as="style" href="${href}">`,
-                        // Fallback for no-JS browsers
-                        `<noscript><link rel="stylesheet" href="${href}"></noscript>`
-                    ].join('\n')
+                    /<link\b[^>]*href="(\/assets\/index-[^"]+\.css)"[^>]*>/,
+                    (match, href) => {
+                        // Only replace if it's actually the stylesheet link
+                        if (!match.includes('rel="stylesheet"')) return match;
+                        
+                        return [
+                            CRITICAL_STORE_CSS,
+                            // media="print" makes browser treat it as non-render-blocking;
+                            // onload swaps it to "all" once downloaded — zero FOUC with critical CSS above.
+                            `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all'">`,
+                            // Preload ensures the full CSS is still fetched at HIGH priority
+                            `<link rel="preload" as="style" href="${href}">`,
+                            // Fallback for no-JS browsers
+                            `<noscript><link rel="stylesheet" href="${href}"></noscript>`
+                        ].join('\n');
+                    }
                 );
 
                 // This eliminates the 2,600ms+ "resource load delay" caused by:
