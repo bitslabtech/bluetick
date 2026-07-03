@@ -164,23 +164,10 @@ export default function PublicWaStore({ customSlug }) {
         return () => cleanupStoreSeo();
     }, [slug]);
 
-    // PRELOAD HERO IMAGE (LCP Optimization)
-    useEffect(() => {
-        const firstHeroSlide = slides[0];
-        if (firstHeroSlide && firstHeroSlide.imageUrl && !firstHeroSlide.imageUrl.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) {
-            const preloadUrl = imgUrl(firstHeroSlide.imageUrl);
-            if (!document.head.querySelector(`link[rel="preload"][href="${preloadUrl}"]`)) {
-                const link = document.createElement('link');
-                link.rel = 'preload';
-                link.as = 'image';
-                link.href = preloadUrl;
-                document.head.appendChild(link);
-                return () => { if(document.head.contains(link)) document.head.removeChild(link); };
-            }
-        }
-    }, [slides]);
-
-
+    // NOTE: LCP image preload is injected server-side in index.js before the HTML is sent.
+    // A client-side useEffect preload fires AFTER JS parses and runs, which is too late
+    // for the browser's preload scanner. The server-side <link rel="preload"> in <head>
+    // is discovered immediately by the browser's lookahead parser before any JS runs.
 
 
     useEffect(() => {
@@ -355,7 +342,6 @@ export default function PublicWaStore({ customSlug }) {
                                     alt={slide.title || ''}
                                     className="w-full h-full object-contain"
                                     onError={e => e.target.style.display = 'none'}
-                                    // First slide is the LCP element — prioritise its load
                                     loading={idx === 0 ? 'eager' : 'lazy'}
                                     fetchPriority={idx === 0 ? 'high' : 'auto'}
                                     decoding={idx === 0 ? 'sync' : 'async'}
@@ -465,7 +451,11 @@ export default function PublicWaStore({ customSlug }) {
                                         >
                                             <div className={`w-24 h-24 sm:w-44 sm:h-44 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
                                                 {catImage ? (
-                                                    <img src={imgUrl(catImage)} alt="" loading="lazy" className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-100 group-hover:scale-105`} />
+                                    <img
+                                        src={imgUrl(catImage)}
+                                        alt="" loading="lazy"
+                                        className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-100 group-hover:scale-105`}
+                                    />
                                                 ) : (
                                                     <span className="text-xl sm:text-4xl font-thin text-zinc-400 dark:text-zinc-600">{cat.substring(0, 1)}</span>
                                                 )}
@@ -503,7 +493,10 @@ export default function PublicWaStore({ customSlug }) {
                                         >
                                             <div className={`w-24 h-24 sm:w-44 sm:h-44 ${theme.categoryImageShape || 'rounded-full'} overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
                                                 {catImage ? (
-                                                    <img src={imgUrl(catImage)} alt="" loading="lazy" className="w-full h-full object-cover" />
+                                                    <img
+                                                        src={imgUrl(catImage)}
+                                                        alt="" loading="lazy" className="w-full h-full object-cover"
+                                                    />
                                                 ) : (
                                                     <span className={`text-xl sm:text-4xl font-bold uppercase ${theme.textMuted}`}>{cat.substring(0, 2)}</span>
                                                 )}
@@ -579,7 +572,14 @@ export default function PublicWaStore({ customSlug }) {
                                         {/* Image Box */}
                                         <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                             {product.imageUrls && product.imageUrls[0] ? (
-                                                <img src={imgUrl(product.imageUrls[0])} alt={product.name} loading="lazy" decoding="async" className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
+                                                <img
+                                                    src={imgUrl(product.imageUrls[0])}
+                                                    alt={product.name}
+                                                    loading="lazy"
+                                                    decoding="async"
+                                                    className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+                                                    onError={e => e.target.style.display = 'none'}
+                                                />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
                                             )}

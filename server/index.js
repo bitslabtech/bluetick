@@ -247,15 +247,19 @@ if (fs.existsSync(distIndex)) {
                 let lcpImageUrl = slides[0]?.imageUrl || store.coverImage || store.logo;
                 
                 if (lcpImageUrl) {
-                    // Replicate frontend imgUrl() logic to ensure exact match
+                    // Replicate frontend imgUrl() logic EXACTLY — no /api prefix.
+                    // The frontend does: `${VITE_API_URL}${url}` (e.g. https://api.bluetick.cloud/uploads/...)
+                    // The server previously incorrectly added /api which caused a URL mismatch,
+                    // meaning the browser preloaded the WRONG URL and then fetched the real one fresh.
                     if (!lcpImageUrl.startsWith('http://') && !lcpImageUrl.startsWith('https://')) {
-                        const apiBase = process.env.APP_URL || 'http://localhost:5000'; // Or frontend API_URL
-                        lcpImageUrl = `${apiBase}/api${lcpImageUrl.startsWith('/') ? '' : '/'}${lcpImageUrl}`;
+                        const apiBase = process.env.VITE_API_URL || process.env.APP_URL || 'http://localhost:5000';
+                        lcpImageUrl = `${apiBase}${lcpImageUrl.startsWith('/') ? '' : '/'}${lcpImageUrl}`;
                     }
 
                     // Escape to prevent HTML parser breakage
                     const safeUrl = lcpImageUrl.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 
+                    // Hero image preload — fetchpriority=high tells browser this is the LCP image
                     injections.push(`<link rel="preload" as="image" href="${safeUrl}" fetchpriority="high">`);
 
                     // Preconnect to the CDN/R2 domain so DNS+TLS is established early
@@ -303,7 +307,10 @@ if (fs.existsSync(distIndex)) {
             }
 
             res.set('Content-Type', 'text/html; charset=utf-8');
-            res.set('Cache-Control', 'no-store'); // Don't cache — store data changes
+            // Allow CDN (Cloudflare) to cache the store page for 60s — stale-while-revalidate
+            // for 10 minutes. This means repeat visitors get a near-instant response from
+            // the edge while data stays reasonably fresh.
+            res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=600');
             res.send(html);
         } catch (err) {
             console.error('[Store SSR Preload] Error:', err.message);

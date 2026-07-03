@@ -152,7 +152,12 @@ export default function WaStoreHeader({
                         {/* CENTER – Logo or store name */}
                         <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate(`/store/${slug}`)}>
                             {store.logo ? (
-                                <img src={imgUrl(store.logo)} alt={store.name} className="h-12 max-w-[180px] object-contain" onError={e => e.target.style.display = 'none'} />
+                                <img
+                                    src={imgUrl(store.logo)}
+                                    alt={store.name}
+                                    className="h-12 max-w-[180px] object-contain"
+                                    onError={e => e.target.style.display = 'none'}
+                                />
                             ) : (
                                 <span className="text-xl tracking-[0.25em] uppercase text-black font-normal" style={{ fontFamily: theme.fontFamily }}>{store.name}</span>
                             )}
@@ -199,7 +204,13 @@ export default function WaStoreHeader({
                         {/* MIDDLE/LEFT: Logo (Centered on mobile, Left on desktop) */}
                         <div className="flex items-center justify-center md:justify-start shrink-0 w-1/3 md:w-auto">
                             {store.logo ? (
-                                <img src={imgUrl(store.logo)} alt={store.name} className="w-auto h-10 md:h-12 object-contain cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
+                                <img
+                                    src={imgUrl(store.logo)}
+                                    alt={store.name}
+                                    className="w-auto h-10 md:h-12 object-contain cursor-pointer"
+                                    onClick={() => navigate(`/store/${slug}`)}
+                                    onError={e => e.target.style.display = 'none'}
+                                />
                             ) : (
                                 <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
                             )}
@@ -335,7 +346,13 @@ export default function WaStoreHeader({
                         {/* MIDDLE: Logo (Centered on mobile and desktop) */}
                         <div className={`flex items-center justify-center shrink-0 w-1/3 md:w-auto md:absolute md:left-1/2 md:-translate-x-1/2 ${theme.logoWrapper || ''}`}>
                             {store.logo ? (
-                                <img src={imgUrl(store.logo)} alt={store.name} className="w-auto h-10 md:h-12 object-contain rounded-md cursor-pointer" onClick={() => navigate(`/store/${slug}`)} onError={e => e.target.style.display = 'none'} />
+                                <img
+                                    src={imgUrl(store.logo)}
+                                    alt={store.name}
+                                    className="w-auto h-10 md:h-12 object-contain rounded-md cursor-pointer"
+                                    onClick={() => navigate(`/store/${slug}`)}
+                                    onError={e => e.target.style.display = 'none'}
+                                />
                             ) : (
                                 <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
                             )}

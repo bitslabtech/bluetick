@@ -15,12 +15,13 @@ require('dotenv').config();
 const { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const sharp = require('sharp');
 
-// Folder-aware max dimensions (must match storageProvider.js)
+// Folder-aware max dimensions — must stay in sync with storageProvider.js
+// Set to 2× the maximum CSS display size (retina-ready via Sharp on upload).
 const FOLDER_MAX_DIMENSIONS = {
-    'wastore-products':   { maxWidth: 800,  maxHeight: 800  },
-    'wastore-slides':     { maxWidth: 1400, maxHeight: 800  },
-    'wastore-categories': { maxWidth: 500,  maxHeight: 500  },
-    'wastore-logos':      { maxWidth: 400,  maxHeight: 200  },
+    'wastore-products':   { maxWidth: 700,  maxHeight: 700  },
+    'wastore-slides':     { maxWidth: 1200, maxHeight: 700  },
+    'wastore-categories': { maxWidth: 400,  maxHeight: 400  },
+    'wastore-logos':      { maxWidth: 300,  maxHeight: 150  },
     'vcard':              { maxWidth: 1200, maxHeight: 1200 },
     'vcard-gallery':      { maxWidth: 1200, maxHeight: 1200 },
     'hero':               { maxWidth: 1400, maxHeight: 800  },

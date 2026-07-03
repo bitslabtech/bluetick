@@ -108,17 +108,17 @@ const classifyMediaType = (mimeType) => {
 const DEFAULT_LIMITS = { fileSize: 200 * 1024 * 1024 }; // 200MB max
 
 // ─── Folder-aware max image dimensions ──────────────────────────────────────
-// Prevents uploading images far larger than their display size.
-// Product cards: 308x205px display → cap at 800px wide (2.6x retina headroom)
-// Hero slides:   707x350px display → cap at 1400px wide (2x retina headroom)
-// Category imgs: ~200px display    → cap at 500px
-// Logos:         ~134px display    → cap at 400px
-// Default:       1200px (safe for most full-width uses)
+// Set to 2× the maximum CSS display size (retina-ready).
+// Sharp resizes on upload; the stored image IS the correctly-sized image.
+//   Hero slides:    display ~707px  → store 1200px (2×)
+//   Product cards:  display ~308px  → store 700px  (2×)
+//   Category tiles: display ~176px  → store 400px  (2×)
+//   Logos:          display ~134px  → store 300px  (2×)
 const FOLDER_MAX_DIMENSIONS = {
-    'wastore-products':  { maxWidth: 800,  maxHeight: 800  },
-    'wastore-slides':    { maxWidth: 1400, maxHeight: 800  },
-    'wastore-categories':{ maxWidth: 500,  maxHeight: 500  },
-    'wastore-logos':     { maxWidth: 400,  maxHeight: 200  },
+    'wastore-products':  { maxWidth: 700,  maxHeight: 700  },
+    'wastore-slides':    { maxWidth: 1200, maxHeight: 700  },
+    'wastore-categories':{ maxWidth: 400,  maxHeight: 400  },
+    'wastore-logos':     { maxWidth: 300,  maxHeight: 150  },
     'vcard':             { maxWidth: 1200, maxHeight: 1200 },
     'vcard-gallery':     { maxWidth: 1200, maxHeight: 1200 },
     'hero':              { maxWidth: 1400, maxHeight: 800  },
