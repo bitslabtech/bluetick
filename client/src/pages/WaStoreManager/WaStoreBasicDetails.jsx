@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
     Store, Globe, Phone, Mail, MapPin, Image as ImageIcon,
     Save, ExternalLink, Copy, Upload, X, CheckCircle, AlertCircle, Loader2,
-    Search, ChevronDown, FolderOpen
+    Search, ChevronDown, FolderOpen, Camera
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MediaPickerModal from '../../components/MediaPickerModal';
