@@ -360,15 +360,14 @@ export default function PublicWaStore({ customSlug }) {
                                 <video src={imgUrl(slide.imageUrl)} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                             ) : (
                                 <img
-                                    // LCP (idx===0): use direct CDN URL — must match the server-injected
-                                    // <link rel="preload"> exactly. Proxy URL ≠ preload URL → double download.
-                                    // Non-LCP (idx>0): use proxy + srcSet for correct size per device.
-                                    src={idx === 0
-                                        ? imgUrl(slide.imageUrl)          // direct CDN — matches preload
-                                        : cdnImg(imgUrl(slide.imageUrl), { width: 800 })
-                                    }
-                                    // No srcSet on LCP slide — browser already has the preloaded URL;
+                                    // LCP (idx===0): use proxy at w=800 — MUST match the server-injected
+                                    // <link rel="preload"> URL exactly (server also builds proxy URL at w=800).
+                                    // Preload cache hit saves ~17 KiB vs the raw 1200px CDN image.
+                                    // No srcSet on LCP — browser already chose the preloaded URL;
                                     // adding srcSet causes it to re-evaluate and may trigger a 2nd download.
+                                    //
+                                    // Non-LCP slides (idx>0): proxy + srcSet for responsive sizing.
+                                    src={cdnImg(imgUrl(slide.imageUrl), { width: 800 })}
                                     srcSet={idx === 0
                                         ? undefined
                                         : cdnSrcSet(imgUrl(slide.imageUrl), [480, 800, 1200])
