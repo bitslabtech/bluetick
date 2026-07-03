@@ -344,36 +344,57 @@ if (fs.existsSync(distIndex)) {
                 // NOTE: Only applied to /store/:slug — dashboard pages keep blocking CSS
                 // because they need full styles before any content renders.
 
-                const CRITICAL_STORE_CSS = `
-                <style id="critical-store">
-                /* Critical CSS — renders store skeleton before main CSS loads */
-                *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid}
-                html{line-height:1.5;-webkit-text-size-adjust:100%}
-                body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif}
-                .flex{display:flex}.flex-col{flex-direction:column}
-                .min-h-screen{min-height:100vh}.w-full{width:100%}
-                .aspect-\\[2\\/1\\]{aspect-ratio:2/1}
-                .bg-gray-50{background-color:#f9fafb}.bg-gray-200{background-color:#e5e7eb}
-                .rounded-2xl{border-radius:1rem}
-                .max-w-7xl{max-width:80rem}.mx-auto{margin-left:auto;margin-right:auto}
-                .px-4{padding-left:1rem;padding-right:1rem}.py-8{padding-top:2rem;padding-bottom:2rem}
-                .grid{display:grid}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-                .gap-4{gap:1rem}.aspect-square{aspect-ratio:1/1}
-                @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-                .animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
-                </style>`;
+                const CRITICAL_STORE_CSS = `<style id="critical-store">
+/* Reset — prevents layout shift before Tailwind loads */
+*,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
+html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+/* Layout primitives used by skeleton */
+.flex{display:flex}.flex-col{flex-direction:column}
+.min-h-screen{min-height:100vh}.w-full{width:100%}.h-full{height:100%}
+.relative{position:relative}.absolute{position:absolute}.inset-0{inset:0}
+.overflow-hidden{overflow:hidden}.overflow-x-hidden{overflow-x:hidden}
+/* Hero skeleton — aspect-[2/1] exactly matches the store hero */
+.aspect-\\[2\\/1\\]{aspect-ratio:2/1}
+/* Product grid skeleton */
+.grid{display:grid}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.gap-4{gap:1rem}.aspect-square{aspect-ratio:1/1}
+.max-w-7xl{max-width:80rem}.mx-auto{margin-left:auto;margin-right:auto}
+.px-4{padding-left:1rem;padding-right:1rem}.py-8{padding-top:2rem;padding-bottom:2rem}
+/* Skeleton colors */
+.bg-gray-50{background-color:#f9fafb}.bg-gray-200{background-color:#e5e7eb}
+.rounded-2xl{border-radius:1rem}
+/* Skeleton pulse animation */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+/* Hero image: display:block prevents inline gap */
+img{display:block;vertical-align:middle}
+/* Object-fit for hero image */
+.object-contain{object-fit:contain}.object-cover{object-fit:cover}
+/* Fadeshow animations */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes fadeSlideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.animate-fade-in{animation:fadeIn .5s ease both}
+.animate-slide-in-left{animation:slideInLeft .5s ease both}
+.animate-fade-slide-down{animation:fadeSlideDown .4s ease both}
+</style>`;
 
-                // Convert blocking stylesheet to async preload (public store only)
-                // Convert blocking stylesheet to async preload (public store only).
-                // Regex is intentionally flexible — Vite 7 may emit attributes in any order
-                // (href before/after crossorigin, or no crossorigin at all).
+                // Convert blocking stylesheet to async — media="print" swap is more reliable
+                // than the onload trick across all browsers and Lighthouse versions.
+                // Regex matches any Vite 7 attribute ordering (href before/after crossorigin).
                 html = html.replace(
                     /<link\b[^>]*rel="stylesheet"[^>]*href="(\/assets\/index-[^"]+\.css)"[^>]*>/,
                     (_, href) => [
                         CRITICAL_STORE_CSS,
-                        `<link rel="preload" as="style" href="${href}" onload="this.onload=null;this.rel='stylesheet'">`,
+                        // media="print" makes browser treat it as non-render-blocking;
+                        // onload swaps it to "all" once downloaded — zero FOUC with critical CSS above.
+                        `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all'">`,
+                        // Preload ensures the full CSS is still fetched at HIGH priority
+                        `<link rel="preload" as="style" href="${href}">`,
+                        // Fallback for no-JS browsers
                         `<noscript><link rel="stylesheet" href="${href}"></noscript>`
-                    ].join('\n  ')
+                    ].join('\n')
                 );
 
                 // This eliminates the 2,600ms+ "resource load delay" caused by:
