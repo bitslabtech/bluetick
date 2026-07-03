@@ -267,3 +267,28 @@ section {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Public Store Drawer Animations ──────────────────────────────────────────
+   These replace framer-motion (vendor-motion.js, 39KB) on the public storefront.
+   Drawers and overlays are only visible after user interaction, so they are
+   never on the critical render path — they just need to animate smoothly once opened.
+*/
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}

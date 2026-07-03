@@ -12,7 +12,8 @@
  */
 
 const CDN_HOST = 'cdn.bluetick.cloud';
-// VITE_API_URL is the base URL of the backend server (e.g. https://app.bluetick.cloud)
+// VITE_API_URL in production = https://api.bluetick.cloud (the Express backend)
+// Generates proxy URLs like: https://api.bluetick.cloud/api/img?url=...&w=400
 const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || '';
 
 /**

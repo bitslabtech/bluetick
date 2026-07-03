@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, ChevronUp, FileText, Phone, Mail, MessageCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import WaStoreMobileBottomMenu from './WaStoreMobileBottomMenu';
 import { cdnImg } from '../utils/cdnImage';
 
@@ -426,44 +426,40 @@ export default function WaStoreHeader({
                 )}
 
                 {/* ─── COLLAPSIBLE SEARCH BAR ─── */}
-                <AnimatePresence>
-                    {isSearchOpen && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
-                            className="absolute left-0 right-0 top-full w-full bg-white border-b border-gray-100 shadow-sm z-40 overflow-visible"
-                        >
-                            <div className="max-w-[1440px] mx-auto px-4 py-4 sm:px-6 lg:px-8 relative">
-                                <div className="relative">
-                                    <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search for products..." 
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-gray-50 border border-gray-200 text-black py-3 pl-12 pr-4 rounded-xl outline-none focus:border-black transition-colors"
-                                    />
-                                    <button 
-                                        aria-label="Close search"
-                                        onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black p-1"
-                                    >
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                
-                                {/* LIVE SEARCH RESULTS */}
-                                {searchQuery.trim().length > 0 && (
-                                    <div className="absolute left-4 right-4 sm:left-6 sm:right-6 lg:left-8 lg:right-8 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
-                                        {renderSearchResults()}
-                                    </div>
-                                )}
+                {/* CSS fade+slide replaces framer-motion */}
+                {isSearchOpen && (
+                    <div
+                        className="absolute left-0 right-0 top-full w-full bg-white border-b border-gray-100 shadow-sm z-40 overflow-visible"
+                        style={{ animation: 'fadeSlideDown 0.2s ease forwards' }}
+                    >
+                        <div className="max-w-[1440px] mx-auto px-4 py-4 sm:px-6 lg:px-8 relative">
+                            <div className="relative">
+                                <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search for products..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full bg-gray-50 border border-gray-200 text-black py-3 pl-12 pr-4 rounded-xl outline-none focus:border-black transition-colors"
+                                />
+                                <button 
+                                    aria-label="Close search"
+                                    onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black p-1"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            
+                            {/* LIVE SEARCH RESULTS */}
+                            {searchQuery.trim().length > 0 && (
+                                <div className="absolute left-4 right-4 sm:left-6 sm:right-6 lg:left-8 lg:right-8 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
+                                    {renderSearchResults()}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* ─── MEGA MENU ─── */}
                 {store.megaMenu && store.megaMenu.length > 0 && theme.id !== 'glow' && (
@@ -528,24 +524,20 @@ export default function WaStoreHeader({
             </header>
 
             {/* ─── MOBILE NAVIGATION DRAWER ─── */}
-            <AnimatePresence>
-                {isMobileMenuOpen && (
-                    <div className="fixed inset-0 z-[60] flex md:hidden">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                        />
-                        <motion.div
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
-                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
-                            className={`w-[85%] max-w-sm h-full relative z-10 flex flex-col shadow-2xl ${theme.pageBg}`}
-                        >
+            {/* CSS transitions replace framer-motion */}
+            {isMobileMenuOpen && (
+                <div className="fixed inset-0 z-[60] flex md:hidden">
+                    {/* Backdrop — CSS fade */}
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        style={{ animation: 'fadeIn 0.2s ease forwards' }}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    />
+                    {/* Slide-in panel from left — CSS */}
+                    <div
+                        className={`w-[85%] max-w-sm h-full relative z-10 flex flex-col shadow-2xl ${theme.pageBg}`}
+                        style={{ animation: 'slideInLeft 0.3s ease forwards' }}
+                    >
                             <div className={`px-4 pt-6 pb-3 border-b border-gray-100 dark:border-white/10 flex items-center relative ${theme.header}`}>
                                 <div className="flex-1"></div>
                                 <div className="flex flex-col items-center text-center shrink-0">
@@ -676,10 +668,9 @@ export default function WaStoreHeader({
                                     </div>
                                 )}
                             </div>
-                        </motion.div>
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
 
             {/* ─── POLICY MODAL ─── */}
             {activePolicy && (

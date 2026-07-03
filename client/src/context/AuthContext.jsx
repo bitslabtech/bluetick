@@ -18,7 +18,16 @@ export const AuthProvider = ({ children }) => {
         return null;
     });
 
-    const [loading, setLoading] = useState(true);
+    // loading = true only when we have a cached user that needs server-side verification.
+    // Anonymous visitors (no localStorage user) start with loading: false immediately —
+    // they cannot be authenticated so /auth/me would always return 401 (wasted round-trip).
+    // This eliminates GET /auth/me from the critical path on public store pages.
+    const [loading, setLoading] = useState(() => {
+        try {
+            const userStr = localStorage.getItem('user');
+            return !!(userStr && userStr !== 'undefined');
+        } catch { return false; }
+    });
 
     const [isImpersonating, setIsImpersonating] = useState(() => {
         try {
@@ -34,10 +43,24 @@ export const AuthProvider = ({ children }) => {
     const [isTransitioning, setIsTransitioning] = useState(false);
 
     useEffect(() => {
-        // Always attempt to fetch fresh data. The browser will auto-send the HttpOnly cookie.
-        fetchUser().finally(() => {
-            setLoading(false);
-        });
+        // Only verify session with the server if there's a cached user in localStorage.
+        // Anonymous visitors skip this entirely — they have no cookie so /auth/me would
+        // just return 401 after a full network round-trip for zero benefit.
+        const hasLocalUser = (() => {
+            try {
+                const u = localStorage.getItem('user');
+                return !!(u && u !== 'undefined');
+            } catch { return false; }
+        })();
+
+        if (hasLocalUser) {
+            // Verify cached session is still valid. Runs in background for public pages;
+            // ProtectedRoute waits for loading=false before allowing access.
+            fetchUser().finally(() => {
+                setLoading(false);
+            });
+        }
+        // No-op for anonymous visitors — loading is already false, /auth/me never fires.
     }, []);
 
     const login = async (email, password, turnstileToken = '') => {

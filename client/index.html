@@ -6,12 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bluetick</title>
 
+    <!-- Preconnect to API and CDN origins so DNS+TLS is ready before first request -->
+    <link rel="preconnect" href="https://api.bluetick.cloud" crossorigin>
+    <link rel="dns-prefetch" href="https://api.bluetick.cloud">
+    <link rel="preconnect" href="https://cdn.bluetick.cloud" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.bluetick.cloud">
+
     <!--
       GOOGLE FONTS — Non-render-blocking via preload + media swap.
-      Fonts are decorative; page renders with system fallback first.
+      Preconnects removed: Lighthouse flags them as unused when fonts load asynchronously.
+      The async load below still works without the preconnects (browser discovers the
+      fonts.gstatic.com connection lazily when the stylesheet is parsed).
     -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&family=Nunito:wght@400;600;700;900&family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Teko:wght@400;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&family=Nunito:wght@400;600;700;900&family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Teko:wght@400;600;700&display=swap"></noscript>
 

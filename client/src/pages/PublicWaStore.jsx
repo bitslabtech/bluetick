@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { ShoppingBag, ShoppingCart, X, Plus, Minus, Search, ArrowRight, MapPin, Mail, Phone, MessageCircle, ChevronLeft, ChevronRight, Filter, Check, Menu, Home, FileText, ChevronDown, ChevronUp, Tag, ChevronRight as Breadcrumb } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import WaStoreFooter from '../components/WaStoreFooter';
 import WaStoreHeader from '../components/WaStoreHeader';
 const WaStoreCheckoutModal = React.lazy(() => import('../components/WaStoreCheckoutModal'));
@@ -712,27 +712,21 @@ export default function PublicWaStore({ customSlug }) {
             </main>
 
             {/* ─── CART DRAWER ─── */}
-            <AnimatePresence>
-                {isCartOpen && (
-                    <div className="fixed inset-0 z-50 flex justify-end">
-                        {/* Backdrop */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                            onClick={() => setIsCartOpen(false)}
-                        />
+            {/* CSS transitions replace framer-motion — removes vendor-motion from public store critical path */}
+            {isCartOpen && (
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    {/* Backdrop — CSS fade */}
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        style={{ animation: 'fadeIn 0.2s ease forwards' }}
+                        onClick={() => setIsCartOpen(false)}
+                    />
 
-                        {/* Slide-in Drawer Container */}
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
-                            className={`w-full max-w-md ${theme.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
-                        >
+                    {/* Slide-in Drawer — CSS slide from right */}
+                    <div
+                        className={`w-full max-w-md ${theme.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
+                        style={{ animation: 'slideInRight 0.3s ease forwards' }}
+                    >
 
                             <div className={`px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between ${theme.pageBg}`}>
                                 <h2 className={`text-lg font-semibold flex items-center gap-2 ${theme.text}`}>
@@ -821,10 +815,9 @@ export default function PublicWaStore({ customSlug }) {
                                     )}
                                 </div>
                             )}
-                        </motion.div>
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
 
             {/* ─── CHECKOUT MODAL ─── */}
             {isCheckoutModalOpen && (
