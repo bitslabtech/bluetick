@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, ChevronUp, FileText, Phone, Mail, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import WaStoreMobileBottomMenu from './WaStoreMobileBottomMenu';
+import { cdnImg } from '../utils/cdnImage';
 
 // Helper to slugify product names for URLs
 const slugifyProduct = (name, id) => {
@@ -152,8 +153,11 @@ export default function WaStoreHeader({
                         {/* CENTER – Logo or store name */}
                         <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate(`/store/${slug}`)}>
                             {store.logo ? (
+                                // Logo: ~134px display → serve 180w standard / 268w retina
                                 <img
-                                    src={imgUrl(store.logo)}
+                                    src={cdnImg(imgUrl(store.logo), { width: 268 })}
+                                    srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
+                                    sizes="(max-width: 640px) 180px, 268px"
                                     alt={store.name}
                                     className="h-12 max-w-[180px] object-contain"
                                     onError={e => e.target.style.display = 'none'}
@@ -204,8 +208,11 @@ export default function WaStoreHeader({
                         {/* MIDDLE/LEFT: Logo (Centered on mobile, Left on desktop) */}
                         <div className="flex items-center justify-center md:justify-start shrink-0 w-1/3 md:w-auto">
                             {store.logo ? (
+                                // Logo: ~134px display → serve 180w standard / 268w retina
                                 <img
-                                    src={imgUrl(store.logo)}
+                                    src={cdnImg(imgUrl(store.logo), { width: 268 })}
+                                    srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
+                                    sizes="(max-width: 640px) 180px, 268px"
                                     alt={store.name}
                                     className="w-auto h-10 md:h-12 object-contain cursor-pointer"
                                     onClick={() => navigate(`/store/${slug}`)}
@@ -346,8 +353,11 @@ export default function WaStoreHeader({
                         {/* MIDDLE: Logo (Centered on mobile and desktop) */}
                         <div className={`flex items-center justify-center shrink-0 w-1/3 md:w-auto md:absolute md:left-1/2 md:-translate-x-1/2 ${theme.logoWrapper || ''}`}>
                             {store.logo ? (
+                                // Logo: ~134px display → serve 180w standard / 268w retina
                                 <img
-                                    src={imgUrl(store.logo)}
+                                    src={cdnImg(imgUrl(store.logo), { width: 268 })}
+                                    srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
+                                    sizes="(max-width: 640px) 180px, 268px"
                                     alt={store.name}
                                     className="w-auto h-10 md:h-12 object-contain rounded-md cursor-pointer"
                                     onClick={() => navigate(`/store/${slug}`)}

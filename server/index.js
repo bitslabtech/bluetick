@@ -202,6 +202,10 @@ app.use('/api/webhook', require('./routes/webhook')); // NEW
 // Public pages (Privacy Policy, Terms) — no auth required, for Meta App Live Mode
 app.use('/', require('./routes/privacy'));
 
+// Image Resize Proxy — free self-hosted alternative to Cloudflare Image Transformations
+// Resizes CDN images on-demand with Sharp; results cached at Cloudflare edge for 1 year
+app.use('/api/img', require('./routes/imgProxy'));
+
 // Health check endpoint for Railway / Docker healthcheck
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -10,6 +10,7 @@ const WaStoreCheckoutModal = React.lazy(() => import('../components/WaStoreCheck
 import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
+import { cdnImg, cdnSrcSet } from '../utils/cdnImage';
 
 // Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
 const slugifyProduct = (name, id) => {
@@ -338,7 +339,11 @@ export default function PublicWaStore({ customSlug }) {
                                 <video src={imgUrl(slide.imageUrl)} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                             ) : (
                                 <img
-                                    src={imgUrl(slide.imageUrl)}
+                                    // Self-hosted resize proxy: correct size per device
+                                    // Slides display at ~375px mobile / ~707px desktop
+                                    src={cdnImg(imgUrl(slide.imageUrl), { width: 800 })}
+                                    srcSet={cdnSrcSet(imgUrl(slide.imageUrl), [480, 800, 1200])}
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1200px"
                                     alt={slide.title || ''}
                                     className="w-full h-full object-contain"
                                     onError={e => e.target.style.display = 'none'}
@@ -452,7 +457,10 @@ export default function PublicWaStore({ customSlug }) {
                                             <div className={`w-24 h-24 sm:w-44 sm:h-44 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
                                                 {catImage ? (
                                     <img
-                                        src={imgUrl(catImage)}
+                                        // Category circle: ~96px mobile / ~176px desktop
+                                        src={cdnImg(imgUrl(catImage), { width: 352, fit: 'cover' })}
+                                        srcSet={cdnSrcSet(imgUrl(catImage), [192, 352], { fit: 'cover' })}
+                                        sizes="(max-width: 640px) 96px, 176px"
                                         alt="" loading="lazy"
                                         className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 scale-100 group-hover:scale-105`}
                                     />
@@ -494,7 +502,10 @@ export default function PublicWaStore({ customSlug }) {
                                             <div className={`w-24 h-24 sm:w-44 sm:h-44 ${theme.categoryImageShape || 'rounded-full'} overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
                                                 {catImage ? (
                                                     <img
-                                                        src={imgUrl(catImage)}
+                                                        // Category circle: ~96px mobile / ~176px desktop
+                                                        src={cdnImg(imgUrl(catImage), { width: 352, fit: 'cover' })}
+                                                        srcSet={cdnSrcSet(imgUrl(catImage), [192, 352], { fit: 'cover' })}
+                                                        sizes="(max-width: 640px) 96px, 176px"
                                                         alt="" loading="lazy" className="w-full h-full object-cover"
                                                     />
                                                 ) : (
@@ -573,7 +584,10 @@ export default function PublicWaStore({ customSlug }) {
                                         <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                             {product.imageUrls && product.imageUrls[0] ? (
                                                 <img
-                                                    src={imgUrl(product.imageUrls[0])}
+                                                    // Product card: ~170px mobile / ~308px desktop
+                                                    src={cdnImg(imgUrl(product.imageUrls[0]), { width: 400 })}
+                                                    srcSet={cdnSrcSet(imgUrl(product.imageUrls[0]), [200, 400, 600])}
+                                                    sizes="(max-width: 640px) calc(50vw - 2rem), (max-width: 1024px) calc(33vw - 2rem), calc(25vw - 2rem)"
                                                     alt={product.name}
                                                     loading="lazy"
                                                     decoding="async"
