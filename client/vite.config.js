@@ -2,36 +2,14 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import viteCompression from 'vite-plugin-compression'
 
-// ── Custom Plugin: Convert render-blocking CSS to non-blocking preloads ────────
-// At build time, transforms every Vite-injected <link rel="stylesheet"> into:
-//   1. <link rel="preload" as="style"> — browser fetches CSS ASAP, no blocking
-//   2. onload swap — once downloaded, swaps to rel="stylesheet" (applies styles)
-//   3. <noscript> fallback — restores blocking for no-JS environments
-// This eliminates the ~940ms render-blocking CSS delay on LCP/FCP.
-function cssNonBlocking() {
-  return {
-    name: 'css-non-blocking',
-    apply: 'build',
-    transformIndexHtml(html) {
-      // Match all Vite-injected stylesheet links (excluding fonts, already handled)
-      return html.replace(
-        /<link rel="stylesheet" crossorigin href="([^"]+\.css)">/g,
-        (_, href) =>
-          `<link rel="preload" as="style" crossorigin href="${href}" onload="this.onload=null;this.rel='stylesheet'">` +
-          `<noscript><link rel="stylesheet" crossorigin href="${href}"></noscript>`
-      )
-    }
-  }
-}
-// ──────────────────────────────────────────────────────────────────────────────
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    cssNonBlocking(),
+    // Gzip compression for all built assets
     viteCompression({ algorithm: 'gzip', ext: '.gz' }),
-    viteCompression({ algorithm: 'brotliCompress', ext: '.br' }), // Brotli for better compression
+    // Brotli compression — ~15-25% smaller than gzip for modern browsers
+    viteCompression({ algorithm: 'brotliCompress', ext: '.br' }),
   ],
   // Prevent Vite from eagerly pre-bundling heavy libraries that should only
   // load on-demand when their lazy page chunk is first navigated to.
@@ -43,12 +21,8 @@ export default defineConfig({
     cssCodeSplit: true,   // Split CSS per-route chunk — reduces render-blocking CSS size
     chunkSizeWarningLimit: 600, // Suppress noise for known large vendor chunks
     rollupOptions: {
-      treeshake: {
-        // Aggressive dead-code elimination — removes unused exports from every module
-        moduleSideEffects: false,
-        propertyReadSideEffects: false,
-        tryCatchDeoptimization: false,
-      },
+      // NOTE: Do NOT set treeshake.moduleSideEffects: false — it strips CSS imports
+      // which are side-effect-only (import './index.css') and breaks all styling.
       output: {
         manualChunks: {
           // Core React — shared across all pages (~140KB gzipped)
