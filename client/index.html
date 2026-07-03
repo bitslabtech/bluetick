@@ -5,11 +5,65 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bluetick</title>
+
+    <!--
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      CRITICAL CSS — Inlined to eliminate render-blocking CSS latency.
+      Contains ONLY the styles needed to render the initial loading
+      state (spinner + background). Full stylesheet loads in parallel.
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    -->
+    <style id="critical-css">
+      /* Reset & box model */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      /* Body base — matches Tailwind bg-background-light / dark */
+      html { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      body {
+        background-color: #f6f7f8;
+        color: #0f172a;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background-color: #111a22; color: #fff; }
+      }
+      .dark body { background-color: #111a22; color: #fff; }
+
+      /* Root mount — prevent layout shift before React hydrates */
+      #root { min-height: 100vh; display: flex; flex-direction: column; }
+
+      /* Loading spinner shown by React's Suspense fallback */
+      .flex { display: flex; }
+      .items-center { align-items: center; }
+      .justify-center { justify-content: center; }
+      .min-h-screen { min-height: 100vh; }
+      .h-12 { height: 3rem; }
+      .w-12 { width: 3rem; }
+      .rounded-full { border-radius: 9999px; }
+      .border-b-2 { border-bottom-width: 2px; }
+      .border-indigo-600 { border-color: #4f46e5; }
+
+      /* Spinner keyframe — renders immediately without JS */
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      .animate-spin { animation: spin 1s linear infinite; }
+    </style>
+
+    <!--
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      GOOGLE FONTS — Non-render-blocking via preload + media swap.
+      Fonts are decorative; page renders with system fallback first.
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Non-render-blocking Google Fonts: loads after paint using media swap trick -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&family=Nunito:wght@400;600;700;900&family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Teko:wght@400;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&family=Nunito:wght@400;600;700;900&family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Teko:wght@400;600;700&display=swap"></noscript>
+
     <!-- Razorpay SDK loaded dynamically only on Checkout/Payment pages -->
   </head>
   <body>

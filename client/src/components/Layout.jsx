@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import { LogOut, Info, AlertTriangle, AlertOctagon, Menu, X } from 'lucide-react';
 import axios from 'axios';
-import { AnimatePresence, motion } from 'framer-motion';
 
 import NotificationBell from './NotificationBell';
 import UserDropdown from './UserDropdown';
@@ -80,41 +79,37 @@ export default function Layout() {
                     </div>
                 </div>
 
-                {/* Global Announcement Banner */}
-                <AnimatePresence>
-                    {systemStatus?.globalAnnouncement?.active && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className={`w-full flex items-center justify-center gap-3 px-4 py-2 font-bold text-sm text-white shadow-md relative z-50 ${systemStatus.globalAnnouncement.type === 'error' ? 'bg-red-500' :
-                                systemStatus.globalAnnouncement.type === 'warning' ? 'bg-amber-500' :
-                                    'bg-gradient-to-r from-indigo-600 to-violet-600'
-                                }`}
-                            layout
-                        >
-                            {systemStatus.globalAnnouncement.type === 'error' ? (
-                                <AlertOctagon className="w-4 h-4 shrink-0" />
-                            ) : systemStatus.globalAnnouncement.type === 'warning' ? (
-                                <AlertTriangle className="w-4 h-4 shrink-0" />
-                            ) : (
-                                <Info className="w-4 h-4 shrink-0" />
-                            )}
-                            <span>{systemStatus.globalAnnouncement.message}</span>
-                            {systemStatus.globalAnnouncement.buttonUrl && (
-                                <a
-                                    href={systemStatus.globalAnnouncement.buttonUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="shrink-0 ml-2 px-3 py-0.5 bg-white/25 hover:bg-white/40 border border-white/40 rounded-full text-white text-xs font-bold transition-colors"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    {systemStatus.globalAnnouncement.buttonText || 'Learn More'}
-                                </a>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {/* Global Announcement Banner — CSS-animated, no framer-motion */}
+                {systemStatus?.globalAnnouncement?.active && (
+                    <div
+                        style={{ animation: 'layout-banner-in 0.3s ease forwards', overflow: 'hidden' }}
+                        className={`w-full flex items-center justify-center gap-3 px-4 py-2 font-bold text-sm text-white shadow-md relative z-50 ${systemStatus.globalAnnouncement.type === 'error' ? 'bg-red-500' :
+                            systemStatus.globalAnnouncement.type === 'warning' ? 'bg-amber-500' :
+                                'bg-gradient-to-r from-indigo-600 to-violet-600'
+                            }`}
+                    >
+                        {systemStatus.globalAnnouncement.type === 'error' ? (
+                            <AlertOctagon className="w-4 h-4 shrink-0" />
+                        ) : systemStatus.globalAnnouncement.type === 'warning' ? (
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                        ) : (
+                            <Info className="w-4 h-4 shrink-0" />
+                        )}
+                        <span>{systemStatus.globalAnnouncement.message}</span>
+                        {systemStatus.globalAnnouncement.buttonUrl && (
+                            <a
+                                href={systemStatus.globalAnnouncement.buttonUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="shrink-0 ml-2 px-3 py-0.5 bg-white/25 hover:bg-white/40 border border-white/40 rounded-full text-white text-xs font-bold transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {systemStatus.globalAnnouncement.buttonText || 'Learn More'}
+                            </a>
+                        )}
+                    </div>
+                )}
+                <style>{`@keyframes layout-banner-in { from { height: 0; opacity: 0 } to { height: auto; opacity: 1 } }`}</style>
 
 
                 {/* Impersonation Warning Banner */}
