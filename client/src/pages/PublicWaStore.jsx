@@ -313,7 +313,21 @@ export default function PublicWaStore({ customSlug }) {
         setIsCartOpen(false);
     };
 
-    if (loading) return <div className="h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-black" /></div>;
+    // Show a hero skeleton while data loads — never block render with a full spinner.
+    // The server-injected <link rel="preload"> already started fetching the hero image;
+    // we just need a placeholder container so the browser has something to paint immediately.
+    if (loading) return (
+        <div className="flex flex-col min-h-screen bg-gray-50">
+            {/* Hero skeleton — matches the aspect-[2/1] ratio of the real slider */}
+            <div className="w-full aspect-[2/1] bg-gray-200 animate-pulse" />
+            {/* Product grid skeleton */}
+            <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                {[...Array(8)].map((_, i) => (
+                    <div key={i} className="bg-gray-200 rounded-2xl aspect-square animate-pulse" />
+                ))}
+            </div>
+        </div>
+    );
     if (!store) return <StoreNotFound slug={slug} />;
 
     return (
@@ -333,17 +347,47 @@ export default function PublicWaStore({ customSlug }) {
             {slides.length > 0 ? (
                 <div className={`relative bg-black w-full aspect-[2/1] overflow-hidden group ${theme.heroShape || ''}`} onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
                     {slides.map((slide, idx) => (
-                        <div key={idx} className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === activeSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                        <div key={idx} className={`absolute inset-0 ${
+                        // LCP slide (idx===0): render fully visible immediately — no opacity transition.
+                        // Any opacity animation on the LCP element delays LCP metric in Lighthouse.
+                        // Non-LCP slides: normal fade transition when carousel advances.
+                        idx === 0
+                            ? (activeSlide === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 transition-opacity duration-700 ease-in-out')
+                            : `transition-opacity duration-700 ease-in-out ${idx === activeSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`
+                    }`}>
                             <div className={`absolute inset-0 ${theme.heroOverlay} z-10`} />
                             {slide.imageUrl?.match(/\.(mp4|webm|ogg)(\?.*)?$/i) ? (
                                 <video src={imgUrl(slide.imageUrl)} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                             ) : (
                                 <img
-                                    // Self-hosted resize proxy: correct size per device
-                                    // Slides display at ~375px mobile / ~707px desktop
-                                    src={cdnImg(imgUrl(slide.imageUrl), { width: 800 })}
-                                    srcSet={cdnSrcSet(imgUrl(slide.imageUrl), [480, 800, 1200])}
-                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1200px"
+                                    {/*
+                                     * LCP IMAGE RULES:
+                                     *
+                                     * idx === 0 (LCP element):
+                                     *   ✓ Use direct CDN URL — MUST match the server-injected
+                                     *     <link rel="preload"> exactly. Routing through /api/img
+                                     *     proxy creates a different URL → wasted preload + extra
+                                     *     proxy TTFB. Direct CDN URL = preload cache hit.
+                                     *   ✓ No srcSet on LCP — browser already chose the preloaded
+                                     *     URL; a srcSet would cause it to re-evaluate and may
+                                     *     trigger a second download.
+                                     *
+                                     * idx > 0 (non-LCP slides):
+                                     *   ✓ Use proxy + srcSet for correct size per device.
+                                     *   ✓ loading="lazy" — not needed on first paint.
+                                     */}
+                                    src={idx === 0
+                                        ? imgUrl(slide.imageUrl)           // direct CDN — matches preload
+                                        : cdnImg(imgUrl(slide.imageUrl), { width: 800 })  // proxy for sizing
+                                    }
+                                    srcSet={idx === 0
+                                        ? undefined                         // no srcSet on LCP — avoids double-download
+                                        : cdnSrcSet(imgUrl(slide.imageUrl), [480, 800, 1200])
+                                    }
+                                    sizes={idx === 0
+                                        ? undefined
+                                        : '(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1200px'
+                                    }
                                     alt={slide.title || ''}
                                     className="w-full h-full object-contain"
                                     onError={e => e.target.style.display = 'none'}
