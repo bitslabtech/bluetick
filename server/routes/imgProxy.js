@@ -115,7 +115,9 @@ async function resizeImage(url, width, quality, format, fit) {
     const pipeline = sharp(Buffer.from(response.data))
         .rotate()
         .resize(width, null, {
-            fit: fit === 'cover' ? 'cover' : 'contain',
+            // 'inside' = constrain to width only, NO padding, NO black bars.
+            // 'contain' (old) created a width×width box and letterboxed images.
+            fit: fit === 'cover' ? 'cover' : 'inside',
             withoutEnlargement: true
         });
 
@@ -187,7 +189,7 @@ async function warmCache(url, { width = 800, quality = 92, format = 'webp', fit 
 
 // ── HTTP Handler ───────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
-    const { url, w, q = '82', f = 'webp', fit = 'contain' } = req.query;
+    const { url, w, q = '92', f = 'webp', fit = 'contain' } = req.query;
 
     // Input validation
     if (!url || typeof url !== 'string') {
@@ -216,14 +218,19 @@ router.get('/', async (req, res) => {
 
     const quality = Math.min(100, Math.max(1, parseInt(q) || 82));
     const format  = ALLOWED_FORMATS.includes(f) ? f : 'webp';
-    const fitMode = fit === 'cover' ? 'cover' : 'contain';
+    const fitMode = fit === 'cover' ? 'cover' : 'inside';
     const key     = cacheKey(url, width, quality, format, fitMode);
 
     // Helper to send cached response
     function sendCached({ buffer, contentType }, cacheLabel) {
         res.set('Content-Type', contentType);
         res.set('Content-Length', buffer.length);
+        // max-age=31536000 tells browsers to cache for 1 year.
+        // CDN-Cache-Control is honoured by Cloudflare specifically and
+        // overrides the default DYNAMIC bypass for query-string URLs.
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.set('CDN-Cache-Control', 'public, max-age=31536000, immutable');
+        res.set('Cloudflare-CDN-Cache-Control', 'public, max-age=31536000, immutable');
         res.set('Vary', 'Accept');
         res.set('X-Cache', cacheLabel);
         return res.send(buffer);

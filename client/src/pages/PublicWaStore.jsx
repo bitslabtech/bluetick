@@ -623,7 +623,7 @@ export default function PublicWaStore({ customSlug }) {
                                                     alt={product.name}
                                                     loading="lazy"
                                                     decoding="async"
-                                                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                                                    className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                                                     onError={e => e.target.style.display = 'none'}
                                                 />
                                             ) : (

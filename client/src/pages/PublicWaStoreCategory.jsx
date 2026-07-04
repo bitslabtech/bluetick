@@ -246,7 +246,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                                 <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`)}>
                                     <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                         {product.imageUrls && product.imageUrls[0] ? (
-                                            <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
+                                            <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
                                         )}
