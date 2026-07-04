@@ -368,14 +368,8 @@ export default function PublicWaStore({ customSlug }) {
                                     //
                                     // Non-LCP slides (idx>0): proxy + srcSet for responsive sizing.
                                     src={cdnImg(imgUrl(slide.imageUrl), { width: 800 })}
-                                    srcSet={idx === 0
-                                        ? undefined
-                                        : cdnSrcSet(imgUrl(slide.imageUrl), [480, 800, 1200])
-                                    }
-                                    sizes={idx === 0
-                                        ? undefined
-                                        : '(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1200px'
-                                    }
+                                    srcSet={cdnSrcSet(imgUrl(slide.imageUrl), [480, 800, 1200])}
+                                    sizes={'(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1200px'}
                                     alt={slide.title || ''}
                                     className="w-full h-full object-contain"
                                     onError={e => e.target.style.display = 'none'}
