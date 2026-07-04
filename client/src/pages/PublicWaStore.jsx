@@ -345,7 +345,8 @@ export default function PublicWaStore({ customSlug }) {
 
             {/* ─── HERO SLIDER ─── */}
             {slides.length > 0 ? (
-                <div className={`relative bg-black w-full aspect-[2/1] overflow-hidden group ${theme.heroShape || ''}`} onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
+                <div className="relative group w-full mb-6 md:mb-0" onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
+                    <div className={`relative bg-black w-full aspect-[2/1] overflow-hidden ${theme.heroShape || ''}`}>
                     {slides.map((slide, idx) => (
                         <div key={idx} className={`absolute inset-0 ${
                         // LCP slide (idx===0): render fully visible immediately — no opacity transition.
@@ -419,24 +420,32 @@ export default function PublicWaStore({ customSlug }) {
                             <button
                                 onClick={nextSlide}
                                 aria-label="Next slide"
-                                className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all hidden md:flex"
                             >
                                 <ChevronRight className="w-6 h-6" />
                             </button>
-                            {/* Dot navigation — wrapped in a larger touch target */}
-                            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-2">
-                                {slides.map((_, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => goToSlide(idx)}
-                                        aria-label={`Go to slide ${idx + 1}`}
-                                        className="flex items-center justify-center w-12 h-12"
-                                    >
-                                        <span className={`h-1.5 rounded-full transition-all block ${idx === activeSlide ? 'w-8 bg-white' : 'w-2 bg-white/50'}`} />
-                                    </button>
-                                ))}
-                            </div>
                         </>
+                    )}
+                    </div>
+                    
+                    {/* Dot navigation — outside overflow-hidden so it can sit below banner on mobile */}
+                    {slides.length > 1 && (
+                        <div className="absolute -bottom-8 md:bottom-6 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:w-auto z-30 flex justify-center gap-1 md:gap-2">
+                            {slides.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => goToSlide(idx)}
+                                    aria-label={`Go to slide ${idx + 1}`}
+                                    className="flex items-center justify-center p-2 md:w-12 md:h-12"
+                                >
+                                    <span className={`h-1.5 rounded-full transition-all block ${
+                                        idx === activeSlide 
+                                            ? 'w-6 md:w-8 bg-gray-800 md:bg-white dark:bg-gray-200' 
+                                            : 'w-2 bg-gray-300 md:bg-white/50 dark:bg-gray-600'
+                                    }`} />
+                                </button>
+                            ))}
+                        </div>
                     )}
                 </div>
             ) : (
