@@ -208,7 +208,7 @@ router.post('/upload', (req, res, next) => {
         fileFilter: storageProvider.secureMediaFilter,
         // Enable post-buffer magic bytes validation
         validateMagicBytes: true,
-        convertToWebp: false, // Don't force-convert; allow all accepted types
+        convertToWebp: isRestricted, // Convert to lossless WebP only for vCard/Store
         limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max for media gallery
         // If restricted, check quota and increment usage
         trackMedia: isRestricted,
