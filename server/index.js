@@ -284,48 +284,11 @@ if (fs.existsSync(distIndex)) {
                     const apiBase = process.env.VITE_API_URL || process.env.APP_URL || 'http://localhost:5000';
 
                     let preloadUrl = lcpImageUrl;
-                    let preloadSrcset = null;
-                    let preloadSizes = null;
-                    try {
-                        const parsed = new URL(lcpImageUrl);
-                        if (parsed.hostname === CDN_HOST) {
-                            // Generate responsive srcset for preload
-                            const widths = [480, 800, 1200];
-                            preloadSrcset = widths.map(w => {
-                                const p = new URLSearchParams({ url: lcpImageUrl, w: String(w), q: '92', f: 'webp', fit: 'inside' });
-                                return `${apiBase}/api/img?${p.toString()} ${w}w`;
-                            }).join(', ');
-                            preloadSizes = '(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1200px';
-                            
-                            // Fallback URL
-                            const params = new URLSearchParams({
-                                url: lcpImageUrl,
-                                w: '800',
-                                q: '92',
-                                f: 'webp',
-                                fit: 'inside'
-                            });
-                            preloadUrl = `${apiBase}/api/img?${params.toString()}`;
-                        } else if (!lcpImageUrl.startsWith('http://') && !lcpImageUrl.startsWith('https://')) {
-                            preloadUrl = `${apiBase}${lcpImageUrl.startsWith('/') ? '' : '/'}${lcpImageUrl}`;
-                        }
-                    } catch (e) {
-                        if (!lcpImageUrl.startsWith('http://') && !lcpImageUrl.startsWith('https://')) {
-                            preloadUrl = `${apiBase}${lcpImageUrl.startsWith('/') ? '' : '/'}${lcpImageUrl}`;
-                        }
-                    }
-
                     // Escape to prevent HTML parser breakage
                     const safeUrl = preloadUrl.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 
                     // Hero image preload — fetchpriority=high tells browser this is the LCP image
-                    if (preloadSrcset) {
-                        const safeSrcset = preloadSrcset.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-                        const safeSizes = preloadSizes.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-                        injections.push(`<link rel="preload" as="image" href="${safeUrl}" imagesrcset="${safeSrcset}" imagesizes="${safeSizes}" fetchpriority="high">`);
-                    } else {
-                        injections.push(`<link rel="preload" as="image" href="${safeUrl}" fetchpriority="high">`);
-                    }
+                    injections.push(`<link rel="preload" as="image" href="${safeUrl}" fetchpriority="high">`);
 
                     // Preconnect to the proxy/CDN origin so DNS+TLS is established early
                     try {
