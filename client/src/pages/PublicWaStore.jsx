@@ -616,14 +616,14 @@ export default function PublicWaStore({ customSlug }) {
                                         <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                             {product.imageUrls && product.imageUrls[0] ? (
                                                 <img
-                                                    // Product card: ~170px mobile / ~308px desktop
+                                                    // Product card: ~170px mobile / ~308px desktop (2×/3× Retina needs 400-800px)
                                                     src={cdnImg(imgUrl(product.imageUrls[0]), { width: 400 })}
-                                                    srcSet={cdnSrcSet(imgUrl(product.imageUrls[0]), [200, 400, 600])}
+                                                    srcSet={cdnSrcSet(imgUrl(product.imageUrls[0]), [400, 600, 800])}
                                                     sizes="(max-width: 640px) calc(50vw - 2rem), (max-width: 1024px) calc(33vw - 2rem), calc(25vw - 2rem)"
                                                     alt={product.name}
                                                     loading="lazy"
                                                     decoding="async"
-                                                    className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+                                                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                                                     onError={e => e.target.style.display = 'none'}
                                                 />
                                             ) : (

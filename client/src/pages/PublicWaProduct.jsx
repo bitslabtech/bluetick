@@ -403,7 +403,7 @@ export default function PublicWaProduct({ customSlug }) {
                                             <img
                                                 src={imgUrl(url)}
                                                 alt={`Thumbnail ${idx + 1}`}
-                                                className="w-full h-full object-contain mix-blend-multiply"
+                                                className="w-full h-full object-contain"
                                                 onError={e => e.target.style.display = 'none'}
                                             />
                                             {linkedLabel && (
@@ -452,7 +452,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     key={activeImageIdx}
                                     src={imgUrl(product.imageUrls[activeImageIdx])}
                                     alt={`${product.name} - Image ${activeImageIdx + 1}`}
-                                    className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700 hover:scale-[1.04]"
+                                    className="w-full h-full object-contain transition-transform duration-700 hover:scale-[1.04]"
                                     onError={e => e.target.style.display = 'none'}
                                 />
                             ) : (
@@ -518,7 +518,7 @@ export default function PublicWaProduct({ customSlug }) {
                                             <img
                                                 src={imgUrl(url)}
                                                 alt={`Thumbnail ${idx + 1}`}
-                                                className="w-full h-full object-contain mix-blend-multiply"
+                                                className="w-full h-full object-contain"
                                                 onError={e => e.target.style.display = 'none'}
                                             />
                                             {linkedLabel && (

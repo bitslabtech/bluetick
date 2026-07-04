@@ -351,6 +351,16 @@ server {
         add_header Cache-Control "public";
     }
 
+    # ── SSR Store Pages (Critical for SEO & Performance) ─────────────
+    # Proxy /store/ routes to the Node backend so it can inject Critical CSS
+    # and preload LCP images before sending HTML to the browser.
+    location /store/ {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
     # ── SPA Fallback ─────────────────────────────────────────────────
     location / {
         try_files $uri $uri/ /index.html;

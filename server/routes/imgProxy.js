@@ -145,7 +145,7 @@ async function resizeImage(url, width, quality, format, fit) {
  * @param {string} url - CDN image URL (must be cdn.bluetick.cloud)
  * @param {object} [opts] - Same options as cdnImg()
  */
-async function warmCache(url, { width = 800, quality = 82, format = 'webp', fit = 'contain' } = {}) {
+async function warmCache(url, { width = 800, quality = 92, format = 'webp', fit = 'contain' } = {}) {
     try {
         const parsed = new URL(url);
         if (parsed.hostname !== CDN_HOST) return;
