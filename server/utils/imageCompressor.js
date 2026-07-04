@@ -76,8 +76,12 @@ async function compressImage(buffer, mimetype, config = {}) {
         let finalFormat = mimetype.split('/')[1]; // e.g. 'jpeg', 'png', 'webp'
 
         if (opts.convertToWebp) {
+            // Store as LOSSLESS WebP — this is the master copy on CDN.
+            // imgProxy will re-encode to lossy WebP (q=92) at serve time,
+            // so this must be lossless to avoid double lossy compression.
+            // Lossless WebP is ~26% smaller than PNG and perfectly lossless.
             outputBuffer = await pipeline
-                .webp({ quality: opts.webpQuality })
+                .webp({ lossless: true })
                 .toBuffer();
             finalFormat = 'webp';
         } else if (mimetype === 'image/jpeg') {
