@@ -116,7 +116,7 @@ const DEFAULT_LIMITS = { fileSize: 200 * 1024 * 1024 }; // 200MB max
 //   Logos:          display ~134px  → store 300px  (2×)
 const FOLDER_MAX_DIMENSIONS = {
     'wastore-products':  { maxWidth: 700,  maxHeight: 700  },
-    'wastore-slides':    { maxWidth: 1200, maxHeight: 700  },
+    'wastore-slides':    { maxWidth: 3840, maxHeight: 2160 }, // Allowed up to 4K to prevent strict scaling
     'wastore-categories':{ maxWidth: 400,  maxHeight: 400  },
     'wastore-logos':     { maxWidth: 300,  maxHeight: 150  },
     'vcard':             { maxWidth: 1200, maxHeight: 1200 },

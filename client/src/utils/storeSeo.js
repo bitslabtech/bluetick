@@ -59,6 +59,28 @@ export function injectCanonical(href) {
     el.setAttribute('href', href);
 }
 
+// ─── Favicon ──────────────────────────────────────────────────────────────────
+
+/**
+ * Inject or update the favicon.
+ */
+export function injectFavicon(logoUrl) {
+    if (!logoUrl) return;
+    let faviconUrl = logoUrl;
+    if (faviconUrl.startsWith('/uploads')) {
+        const apiBase = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_API_URL : '';
+        faviconUrl = `${apiBase}${faviconUrl}`;
+    }
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+    }
+    link.type = 'image/x-icon';
+    link.href = faviconUrl;
+}
+
 // ─── JSON-LD ──────────────────────────────────────────────────────────────────
 
 /**
@@ -147,6 +169,7 @@ export function applyStoreSeo(store, category, products, baseUrl) {
         : (seo.metaDescription || store.description || `Shop at ${store.name}`);
 
     document.title = title;
+    injectFavicon(store.logo);
 
     // ── Standard Meta ────────────────────────────────────────────────────────
     injectMeta('description', description.slice(0, 160));
@@ -293,6 +316,7 @@ export function applyProductSeo(product, store, baseUrl) {
 
     // ── Title ────────────────────────────────────────────────────────────────
     document.title = title;
+    injectFavicon(store.logo);
 
     // ── Standard Meta ────────────────────────────────────────────────────────
     injectMeta('description', description);
