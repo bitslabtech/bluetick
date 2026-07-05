@@ -2804,17 +2804,10 @@ export default function LandingPage() {
                                                         </div>
 
                                                         {/* Capabilities */}
-                                                        {(plan.allowApiAccess || plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
+                                                        {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
                                                             <div>
                                                                 <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Add-ons</div>
                                                                 <ul className="space-y-3">
-                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowApiAccess ? 'opacity-70' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowApiAccess ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
-                                                                            {plan.allowApiAccess ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                                        </div>
-                                                                        <span className={!plan.allowApiAccess ? "text-slate-900 dark:text-white" : ""}>Developer API Access</span>
-                                                                    </li>
-
                                                                     {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1) && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
                                                                             <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
@@ -3007,7 +3000,6 @@ export default function LandingPage() {
                                                 <MessageSquare className="w-5 h-5 text-white" />
                                             </div>
                                         )}
-                                        {publicSettings?.appName || config.brand.name}
                                     </div>
                                     <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xs">
                                         {config.brand.footerText

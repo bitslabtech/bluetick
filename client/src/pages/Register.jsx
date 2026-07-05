@@ -253,7 +253,7 @@ const Register = () => {
             {/* Left Column - Branding & Plan/Platform Details (Only visible on desktop) */}
             <div className={`hidden md:flex md:w-[40%] xl:w-[35%] relative overflow-hidden ${(publicSettings?.registerBannerUrl && !selectedPlan) ? '' : 'border-r border-slate-200/50 dark:border-slate-800/50 flex-col justify-between p-10 lg:p-12'}`}>
                 {(publicSettings?.registerBannerUrl && !selectedPlan) ? (
-                    <img src={publicSettings.registerBannerUrl} alt="Promotional Banner" className="absolute inset-0 w-full h-full object-cover" />
+                    <img src={publicSettings.registerBannerUrl} alt="Promotional Banner" className="absolute inset-0 w-full h-full object-contain" />
                 ) : (
                     <>
                         {/* Elegant Static Background */}
