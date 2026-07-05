@@ -122,6 +122,7 @@ const FOLDER_MAX_DIMENSIONS = {
     'vcard':             { maxWidth: 1200, maxHeight: 1200 },
     'vcard-gallery':     { maxWidth: 1200, maxHeight: 1200 },
     'hero':              { maxWidth: 1400, maxHeight: 800  },
+    'media-gallery':     { maxWidth: 3840, maxHeight: 2160 }, // Shared media picker uploads (used for slides, etc)
 };
 const getMaxDimensions = (folder) => FOLDER_MAX_DIMENSIONS[folder] || { maxWidth: 1200, maxHeight: 1200 };
 
