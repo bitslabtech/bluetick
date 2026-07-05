@@ -3079,7 +3079,7 @@ export default function LandingPage() {
                             <div className="pt-8 border-t border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm font-medium text-slate-500 dark:text-slate-500">
                                 <div>
                                     {config.footer?.bottomBarLeft
-                                        ? config.footer.bottomBarLeft.replace('{year}', new Date().getFullYear()).replace('{brand}', publicSettings?.appName || config.brand.name).replace(config.brand.name, publicSettings?.appName || config.brand.name)
+                                        ? config.footer.bottomBarLeft.replace(/\{year\}/ig, new Date().getFullYear()).replace(/\{brand\}/ig, publicSettings?.appName || config.brand.name).replace(config.brand.name, publicSettings?.appName || config.brand.name)
                                         : `© ${new Date().getFullYear()} ${publicSettings?.appName || config.brand.name}. All rights reserved.`}
                                 </div>
                                 <div className="flex gap-4">
