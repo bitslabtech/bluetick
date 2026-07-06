@@ -147,7 +147,7 @@ const BlogPost = () => {
                     )}
 
                     {/* Share Bottom */}
-                    <div className="mt-10 flex items-center gap-4">
+                    <div className="sticky bottom-6 z-10 mt-10 p-4 bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl flex items-center gap-4 flex-wrap w-fit">
                         <span className="font-bold text-slate-900 dark:text-white">Share this article:</span>
                         <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(blog.title)}&url=${encodeURIComponent(window.location.href)}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center hover:scale-110 transition-transform">
                             <Twitter className="w-4 h-4 fill-current" />

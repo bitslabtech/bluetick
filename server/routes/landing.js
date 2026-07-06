@@ -314,8 +314,11 @@ router.post('/blogs', [auth, admin], async (req, res) => {
             slug = slug + '-' + Math.round(Math.random() * 1000); // Append random if not unique
         }
 
+        const data = { ...req.body };
+        delete data.id;
+
         const blog = await Blog.create({
-            ...req.body,
+            ...data,
             slug,
             authorId: req.user.id
         });

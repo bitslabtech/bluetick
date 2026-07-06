@@ -144,6 +144,7 @@ const AdminLandingPage = () => {
     // Coupons & Plans State
     const [coupons, setCoupons] = useState([]);
     const [plans, setPlans] = useState([]);
+    const [blogsList, setBlogsList] = useState([]);
     const [showCouponModal, setShowCouponModal] = useState(false);
     const [editingCoupon, setEditingCoupon] = useState(null);
     const [couponForm, setCouponForm] = useState({
@@ -158,6 +159,7 @@ const AdminLandingPage = () => {
         fetchCoupons();
         fetchPlans();
         fetchBrandingSettings();
+        fetchBlogsList();
     }, []);
 
     const fetchPlans = async () => {
@@ -175,6 +177,15 @@ const AdminLandingPage = () => {
             setCoupons(res.data);
         } catch (err) {
             console.error('Failed to fetch coupons:', err);
+        }
+    };
+
+    const fetchBlogsList = async () => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing/blogs?admin=true`);
+            setBlogsList(res.data);
+        } catch (err) {
+            console.error('Failed to fetch blogs:', err);
         }
     };
 
@@ -621,6 +632,24 @@ const AdminLandingPage = () => {
                                                         {card.desc !== undefined && (
                                                             <InputGroup label="Description" type="textarea" value={card.desc} onChange={v => { const nc = [...config.capabilities.cards]; nc[idx].desc = v; setConfig({ ...config, capabilities: { ...config.capabilities, cards: nc } }); }} />
                                                         )}
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Linked Article (Learn More)</label>
+                                                            <select
+                                                                className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                                                                value={card.linkedBlog || ''}
+                                                                onChange={e => {
+                                                                    const nc = [...config.capabilities.cards];
+                                                                    nc[idx].linkedBlog = e.target.value;
+                                                                    setConfig({ ...config, capabilities: { ...config.capabilities, cards: nc } });
+                                                                }}
+                                                            >
+                                                                <option value="">-- No Link --</option>
+                                                                {blogsList.map(b => (
+                                                                    <option key={b.id} value={b.slug}>{b.title}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
 
                                                         <div className="space-y-2 pt-2">
                                                             <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Card Image</label>

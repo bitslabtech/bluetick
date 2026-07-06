@@ -147,7 +147,9 @@ const CapabilitiesBento = ({ config }) => {
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-rose-500 dark:text-rose-400 mb-4">{marketingCard.tag}</div>
                             <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight whitespace-pre-line">{marketingCard.title}</h3>
                             <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium mb-6 md:mb-8 whitespace-pre-line">{marketingCard.desc}</p>
-                            <a href="#" className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4" /></a>
+                            {marketingCard.linkedBlog && (
+                                <Link to={`/blog/${marketingCard.linkedBlog}`} className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4" /></Link>
+                            )}
                         </div>
                         {marketingCard.image ? (
                             <div className="relative md:absolute md:right-0 md:bottom-0 w-[90%] md:w-[50%] lg:w-[45%] h-56 md:h-[85%] self-end rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-2xl overflow-hidden md:translate-x-4 md:translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500">
@@ -204,7 +206,9 @@ const CapabilitiesBento = ({ config }) => {
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400 mb-4">{supportCard.tag}</div>
                             <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight whitespace-pre-line">{supportCard.title}</h3>
                             <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium mb-6 md:mb-8 whitespace-pre-line">{supportCard.desc}</p>
-                            <a href="#" className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4" /></a>
+                            {supportCard.linkedBlog && (
+                                <Link to={`/blog/${supportCard.linkedBlog}`} className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4" /></Link>
+                            )}
                         </div>
                         {supportCard.image ? (
                             <div className="absolute bottom-0 inset-x-8 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] max-w-full dark:shadow-emerald-900/20 border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-6 group-hover:translate-y-0 transition-transform duration-500 h-48">
@@ -283,6 +287,9 @@ const CapabilitiesBento = ({ config }) => {
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-400 mb-4">{automationCard.tag}</div>
                             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{automationCard.title}</h3>
                             {automationCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{automationCard.desc}</p>}
+                            {automationCard.linkedBlog && (
+                                <Link to={`/blog/${automationCard.linkedBlog}`} className="font-bold text-indigo-500 dark:text-indigo-400 flex items-center justify-center gap-2 hover:gap-3 transition-all mt-4">Learn More <ArrowRight className="w-4 h-4" /></Link>
+                            )}
                         </div>
                         {automationCard.image ? (
                             <div className="relative h-56 w-full mt-auto flex items-center justify-center overflow-hidden">
@@ -319,6 +326,9 @@ const CapabilitiesBento = ({ config }) => {
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500 mb-4">{commerceCard.tag}</div>
                             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{commerceCard.title}</h3>
                             {commerceCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{commerceCard.desc}</p>}
+                            {commerceCard.linkedBlog && (
+                                <Link to={`/blog/${commerceCard.linkedBlog}`} className="font-bold text-amber-600 dark:text-amber-500 flex items-center justify-center gap-2 hover:gap-3 transition-all mt-4">Learn More <ArrowRight className="w-4 h-4" /></Link>
+                            )}
                         </div>
                         {commerceCard.image ? (
                             <div className="relative h-56 w-full mt-auto flex flex-col items-center justify-end px-4 md:px-8 pb-8">
@@ -379,6 +389,9 @@ const CapabilitiesBento = ({ config }) => {
                             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400 mb-4">{vcardCard.tag}</div>
                             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{vcardCard.title}</h3>
                             {vcardCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{vcardCard.desc}</p>}
+                            {vcardCard.linkedBlog && (
+                                <Link to={`/blog/${vcardCard.linkedBlog}`} className="font-bold text-cyan-600 dark:text-cyan-400 flex items-center justify-center gap-2 hover:gap-3 transition-all mt-4">Learn More <ArrowRight className="w-4 h-4" /></Link>
+                            )}
                         </div>
                         {vcardCard.image ? (
                             <div className="relative h-56 w-full mt-auto px-4 md:px-6 overflow-hidden flex items-end">
