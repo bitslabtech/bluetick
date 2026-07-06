@@ -108,11 +108,11 @@ const BlogPost = () => {
                         <span className="mx-2 text-slate-300 dark:text-slate-700">•</span>
                         {blog.views} Views
                     </motion.div>
-                    <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-[-0.03em] leading-tight mb-8">
+                    <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-[-0.02em] leading-tight mb-6">
                         {blog.title}
                     </motion.h1>
                     {blog.excerpt && (
-                        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-xl md:text-2xl text-slate-500 dark:text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed">
+                        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-lg md:text-xl text-slate-500 dark:text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed">
                             {blog.excerpt}
                         </motion.p>
                     )}
@@ -120,18 +120,22 @@ const BlogPost = () => {
 
                 {/* Hero Image */}
                 {blog.coverImage && (
-                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.7 }} className="max-w-6xl mx-auto px-4 md:px-6 mb-20">
-                        <div className="aspect-[21/9] rounded-[2rem] overflow-hidden shadow-2xl relative">
-                            <img src={blog.coverImage} className="w-full h-full object-cover" alt={blog.title} />
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.7 }} className="max-w-5xl mx-auto px-4 md:px-6 mb-16">
+                        <div className="rounded-[2rem] overflow-hidden shadow-2xl relative bg-slate-100 dark:bg-white/5 flex items-center justify-center">
+                            <img src={blog.coverImage} className="w-full h-auto max-h-[70vh] object-contain" alt={blog.title} />
                         </div>
                     </motion.div>
                 )}
 
                 {/* Rich Text Content */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="max-w-3xl mx-auto px-4 md:px-6">
+                    <style dangerouslySetInnerHTML={{__html: `
+                        .blog-content-wrapper p:has(br:only-child) { min-height: 1.5rem; }
+                        .blog-content-wrapper p:empty { min-height: 1.5rem; }
+                    `}} />
                     <div 
-                        className="prose prose-lg md:prose-xl dark:prose-invert max-w-none prose-indigo prose-headings:font-extrabold prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-img:rounded-3xl prose-img:shadow-xl"
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content) }} 
+                        className="blog-content-wrapper prose prose-lg md:prose-xl dark:prose-invert max-w-none prose-indigo prose-headings:font-extrabold prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-img:rounded-3xl prose-img:shadow-xl"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content, { ADD_TAGS: ['iframe'], ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'] }) }} 
                     />
 
                     {/* Tags */}

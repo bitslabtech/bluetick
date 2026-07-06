@@ -103,7 +103,7 @@ router.post('/chat', async (req, res) => {
             aiModelName = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
         } catch (e) { /* use default if SystemConfig not available */ }
 
-        const systemInstruction = `You are a helpful and polite customer support AI assistant for this platform.
+        let systemInstruction = `You are a helpful and polite customer support AI assistant for this platform.
         
 Your only goal is to assist users by answering questions strictly related to the platform based on the knowledge base provided below.
 If a user asks about anything outside the scope of this platform (e.g., coding, general knowledge, math, other companies), politely decline and tell them you can only assist with platform-related inquiries.
@@ -112,6 +112,18 @@ Keep your answers concise, engaging, and friendly. Do not use markdown that a si
 Knowledge Base:
 ${aiConfig.knowledgeBase}
 `;
+
+        if (aiConfig.leadCaptureEnabled) {
+            systemInstruction += `\n\nLEAD GENERATION INSTRUCTIONS:
+You are also acting as a Sales Development Representative. Your goal is to understand the user's requirement and capture their phone number with country code.
+1. First, answer their initial questions naturally based on the Knowledge Base.
+2. Then, ask them the following qualification questions to understand their needs: "${aiConfig.qualificationQuestions || 'What is your main requirement?'}"
+3. Once they provide their requirement, evaluate it briefly and explain how our platform can be helpful to them.
+4. Immediately after that, ask for their WhatsApp phone number (including country code) and their name so an expert can reach out to them.
+5. IMPORTANT: When the user provides their phone number, you MUST output a secret JSON block exactly in this format at the very end of your response:
+[LEAD_DATA: {"phone": "THE_PHONE_NUMBER", "name": "THE_NAME"}]
+(If name is not provided, leave it empty). Extract the phone number starting with the country code (e.g. +1234567890) and strip all other spaces/symbols from it.`;
+        }
 
         // Gemini requires history to start with a 'user' turn.
         // Strip any leading 'model' messages (e.g. the welcome message).
@@ -156,7 +168,110 @@ ${aiConfig.knowledgeBase}
 
         if (responseText === null) throw lastError;
 
-        res.json({ reply: responseText });
+        let replyText = responseText;
+
+        // Extract LEAD_DATA block
+        const leadDataMatch = replyText.match(/\[LEAD_DATA:\s*(\{.*?\})\s*\]/);
+        if (leadDataMatch && aiConfig.leadCaptureEnabled) {
+            try {
+                const leadData = JSON.parse(leadDataMatch[1]);
+                const phone = leadData.phone.replace(/[^+\d]/g, ''); // Ensure pure digits with optional +
+                const name = leadData.name || 'AI Chatbot Lead';
+                
+                // Assign to the selected team members (or just the first one if the model only supports single assign)
+                if (phone && aiConfig.crmOwners && aiConfig.crmOwners.length > 0) {
+                    const primaryOwnerId = aiConfig.crmOwners[0]; 
+                    
+                    const Contact = require('../models/Contact');
+                    const Conversation = require('../models/Conversation');
+                    const Settings = require('../models/Settings');
+                    const Template = require('../models/Template');
+                    const ChatMessage = require('../models/ChatMessage');
+
+                    // 1. Create or Update Contact
+                    const [contact, created] = await Contact.findOrCreate({
+                        where: { userId: primaryOwnerId, phone: phone },
+                        defaults: {
+                            name: name,
+                            tags: aiConfig.crmTags ? aiConfig.crmTags.split(',').map(t => t.trim()) : [],
+                            createdById: primaryOwnerId
+                        }
+                    });
+
+                    if (!created && aiConfig.crmTags) {
+                        const newTags = aiConfig.crmTags.split(',').map(t => t.trim());
+                        contact.tags = [...new Set([...(contact.tags || []), ...newTags])];
+                        if (name !== 'AI Chatbot Lead') contact.name = name; // Update name if provided
+                        await contact.save();
+                    }
+
+                    // 2. Create or Update Conversation
+                    const [conversation, convCreated] = await Conversation.findOrCreate({
+                        where: { userId: primaryOwnerId, phoneNumber: phone },
+                        defaults: {
+                            contactName: contact.name,
+                            unreadCount: 0,
+                            assignedTo: primaryOwnerId
+                        }
+                    });
+                    
+                    if (!convCreated) {
+                        conversation.assignedTo = primaryOwnerId;
+                        await conversation.save();
+                    }
+
+                    // 3. Auto Trigger Template
+                    if (aiConfig.autoTriggerTemplate && aiConfig.templateName) {
+                        const ownerSettings = await Settings.findOne({ where: { userId: primaryOwnerId } });
+                        const template = await Template.findOne({ where: { userId: primaryOwnerId, name: aiConfig.templateName } });
+
+                        if (ownerSettings && ownerSettings.metaPhoneNumberId && ownerSettings.metaAccessToken && template) {
+                            const payload = {
+                                messaging_product: "whatsapp",
+                                to: phone,
+                                type: "template",
+                                template: {
+                                    name: template.name,
+                                    language: { code: template.language }
+                                }
+                            };
+                            
+                            // Fire and forget fetch to Meta API
+                            fetch(`https://graph.facebook.com/v21.0/${ownerSettings.metaPhoneNumberId}/messages`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${ownerSettings.metaAccessToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(payload)
+                            }).then(res => res.json()).then(async (data) => {
+                                if (data.messages && data.messages[0]) {
+                                    await ChatMessage.create({
+                                        userId: primaryOwnerId,
+                                        conversationId: conversation.id,
+                                        messageId: data.messages[0].id,
+                                        from: ownerSettings.metaPhoneNumberId,
+                                        to: phone,
+                                        type: 'template',
+                                        text: `[System]: Auto-triggered template "${template.name}" via AI Chatbot Lead Capture.`,
+                                        direction: 'outbound',
+                                        status: 'sent',
+                                        timestamp: new Date()
+                                    });
+                                }
+                            }).catch(e => console.error("Auto Template Trigger Error:", e));
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Lead extraction/processing error:", e);
+            }
+            
+            // Remove the secret JSON block from the user-facing output
+            replyText = replyText.replace(/\[LEAD_DATA:\s*(\{.*?\})\s*\]/, '').trim();
+        }
+
+        res.json({ reply: replyText });
     } catch (error) {
         const errMsg = error?.message || '';
         console.error('Chat API Error:', errMsg || error?.status || error);

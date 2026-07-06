@@ -11,6 +11,19 @@ const FloatingChatbot = ({ config }) => {
     const messagesEndRef = useRef(null);
 
     const aiConfig = config?.aiChatbot;
+    const hasAutoOpened = useRef(false);
+
+    // Auto-open logic
+    useEffect(() => {
+        if (aiConfig?.enabled && aiConfig?.autoOpen && !hasAutoOpened.current) {
+            const delayMs = (aiConfig.autoOpenDelay || 0) * 1000;
+            const timer = setTimeout(() => {
+                setIsOpen(true);
+                hasAutoOpened.current = true;
+            }, delayMs);
+            return () => clearTimeout(timer);
+        }
+    }, [aiConfig?.enabled, aiConfig?.autoOpen, aiConfig?.autoOpenDelay]);
 
     // Initialize welcome message when opened for the first time
     useEffect(() => {
@@ -44,13 +57,18 @@ const FloatingChatbot = ({ config }) => {
                 history: messages // pass history for context
             });
 
-            setMessages([...newMessages, { role: 'model', content: res.data.reply }]);
+            // Delay the reply by 3 seconds for a natural typing effect
+            setTimeout(() => {
+                setMessages(prev => [...prev, { role: 'model', content: res.data.reply }]);
+                setIsLoading(false);
+            }, 3000);
         } catch (error) {
             console.error('Chat Error:', error);
             const backendError = error.response?.data?.error;
-            setMessages([...newMessages, { role: 'model', content: backendError || 'Oops! I am having trouble connecting to the server right now. Please try again later.' }]);
-        } finally {
-            setIsLoading(false);
+            setTimeout(() => {
+                setMessages(prev => [...prev, { role: 'model', content: backendError || 'Oops! I am having trouble connecting to the server right now. Please try again later.' }]);
+                setIsLoading(false);
+            }, 3000);
         }
     };
 
@@ -67,11 +85,17 @@ const FloatingChatbot = ({ config }) => {
                         {/* Header */}
                         <div className="p-4 bg-gradient-to-r from-indigo-600 to-indigo-500 flex items-center justify-between shadow-md">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                                    <Sparkles className="w-5 h-5 text-white" />
-                                </div>
+                                {aiConfig?.botIconUrl ? (
+                                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                                        <img src={aiConfig.botIconUrl} alt={aiConfig.botName || 'AI'} className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                                        <Sparkles className="w-5 h-5 text-white" />
+                                    </div>
+                                )}
                                 <div>
-                                    <h3 className="font-bold text-white leading-tight">AI Assistant</h3>
+                                    <h3 className="font-bold text-white leading-tight">{aiConfig?.botName || 'AI Assistant'}</h3>
                                     <p className="text-indigo-100 text-xs">Usually replies instantly</p>
                                 </div>
                             </div>
@@ -84,8 +108,12 @@ const FloatingChatbot = ({ config }) => {
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-black/20">
                             {messages.map((msg, idx) => (
                                 <div key={idx} className={`flex items-start gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300'}`}>
-                                        {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 overflow-hidden ${msg.role === 'user' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300'}`}>
+                                        {msg.role === 'user' ? (
+                                            <User className="w-4 h-4" />
+                                        ) : (
+                                            aiConfig?.botIconUrl ? <img src={aiConfig.botIconUrl} alt="Bot" className="w-full h-full object-cover" /> : <Bot className="w-4 h-4" />
+                                        )}
                                     </div>
                                     <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-white/5 rounded-tl-sm shadow-sm'}`}>
                                         {msg.content}
@@ -94,8 +122,8 @@ const FloatingChatbot = ({ config }) => {
                             ))}
                             {isLoading && (
                                 <div className="flex items-start gap-2.5">
-                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                                        <Bot className="w-4 h-4" />
+                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 overflow-hidden">
+                                        {aiConfig?.botIconUrl ? <img src={aiConfig.botIconUrl} alt="Bot" className="w-full h-full object-cover" /> : <Bot className="w-4 h-4" />}
                                     </div>
                                     <div className="px-4 py-3 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 rounded-2xl rounded-tl-sm flex gap-1 items-center shadow-sm">
                                         <div className="w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

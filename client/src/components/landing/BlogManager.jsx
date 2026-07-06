@@ -62,12 +62,22 @@ const BlogManager = () => {
         setIsEditing(true);
     };
 
-    const handleEdit = (blog) => {
-        setForm({
-            ...blog,
-            keywords: blog.keywords ? blog.keywords.join(', ') : ''
-        });
-        setIsEditing(true);
+    const handleEdit = async (blog) => {
+        try {
+            setLoading(true);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing/blogs/${blog.id}`);
+            const fullBlog = res.data;
+            setForm({
+                ...fullBlog,
+                keywords: fullBlog.keywords ? fullBlog.keywords.join(', ') : ''
+            });
+            setIsEditing(true);
+        } catch (err) {
+            console.error(err);
+            showToast({ type: 'error', title: 'Error', message: 'Failed to load blog details' });
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleDelete = async (id) => {

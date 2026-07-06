@@ -154,13 +154,30 @@ const AdminLandingPage = () => {
         isFirstPurchaseOnly: false, validIntervals: '', maxDiscountCap: 0, allowedEmails: ''
     });
 
+    const [teamMembers, setTeamMembers] = useState([]);
+    const [templates, setTemplates] = useState([]);
+
     useEffect(() => {
         fetchConfig();
         fetchCoupons();
         fetchPlans();
         fetchBrandingSettings();
         fetchBlogsList();
+        fetchTeamAndTemplates();
     }, []);
+
+    const fetchTeamAndTemplates = async () => {
+        try {
+            const [teamRes, tplRes] = await Promise.all([
+                axios.get(`${import.meta.env.VITE_API_URL}/api/team`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/templates`)
+            ]);
+            setTeamMembers(teamRes.data.members || []);
+            setTemplates(tplRes.data.templates || tplRes.data || []);
+        } catch (err) {
+            console.error("Failed to fetch team/templates for chatbot config", err);
+        }
+    };
 
     const fetchPlans = async () => {
         try {
@@ -1472,7 +1489,117 @@ const AdminLandingPage = () => {
                                             </label>
                                         </div>
                                         <div className="grid grid-cols-1 gap-6">
+                                            <div className="col-span-1 border border-indigo-100 dark:border-indigo-500/20 p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/10 space-y-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div>
+                                                        <h4 className="font-bold text-sm text-indigo-900 dark:text-indigo-200">CRM Lead Funnel</h4>
+                                                        <p className="text-xs text-indigo-700 dark:text-indigo-400">Capture phone numbers and push directly into Contacts</p>
+                                                    </div>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input type="checkbox" className="sr-only peer" checked={config.aiChatbot?.leadCaptureEnabled || false}
+                                                            onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, leadCaptureEnabled: e.target.checked } })} />
+                                                        <div className="w-9 h-5 bg-slate-300 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                                    </label>
+                                                </div>
+
+                                                {config.aiChatbot?.leadCaptureEnabled && (
+                                                    <div className="space-y-4 pt-2 border-t border-indigo-100 dark:border-indigo-500/20">
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Assign Chats To (Team Members)</label>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {teamMembers.map(member => {
+                                                                    const isSelected = (config.aiChatbot?.crmOwners || []).includes(member.id);
+                                                                    return (
+                                                                        <button key={member.id} type="button"
+                                                                            onClick={() => {
+                                                                                const owners = config.aiChatbot?.crmOwners || [];
+                                                                                if (isSelected) setConfig({ ...config, aiChatbot: { ...config.aiChatbot, crmOwners: owners.filter(id => id !== member.id) } });
+                                                                                else setConfig({ ...config, aiChatbot: { ...config.aiChatbot, crmOwners: [...owners, member.id] } });
+                                                                            }}
+                                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isSelected ? 'bg-indigo-600 text-white shadow-md' : 'bg-white dark:bg-black/20 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 hover:border-indigo-400'}`}>
+                                                                            {member.name} {isSelected && '✓'}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                                {teamMembers.length === 0 && <span className="text-xs text-slate-400">No team members found.</span>}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">CRM Tags (Comma Separated)</label>
+                                                            <input type="text" value={config.aiChatbot?.crmTags || ''} onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, crmTags: e.target.value } })}
+                                                                placeholder="chatbot-lead, organic"
+                                                                className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white" />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold uppercase text-slate-500 tracking-wider flex justify-between items-center">
+                                                                <span>Auto-Trigger Template</span>
+                                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                                    <input type="checkbox" className="sr-only peer" checked={config.aiChatbot?.autoTriggerTemplate || false} onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, autoTriggerTemplate: e.target.checked } })} />
+                                                                    <div className="w-7 h-4 bg-slate-300 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                                </label>
+                                                            </label>
+                                                            {config.aiChatbot?.autoTriggerTemplate && (
+                                                                <select value={config.aiChatbot?.templateName || ''} onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, templateName: e.target.value } })}
+                                                                    className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white">
+                                                                    <option value="">Select a template...</option>
+                                                                    {templates.map(tpl => (
+                                                                        <option key={tpl.id} value={tpl.name}>{tpl.name} ({tpl.language})</option>
+                                                                    ))}
+                                                                </select>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Qualification Questions</label>
+                                                            <textarea value={config.aiChatbot?.qualificationQuestions || ''} onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, qualificationQuestions: e.target.value } })}
+                                                                placeholder="What is your main requirement?\nHow can our platform be helpful to you?" rows={3}
+                                                                className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white resize-none" />
+                                                            <p className="text-[10px] text-slate-500">The AI will ask these questions naturally before asking for the phone number.</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
                                             <div className="col-span-1">
+                                                <InputGroup label="Bot Name" value={config.aiChatbot?.botName || ''}
+                                                    onChange={v => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, botName: v } })}
+                                                    placeholder="AI Assistant" />
+                                            </div>
+                                            <div className="col-span-1">
+                                                <InputGroup label="Bot Icon URL (Optional Image Link)" value={config.aiChatbot?.botIconUrl || ''}
+                                                    onChange={v => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, botIconUrl: v } })}
+                                                    placeholder="https://example.com/bot-avatar.png" />
+                                                <p className="text-[10px] text-slate-500 mt-1">Provide a direct link to an image (PNG/JPG) to show as the bot's avatar. Leave empty for default icon.</p>
+                                            </div>
+
+                                            {/* Auto Open Settings */}
+                                            <div className="col-span-1 md:col-span-2 p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Auto-Open Chatbot</h4>
+                                                        <p className="text-xs text-slate-500">Automatically pop open the chat window when a visitor lands on the page.</p>
+                                                    </div>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input type="checkbox" className="sr-only peer"
+                                                            checked={config.aiChatbot?.autoOpen || false}
+                                                            onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, autoOpen: e.target.checked } })} />
+                                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
+                                                    </label>
+                                                </div>
+
+                                                {config.aiChatbot?.autoOpen && (
+                                                    <div className="pt-2 border-t border-slate-200 dark:border-white/10">
+                                                        <InputGroup type="number" label="Delay Before Opening (Seconds)" value={config.aiChatbot?.autoOpenDelay ?? 5}
+                                                            onChange={v => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, autoOpenDelay: parseInt(v) || 0 } })}
+                                                            placeholder="5" />
+                                                        <p className="text-[10px] text-slate-500 mt-1">Wait this many seconds before popping up. Gives the user time to look at the site first.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="col-span-1 md:col-span-2">
                                                 <InputGroup label="Welcome Message" value={config.aiChatbot?.welcomeMessage || ''}
                                                     onChange={v => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, welcomeMessage: v } })}
                                                     placeholder="Hi there! How can I help you learn more about our platform?" />
