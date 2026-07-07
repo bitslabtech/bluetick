@@ -440,6 +440,28 @@ router.put('/users/:id', async (req, res) => {
         }
 
         await user.save();
+        
+        // --- Update CRM Tags for Upgraded Plan ---
+        try {
+            if (plan) {
+                const SystemConfig = require('../models/SystemConfig');
+                const Contact = require('../models/Contact');
+                const config = await SystemConfig.getCachedConfig();
+                const linkedAdminId = config?.settings?.linkedAdminUserId;
+                
+                if (linkedAdminId && user.phone) {
+                    const contact = await Contact.findOne({ where: { userId: linkedAdminId, phone: user.phone } });
+                    if (contact) {
+                        let updatedTags = (contact.tags || []).filter(t => typeof t !== 'string' || (!t.startsWith('Plan: ') && !t.endsWith(' - Expired') && t !== 'Trial Expired'));
+                        updatedTags.push(`Plan: ${plan}`);
+                        contact.tags = updatedTags;
+                        await contact.save();
+                    }
+                }
+            }
+        } catch (tagSyncErr) {
+            console.error("Error syncing CRM tags on admin plan update:", tagSyncErr);
+        }
 
         // Log Activity
         if (changes.length > 0) {

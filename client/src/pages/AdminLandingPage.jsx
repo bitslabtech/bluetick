@@ -156,6 +156,8 @@ const AdminLandingPage = () => {
 
     const [teamMembers, setTeamMembers] = useState([]);
     const [templates, setTemplates] = useState([]);
+    const [crmTagsList, setCrmTagsList] = useState([]);
+    const [crmLinkedUser, setCrmLinkedUser] = useState(null);
 
     useEffect(() => {
         fetchConfig();
@@ -168,14 +170,13 @@ const AdminLandingPage = () => {
 
     const fetchTeamAndTemplates = async () => {
         try {
-            const [teamRes, tplRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL}/api/team`),
-                axios.get(`${import.meta.env.VITE_API_URL}/api/templates`)
-            ]);
-            setTeamMembers(teamRes.data.members || []);
-            setTemplates(tplRes.data.templates || tplRes.data || []);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/system/crm-data`);
+            setCrmLinkedUser(res.data.linkedUserId);
+            setTeamMembers(res.data.teamMembers || []);
+            setTemplates(res.data.templates || []);
+            setCrmTagsList(res.data.crmTags || []);
         } catch (err) {
-            console.error("Failed to fetch team/templates for chatbot config", err);
+            console.error("Failed to fetch CRM data for chatbot config", err);
         }
     };
 
@@ -1502,8 +1503,14 @@ const AdminLandingPage = () => {
                                                     </label>
                                                 </div>
 
+                                                {config.aiChatbot?.leadCaptureEnabled && !crmLinkedUser && (
+                                                    <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 p-3 rounded-xl text-sm font-medium mt-4 mb-2">
+                                                        ⚠️ Warning: No System CRM account is linked. Please go to the CRM section and link a Platform CRM account first. Lead routing and auto-triggers require a linked CRM.
+                                                    </div>
+                                                )}
+
                                                 {config.aiChatbot?.leadCaptureEnabled && (
-                                                    <div className="space-y-4 pt-2 border-t border-indigo-100 dark:border-indigo-500/20">
+                                                    <div className={`space-y-4 pt-2 border-t border-indigo-100 dark:border-indigo-500/20 ${!crmLinkedUser ? 'opacity-50 pointer-events-none' : ''}`}>
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Assign Chats To (Team Members)</label>
                                                             <div className="flex flex-wrap gap-2">
@@ -1527,9 +1534,14 @@ const AdminLandingPage = () => {
 
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">CRM Tags (Comma Separated)</label>
-                                                            <input type="text" value={config.aiChatbot?.crmTags || ''} onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, crmTags: e.target.value } })}
+                                                            <input type="text" list="crm-tags-list" value={config.aiChatbot?.crmTags || ''} onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, crmTags: e.target.value } })}
                                                                 placeholder="chatbot-lead, organic"
                                                                 className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white" />
+                                                            <datalist id="crm-tags-list">
+                                                                {crmTagsList.map(tag => (
+                                                                    <option key={tag} value={tag} />
+                                                                ))}
+                                                            </datalist>
                                                         </div>
 
                                                         <div className="space-y-2">

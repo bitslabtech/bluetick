@@ -92,6 +92,31 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
         aiTokenBalance: newAiTokens
     });
 
+    // --- Update CRM Tags for Upgraded Plan ---
+    try {
+        const SystemConfig = require('../models/SystemConfig');
+        const Contact = require('../models/Contact');
+        const config = await SystemConfig.getCachedConfig();
+        const linkedAdminId = config?.settings?.linkedAdminUserId;
+        
+        if (linkedAdminId && user.phone) {
+            const contact = await Contact.findOne({ where: { userId: linkedAdminId, phone: user.phone } });
+            if (contact) {
+                // Remove existing Plan tags
+                let updatedTags = (contact.tags || []).filter(t => typeof t !== 'string' || (!t.startsWith('Plan: ') && !t.endsWith(' - Expired') && t !== 'Trial Expired'));
+                
+                // Append new Plan tag
+                updatedTags.push(`Plan: ${targetPlan.name}`);
+                
+                contact.tags = updatedTags;
+                await contact.save();
+                console.log(`[ALERTS] Updated CRM tags for plan upgrade: ${user.email} -> ${targetPlan.name}`);
+            }
+        }
+    } catch (tagSyncErr) {
+        console.error("Error syncing CRM tags on plan upgrade:", tagSyncErr);
+    }
+
     // --- Dynamic Referral System Processing ---
     try {
         if (user.referredBy && parseFloat(targetPlan.price) > 0) {

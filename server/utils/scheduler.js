@@ -1,5 +1,12 @@
 const Message = require('../models/Message');
 const { Op } = require('sequelize');
+const QuickReply = require('../models/QuickReply');
+const Label = require('../models/Label');
+const Group = require('../models/Group');
+const Flow = require('../models/Flow');
+const Vcard = require('../models/Vcard');
+const WaStore = require('../models/WaStore');
+const User = require('../models/User');
 const processCampaign = require('./campaignProcessor');
 
 /**
@@ -236,6 +243,30 @@ function initScheduler() {
                     // Templates Quota
                     const templateCount = await Template.count({ where: { userId: user.id } });
                     await checkThresholds(templateCount, planDetails.templateLimit, 'Templates');
+
+                    // Quick Replies Quota
+                    const qrCount = await QuickReply.count({ where: { userId: user.id } });
+                    await checkThresholds(qrCount, planDetails.quickReplyLimit, 'Quick Replies');
+
+                    // Tags/Labels Quota
+                    const tagCount = await Label.count({ where: { userId: user.id } });
+                    await checkThresholds(tagCount, planDetails.tagLimit, 'Tags');
+
+                    // Groups Quota
+                    const groupCount = await Group.count({ where: { userId: user.id } });
+                    await checkThresholds(groupCount, planDetails.groupLimit, 'Groups');
+
+                    // Team Members Quota
+                    const teamCount = await User.count({ where: { parentUserId: user.id } });
+                    await checkThresholds(teamCount, planDetails.teamMemberLimit, 'Team Members');
+
+                    // FlowBot Flows Quota
+                    const flowCount = await Flow.count({ where: { userId: user.id } });
+                    await checkThresholds(flowCount, planDetails.flowLimit, 'FlowBot Flows');
+
+                    // Media Storage Quota (MB)
+                    const storageUsedMB = parseFloat(((user.mediaStorageUsed || 0) / (1024 * 1024)).toFixed(2));
+                    await checkThresholds(storageUsedMB, planDetails.storageLimitMb, 'Storage (MB)');
                     
                     // AI Tokens Quota (Special handling, it depletes, doesn't grow)
                     // If balance < 20% of last topup? We don't have total bought. We just alert when balance < 50, 10, 0
@@ -281,6 +312,48 @@ function initScheduler() {
                 }
             }
             
+            // ==========================================
+            // 2.5 UPDATE CRM TAGS FOR EXPIRED PLANS
+            // ==========================================
+            try {
+                const expiredUsers = await User.findAll({
+                    where: {
+                        planExpiry: { [Op.lt]: now },
+                        plan: { [Op.ne]: 'Free' },
+                        planStatus: { [Op.in]: ['Active', 'Trial'] }
+                    }
+                });
+
+                if (linkedAdminId && expiredUsers.length > 0) {
+                    for (const user of expiredUsers) {
+                        const previousPlan = user.plan;
+                        const isTrial = user.planStatus === 'Trial';
+                        
+                        user.planStatus = 'Expired';
+                        await user.save();
+                        
+                        if (user.phone) {
+                            const contact = await Contact.findOne({ where: { userId: linkedAdminId, phone: user.phone } });
+                            if (contact) {
+                                let updatedTags = (contact.tags || []).filter(t => typeof t !== 'string' || !t.startsWith('Plan: '));
+                                
+                                if (isTrial) {
+                                    updatedTags.push('Trial Expired');
+                                } else {
+                                    updatedTags.push(`${previousPlan} - Expired`);
+                                }
+                                
+                                contact.tags = updatedTags;
+                                await contact.save();
+                                console.log(`[ALERTS] Updated CRM tags for expired plan: ${user.email}`);
+                            }
+                        }
+                    }
+                }
+            } catch (expireErr) {
+                console.error("Scheduler Expired Plan Tags error:", expireErr);
+            }
+
             // ==========================================
             // 3. ABANDONED CART RECOVERY (WaStore)
             // ==========================================

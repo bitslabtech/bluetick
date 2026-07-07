@@ -35,28 +35,31 @@ router.put('/', [auth, admin], async (req, res) => {
             settings = await LandingPage.create();
         }
 
-        // Update fields based on request body
-        // Sequelize's update method or direct property assignment
-        await settings.update({
-            hero: req.body.hero || settings.hero,
-            features: req.body.features || settings.features,
-            stats: req.body.stats || settings.stats,
-            testimonials: req.body.testimonials || settings.testimonials,
-            cta: req.body.cta || settings.cta,
-            brand: req.body.brand || settings.brand,
-            trustedBy: req.body.trustedBy || settings.trustedBy,
-            faqs: req.body.faqs || settings.faqs,
-            steps: req.body.steps || settings.steps,
-            seo: req.body.seo || settings.seo,
-            theme: req.body.theme || settings.theme,
-            footer: req.body.footer || settings.footer,
-            publicPages: req.body.publicPages || settings.publicPages,
-            contactInfo: req.body.contactInfo || settings.contactInfo,
-            capabilities: req.body.capabilities || settings.capabilities,
-            advancedFeatures: req.body.advancedFeatures || settings.advancedFeatures,
-            industries: req.body.industries || settings.industries,
-            aiChatbot: req.body.aiChatbot || settings.aiChatbot
-        });
+        // Force Sequelize to detect JSON changes
+        settings.hero = req.body.hero || settings.hero;
+        settings.features = req.body.features || settings.features;
+        settings.stats = req.body.stats || settings.stats;
+        settings.testimonials = req.body.testimonials || settings.testimonials;
+        settings.cta = req.body.cta || settings.cta;
+        settings.brand = req.body.brand || settings.brand;
+        settings.trustedBy = req.body.trustedBy || settings.trustedBy;
+        settings.faqs = req.body.faqs || settings.faqs;
+        settings.steps = req.body.steps || settings.steps;
+        settings.seo = req.body.seo || settings.seo;
+        settings.theme = req.body.theme || settings.theme;
+        settings.footer = req.body.footer || settings.footer;
+        if (req.body.publicPages !== undefined) settings.publicPages = req.body.publicPages;
+        if (req.body.contactInfo !== undefined) settings.contactInfo = req.body.contactInfo;
+        if (req.body.capabilities !== undefined) settings.capabilities = req.body.capabilities;
+        if (req.body.advancedFeatures !== undefined) settings.advancedFeatures = req.body.advancedFeatures;
+        if (req.body.industries !== undefined) settings.industries = req.body.industries;
+        if (req.body.aiChatbot !== undefined) settings.aiChatbot = req.body.aiChatbot;
+        
+        settings.changed('publicPages', true);
+        settings.changed('footer', true);
+        settings.changed('contactInfo', true);
+
+        await settings.save();
 
         // Invalidate landing page cache
         cacheManager.invalidate('landing_page');

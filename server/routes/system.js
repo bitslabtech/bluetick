@@ -164,6 +164,75 @@ router.get('/status', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/system/crm-data
+// @desc    Get linked CRM team members, templates, and tags for AI Chatbot routing
+router.get('/crm-data', superAdmin, async (req, res) => {
+    try {
+        const config = await SystemConfig.getConfig();
+        const linkedAdminUserId = config?.settings?.linkedAdminUserId;
+
+        if (!linkedAdminUserId) {
+            return res.json({ linkedUserId: null, teamMembers: [], templates: [], crmTags: [] });
+        }
+
+        const User = require('../models/User');
+        const Template = require('../models/Template');
+        const Contact = require('../models/Contact');
+        const { Op } = require('sequelize');
+
+        // Fetch team members
+        const teamMembers = await User.findAll({
+            where: {
+                [Op.or]: [
+                    { parentUserId: linkedAdminUserId },
+                    { id: linkedAdminUserId }
+                ]
+            },
+            attributes: ['id', 'name', 'email', 'teamRole']
+        });
+
+        // Attach online status
+        const { isUserOnline } = require('../socket');
+        const teamWithStatus = teamMembers.map(m => {
+            const obj = m.toJSON();
+            try { obj.isOnline = isUserOnline(obj.id); } catch { obj.isOnline = false; }
+            return obj;
+        });
+
+        // Fetch templates
+        const templates = await Template.findAll({
+            where: { userId: linkedAdminUserId },
+            order: [['createdAt', 'DESC']]
+        });
+
+        // Fetch unique tags from contacts
+        const contactsWithTags = await Contact.findAll({
+            where: { 
+                userId: linkedAdminUserId,
+                tags: { [Op.not]: null }
+            },
+            attributes: ['tags']
+        });
+
+        const uniqueTags = new Set();
+        contactsWithTags.forEach(c => {
+            if (Array.isArray(c.tags)) {
+                c.tags.forEach(tag => uniqueTags.add(tag));
+            }
+        });
+
+        res.json({
+            linkedUserId: linkedAdminUserId,
+            teamMembers: teamWithStatus,
+            templates: templates,
+            crmTags: Array.from(uniqueTags)
+        });
+    } catch (err) {
+        console.error('CRM Data Fetch Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // @route   GET /api/system/diagnostics
 // @desc    Get system health, queue stats, and logs
 router.get('/diagnostics', superAdmin, async (req, res) => {

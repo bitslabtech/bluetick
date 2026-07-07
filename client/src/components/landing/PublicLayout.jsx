@@ -56,11 +56,15 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                     </header>
                 )}
                 <div className={fullWidth ? 'w-full' : 'prose prose-slate max-w-none'}>
-                    {(pageKey && config.publicPages?.[pageKey]) ? (
-                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(config.publicPages[pageKey]) }} />
-                    ) : (
-                        children
-                     )}
+                    {(() => {
+                        const content = pageKey ? config.publicPages?.[pageKey] : null;
+                        const hasRealContent = content && typeof content === 'string' && content.replace(/<[^>]*>?/gm, '').trim().length > 0;
+                        
+                        if (hasRealContent) {
+                            return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />;
+                        }
+                        return children;
+                    })()}
                 </div>
             </main>
 
