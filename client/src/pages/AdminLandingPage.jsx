@@ -49,6 +49,7 @@ const AdminLandingPage = () => {
     const [editingPageKey, setEditingPageKey] = useState(null);
     const [pageEditorTitle, setPageEditorTitle] = useState('');
     const [pageEditorContent, setPageEditorContent] = useState('');
+    const [showHtmlEditor, setShowHtmlEditor] = useState(false);
 
     // Branding Settings (from /api/settings)
     const [brandingSettings, setBrandingSettings] = useState({
@@ -2094,32 +2095,57 @@ const AdminLandingPage = () => {
                             <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 dark:border-white/10">
                                 <div>
                                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">Editing: {pageEditorTitle}</h2>
-                                    <p className="text-sm text-slate-500 mt-1">Make changes using the rich text editor below.</p>
+                                    <p className="text-sm text-slate-500 mt-1">Make changes using the editor below.</p>
                                 </div>
-                                <button
-                                    onClick={() => setShowPageEditor(false)}
-                                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-lg">
+                                        <button
+                                            onClick={() => setShowHtmlEditor(false)}
+                                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${!showHtmlEditor ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                        >
+                                            Visual
+                                        </button>
+                                        <button
+                                            onClick={() => setShowHtmlEditor(true)}
+                                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${showHtmlEditor ? 'bg-white dark:bg-surface-dark text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                        >
+                                            HTML Source
+                                        </button>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowPageEditor(false)}
+                                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="p-4 md:p-6 overflow-y-auto flex-1">
-                                <ReactQuill
-                                    theme="snow"
-                                    value={pageEditorContent}
-                                    onChange={setPageEditorContent}
-                                    className="bg-white dark:bg-surface-dark dark:text-white h-[400px] mb-12"
-                                    modules={{
-                                        toolbar: [
-                                            [{ 'header': [1, 2, 3, false] }],
-                                            ['bold', 'italic', 'underline', 'strike'],
-                                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                                            ['link', 'image'],
-                                            ['clean']
-                                        ]
-                                    }}
-                                />
+                                {!showHtmlEditor ? (
+                                    <ReactQuill
+                                        theme="snow"
+                                        value={pageEditorContent}
+                                        onChange={setPageEditorContent}
+                                        className="bg-white dark:bg-surface-dark dark:text-white h-[400px] mb-12"
+                                        modules={{
+                                            toolbar: [
+                                                [{ 'header': [1, 2, 3, false] }],
+                                                ['bold', 'italic', 'underline', 'strike'],
+                                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                                ['link', 'image'],
+                                                ['clean']
+                                            ]
+                                        }}
+                                    />
+                                ) : (
+                                    <textarea
+                                        value={pageEditorContent}
+                                        onChange={(e) => setPageEditorContent(e.target.value)}
+                                        className="w-full h-[400px] p-4 font-mono text-sm bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none dark:text-slate-900 dark:text-slate-300"
+                                        placeholder="Enter HTML source code here..."
+                                    />
+                                )}
                             </div>
 
                             <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/10 flex justify-end gap-3 bg-slate-50/50 dark:bg-black/20 rounded-b-2xl">
