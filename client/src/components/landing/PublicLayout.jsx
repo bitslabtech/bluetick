@@ -49,19 +49,20 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
             <PublicHeader />
 
             {/* Main Content */}
-            <main className={`flex-1 ${fullWidth ? 'w-full' : 'pt-32 pb-7 sm:pb-20 px-6 max-w-4xl mx-auto w-full'}`}>
+            <main className={`flex-1 ${fullWidth ? 'w-full' : 'pt-32 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full'}`}>
                 {title && !fullWidth && (
-                    <header className="mb-12 border-b border-slate-200 pb-8">
-                        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">{title}</h1>
+                    <header className="mb-10 text-center">
+                        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mb-5">{title}</h1>
+                        <div className="w-16 h-1.5 bg-indigo-600 mx-auto rounded-full opacity-80"></div>
                     </header>
                 )}
-                <div className={fullWidth ? 'w-full' : 'prose prose-slate max-w-none'}>
+                <div className={fullWidth ? 'w-full' : 'bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 p-6 sm:p-10 md:p-14 prose prose-slate md:prose-lg max-w-none overflow-hidden break-words'}>
                     {(() => {
                         const content = pageKey ? config.publicPages?.[pageKey] : null;
                         const hasRealContent = content && typeof content === 'string' && content.replace(/<[^>]*>?/gm, '').trim().length > 0;
                         
                         if (hasRealContent) {
-                            return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />;
+                            return <div className="max-w-full overflow-x-auto" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />;
                         }
                         return children;
                     })()}

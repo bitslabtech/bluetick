@@ -158,19 +158,37 @@ function initScheduler() {
                     
                     if (daysLeft >= 0 && reminderDaysArray.includes(daysLeft)) {
                         if (user.lastExpiryAlertDay !== daysLeft) {
+                            const contextMap = {
+                                '{name}': user.name || 'User',
+                                '{plan_name}': user.plan || 'Plan',
+                                '{expiry_date}': expiryDate.toLocaleDateString(),
+                                '{renewal_link}': 'https://platform/upgrade', // Fallback
+                                '{days_left}': daysLeft.toString()
+                            };
+
+                            let parameters = [];
+                            if (expiryTpl.selectedVariables && expiryTpl.selectedVariables.length > 0) {
+                                parameters = expiryTpl.selectedVariables.map(v => ({
+                                    type: 'text',
+                                    text: contextMap[v] || 'N/A'
+                                }));
+                            } else {
+                                parameters = [
+                                    { type: 'text', text: user.name || 'User' },
+                                    { type: 'text', text: user.plan || 'Plan' },
+                                    { type: 'text', text: expiryDate.toLocaleDateString() },
+                                    { type: 'text', text: daysLeft.toString() }
+                                ];
+                            }
+
                             // Send Alert
-                            // Available Variables: {name}, {plan_name}, {expiry_date}, {days_left}
+                            // Available Variables: {name}, {plan_name}, {expiry_date}, {renewal_link}
                             await sendSystemMessage(userPhone, 'template', {
                                 templateName: expiryTpl.templateName,
                                 languageCode: expiryTpl.languageCode || 'en_US',
                                 components: [{
                                     type: 'body',
-                                    parameters: [
-                                        { type: 'text', text: user.name || 'User' },
-                                        { type: 'text', text: user.plan || 'Plan' },
-                                        { type: 'text', text: expiryDate.toLocaleDateString() },
-                                        { type: 'text', text: daysLeft.toString() }
-                                    ]
+                                    parameters: parameters
                                 }]
                             });
                             user.lastExpiryAlertDay = daysLeft;
@@ -199,19 +217,37 @@ function initScheduler() {
                         else if (percent >= 80) triggerPercent = 80;
 
                         if (triggerPercent && userLastQuotaAlerts[typeName] !== triggerPercent) {
+                            const contextMap = {
+                                '{name}': user.name || 'User',
+                                '{limit_type}': typeName,
+                                '{current_usage}': currentUsage.toString(),
+                                '{max_limit}': limit.toString(),
+                                '{upgrade_link}': limit.toString()
+                            };
+
+                            let parameters = [];
+                            if (quotaTpl.selectedVariables && quotaTpl.selectedVariables.length > 0) {
+                                parameters = quotaTpl.selectedVariables.map(v => ({
+                                    type: 'text',
+                                    text: contextMap[v] || 'N/A'
+                                }));
+                            } else {
+                                parameters = [
+                                    { type: 'text', text: user.name || 'User' },
+                                    { type: 'text', text: typeName },
+                                    { type: 'text', text: currentUsage.toString() },
+                                    { type: 'text', text: limit.toString() }
+                                ];
+                            }
+
                             // Send Quota Alert
-                            // Variables: {name}, {limit_type}, {current_usage}, {max_limit}
+                            // Variables: {name}, {limit_type}, {current_usage}, {upgrade_link}
                             await sendSystemMessage(userPhone, 'template', {
                                 templateName: quotaTpl.templateName,
                                 languageCode: quotaTpl.languageCode || 'en_US',
                                 components: [{
                                     type: 'body',
-                                    parameters: [
-                                        { type: 'text', text: user.name || 'User' },
-                                        { type: 'text', text: typeName },
-                                        { type: 'text', text: currentUsage.toString() },
-                                        { type: 'text', text: limit.toString() }
-                                    ]
+                                    parameters: parameters
                                 }]
                             });
                             userLastQuotaAlerts[typeName] = triggerPercent;

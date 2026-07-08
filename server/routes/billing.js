@@ -872,19 +872,37 @@ router.post('/verify-payment', async (req, res) => {
 
                     if (planPurchaseTpl && planPurchaseTpl.enabled && req.user.phone) {
                         const userPhone = req.user.phone.replace(/\D/g, '');
+                        const contextMap = {
+                            '{name}': req.user.name || 'User',
+                            '{plan_name}': targetPlan.name || 'Plan',
+                            '{amount}': `${parseFloat(targetPlan.price)}`,
+                            '{transaction_id}': transactionReference || 'N/A',
+                            '{expiry_date}': new Date(req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+                        };
+
+                        let parameters = [];
+                        if (planPurchaseTpl.selectedVariables && planPurchaseTpl.selectedVariables.length > 0) {
+                            parameters = planPurchaseTpl.selectedVariables.map(v => ({
+                                type: 'text',
+                                text: contextMap[v] || 'N/A'
+                            }));
+                        } else {
+                            parameters = [
+                                { type: 'text', text: req.user.name || 'User' },
+                                { type: 'text', text: targetPlan.name || 'Plan' },
+                                { type: 'text', text: `${parseFloat(targetPlan.price)}` },
+                                { type: 'text', text: transactionReference || 'N/A' },
+                                { type: 'text', text: new Date(req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() }
+                            ];
+                        }
+
                         // Available Variables: {name}, {plan_name}, {amount}, {transaction_id}, {expiry_date}
                         await sendSystemMessage(userPhone, 'template', {
                             templateName: planPurchaseTpl.templateName,
                             languageCode: planPurchaseTpl.languageCode || 'en_US',
                             components: [{
                                 type: 'body',
-                                parameters: [
-                                    { type: 'text', text: req.user.name || 'User' },
-                                    { type: 'text', text: targetPlan.name || 'Plan' },
-                                    { type: 'text', text: `${parseFloat(targetPlan.price)}` },
-                                    { type: 'text', text: transactionReference || 'N/A' },
-                                    { type: 'text', text: new Date(req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() }
-                                ]
+                                parameters: parameters
                             }]
                         });
                     }

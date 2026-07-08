@@ -7,7 +7,7 @@ import {
     Layout, Type, Palette, Image as ImageIcon, Check, RefreshCw,
     Bell, Mail, MessageCircle, UserPlus, CreditCard, AlertTriangle, BarChart, Zap,
     Server, Smartphone, Send, Terminal, Shield, Key, Search, User, Sparkles,
-    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2, ArrowRight
+    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2, ArrowRight, ListOrdered
 } from 'lucide-react';
 import BillingTab from '../components/BillingTab';
 import { useAuth } from '../context/AuthContext';
@@ -1600,16 +1600,65 @@ const Settings = () => {
                                                         </div>
                                                     )}
 
-                                                    {/* Variables */}
+                                                    {/* Variables Selection */}
                                                     <div>
-                                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-3">Available Variables:</label>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {cat.variables.map(variable => (
-                                                                <div key={variable} className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-300 select-all">
-                                                                    {variable}
-                                                                </div>
-                                                            ))}
+                                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-3">
+                                                            Template Variables (Click to select/deselect in order)
+                                                        </label>
+                                                        <div className="flex flex-wrap gap-2 mb-4">
+                                                            {cat.variables.map(variable => {
+                                                                const selectedVars = formData.notificationTemplates.whatsapp[cat.id]?.selectedVariables || [];
+                                                                const isSelected = selectedVars.includes(variable);
+                                                                return (
+                                                                    <button
+                                                                        key={variable}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            let newVars = [...selectedVars];
+                                                                            if (isSelected) {
+                                                                                newVars = newVars.filter(v => v !== variable);
+                                                                            } else {
+                                                                                newVars.push(variable);
+                                                                            }
+                                                                            handleTemplateChange('whatsapp', cat.id, 'selectedVariables', newVars);
+                                                                        }}
+                                                                        className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${
+                                                                            isSelected
+                                                                                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-2 border-indigo-500 shadow-sm font-bold'
+                                                                                : 'bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10'
+                                                                        }`}
+                                                                    >
+                                                                        {variable}
+                                                                    </button>
+                                                                );
+                                                            })}
                                                         </div>
+                                                        
+                                                        {/* Selected Variables Order */}
+                                                        {formData.notificationTemplates.whatsapp[cat.id]?.selectedVariables?.length > 0 && (
+                                                            <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 rounded-xl p-4">
+                                                                <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                                    <ListOrdered className="w-4 h-4" />
+                                                                    Selected Order for Meta
+                                                                </h4>
+                                                                <div className="space-y-2">
+                                                                    {formData.notificationTemplates.whatsapp[cat.id].selectedVariables.map((variable, index) => (
+                                                                        <div key={index} className="flex items-center gap-3 text-sm">
+                                                                            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-indigo-950 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 shadow-sm">
+                                                                                {`{{${index + 1}}}`}
+                                                                            </span>
+                                                                            <span className="text-slate-600 dark:text-slate-300">mapped to</span>
+                                                                            <span className="font-mono text-slate-900 dark:text-white font-medium bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                                                                {variable}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                <p className="text-[11px] text-indigo-600/70 dark:text-indigo-400/70 mt-3 font-medium">
+                                                                    Your Meta template must accept exactly {formData.notificationTemplates.whatsapp[cat.id].selectedVariables.length} variable{formData.notificationTemplates.whatsapp[cat.id].selectedVariables.length !== 1 ? 's' : ''}.
+                                                                </p>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

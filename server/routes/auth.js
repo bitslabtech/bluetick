@@ -207,14 +207,31 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
             if (welcomeConfig?.enabled && user.phone && welcomeConfig.templateName) {
                 const cleanPhone = user.phone.replace(/\D/g, '');
                 if (cleanPhone) {
+                    const contextMap = {
+                        '{name}': user.name || 'User',
+                        '{email}': user.email || 'No Email',
+                        '{app_name}': appName
+                    };
+
+                    let parameters = [];
+                    if (welcomeConfig.selectedVariables && welcomeConfig.selectedVariables.length > 0) {
+                        parameters = welcomeConfig.selectedVariables.map(v => ({
+                            type: 'text',
+                            text: contextMap[v] || 'N/A'
+                        }));
+                    } else {
+                        // Fallback legacy
+                        parameters = [
+                            { type: 'text', text: user.name || 'User' },
+                            { type: 'text', text: user.email || 'No Email' },
+                            { type: 'text', text: appName }
+                        ];
+                    }
+
                     const components = [
                         {
                             type: 'body',
-                            parameters: [
-                                { type: 'text', text: user.name || 'User' },
-                                { type: 'text', text: user.email || 'No Email' },
-                                { type: 'text', text: appName }
-                            ]
+                            parameters: parameters
                         }
                     ];
                     const result = await sendSystemMessage(cleanPhone, 'template', {
