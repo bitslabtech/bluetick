@@ -71,7 +71,7 @@ const TEMPLATE_ARCHETYPES = [
     }
 ];
 
-const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDraft }) => {
+const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDraft, editTemplateData }) => {
     const [step, setStep] = useState(1);
     const [selectedArchetype, setSelectedArchetype] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -204,7 +204,34 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         if (isOpen) {
             setIsSubmitting(false);
             setValidationErrors({}); // Always clear errors when modal opens
-            if (initialDraft) {
+            if (editTemplateData) {
+                const matchingArchetype = TEMPLATE_ARCHETYPES.find(a => a.id === editTemplateData.archetype) || TEMPLATE_ARCHETYPES[0];
+                setSelectedArchetype(matchingArchetype);
+                
+                setFormData({
+                    name: editTemplateData.name || '',
+                    category: editTemplateData.category || 'MARKETING',
+                    language: editTemplateData.language || 'en_US',
+                    content: editTemplateData.content || '',
+                    footer: editTemplateData.footer || '',
+                    headerType: editTemplateData.headerType || 'NONE',
+                    headerContent: editTemplateData.headerContent || '',
+                    headerHandle: editTemplateData.headerHandle || '',
+                    buttons: editTemplateData.buttons || [],
+                    cards: editTemplateData.cards || []
+                });
+                
+                // We'll extract variables but not prefill their exact example values since they aren't fully stored locally right now
+                const vars = extractVariables(editTemplateData.content || '');
+                const initVars = {};
+                vars.forEach(v => { initVars[v] = ''; });
+                setBodyVariables(initVars);
+                
+                setHeaderVariables({});
+                setActiveCardIndex(0);
+                
+                setStep(2);
+            } else if (initialDraft) {
                 // Set the mapped archetype
                 const matchingArchetype = TEMPLATE_ARCHETYPES.find(a => a.id === initialDraft.archetype) || TEMPLATE_ARCHETYPES[0];
                 setSelectedArchetype(matchingArchetype);
@@ -583,8 +610,13 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                 cards: processedCards
             };
 
-            await axios.post(`${import.meta.env.VITE_API_URL}/api/templates`, payload);
-            showToast({ type: 'success', title: 'Template Created', message: 'Template successfully submitted to Meta.' });
+            if (editTemplateData) {
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/templates/${editTemplateData.id}`, payload);
+                showToast({ type: 'success', title: 'Template Edited', message: 'Template edit submitted to Meta successfully.' });
+            } else {
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/templates`, payload);
+                showToast({ type: 'success', title: 'Template Created', message: 'Template successfully submitted to Meta.' });
+            }
             onSuccess();
         } catch (err) {
             console.error("Error creating template:", err);
@@ -718,9 +750,11 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                             required
                                             value={formData.name}
                                             onChange={(e) => { setFormData({ ...formData, name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') }); if (validationErrors.name) setValidationErrors(p => ({ ...p, name: undefined })); }}
-                                            className={`w-full bg-slate-50 dark:bg-background-dark border rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 outline-none transition-all ${validationErrors.name ? 'border-red-400 dark:border-red-500 focus:border-red-400 focus:ring-red-400/30' : 'border-slate-200 dark:border-white/10 focus:border-primary focus:ring-primary'}`}
+                                            disabled={!!editTemplateData}
+                                            className={`w-full bg-slate-50 dark:bg-background-dark border rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${validationErrors.name ? 'border-red-400 dark:border-red-500 focus:border-red-400 focus:ring-red-400/30' : 'border-slate-200 dark:border-white/10 focus:border-primary focus:ring-primary'}`}
                                             placeholder="e.g. summer_sale_promo"
                                         />
+                                        {!!editTemplateData && <p className="text-xs text-amber-500 mt-1">Template name cannot be edited.</p>}
                                         {validationErrors.name && (
                                             <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1 font-medium">
                                                 <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {validationErrors.name}
@@ -754,7 +788,8 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                 required
                                                 value={formData.language}
                                                 onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer appearance-none transition-all"
+                                                disabled={!!editTemplateData}
+                                                className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer appearance-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <option value="en_US">English (US)</option>
                                                 <option value="en_GB">English (UK)</option>

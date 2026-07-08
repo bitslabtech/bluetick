@@ -28,6 +28,47 @@ module.exports = async function (req, res, next) {
             req.user.teamPermissions = dbUser.teamPermissions;
             req.user.teamPolicy = dbUser.teamPolicy;
             req.user.plan = dbUser.plan;
+            req.user.planStatus = dbUser.planStatus;
+            req.user.planExpiry = dbUser.planExpiry;
+
+            // ─── Subscription Enforcement ─────────────────────────────────────────
+            // Admins and impersonated sessions are never blocked by subscription checks.
+            if (!dbUser.isAdmin && !req.cookies?.bt_admin_token && !req.header('x-admin-token')) {
+                // Allow billing, auth, and public endpoints even if expired
+                const allowedPaths = ['/api/auth', '/api/billing', '/api/plans', '/api/system', '/api/webhook'];
+                const isAllowedPath = allowedPaths.some(p => req.originalUrl.startsWith(p));
+
+                if (!isAllowedPath) {
+                    // Block suspended/pending users
+                    if (dbUser.planStatus && ['Suspended', 'Pending'].includes(dbUser.planStatus)) {
+                        return res.status(403).json({
+                            error: `Your account is currently ${dbUser.planStatus}. Please complete your subscription setup.`,
+                            code: 'PLAN_INACTIVE'
+                        });
+                    }
+
+                    // Block users whose plan has expired and planStatus is Expired
+                    if (dbUser.planStatus === 'Expired') {
+                        return res.status(403).json({
+                            error: 'Your subscription has expired. Please renew your plan to continue.',
+                            code: 'PLAN_EXPIRED',
+                            expiredAt: dbUser.planExpiry
+                        });
+                    }
+
+                    // Safety net: if planExpiry is past and status is still Active/Trial (scheduler lag),
+                    // block the request and let the user know they need to renew.
+                    if (dbUser.planExpiry && new Date(dbUser.planExpiry) < new Date() &&
+                        ['Active', 'Trial'].includes(dbUser.planStatus) && dbUser.plan !== 'Free') {
+                        return res.status(403).json({
+                            error: 'Your subscription has expired. Please renew your plan to continue.',
+                            code: 'PLAN_EXPIRED',
+                            expiredAt: dbUser.planExpiry
+                        });
+                    }
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────────
 
             // MAGIC INHERITANCE: If acting as a team member, alias all standard queries to parent's workspace
             if (dbUser.parentUserId) {
@@ -36,6 +77,7 @@ module.exports = async function (req, res, next) {
         } else {
             return res.status(401).json({ error: 'User account no longer exists' });
         }
+
 
         // NEW: Check for Global Session Kill
         const SystemConfig = require('../models/SystemConfig');

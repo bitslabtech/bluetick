@@ -117,9 +117,10 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         let planStatus = 'Active';
 
         // Fix: If direct signup AND the default plan exists, DO NOT force trial immediately.
-        // Instead, set them to Pending with the default plan so they are redirected to checkout
-        // where they can choose to Pay, Start Trial, or Change Plan.
+        // Instead, set them to Pending on Free until they complete checkout.
+        // We store the defaultPlan ID in selectedPlan so checkout knows which plan to offer them.
         if (!selectedPlan && defaultPlan) {
+            assignedPlan = 'Free'; // Don't assign paid plan name before payment
             planStatus = 'Pending';
             planExpiry = new Date(); 
         }
@@ -161,6 +162,8 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
             plan: assignedPlan,
             planExpiry: planExpiry,
             planStatus: planStatus,
+            // Mark trial as used if they started one during registration to prevent double-trials
+            hasUsedTrial: planStatus === 'Trial',
             referralCode: ownReferralCode,
             referredBy,
             company: req.body.company || null,
@@ -189,7 +192,7 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
                         name: user.name,
                         phone: user.phone,
                         email: user.email,
-                        tags: ['App User', `Plan: ${user.plan}`]
+                        tags: ['App User', planStatus === 'Trial' ? `Plan: ${user.plan} (Trial)` : `Plan: ${user.plan}`]
                     });
                 }
             }

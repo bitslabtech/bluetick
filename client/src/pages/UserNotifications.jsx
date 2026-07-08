@@ -7,29 +7,16 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import ThemeToggle from '../components/ThemeToggle';
 
 const UserNotifications = () => {
     const { user } = useAuth();
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { notifications, markAllRead, markOneRead, getReadIds } = useNotifications();
     const [filter, setFilter] = useState('All'); // All, Info, Success, Warning, Error
+    const readIds = getReadIds();
 
-    const fetchNotifications = async () => {
-        setLoading(true);
-        try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`);
-            setNotifications(res.data);
-        } catch (err) {
-            console.error("Error fetching notifications:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    useEffect(() => {
-        fetchNotifications();
-    }, []);
 
     const getTypeStyles = (type) => {
         switch (type) {
@@ -116,18 +103,14 @@ const UserNotifications = () => {
                     </div>
 
                     <div className="flex gap-2">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <button onClick={markAllRead} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                             <CheckCheck className="w-4 h-4" /> Mark all read
                         </button>
                     </div>
                 </div>
 
                 {/* Notifications Grid */}
-                {loading ? (
-                    <div className="flex justify-center py-20">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                    </div>
-                ) : filteredNotifications.length === 0 ? (
+                {filteredNotifications.length === 0 ? (
                     <div className="text-center py-20">
                         <div className="w-20 h-20 bg-slate-100 dark:bg-surface-dark rounded-full flex items-center justify-center mx-auto mb-4">
                             <Bell className="w-10 h-10 text-slate-300" />
@@ -155,7 +138,12 @@ const UserNotifications = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-start">
-                                                    <h3 className={`text-lg font-bold ${style.text} mb-1`}>{n.title}</h3>
+                                                    <h3 className={`text-lg font-bold ${style.text} mb-1 flex items-center gap-2`}>
+                                                        {n.title}
+                                                        {!readIds.includes(n.id) && (
+                                                            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                                                        )}
+                                                    </h3>
                                                     <div className="flex flex-col items-end gap-1">
                                                         <span className="text-xs font-medium text-slate-400 bg-white/50 dark:bg-black/20 px-2 py-1 rounded-md">
                                                             {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
@@ -168,8 +156,8 @@ const UserNotifications = () => {
                                                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm md:text-base">
                                                     {n.message}
                                                 </p>
-                                                {n.buttonName && n.buttonUrl && (
-                                                    <div className="mt-4">
+                                                <div className="mt-4 flex items-center justify-between">
+                                                    {n.buttonName && n.buttonUrl ? (
                                                         <a
                                                             href={n.buttonUrl}
                                                             target="_blank"
@@ -178,8 +166,17 @@ const UserNotifications = () => {
                                                         >
                                                             {n.buttonName}
                                                         </a>
-                                                    </div>
-                                                )}
+                                                    ) : <div />}
+
+                                                    {!readIds.includes(n.id) && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); markOneRead(n.id); }}
+                                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/10 text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-white/5`}
+                                                        >
+                                                            <CheckCheck className="w-3.5 h-3.5" /> Mark as read
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </motion.div>

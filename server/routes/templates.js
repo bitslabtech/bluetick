@@ -473,6 +473,185 @@ router.post('/', async (req, res) => {
     }
 });
 
+// EDIT template
+router.put('/:id', async (req, res) => {
+    try {
+        const { content, category, headerType, headerContent, headerHandle, footer, buttons, cards, archetype } = req.body;
+
+        const template = await Template.findOne({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+
+        if (!template) return res.status(404).json({ error: 'Template not found' });
+        if (!template.metaTemplateId) return res.status(400).json({ error: 'Template is missing Meta ID, cannot edit.' });
+
+        // Check if user has configured WhatsApp settings
+        const settings = await Settings.findOne({ where: { userId: req.user.id } });
+        if (!settings || !settings.metaAccessToken) {
+            return res.status(403).json({ error: 'Please configure your WhatsApp API settings before editing templates.' });
+        }
+
+        let components = [];
+
+        // Build Carousel Payload
+        if (archetype === 'carousel' && cards && cards.length > 0) {
+            // Master Body for Carousel
+            if (content) {
+                const bodyComp = { type: "BODY", text: content };
+                if (req.body.bodyVariables && req.body.bodyVariables.length > 0) {
+                    bodyComp.example = { body_text: [req.body.bodyVariables] };
+                }
+                components.push(bodyComp);
+            }
+
+            // Carousel component containing cards
+            const carouselCards = cards.map(card => {
+                const cardComponents = [];
+
+                // Card Header (Meta requires IMAGE or VIDEO for carousel cards)
+                if (card.headerType && card.headerType !== 'NONE') {
+                    const headerComp = {
+                        type: "HEADER",
+                        format: card.headerType
+                    };
+                    if (card.headerHandle) {
+                        headerComp.example = { header_handle: [card.headerHandle] };
+                    }
+                    cardComponents.push(headerComp);
+                }
+
+                // Card Body
+                if (card.content) {
+                    cardComponents.push({
+                        type: "BODY",
+                        text: card.content
+                    });
+                }
+
+                // Card Buttons
+                if (card.buttons && card.buttons.length > 0) {
+                    const cardBtns = card.buttons.map(btn => {
+                        if (btn.type === 'URL') return { type: 'URL', text: btn.text, url: btn.url };
+                        if (btn.type === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: btn.text, phone_number: btn.phoneNumber };
+                        if (btn.type === 'COPY_CODE') return { type: 'COPY_CODE', text: 'Copy offer code', example: [btn.couponCode || ''] };
+                        return { type: 'QUICK_REPLY', text: btn.text };
+                    });
+                    cardComponents.push({
+                        type: "BUTTONS",
+                        buttons: cardBtns
+                    });
+                }
+
+                return { components: cardComponents };
+            });
+
+            components.push({
+                type: "CAROUSEL",
+                cards: carouselCards
+            });
+
+        } else {
+            // Standard Payload Construction
+            if (headerType && headerType !== 'NONE') {
+                const headerComp = { type: "HEADER", format: headerType };
+                if (headerType === 'TEXT' && headerContent) {
+                    headerComp.text = headerContent;
+                    if (req.body.headerVariables && req.body.headerVariables.length > 0) {
+                        headerComp.example = { header_text: [req.body.headerVariables] };
+                    }
+                } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerType) && headerHandle) {
+                    headerComp.example = { header_handle: [headerHandle] };
+                }
+                components.push(headerComp);
+            }
+
+            if (content) {
+                const bodyComp = { type: "BODY", text: content };
+                if (req.body.bodyVariables && req.body.bodyVariables.length > 0) {
+                    bodyComp.example = { body_text: [req.body.bodyVariables] };
+                }
+                components.push(bodyComp);
+            }
+
+            if (footer) {
+                components.push({ type: "FOOTER", text: footer });
+            }
+
+            if (buttons && buttons.length > 0) {
+                const standardBtns = buttons.map(btn => {
+                    if (btn.type === 'URL') return { type: 'URL', text: btn.text, url: btn.url };
+                    if (btn.type === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: btn.text, phone_number: btn.phoneNumber };
+                    if (btn.type === 'COPY_CODE') return { type: 'COPY_CODE', text: 'Copy offer code', example: [btn.couponCode || ''] };
+                    if (btn.type === 'OTP') return { type: 'OTP', otp_type: btn.otp_type || 'COPY_CODE', text: btn.text || 'Copy Code' };
+                    return { type: 'QUICK_REPLY', text: btn.text };
+                });
+                components.push({ type: "BUTTONS", buttons: standardBtns });
+            }
+        }
+
+        // Prepare Meta Payload for Edit
+        // Meta Edit API does NOT accept name and language
+        const metaPayload = {
+            components: components
+        };
+
+        // Send to Meta Graph API
+        const response = await fetch(`https://graph.facebook.com/v21.0/${template.metaTemplateId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${settings.metaAccessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(metaPayload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Meta Edit Error:", JSON.stringify(data, null, 2));
+            return res.status(400).json({ error: (data.error?.error_user_msg || data.error?.message || 'Failed to edit template on WhatsApp.') + JSON.stringify(data.error?.error_data || '') });
+        }
+
+        // Save to DB on success
+        template.content = content;
+        template.category = category || template.category;
+        template.status = data.status || 'PENDING';
+        template.archetype = archetype || 'standard';
+        template.cards = archetype === 'carousel' ? cards : null;
+        template.buttons = archetype !== 'carousel' ? buttons : null;
+        template.headerType = archetype !== 'carousel' ? headerType : null;
+        template.headerContent = archetype !== 'carousel' ? headerContent : null;
+        template.headerHandle = archetype !== 'carousel' ? headerHandle : null;
+        template.footer = archetype !== 'carousel' ? footer : null;
+        
+        await template.save();
+
+        // Auto-Notification
+        try {
+            await SystemNotification.create({
+                recipient: req.user.email,
+                type: 'Success',
+                title: 'Template Edited',
+                message: `Your template "${template.name}" has been successfully edited and submitted to Meta. It is pending review.`,
+                target: `User: ${req.user.email}`,
+                status: 'Sent'
+            });
+
+            // Emit socket event to update user notifications in real-time
+            getIo().to(req.user.id).emit('notification_update');
+        } catch (notifErr) {
+            console.error("Failed to create template edit notification:", notifErr.message);
+        }
+
+        await logActivity(req, 'Template Edited', `Edited template "${template.name}"`);
+
+        res.json(template);
+    } catch (err) {
+        console.error("Template Edit Error:", err);
+        res.status(400).json({ error: err.message });
+    }
+});
+
 // DELETE template
 router.delete('/:id', async (req, res) => {
     try {

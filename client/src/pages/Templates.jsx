@@ -32,6 +32,7 @@ const Templates = () => {
     const [aiDraftPrompt, setAiDraftPrompt] = useState('');
     const [isDrafting, setIsDrafting] = useState(false);
     const [draftPayload, setDraftPayload] = useState(null);
+    const [editTemplateData, setEditTemplateData] = useState(null);
     const [showConfetti, setShowConfetti] = useState(false);
 
     const [newTemplate, setNewTemplate] = useState({
@@ -63,33 +64,37 @@ const Templates = () => {
     // A template is locked if its position (0-based) >= plan limit
     const isLocked = (index) => templateLimit !== -1 && index >= templateLimit;
 
-    const handleSyncTemplates = async () => {
+    const handleSyncTemplates = async (silent = false) => {
         try {
             setSyncing(true);
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/sync`);
-            showToast({ type: 'success', title: 'Sync Complete', message: res.data.message });
+            if (!silent) {
+                showToast({ type: 'success', title: 'Sync Complete', message: res.data.message });
+            }
             fetchTemplates();
         } catch (err) {
             console.error("Sync Error:", err);
-            showToast({ type: 'error', title: 'Sync Failed', message: err.response?.data?.error || err.message });
+            if (!silent) {
+                showToast({ type: 'error', title: 'Sync Failed', message: err.response?.data?.error || err.message });
+            }
         } finally {
             setSyncing(false);
         }
     };
 
     useEffect(() => {
-        fetchTemplates();
+        handleSyncTemplates(true); // silent sync on page load
     }, []);
 
     useEffect(() => {
         if (location.state?.openCreateTemplate) {
-            checkSettingsAndOpenModal();
+            checkSettingsAndOpenModal(null, false);
             window.history.replaceState({}, document.title);
         }
     }, [location]);
 
 
-    const checkSettingsAndOpenModal = async (draft = null) => {
+    const checkSettingsAndOpenModal = async (draft = null, isEdit = false, templateData = null) => {
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
             const s = res.data;
@@ -103,6 +108,11 @@ const Templates = () => {
                 setDraftPayload(draft);
             } else {
                 setDraftPayload(null);
+            }
+            if (isEdit && templateData) {
+                setEditTemplateData(templateData);
+            } else {
+                setEditTemplateData(null);
             }
             setShowCreateModal(true);
         } catch (err) {
@@ -440,6 +450,13 @@ const Templates = () => {
                                             <span className="text-[10px]">Created: {new Date(template.createdAt).toLocaleDateString()}</span>
                                             <div className="flex gap-1">
                                                 <button
+                                                    onClick={() => checkSettingsAndOpenModal(null, true, template)}
+                                                    className="hover:text-blue-500 dark:hover:text-blue-400 p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-surface-dark transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                                </button>
+                                                <button
                                                     onClick={() => handleDeleteTemplate(template.id)}
                                                     className="hover:text-red-500 dark:hover:text-red-400 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-surface-dark transition-colors"
                                                     title="Delete"
@@ -473,10 +490,11 @@ const Templates = () => {
             {/* Modern Create Template Modal */}
             <CreateTemplateModal
                 isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
+                onClose={() => { setShowCreateModal(false); setEditTemplateData(null); }}
                 onSuccess={handleCreateSuccess}
                 showToast={showToast}
                 initialDraft={draftPayload}
+                editTemplateData={editTemplateData}
             />
 
             {/* AI Drafting Prompt Modal */}

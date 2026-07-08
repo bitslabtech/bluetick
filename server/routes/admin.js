@@ -429,7 +429,35 @@ router.put('/users/:id', async (req, res) => {
         if (plan) {
             if (user.plan !== plan) changes.push(`Plan: ${user.plan} -> ${plan}`);
             user.plan = plan;
-            // logic to update expiry could go here
+
+            // When plan changes, recalculate planStatus and planExpiry properly
+            if (plan === 'Free') {
+                user.planStatus = 'Active';
+                user.planExpiry = null;
+            } else {
+                const Plan = require('../models/Plan');
+                const planDetails = await Plan.findOne({ where: { name: plan } });
+                user.planStatus = 'Active';
+                if (planDetails) {
+                    if (planDetails.interval === 'month') {
+                        const expiry = new Date();
+                        expiry.setMonth(expiry.getMonth() + 1);
+                        user.planExpiry = expiry;
+                    } else if (planDetails.interval === 'half-year') {
+                        const expiry = new Date();
+                        expiry.setMonth(expiry.getMonth() + 6);
+                        user.planExpiry = expiry;
+                    } else if (planDetails.interval === 'year') {
+                        const expiry = new Date();
+                        expiry.setFullYear(expiry.getFullYear() + 1);
+                        user.planExpiry = expiry;
+                    } else {
+                        // lifetime — no expiry
+                        user.planExpiry = null;
+                    }
+                }
+            }
+            changes.push(`Status: -> Active, Expiry recalculated`);
         }
 
         // Password Update
@@ -557,6 +585,26 @@ router.post('/users/:id/grant-trial', async (req, res) => {
             action: 'Trial Granted',
             details: `Admin granted ${reqPlan.trialDays}-day trial of ${reqPlan.name} to ${targetUser.email}`
         });
+
+        // --- Update CRM Tags for Granted Trial ---
+        try {
+            const SystemConfig = require('../models/SystemConfig');
+            const Contact = require('../models/Contact');
+            const config = await SystemConfig.getCachedConfig();
+            const linkedAdminId = config?.settings?.linkedAdminUserId;
+            
+            if (linkedAdminId && targetUser.phone) {
+                const contact = await Contact.findOne({ where: { userId: linkedAdminId, phone: targetUser.phone } });
+                if (contact) {
+                    let updatedTags = (contact.tags || []).filter(t => typeof t !== 'string' || (!t.startsWith('Plan: ') && !t.endsWith(' - Expired') && t !== 'Trial Expired'));
+                    updatedTags.push(`Plan: ${reqPlan.name} (Trial)`);
+                    contact.tags = updatedTags;
+                    await contact.save();
+                }
+            }
+        } catch (tagSyncErr) {
+            console.error("Error syncing CRM tags on grant trial:", tagSyncErr);
+        }
 
         res.json({ success: true, message: `Granted ${reqPlan.trialDays}-day trial for ${reqPlan.name}.`, user: {
             id: targetUser.id, name: targetUser.name, email: targetUser.email, plan: targetUser.plan,

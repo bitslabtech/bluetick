@@ -122,6 +122,51 @@ function initScheduler() {
 
             const config = await SystemConfig.getCachedConfig();
             const linkedAdminId = config?.settings?.linkedAdminUserId;
+
+            // ==========================================
+            // 2.5 EXPIRE PLANS — runs unconditionally, does NOT need linkedAdminId
+            // ==========================================
+            try {
+                const now_expire = new Date();
+                const expiredUsers = await User.findAll({
+                    where: {
+                        planExpiry: { [Op.lt]: now_expire },
+                        plan: { [Op.ne]: 'Free' },
+                        planStatus: { [Op.in]: ['Active', 'Trial', 'Pending'] }
+                    }
+                });
+
+                if (expiredUsers.length > 0) {
+                    for (const expUser of expiredUsers) {
+                        const previousPlan = expUser.plan;
+                        const isTrial = expUser.planStatus === 'Trial';
+
+                        expUser.planStatus = 'Expired';
+                        await expUser.save();
+                        console.log(`[EXPIRY] Plan expired for user: ${expUser.email} (was ${previousPlan})`);
+
+                        // CRM tag update — only if linked CRM admin is configured
+                        if (linkedAdminId && expUser.phone) {
+                            try {
+                                const contact = await Contact.findOne({ where: { userId: linkedAdminId, phone: expUser.phone } });
+                                if (contact) {
+                                    let updatedTags = (contact.tags || []).filter(t => typeof t !== 'string' || !t.startsWith('Plan: '));
+                                    updatedTags.push(isTrial ? 'Trial Expired' : `${previousPlan} - Expired`);
+                                    contact.tags = updatedTags;
+                                    await contact.save();
+                                    console.log(`[EXPIRY] Updated CRM tags for: ${expUser.email}`);
+                                }
+                            } catch (crmErr) {
+                                console.error(`[EXPIRY] CRM tag update failed for ${expUser.email}:`, crmErr.message);
+                            }
+                        }
+                    }
+                }
+            } catch (expireErr) {
+                console.error('[EXPIRY] Plan expiry job error:', expireErr);
+            }
+
+            // WA notification alerts only work when linkedAdminId is configured
             if (!linkedAdminId) return;
 
             const adminSettings = await Settings.findOne({ where: { userId: linkedAdminId } });
@@ -348,47 +393,8 @@ function initScheduler() {
                 }
             }
             
-            // ==========================================
-            // 2.5 UPDATE CRM TAGS FOR EXPIRED PLANS
-            // ==========================================
-            try {
-                const expiredUsers = await User.findAll({
-                    where: {
-                        planExpiry: { [Op.lt]: now },
-                        plan: { [Op.ne]: 'Free' },
-                        planStatus: { [Op.in]: ['Active', 'Trial'] }
-                    }
-                });
+            // (Plan expiry is now handled above, unconditionally before the linkedAdminId gate)
 
-                if (linkedAdminId && expiredUsers.length > 0) {
-                    for (const user of expiredUsers) {
-                        const previousPlan = user.plan;
-                        const isTrial = user.planStatus === 'Trial';
-                        
-                        user.planStatus = 'Expired';
-                        await user.save();
-                        
-                        if (user.phone) {
-                            const contact = await Contact.findOne({ where: { userId: linkedAdminId, phone: user.phone } });
-                            if (contact) {
-                                let updatedTags = (contact.tags || []).filter(t => typeof t !== 'string' || !t.startsWith('Plan: '));
-                                
-                                if (isTrial) {
-                                    updatedTags.push('Trial Expired');
-                                } else {
-                                    updatedTags.push(`${previousPlan} - Expired`);
-                                }
-                                
-                                contact.tags = updatedTags;
-                                await contact.save();
-                                console.log(`[ALERTS] Updated CRM tags for expired plan: ${user.email}`);
-                            }
-                        }
-                    }
-                }
-            } catch (expireErr) {
-                console.error("Scheduler Expired Plan Tags error:", expireErr);
-            }
 
             // ==========================================
             // 3. ABANDONED CART RECOVERY (WaStore)

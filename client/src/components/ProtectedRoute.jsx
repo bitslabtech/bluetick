@@ -37,7 +37,17 @@ const ProtectedRoute = () => {
                 return <Navigate to="/checkout" replace />;
             }
 
-            // 2. If user's trial or plan is expired, lock them to /checkout or /billing
+            // 2. If user's plan is explicitly Expired, lock them to /checkout or /billing
+            if (user.planStatus === 'Expired') {
+                if (location.pathname !== '/checkout' && location.pathname !== '/billing') {
+                    if (!pendingPlan && user.planDetails) {
+                        localStorage.setItem('pendingPlan', JSON.stringify(user.planDetails));
+                    }
+                    return <Navigate to="/checkout" replace />;
+                }
+            }
+
+            // 3. If planExpiry date is in the past on a non-Free paid plan, lock them
             if (user.planExpiry && user.plan !== 'Free') {
                 const expiryDate = new Date(user.planExpiry);
                 if (expiryDate < new Date() && location.pathname !== '/checkout' && location.pathname !== '/billing') {
@@ -52,6 +62,11 @@ const ProtectedRoute = () => {
                     }
                     return <Navigate to="/checkout" replace />;
                 }
+            }
+
+            // 4. If user is on a non-Free plan with no planExpiry at all and status is Pending, lock them
+            if (user.planStatus === 'Pending' && location.pathname !== '/checkout' && location.pathname !== '/billing') {
+                return <Navigate to="/checkout" replace />;
             }
         }
     }

@@ -466,15 +466,22 @@ const Billing = () => {
                                 <div className="relative z-10">
                                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur border border-white/20 text-xs font-bold mb-6">
                                         <Sparkles className="w-3 h-3 text-yellow-300" />
-                                        Active Subscription
+                                        {plan?.status === 'Trial' ? 'Trial Subscription' : 'Active Subscription'}
                                     </div>
 
                                     <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
                                         <div>
-                                            <h2 className="text-4xl font-black tracking-tight mb-2">{plan?.name || 'Free'} Plan</h2>
+                                            <h2 className="text-4xl font-black tracking-tight mb-2">
+                                                {plan?.name || 'Free'} Plan
+                                                {plan?.status === 'Trial' && <span className="ml-3 text-2xl font-bold text-yellow-300 opacity-90 tracking-normal">(Trial)</span>}
+                                            </h2>
                                             <div className="flex items-center gap-3 flex-wrap">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-400/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${
+                                                    plan?.status === 'Trial' 
+                                                        ? 'bg-yellow-400/20 border-yellow-400/30 text-yellow-300' 
+                                                        : 'bg-emerald-400/20 border-emerald-400/30 text-emerald-300'
+                                                }`}>
+                                                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${plan?.status === 'Trial' ? 'bg-yellow-400' : 'bg-emerald-400'}`} />
                                                     {plan?.status || 'Active'}
                                                 </span>
                                                 {daysLeft !== null && (
