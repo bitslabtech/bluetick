@@ -116,13 +116,31 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         let planExpiry = null;
         let planStatus = 'Active';
 
-        // Fix: If direct signup AND the default plan exists, DO NOT force trial immediately.
-        // Instead, set them to Pending on Free until they complete checkout.
-        // We store the defaultPlan ID in selectedPlan so checkout knows which plan to offer them.
+        // Auto-Trial for direct signups:
         if (!selectedPlan && defaultPlan) {
-            assignedPlan = 'Free'; // Don't assign paid plan name before payment
-            planStatus = 'Pending';
-            planExpiry = new Date(); 
+            if (defaultPlan.price > 0) {
+                let trialDaysToGive = defaultPlan.trialDays || 0;
+                if (isReferredByTechPartner) {
+                    trialDaysToGive = 30; // 1-Month Extended License for Tech Partner referrals
+                }
+
+                if (trialDaysToGive > 0) {
+                    // Auto-activate trial for default paid plan
+                    assignedPlan = defaultPlan.name;
+                    planStatus = 'Trial';
+                    planExpiry = new Date();
+                    planExpiry.setDate(planExpiry.getDate() + trialDaysToGive);
+                } else {
+                    // No trial available, push to pending checkout
+                    assignedPlan = 'Free'; 
+                    planStatus = 'Pending';
+                    planExpiry = new Date();
+                }
+            } else {
+                assignedPlan = defaultPlan.name;
+                planStatus = 'Active';
+                planExpiry = null;
+            }
         }
 
         // Plan assignment: if user requested a trial and plan supports it, activate trial immediately.
@@ -279,7 +297,15 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         const token = generateToken(user);
         setAuthCookies(res, token);
         // Fetch the actual assigned plan details to return to frontend
-        const assignedPlanDetails = await Plan.findOne({ where: { name: assignedPlan } });
+        let returnedPlanDetails = await Plan.findOne({ where: { name: assignedPlan } });
+        if (user.planStatus === 'Pending') {
+            if (!selectedPlan && defaultPlan) {
+                returnedPlanDetails = defaultPlan;
+            } else if (selectedPlan) {
+                returnedPlanDetails = await Plan.findByPk(selectedPlan);
+            }
+        }
+        
         res.json({
             user: {
                 id: user.id,
@@ -290,7 +316,7 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
                 plan: user.plan,
                 planStatus: user.planStatus,
                 planExpiry: user.planExpiry,
-                planDetails: assignedPlanDetails || null,
+                planDetails: returnedPlanDetails || null,
                 isAdmin: user.isAdmin,
                 createdAt: user.createdAt,
                 lastLogin: user.lastLogin,

@@ -66,6 +66,14 @@ const ProtectedRoute = () => {
 
             // 4. If user is on a non-Free plan with no planExpiry at all and status is Pending, lock them
             if (user.planStatus === 'Pending' && location.pathname !== '/checkout' && location.pathname !== '/billing') {
+                if (!pendingPlan) {
+                    if (user.planDetails) {
+                        localStorage.setItem('pendingPlan', JSON.stringify(user.planDetails));
+                    } else {
+                        // Failsafe: set a dummy plan to avoid loop if planDetails is missing
+                        localStorage.setItem('pendingPlan', JSON.stringify({ name: 'Default', price: 0 }));
+                    }
+                }
                 return <Navigate to="/checkout" replace />;
             }
         }

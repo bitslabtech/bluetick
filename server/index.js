@@ -48,6 +48,7 @@ require('./models/NfcCard');        // Physical NFC Products
 require('./models/NfcOrder');       // Physical NFC Orders
 require('./models/FlowExecutionLog'); // FlowBot execution analytics
 require('./models/AutoTagRule');      // Auto-tagging rules engine
+require('./models/QuickReply');       // QuickReplies model
 
 // Import Routes
 const contactsRoute = require('./routes/contacts');
