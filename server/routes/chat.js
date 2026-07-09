@@ -111,6 +111,29 @@ router.get('/conversations', async (req, res) => {
     }
 });
 
+// GET /unread-count - Total unread messages across all conversations
+router.get('/unread-count', async (req, res) => {
+    try {
+        const ownerId = req.user.parentUserId || req.user.id;
+        const isSubMember = !!req.user.parentUserId;
+        
+        let whereClause = { userId: ownerId, unreadCount: { [Op.gt]: 0 } };
+
+        if (isSubMember) {
+            const visibility = req.user.teamPolicy?.inboxVisibility || 'see_all';
+            if (visibility === 'see_assigned') {
+                whereClause.assignedTo = req.user.realId;
+            }
+        }
+
+        const totalUnread = await Conversation.sum('unreadCount', { where: whereClause }) || 0;
+        res.json({ count: totalUnread });
+    } catch (err) {
+        console.error('[CHAT API] Error fetching unread count:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // GET /conversations/:id/messages - Message history
 router.get('/conversations/:id/messages', async (req, res) => {
     try {
@@ -198,40 +221,7 @@ router.post('/send/text', async (req, res) => {
             });
         }
 
-        // POST /conversations/:id/contact/groups - Update contact groups securely via conversation ID
-router.post('/conversations/:id/contact/groups', async (req, res) => {
-    try {
-        const { tags } = req.body;
-        const ownerId = req.user.parentUserId || req.user.id;
-        const conversation = await Conversation.findOne({
-            where: { id: req.params.id, userId: ownerId }
-        });
 
-        if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
-
-        let contact = await Contact.findOne({
-            where: { phone: conversation.phoneNumber, userId: ownerId }
-        });
-
-        if (!contact) {
-            // Auto-create contact if it doesn't exist
-            contact = await Contact.create({
-                name: conversation.contactName || conversation.phoneNumber,
-                phone: conversation.phoneNumber,
-                tags: tags || [],
-                userId: ownerId,
-                createdById: req.user.realId || req.user.id
-            });
-        } else {
-            contact.tags = tags || [];
-            await contact.save();
-        }
-
-        res.json(applyPrivacyMask(contact, req.user));
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
         if (isSubMember && req.user.teamRole !== 'admin') {
             const visibility = req.user.teamPolicy?.inboxVisibility || 'see_all';
             if ((visibility === 'see_assigned' || visibility === 'see_all_reply_assigned') && conversation.assignedTo !== req.user.realId) {
@@ -273,7 +263,129 @@ router.post('/conversations/:id/contact/groups', async (req, res) => {
         res.json(msg);
 
     } catch (err) {
-        console.error("Send Text Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /send/media - Send media message (Enforces 24h Rule)
+router.post('/send/media', async (req, res) => {
+    try {
+        const { conversationId, mediaUrl, mediaType, caption } = req.body;
+        const ownerId = req.user.parentUserId || req.user.id;
+        const isSubMember = !!req.user.parentUserId;
+
+        console.log(`[CHAT API] POST /send/media | userId: ${req.user.id} | workspace: ${ownerId} | conversationId: ${conversationId}`);
+
+        // Check monthly message limit
+        const limits = await getUserPlanLimits(ownerId);
+        const sentThisMonth = await getMonthlyMessageCount(ownerId);
+        const msgCheck = checkLimit(sentThisMonth, limits.messageLimit);
+        if (!msgCheck.allowed) {
+            return res.status(429).json({
+                error: `Monthly message limit reached (${msgCheck.used}/${msgCheck.limit}). Upgrade your plan to send more messages.`,
+                code: 'LIMIT_REACHED',
+                sentThisMonth: msgCheck.used,
+                monthlyLimit: msgCheck.limit
+            });
+        }
+
+        const conversation = await Conversation.findOne({ where: { id: conversationId, userId: ownerId } });
+        if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+
+        // 1. Check 24h Window
+        const lastInbound = conversation.lastInboundMessageAt ? new Date(conversation.lastInboundMessageAt).getTime() : 0;
+        const now = Date.now();
+        const diffHours = (now - lastInbound) / (1000 * 60 * 60);
+
+        if (!conversation.lastInboundMessageAt || diffHours > 24) {
+            return res.status(400).json({
+                error: '24-hour service window expired. Please send a template message to reopen the conversation.',
+                code: 'WINDOW_EXPIRED'
+            });
+        }
+
+        if (isSubMember && req.user.teamRole !== 'admin') {
+            const visibility = req.user.teamPolicy?.inboxVisibility || 'see_all';
+            if ((visibility === 'see_assigned' || visibility === 'see_all_reply_assigned') && conversation.assignedTo !== req.user.realId) {
+                return res.status(403).json({ error: 'You are only allowed to reply to chats assigned to you.' });
+            }
+        }
+
+        // 2. Get Settings
+        const settings = await Settings.findOne({ where: { userId: ownerId } });
+        if (!settings?.metaAccessToken) return res.status(403).json({ error: 'WhatsApp not configured' });
+
+        // 3. Send to Meta
+        const payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: conversation.phoneNumber,
+            type: mediaType
+        };
+        
+        payload[mediaType] = { link: mediaUrl };
+        if (caption) {
+            payload[mediaType].caption = caption;
+        }
+
+        const metaRes = await sendToMeta(settings, payload);
+
+        // 4. Save to DB
+        const msg = await ChatMessage.create({
+            conversationId: conversation.id,
+            messageId: metaRes.messages?.[0]?.id,
+            direction: 'OUTBOUND',
+            type: mediaType,
+            body: caption || '',
+            mediaUrl: mediaUrl, // Save the actual URL for frontend rendering
+            status: 'sent',
+            timestamp: new Date()
+        });
+
+        // 5. Update Conversation
+        conversation.lastMessage = caption ? `📎 ${caption}` : `📎 Media Attachment`;
+        conversation.lastMessageAt = new Date();
+        await conversation.save();
+
+        res.json(msg);
+
+    } catch (err) {
+        console.error("Send Media Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /conversations/:id/contact/groups - Update contact groups securely via conversation ID
+router.post('/conversations/:id/contact/groups', async (req, res) => {
+    try {
+        const { tags } = req.body;
+        const ownerId = req.user.parentUserId || req.user.id;
+        const conversation = await Conversation.findOne({
+            where: { id: req.params.id, userId: ownerId }
+        });
+
+        if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+
+        let contact = await Contact.findOne({
+            where: { phone: conversation.phoneNumber, userId: ownerId }
+        });
+
+        if (!contact) {
+            // Auto-create contact if it doesn't exist
+            contact = await Contact.create({
+                name: conversation.contactName || conversation.phoneNumber,
+                phone: conversation.phoneNumber,
+                tags: tags || [],
+                userId: ownerId,
+                createdById: req.user.realId || req.user.id
+            });
+        } else {
+            contact.tags = tags || [];
+            await contact.save();
+        }
+
+        res.json(applyPrivacyMask(contact, req.user));
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
@@ -587,83 +699,6 @@ router.delete('/quick-replies/:id', async (req, res) => {
         await QuickReply.destroy({ where: { id: req.params.id, userId: ownerId } });
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-const storageProvider = require('../utils/storageProvider');
-
-router.post('/send/media', storageProvider('chat_media', { fileFilter: storageProvider.whatsappMediaFilter }).single('file'), async (req, res) => {
-    try {
-        const { conversationId, mediaType, caption } = req.body;
-        const file = req.file;
-        const ownerId = req.user.parentUserId || req.user.id;
-        const isSubMember = !!req.user.parentUserId;
-
-        if (!file) return res.status(400).json({ error: 'No file uploaded' });
-
-        const conversation = await Conversation.findOne({ where: { id: conversationId, userId: ownerId } });
-        if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
-
-        // Apply Team Policy Reply Lock
-        if (isSubMember && req.user.teamRole !== 'admin') {
-            const visibility = req.user.teamPolicy?.inboxVisibility || 'see_all';
-            if ((visibility === 'see_assigned' || visibility === 'see_all_reply_assigned') && conversation.assignedTo !== req.user.realId) {
-                return res.status(403).json({ error: 'You are only allowed to reply to chats assigned to you.' });
-            }
-        }
-
-        const lastInbound = conversation.lastInboundMessageAt ? new Date(conversation.lastInboundMessageAt).getTime() : 0;
-        if (!lastInbound || (Date.now() - lastInbound) / (1000 * 60 * 60) > 24) {
-            return res.status(400).json({ error: '24-hour window expired. Send a template message first.', code: 'WINDOW_EXPIRED' });
-        }
-
-        const settings = await Settings.findOne({ where: { userId: ownerId } });
-        if (!settings?.metaAccessToken) return res.status(403).json({ error: 'WhatsApp not configured' });
-
-        // Use publicUrl assigned by storageProvider
-        const publicUrl = req.file.publicUrl;
-
-        console.log(`[CHAT API] Uploaded media available at: ${publicUrl}`);
-
-        // Build Meta payload based on media type
-        let payload;
-        if (mediaType === 'image') {
-            payload = {
-                messaging_product: 'whatsapp', recipient_type: 'individual',
-                to: conversation.phoneNumber, type: 'image',
-                image: { link: publicUrl, caption: caption || '' }
-            };
-        } else if (mediaType === 'document') {
-            payload = {
-                messaging_product: 'whatsapp', recipient_type: 'individual',
-                to: conversation.phoneNumber, type: 'document',
-                document: { link: publicUrl, caption: caption || '', filename: file.originalname }
-            };
-        } else {
-            return res.status(400).json({ error: 'Unsupported mediaType. Use image or document.' });
-        }
-
-        const metaRes = await sendToMeta(settings, payload);
-
-        const msg = await ChatMessage.create({
-            conversationId: conversation.id,
-            messageId: metaRes.messages?.[0]?.id,
-            direction: 'OUTBOUND',
-            type: mediaType,
-            body: caption || file.originalname || mediaType,
-            mediaUrl: publicUrl,
-            status: 'sent',
-            timestamp: new Date()
-        });
-
-        conversation.lastMessage = `📎 ${caption || file.originalname || mediaType}`;
-        conversation.lastMessageAt = new Date();
-        await conversation.save();
-
-        res.json(msg);
-    } catch (err) {
-        console.error('Send Media Error:', err);
         res.status(500).json({ error: err.message });
     }
 });

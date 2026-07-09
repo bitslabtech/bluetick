@@ -209,15 +209,22 @@ function NavItem({ item, location, setIsOpen, unreadCount }) {
                             to={sub.isLocked ? `/locked-feature?feature=${encodeURIComponent(sub.label)}` : sub.path}
                             onClick={() => setIsOpen && setIsOpen(false)}
                             className={cn(
-                                "flex items-center px-3 py-2 rounded-lg transition-all text-sm font-medium gap-2",
+                                "flex items-center justify-between px-3 py-2 rounded-lg transition-all text-sm font-medium gap-2",
                                 sub.path === location.pathname && !sub.isLocked
                                     ? "bg-primary text-white shadow-sm"
                                     : "text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white",
                                 sub.isLocked && "opacity-75"
                             )}
                         >
-                            {sub.label}
-                            {sub.isLocked && <Lock className="w-3 h-3 text-amber-500 shrink-0 ml-auto" />}
+                            <span className="flex items-center gap-2">
+                                {sub.label}
+                                {sub.isLocked && <Lock className="w-3 h-3 text-amber-500 shrink-0" />}
+                            </span>
+                            {sub.unreadCount > 0 && !sub.isLocked && (
+                                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md min-w-[1.25rem] text-center">
+                                    {sub.unreadCount}
+                                </span>
+                            )}
                         </Link>
                     ))}
                 </div>
@@ -239,6 +246,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     const [hasNewVersion, setHasNewVersion] = useState(false);
     const [unreadContactMsgs, setUnreadContactMsgs] = useState(0);
     const [unreadSupportTickets, setUnreadSupportTickets] = useState(0);
+    const [unreadWhatsAppMsgs, setUnreadWhatsAppMsgs] = useState(0);
 
     // Fetch latest version on mount
     useEffect(() => {
@@ -253,6 +261,20 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                     }
                 })
                 .catch(() => setCurrentVersion({ version: '1.0.0' }));
+        }
+    }, [user]);
+
+    // Fetch unread WhatsApp messages
+    useEffect(() => {
+        if (user && !user.isAdmin) {
+            const fetchWaUnread = () => {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/whatsapp/chat/unread-count`)
+                    .then(res => setUnreadWhatsAppMsgs(res.data.count || 0))
+                    .catch(() => {});
+            };
+            fetchWaUnread();
+            const interval = setInterval(fetchWaUnread, 30000); // 30 sec poll
+            return () => clearInterval(interval);
         }
     }, [user]);
 
@@ -412,21 +434,36 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
                 {/* Navigation */}
                 <nav className="flex flex-col gap-2">
-                    {items.map((item, index) => (
-                        <NavItem
-                            key={item.path || index}
-                            item={item}
-                            location={location}
-                            setIsOpen={setIsOpen}
-                            unreadCount={
-                                item.path === '/superadmin/messages'
-                                    ? unreadContactMsgs
-                                    : (item.path === '/support' || item.path === '/superadmin/support')
-                                        ? unreadSupportTickets
-                                        : null
-                            }
-                        />
-                    ))}
+                    {items.map((item, index) => {
+                        // Clone the item to safely mutate subItems for unread counts
+                        const clonedItem = { ...item };
+                        if (clonedItem.label === 'WhatsApp' && clonedItem.subItems) {
+                            clonedItem.subItems = clonedItem.subItems.map(sub => {
+                                if (sub.label === 'Live Chat') {
+                                    return { ...sub, unreadCount: unreadWhatsAppMsgs };
+                                }
+                                return sub;
+                            });
+                        }
+
+                        return (
+                            <NavItem
+                                key={clonedItem.path || index}
+                                item={clonedItem}
+                                location={location}
+                                setIsOpen={setIsOpen}
+                                unreadCount={
+                                    clonedItem.label === 'WhatsApp'
+                                        ? unreadWhatsAppMsgs
+                                        : clonedItem.path === '/superadmin/messages'
+                                            ? unreadContactMsgs
+                                            : (clonedItem.path === '/support' || clonedItem.path === '/superadmin/support')
+                                                ? unreadSupportTickets
+                                                : null
+                                }
+                            />
+                        );
+                    })}
                 </nav>
             </div>
 

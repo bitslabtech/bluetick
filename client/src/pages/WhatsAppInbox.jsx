@@ -16,6 +16,7 @@ import QuickReplySuggestions from '../components/QuickReplySuggestions';
 import ContactInfoPanel from '../components/ContactInfoPanel';
 import AssignAgentPopover from '../components/AssignAgentPopover';
 import TopHeader from '../components/TopHeader';
+import MediaPickerModal, { MIME_PRESETS } from '../components/MediaPickerModal';
 
 const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
@@ -56,6 +57,9 @@ const WhatsAppInbox = () => {
     const [sendError, setSendError] = useState('');
     const [sending, setSending] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState(false);
+    const [showMediaPicker, setShowMediaPicker] = useState(false);
+    const [stagedMedia, setStagedMedia] = useState(null);
+    const [mediaCaption, setMediaCaption] = useState('');
     const [isConfigured, setIsConfigured] = useState(true);
     const [hasActiveBots, setHasActiveBots] = useState(false);
 
@@ -746,42 +750,67 @@ const WhatsAppInbox = () => {
         if (e.key === 'Escape') { setReplyTo(null); setShowEmojiPicker(false); setShowQuickReplies(false); }
     };
 
-    const handleFileUpload = async (e) => {
-        const file = e.target.files?.[0];
+    const handleMediaPickerSelect = async (files) => {
+        const file = Array.isArray(files) ? files[0] : files;
         if (!file || !selectedChat) return;
 
-        // determine type
-        const isImage = file.type.startsWith('image/');
-        const mediaType = isImage ? 'image' : 'document';
+        setShowMediaPicker(false);
 
-        // Check size (Meta limit is typically 16MB for most things, let's just do a basic 15MB check)
-        if (file.size > 15 * 1024 * 1024) {
-            setSendError('File is too large (max 15MB)');
+        // determine type based on mimeType
+        let mediaType = 'document';
+        if (file.mimeType.startsWith('image/')) mediaType = 'image';
+        else if (file.mimeType.startsWith('video/')) mediaType = 'video';
+        else if (file.mimeType.startsWith('audio/')) mediaType = 'audio';
+
+        // Check Meta size limits
+        const sizeMB = file.sizeBytes / (1024 * 1024);
+        if (mediaType === 'image' && sizeMB > 5) {
+            showToast({ type: 'error', title: 'File too large', message: 'Images must be under 5MB for WhatsApp.' });
+            return;
+        }
+        if ((mediaType === 'video' || mediaType === 'audio') && sizeMB > 16) {
+            showToast({ type: 'error', title: 'File too large', message: 'Video/Audio must be under 16MB for WhatsApp.' });
+            return;
+        }
+        if (mediaType === 'document' && sizeMB > 100) {
+            showToast({ type: 'error', title: 'File too large', message: 'Documents must be under 100MB for WhatsApp.' });
             return;
         }
 
+        file.mediaType = mediaType;
+        setStagedMedia(file);
+        setMediaCaption('');
+    };
+
+    const confirmSendMedia = async () => {
+        if (!stagedMedia || !selectedChat) return;
         setUploadingMedia(true);
         setSendError('');
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('conversationId', selectedChat.id);
-        formData.append('mediaType', mediaType);
+        
+        const fileToUpload = stagedMedia;
+        const captionToSend = mediaCaption;
+        
+        setStagedMedia(null);
+        setMediaCaption('');
 
         try {
-            const res = await axios.post(`${API_BASE}/api/whatsapp/chat/send/media`, formData, {
+            const res = await axios.post(`${API_BASE}/api/whatsapp/chat/send/media`, {
+                conversationId: selectedChat.id,
+                mediaUrl: fileToUpload.url,
+                mediaType: fileToUpload.mediaType,
+                caption: captionToSend
+            }, {
                 headers: {
-                    
-                    'Content-Type': 'multipart/form-data'
+                    Authorization: `Bearer ${user?.token || localStorage.getItem('token')}`
                 }
             });
             setMessages(prev => [...prev, res.data]);
             fetchConversations();
         } catch (err) {
-            setSendError(err.response?.data?.error || 'Failed to upload file');
+            setSendError(err.response?.data?.error || 'Failed to send media');
+            showToast({ type: 'error', title: 'Upload Failed', message: err.response?.data?.error || 'Failed to send media via WhatsApp.' });
         } finally {
             setUploadingMedia(false);
-            e.target.value = ''; // reset input
         }
     };
 
@@ -1233,7 +1262,7 @@ const WhatsAppInbox = () => {
                                                 )}
 
                                                 {/* Text / Template */}
-                                                {item.type !== 'document' && (
+                                                {(item.type === 'template' || item.body) && item.type !== 'document' && (
                                                     <div className="text-sm text-slate-900 dark:text-white leading-relaxed whitespace-pre-wrap break-words pb-5 pr-14 pl-1 pt-1 min-w-[3rem] max-w-full">
                                                         {item.type === 'template' ? (
                                                             item.templateData ? (() => {
@@ -1482,16 +1511,9 @@ const WhatsAppInbox = () => {
                                                 <Smile className="w-6 h-6" />
                                             </button>
 
-                                            {/* File Upload Hidden Input */}
-                                            <input
-                                                type="file"
-                                                id="media-upload"
-                                                className="hidden"
-                                                onChange={handleFileUpload}
-                                                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
-                                            />
-                                            <label
-                                                htmlFor="media-upload"
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setShowMediaPicker(true); }}
                                                 className={`cursor-pointer shrink-0 transition-colors ${uploadingMedia ? 'text-indigo-500' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
                                             >
                                                 {uploadingMedia ? (
@@ -1499,7 +1521,7 @@ const WhatsAppInbox = () => {
                                                 ) : (
                                                     <Paperclip className="w-6 h-6" />
                                                 )}
-                                            </label>
+                                            </button>
 
                                             <div className="flex-1 relative flex items-center">
                                                 <input
@@ -1795,6 +1817,69 @@ const WhatsAppInbox = () => {
                         </div>
                     </div>
                 </div>
+            )}
+            {stagedMedia && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-[#111b21] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10">
+                            <h3 className="text-lg font-semibold text-slate-800 dark:text-white">Preview Attachment</h3>
+                            <button onClick={() => { setStagedMedia(null); setMediaCaption(''); }} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        {/* Preview Area */}
+                        <div className="p-6 bg-slate-50 dark:bg-black/20 flex flex-col items-center justify-center min-h-[300px]">
+                            {stagedMedia.mediaType === 'image' ? (
+                                <img src={stagedMedia.url} alt="Preview" className="max-w-full max-h-[400px] object-contain rounded-lg shadow-sm" />
+                            ) : stagedMedia.mediaType === 'video' ? (
+                                <video src={stagedMedia.url} controls className="max-w-full max-h-[400px] rounded-lg shadow-sm" />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center gap-4 text-slate-500 dark:text-slate-400">
+                                    <div className="w-20 h-20 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center">
+                                        <FileText className="w-10 h-10 text-indigo-500" />
+                                    </div>
+                                    <span className="font-medium">{stagedMedia.fileName || 'Document'}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Caption Input */}
+                        <div className="p-6 border-t border-slate-200 dark:border-white/10">
+                            <div className="relative">
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={mediaCaption}
+                                    onChange={(e) => setMediaCaption(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') confirmSendMedia(); }}
+                                    placeholder="Add a caption..."
+                                    className="w-full pl-4 pr-12 py-3 bg-slate-100 dark:bg-[#202c33] border-transparent focus:border-green-500 focus:bg-white dark:focus:bg-[#2a3942] focus:ring-0 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 transition-all"
+                                />
+                                <button
+                                    onClick={confirmSendMedia}
+                                    disabled={uploadingMedia}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-green-500 hover:bg-green-600 disabled:bg-slate-300 disabled:dark:bg-slate-700 text-white rounded-lg shadow-sm transition-all hover:scale-105 active:scale-95 flex items-center justify-center"
+                                >
+                                    {uploadingMedia ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-4 h-4 ml-0.5" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showMediaPicker && (
+                <MediaPickerModal
+                    isOpen={showMediaPicker}
+                    onClose={() => setShowMediaPicker(false)}
+                    onSelect={handleMediaPickerSelect}
+                    accessMode="dashboard"
+                    allowedTypes="all"
+                    mimeConstraints={MIME_PRESETS.whatsapp_media}
+                    title="Select Attachment"
+                />
             )}
             </div>
         </div>
