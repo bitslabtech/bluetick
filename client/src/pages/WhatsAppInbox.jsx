@@ -339,12 +339,16 @@ const WhatsAppInbox = () => {
         if (!container) return;
 
         if (isInitialChatLoad.current && messages.length > 0) {
-            // Use a small delay to ensure React has reconciled the DOM
-            const timer = setTimeout(() => {
+            scrollToBottom('auto');
+            const timer1 = setTimeout(() => scrollToBottom('auto'), 100);
+            const timer2 = setTimeout(() => {
                 scrollToBottom('auto');
                 isInitialChatLoad.current = false;
-            }, 100);
-            return () => clearTimeout(timer);
+            }, 500);
+            return () => {
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+            };
         }
 
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
@@ -429,6 +433,7 @@ const WhatsAppInbox = () => {
 
     const fetchMessages = async (chatId) => {
         setLoadingMessages(true);
+        setMessages([]);
         try {
             const res = await axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${chatId}/messages`);
             setMessages(res.data);
@@ -1226,7 +1231,7 @@ const WhatsAppInbox = () => {
                                             {/* Reply button on hover */}
                                             <button
                                                 onClick={() => setReplyTo(item)}
-                                                className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 p-1"
+                                                className={`absolute ${isMe ? '-left-8' : '-right-8'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 p-1`}
                                                 title="Reply"
                                             >
                                                 ↩

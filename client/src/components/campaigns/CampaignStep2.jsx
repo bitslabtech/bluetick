@@ -19,6 +19,9 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
     useEffect(() => {
         const fetchTemplates = async () => {
             try {
+                // Auto-sync with Meta to get the latest status
+                await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/sync`).catch(err => console.warn('Failed to sync templates:', err));
+
                 const [tmplRes, billingRes] = await Promise.all([
                     axios.get(`${import.meta.env.VITE_API_URL}/api/templates`),
                     axios.get(`${import.meta.env.VITE_API_URL}/api/billing`)
@@ -149,20 +152,23 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-7 sm:pb-20">
                         {filteredTemplates.map((template) => {
                             const originalIndex = templates.findIndex(t => t.id === template.id);
-                            const locked = isLocked(originalIndex);
+                            const planLocked = isLocked(originalIndex);
+                            const isApproved = template.status === 'APPROVED';
+                            const locked = planLocked || !isApproved;
+
                             return (
                                 <div
                                     key={template.id}
                                     onClick={() => !locked && updateData({ templateId: template.id, template: template })}
                                     className={`group relative bg-white dark:bg-surface-dark border rounded-2xl p-6 transition-all shadow-sm ${locked
-                                        ? 'cursor-default border-slate-200 dark:border-white/5'
+                                        ? 'cursor-default border-slate-200 dark:border-white/5 opacity-75'
                                         : data.templateId === template.id
                                             ? 'border-primary ring-1 ring-primary shadow-lg shadow-primary/10 cursor-pointer active:scale-[0.99]'
                                             : 'border-slate-200 dark:border-white/5 hover:border-primary/50 cursor-pointer active:scale-[0.99]'
                                         }`}
                                 >
                                     {/* Lock overlay */}
-                                    {locked && (
+                                    {planLocked && (
                                         <div className="absolute inset-0 z-10 bg-slate-100/70 dark:bg-background-dark/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 rounded-2xl">
                                             <div className="flex items-center gap-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-full px-4 py-2 shadow-lg">
                                                 <Lock className="w-4 h-4 text-slate-500" />
@@ -191,6 +197,21 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                         {template.status === 'APPROVED' && (
                                             <span className="bg-green-500/10 text-green-500 dark:text-green-400 border border-green-500/20 text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5">
                                                 <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span> Approved
+                                            </span>
+                                        )}
+                                        {template.status === 'PENDING' && (
+                                            <span className="bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                                                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse"></span> Pending
+                                            </span>
+                                        )}
+                                        {template.status === 'REJECTED' && (
+                                            <span className="bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/20 text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                                                <span className="size-1.5 rounded-full bg-red-500"></span> Rejected
+                                            </span>
+                                        )}
+                                        {template.status === 'PAUSED' && (
+                                            <span className="bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20 text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                                                <span className="size-1.5 rounded-full bg-slate-500"></span> Paused
                                             </span>
                                         )}
                                     </div>

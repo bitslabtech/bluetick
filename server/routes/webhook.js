@@ -96,8 +96,8 @@ router.post('/:userId', (req, res, next) => {
         // In Embedded Signup, a single Meta App receives webhooks for multiple users.
         // The webhook URL might be hardcoded to an admin's userId in the App Dashboard.
         // So we must dynamically route the webhook to the correct User based on the phone_number_id or WABA ID in the payload.
+        let foundSettings = null;
         try {
-            let foundSettings = null;
             for (const entry of body.entry) {
                 const wabaId = entry.id;
                 for (const change of entry.changes) {
