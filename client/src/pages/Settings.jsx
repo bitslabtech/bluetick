@@ -120,6 +120,25 @@ const Settings = () => {
                 features: { templateName: 'feature_announcement_v1', languageCode: 'en_US', enabled: false }
             }
         },
+        // Security — safe defaults to prevent crashes before API fetch completes
+        securityConfig: {
+            allowRegistration: true,
+            requireEmailVerification: true,
+            enforce2FA: false,
+            minPasswordLength: 8
+        },
+        // SMTP
+        smtpConfig: {
+            host: '', port: '587', user: '', pass: '', secure: false, fromEmail: '', fromName: ''
+        },
+        // Payment Gateways
+        paymentGateways: {
+            transactionFeeRule: 'absorb',
+            razorpay: { enabled: false, keyId: '', keySecret: '' },
+            stripe: { enabled: false, publishableKey: '', secretKey: '' },
+            phonepe: { enabled: false, merchantId: '', saltKey: '', saltIndex: '', mode: 'TEST' },
+            cashfree: { enabled: false, appId: '', secretKey: '', mode: 'TEST' }
+        },
         // Team Inbox Policy
         teamPolicy: {
             inboxVisibility: 'see_all',
