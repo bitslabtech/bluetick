@@ -235,8 +235,11 @@ const User = sequelize.define('User', {
     // admin dashboard JOINs (Top Token Consumers, Activity Logs, Recent Purchases)
     // continue showing real identity in historical reports.
     status: {
-        type: DataTypes.ENUM('active', 'suspended', 'deleted'),
+        type: DataTypes.STRING,
         defaultValue: 'active',
+        validate: {
+            isIn: [['active', 'suspended', 'deleted']]
+        },
         comment: 'active = normal, suspended = admin blocked, deleted = account closed (soft delete)'
     },
     deletedAt: {
