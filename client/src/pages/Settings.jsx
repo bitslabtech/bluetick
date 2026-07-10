@@ -125,7 +125,18 @@ const Settings = () => {
             allowRegistration: true,
             requireEmailVerification: true,
             enforce2FA: false,
-            minPasswordLength: 8
+            minPasswordLength: 8,
+            whatsappOtp: {
+                enabled: false,
+                otpExpirySec: 300,
+                resendCooldownSec: 60,
+                maxResendPerHour: 3,
+                maxVerifyAttempts: 5,
+                templateName: '',
+                templateLanguage: 'en',
+                otpVariableIndex: 1,
+                messageTemplate: ''
+            }
         },
         // SMTP
         smtpConfig: {
@@ -154,6 +165,7 @@ const Settings = () => {
 
     const [metaStatus, setMetaStatus] = useState(null);
     const [metaStatusLoading, setMetaStatusLoading] = useState(false);
+    const [crmTemplates, setCrmTemplates] = useState([]);
 
     useEffect(() => {
         if (activeTab === 'whatsapp_gateway') {
@@ -306,6 +318,16 @@ const Settings = () => {
             const landingRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing`);
             if (landingRes.data) {
                 setLandingConfig(landingRes.data);
+            }
+
+            // Fetch CRM templates for OTP selection
+            try {
+                const tmplRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/templates`);
+                if (tmplRes.data && Array.isArray(tmplRes.data)) {
+                    setCrmTemplates(tmplRes.data.filter(t => t.category === 'AUTHENTICATION'));
+                }
+            } catch (err) {
+                console.error("Error fetching templates:", err);
             }
 
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
@@ -2965,6 +2987,216 @@ const Settings = () => {
                                                         }))}
                                                         className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                                     />
+                                                </div>
+                                                </div>
+
+                                                {/* WhatsApp Number Verification (OTP) */}
+                                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div>
+                                                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                                📱 WhatsApp Number Verification (OTP)
+                                                            </h3>
+                                                            <p className="text-sm text-slate-500 mt-1">
+                                                                Require new users to verify their WhatsApp number with a one-time code before registering.
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setFormData(prev => ({
+                                                                ...prev,
+                                                                securityConfig: {
+                                                                    ...prev.securityConfig,
+                                                                    whatsappOtp: {
+                                                                        ...prev.securityConfig.whatsappOtp,
+                                                                        enabled: !prev.securityConfig.whatsappOtp?.enabled
+                                                                    }
+                                                                }
+                                                            }))}
+                                                            className={`w-14 h-8 rounded-full p-1 transition-colors ${formData.securityConfig.whatsappOtp?.enabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                                                        >
+                                                            <div className={`w-6 h-6 rounded-full bg-white shadow-sm transition-transform ${formData.securityConfig.whatsappOtp?.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                        </button>
+                                                    </div>
+
+                                                    {formData.securityConfig.whatsappOtp?.enabled && (
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-white/10 mt-4">
+                                                            <div>
+                                                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">
+                                                                    OTP Validity (seconds)
+                                                                    <span className="normal-case font-normal ml-1 text-slate-400">— default 300</span>
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="60" max="900"
+                                                                    className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                    value={formData.securityConfig.whatsappOtp?.otpExpirySec || 300}
+                                                                    onChange={(e) => setFormData(prev => ({
+                                                                        ...prev,
+                                                                        securityConfig: {
+                                                                            ...prev.securityConfig,
+                                                                            whatsappOtp: { ...prev.securityConfig.whatsappOtp, otpExpirySec: parseInt(e.target.value) || 300 }
+                                                                        }
+                                                                    }))}
+                                                                />
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">
+                                                                    Resend Cooldown (seconds)
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="30" max="600"
+                                                                    className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                    value={formData.securityConfig.whatsappOtp?.resendCooldownSec || 60}
+                                                                    onChange={(e) => setFormData(prev => ({
+                                                                        ...prev,
+                                                                        securityConfig: {
+                                                                            ...prev.securityConfig,
+                                                                            whatsappOtp: { ...prev.securityConfig.whatsappOtp, resendCooldownSec: parseInt(e.target.value) || 60 }
+                                                                        }
+                                                                    }))}
+                                                                />
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">
+                                                                    Max codes per hour
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1" max="10"
+                                                                    className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                    value={formData.securityConfig.whatsappOtp?.maxResendPerHour || 3}
+                                                                    onChange={(e) => setFormData(prev => ({
+                                                                        ...prev,
+                                                                        securityConfig: {
+                                                                            ...prev.securityConfig,
+                                                                            whatsappOtp: { ...prev.securityConfig.whatsappOtp, maxResendPerHour: parseInt(e.target.value) || 3 }
+                                                                        }
+                                                                    }))}
+                                                                />
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">
+                                                                    Max wrong attempts
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1" max="10"
+                                                                    className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                    value={formData.securityConfig.whatsappOtp?.maxVerifyAttempts || 5}
+                                                                    onChange={(e) => setFormData(prev => ({
+                                                                        ...prev,
+                                                                        securityConfig: {
+                                                                            ...prev.securityConfig,
+                                                                            whatsappOtp: { ...prev.securityConfig.whatsappOtp, maxVerifyAttempts: parseInt(e.target.value) || 5 }
+                                                                        }
+                                                                    }))}
+                                                                />
+                                                            </div>
+
+                                                            {/* ── WhatsApp Template (recommended) ── */}
+                                                            <div className="col-span-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/40 mt-2">
+                                                                <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-1 flex items-center gap-1">
+                                                                    ✅ Recommended: Use an Approved WhatsApp Template
+                                                                </p>
+                                                                <p className="text-sm text-emerald-600 dark:text-emerald-500">
+                                                                    New registrants have never messaged your number, so Meta requires a pre-approved template for outbound OTPs. Select an authentication template from your CRM.
+                                                                </p>
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">
+                                                                    WhatsApp Template
+                                                                </label>
+                                                                <select
+                                                                    className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                    value={formData.securityConfig.whatsappOtp?.templateName || ''}
+                                                                    onChange={(e) => {
+                                                                        const selectedTmplName = e.target.value;
+                                                                        const tmpl = crmTemplates.find(t => t.name === selectedTmplName);
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            securityConfig: {
+                                                                                ...prev.securityConfig,
+                                                                                whatsappOtp: { 
+                                                                                    ...prev.securityConfig.whatsappOtp, 
+                                                                                    templateName: selectedTmplName,
+                                                                                    templateLanguage: tmpl ? tmpl.language : prev.securityConfig.whatsappOtp?.templateLanguage
+                                                                                }
+                                                                            }
+                                                                        }));
+                                                                    }}
+                                                                >
+                                                                    <option value="">-- Select Template --</option>
+                                                                    {crmTemplates.map(t => (
+                                                                        <option key={t.id} value={t.name}>{t.name} ({t.language})</option>
+                                                                    ))}
+                                                                </select>
+                                                                <p className="text-xs text-slate-400 mt-1">
+                                                                    Leave empty to use plain text mode (only works if user messaged you within 24h).
+                                                                </p>
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">
+                                                                    Template Language Code
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-full bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-slate-500 dark:text-slate-400 text-sm font-mono"
+                                                                    value={formData.securityConfig.whatsappOtp?.templateLanguage || 'en'}
+                                                                    readOnly
+                                                                />
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">
+                                                                    OTP Variable Position
+                                                                    <span className="normal-case font-normal ml-1 text-slate-400">— default: 1</span>
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1" max="5"
+                                                                    className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                    placeholder="1"
+                                                                    value={formData.securityConfig.whatsappOtp?.otpVariableIndex || 1}
+                                                                    onChange={(e) => setFormData(prev => ({
+                                                                        ...prev,
+                                                                        securityConfig: {
+                                                                            ...prev.securityConfig,
+                                                                            whatsappOtp: { ...prev.securityConfig.whatsappOtp, otpVariableIndex: parseInt(e.target.value) || 1 }
+                                                                        }
+                                                                    }))}
+                                                                />
+                                                            </div>
+
+                                                            <div className="col-span-2 pt-4 border-t border-slate-200 dark:border-white/10 mt-2">
+                                                                <label className="text-xs font-bold uppercase text-slate-500 block mb-1">
+                                                                    Text Fallback Message
+                                                                    <span className="normal-case font-normal ml-1 text-amber-500">— used only when template is empty</span>
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-full bg-white dark:bg-black/20 border border-amber-200 dark:border-amber-700/40 rounded-xl px-4 py-2 text-slate-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                    placeholder="Your {{appName}} code is *{{otp}}*. Valid for {{minutes}} minutes."
+                                                                    value={formData.securityConfig.whatsappOtp?.messageTemplate || ''}
+                                                                    onChange={(e) => setFormData(prev => ({
+                                                                        ...prev,
+                                                                        securityConfig: {
+                                                                            ...prev.securityConfig,
+                                                                            whatsappOtp: { ...prev.securityConfig.whatsappOtp, messageTemplate: e.target.value }
+                                                                        }
+                                                                    }))}
+                                                                />
+                                                                <p className="text-xs text-slate-400 mt-1">
+                                                                    Variables: <code>{'{{otp}}'}</code>, <code>{'{{appName}}'}</code>, <code>{'{{minutes}}'}</code>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </section>

@@ -105,7 +105,7 @@ router.get('/public', async (req, res) => {
             currency: settings.currency,
             menuOrder: systemConfig.menuOrder,
             // OTP verification toggle — read by Register.jsx to show/hide OTP step
-            whatsappOtpEnabled: systemConfig.settings?.whatsappOtp?.enabled === true,
+            whatsappOtpEnabled: settings.securityConfig?.whatsappOtp?.enabled === true,
             settings: {
                 showLockedMenus: systemConfig.settings?.showLockedMenus !== false && systemConfig.settings?.showLockedMenus !== 'false'
             }

@@ -32,8 +32,12 @@ const generateToken = (user) => {
  * Returns the whatsappOtp settings block with safe defaults.
  */
 const getOtpConfig = async () => {
-    const sysConfig = await SystemConfig.getCachedConfig();
-    const cfg = sysConfig?.settings?.whatsappOtp || {};
+    let cfg = {};
+    const adminUser = await User.findOne({ where: { isAdmin: true } });
+    if (adminUser) {
+        const settings = await Settings.findOne({ where: { userId: adminUser.id } });
+        cfg = settings?.securityConfig?.whatsappOtp || {};
+    }
     return {
         enabled: cfg.enabled === true,
         otpExpirySec: cfg.otpExpirySec || 300,
