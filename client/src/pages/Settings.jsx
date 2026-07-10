@@ -2988,7 +2988,7 @@ const Settings = () => {
                                                         className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                                     />
                                                 </div>
-                                                </div>
+
 
                                                 {/* WhatsApp Number Verification (OTP) */}
                                                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
