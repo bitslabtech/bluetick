@@ -310,9 +310,41 @@ router.delete('/users/:id', async (req, res) => {
         if (user.id === req.user.id) {
             return res.status(400).json({ error: 'Cannot delete yourself' });
         }
-        const Settings = require('../models/Settings');
-        // Clean up Settings row first (no FK cascade exists for Settings)
-        await Settings.destroy({ where: { userId: user.id } }).catch(() => {});
+        const models = require('../config/database').sequelize.models;
+        const uid = user.id;
+
+        // Clean up known deeply nested records (like Store children) first to prevent FK errors when deleting their parents
+        try {
+            if (models.WaProduct) await sequelize.query(`DELETE FROM "WaProducts" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
+            if (models.WaOrder) await sequelize.query(`DELETE FROM "WaOrders" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
+            if (models.WaStoreCoupon) await sequelize.query(`DELETE FROM "WaStoreCoupons" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
+            
+            // In case there are ChatMessages referencing Conversations that reference User
+            if (models.ChatMessage) await sequelize.query(`DELETE FROM "ChatMessages" WHERE "conversationId" IN (SELECT id FROM "Conversations" WHERE "userId" = :uid)`, { replacements: { uid } });
+            // In case there are ContactMessages referencing Contacts
+            if (models.ContactMessage) await sequelize.query(`DELETE FROM "ContactMessages" WHERE "contactId" IN (SELECT id FROM "Contacts" WHERE "userId" = :uid)`, { replacements: { uid } });
+        } catch (e) {
+            console.warn('Deep nested cleanup error:', e.message);
+        }
+
+        // Clean up all models with userId or similar user-referencing keys
+        for (let pass = 0; pass < 2; pass++) {
+            for (const modelName of Object.keys(models)) {
+                const Model = models[modelName];
+                if (modelName === 'User') continue;
+                
+                if (Model.rawAttributes) {
+                    try {
+                        if (Model.rawAttributes.userId) await Model.destroy({ where: { userId: uid } });
+                        if (Model.rawAttributes.referrerId) await Model.destroy({ where: { referrerId: uid } });
+                        if (Model.rawAttributes.referredUserId) await Model.destroy({ where: { referredUserId: uid } });
+                        if (Model.rawAttributes.authorId) await Model.destroy({ where: { authorId: uid } });
+                    } catch (e) {
+                        // Ignore, might succeed on next pass or if it's already deleted
+                    }
+                }
+            }
+        }
         await user.destroy();
         await logActivity(req, 'Delete User', `Admin deleted user ${user.email} (ID: ${user.id})`);
         res.json({ message: 'User deleted' });

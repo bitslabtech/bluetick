@@ -15,6 +15,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Categories');
     const [templateLimit, setTemplateLimit] = useState(-1); // -1 = unlimited
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         const fetchTemplates = async () => {
@@ -270,7 +271,9 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                         <div className="bg-[#f0f2f5] dark:bg-[#202c33] p-2 flex items-center gap-2.5 mb-0 shrink-0 shadow-sm z-10">
                                             <ArrowLeft className="w-4 h-4 text-[#00a884]" />
                                             <div className="size-8 rounded-full bg-[#00a884] flex items-center justify-center text-white text-xs font-bold shadow-sm overflow-hidden">
-                                                {profilePicUrl ? <img src={profilePicUrl} alt="Profile" className="w-full h-full object-cover" /> : initial}
+                                                {!imageError && profilePicUrl ? (
+                                                    <img src={profilePicUrl} alt="Profile" className="w-full h-full object-cover" onError={() => setImageError(true)} />
+                                                ) : initial}
                                             </div>
                                             <div className="flex flex-col">
                                                 <p className="text-slate-900 dark:text-white text-[13px] font-semibold leading-none">{businessName}</p>

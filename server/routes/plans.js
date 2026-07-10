@@ -177,8 +177,9 @@ router.post('/', async (req, res) => {
 
         if (!name) return res.status(400).json({ error: 'Plan name is required' });
 
+        const isDef = (isDefault === true || isDefault === 'true' || isDefault === 1 || isDefault === '1');
         // If setting as default, unset all other defaults first
-        if (isDefault === true) {
+        if (isDef) {
             await Plan.update(
                 { isDefault: false },
                 { where: { isDefault: true } }
@@ -260,8 +261,9 @@ router.put('/:id', async (req, res) => {
         const plan = await Plan.findByPk(req.params.id);
         if (!plan) return res.status(404).json({ error: 'Plan not found' });
 
+        const isDefUpdate = (req.body.isDefault === true || req.body.isDefault === 'true' || req.body.isDefault === 1 || req.body.isDefault === '1');
         // If setting as default, unset all other defaults first
-        if (req.body.isDefault === true) {
+        if (isDefUpdate) {
             await Plan.update(
                 { isDefault: false },
                 { where: { isDefault: true, id: { [Op.ne]: req.params.id } } }

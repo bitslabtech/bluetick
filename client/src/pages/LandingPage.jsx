@@ -1185,7 +1185,7 @@ function FeaturePreview({ feature }) {
 
         vcard_analytics: <ImageMockup imageUrl="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800" badgeText="Live Scan Tracking" BadgeIcon={LineChart} colorClass={barColor} />,
         vcard_appointments: <ImageMockup imageUrl="https://images.unsplash.com/photo-1506784951206-39b15802353a?auto=format&fit=crop&q=80&w=800" badgeText="Meeting Scheduled" BadgeIcon={Calendar} colorClass={barColor} />,
-        vcard_nfc: <ImageMockup imageUrl="https://images.unsplash.com/photo-1563986768494-4dee2763ff0f?auto=format&fit=crop&q=80&w=800" badgeText="NFC Card Ready" BadgeIcon={Wifi} colorClass={barColor} />,
+        vcard_nfc: <ImageMockup imageUrl="https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&q=80&w=800" badgeText="NFC Card Ready" BadgeIcon={Wifi} colorClass={barColor} />,
         vcard_domain: <ImageMockup imageUrl="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800" badgeText="Domain Active" BadgeIcon={Globe} colorClass={barColor} />
     };
 

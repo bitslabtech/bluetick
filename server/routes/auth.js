@@ -519,7 +519,17 @@ router.delete('/me', require('../middleware/auth'), async (req, res) => {
 
         // Delete associated data (cascade should handle FK relationships, but be explicit)
         const { Op } = require('sequelize');
-        const contactModels = ['Contact', 'MessageLog', 'Campaign', 'Template', 'ActivityLog', 'SystemNotification'];
+        const contactModels = [
+            'WaOrder', 'WaProduct', 'WaStoreCoupon', 'StoreItem', 'WaStore',
+            'VcardEnquiry', 'Vcard', 'NfcOrder', 'NfcCard',
+            'TechPartnerPayout', 'TechPartnerEarning', 'TechPartner',
+            'MetaAdCampaign', 'FlowExecutionLog', 'Flow',
+            'FormResponse', 'Form', 'ContactMessage', 'ChatMessage', 'Message', 'MessageLog',
+            'Conversation', 'ActivityLog', 'SystemNotification', 'ApiUsageLog', 'AiTokenLog',
+            'ApiKey', 'Webhook', 'MediaFile', 'Group', 'Label', 'QuickReply', 'AutoTagRule',
+            'ContactFlowState', 'Contact', 'Campaign', 'Template', 'PaymentSession', 'Transaction',
+            'UserAddon', 'ReferralReward'
+        ];
         for (const modelName of contactModels) {
             try {
                 const Model = require(`../models/${modelName}`);
