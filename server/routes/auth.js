@@ -7,6 +7,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Settings = require('../models/Settings');
 const AdminNotification = require('../models/AdminNotification');
+const SystemConfig = require('../models/SystemConfig');
+const otpStore = require('../utils/otpStore');
 
 const logActivity = require('../utils/logger');
 const { sendSystemMessage } = require('../services/systemMessenger');
@@ -24,6 +26,173 @@ const generateToken = (user) => {
     };
     return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' });
 };
+
+/**
+ * GET OTP Config from SystemConfig.
+ * Returns the whatsappOtp settings block with safe defaults.
+ */
+const getOtpConfig = async () => {
+    const sysConfig = await SystemConfig.getCachedConfig();
+    const cfg = sysConfig?.settings?.whatsappOtp || {};
+    return {
+        enabled: cfg.enabled === true,
+        otpExpirySec: cfg.otpExpirySec || 300,
+        resendCooldownSec: cfg.resendCooldownSec || 60,
+        maxResendPerHour: cfg.maxResendPerHour || 3,
+        maxVerifyAttempts: cfg.maxVerifyAttempts || 5,
+        // Template mode: when set, uses an approved Meta template to send OTP.
+        // Required for reaching new users who haven't messaged the business number
+        // in the last 24 hours (Meta enforces the session window for free-form text).
+        // Leave empty to fall back to plain text (only works within 24h session).
+        templateName: cfg.templateName || '',       // e.g. 'otp_verification'
+        templateLanguage: cfg.templateLanguage || 'en',  // template language code
+        // OTP variable position in template body — default {{1}}
+        otpVariableIndex: cfg.otpVariableIndex || 1,
+        // Plain text fallback message (used when templateName is empty)
+        messageTemplate: cfg.messageTemplate ||
+            'Your {{appName}} verification code is *{{otp}}*. Valid for {{minutes}} minutes. Do not share this code with anyone.'
+    };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEND OTP  —  POST /api/auth/send-otp
+// Sends a WhatsApp OTP to the given phone number with full anti-abuse protection.
+// Supports two modes:
+//   1. Template mode (recommended) — uses an approved Meta WhatsApp template.
+//      Required for new users who haven't messaged your number in the last 24h.
+//   2. Text mode (fallback) — plain text message. Only works within a 24h
+//      conversation window; Meta will reject it for cold outbound.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/send-otp', authLimiter, async (req, res) => {
+    try {
+        const { phone } = req.body;
+
+        if (!phone) {
+            return res.status(400).json({ error: 'Phone number is required.' });
+        }
+
+        const otpConfig = await getOtpConfig();
+
+        if (!otpConfig.enabled) {
+            return res.status(400).json({ error: 'WhatsApp OTP verification is not enabled.' });
+        }
+
+        const normalized = otpStore.normalizePhone(phone);
+        if (normalized.length < 7) {
+            return res.status(400).json({ error: 'Invalid phone number.' });
+        }
+
+        // ── Rate limit check ──
+        const limitCheck = otpStore.checkSendLimits(normalized, otpConfig);
+        if (!limitCheck.allowed) {
+            return res.status(429).json({
+                error: limitCheck.reason,
+                retryAfterSec: limitCheck.retryAfterSec
+            });
+        }
+
+        // ── Generate OTP ──
+        const otp = otpStore.createOtp(normalized, otpConfig);
+
+        const sysConfig = await SystemConfig.getCachedConfig();
+        const appName = sysConfig?.settings?.appName || 'Bluetick';
+        const minutes = Math.ceil(otpConfig.otpExpirySec / 60);
+
+        let result;
+
+        if (otpConfig.templateName) {
+            // ── TEMPLATE MODE (recommended for cold outbound) ──
+            // Build component parameters: the OTP goes into the body variable position.
+            // Standard authentication templates have one body variable: {{1}} = OTP code.
+            const varIndex = (otpConfig.otpVariableIndex || 1) - 1; // 0-indexed
+            const bodyParams = [];
+            // Fill slots up to the OTP position with empty strings, then place the OTP
+            for (let i = 0; i < varIndex; i++) bodyParams.push({ type: 'text', text: '' });
+            bodyParams.push({ type: 'text', text: otp });
+
+            result = await sendSystemMessage(phone, 'template', {
+                templateName: otpConfig.templateName,
+                languageCode: otpConfig.templateLanguage || 'en',
+                components: [
+                    {
+                        type: 'body',
+                        parameters: bodyParams
+                    }
+                ]
+            });
+        } else {
+            // ── TEXT MODE (fallback — only works within 24h conversation window) ──
+            const messageBody = otpConfig.messageTemplate
+                .replace('{{otp}}', otp)
+                .replace('{{appName}}', appName)
+                .replace('{{minutes}}', minutes);
+
+            result = await sendSystemMessage(phone, 'text', { body: messageBody });
+        }
+
+        if (!result.success) {
+            // Don't expose internal error; give a friendly message
+            console.error('[OTP] WhatsApp send failed:', result.error);
+            return res.status(503).json({
+                error: 'Failed to send verification code. Please ensure your WhatsApp number is correct and try again.'
+            });
+        }
+
+        return res.json({
+            success: true,
+            expiresIn: otpConfig.otpExpirySec,
+            cooldownSec: otpConfig.resendCooldownSec,
+            message: `Verification code sent to ${phone.slice(0, -4).replace(/./g, '•')}${phone.slice(-4)}`
+        });
+    } catch (err) {
+        console.error('[SEND OTP] Error:', err);
+        res.status(500).json({ error: 'Server error. Please try again.' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VERIFY OTP  —  POST /api/auth/verify-otp
+// Verifies the code and returns a short-lived phoneVerifiedToken (JWT, 10 min).
+// This token must be submitted with the registration request.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/verify-otp', authLimiter, async (req, res) => {
+    try {
+        const { phone, otp } = req.body;
+
+        if (!phone || !otp) {
+            return res.status(400).json({ error: 'Phone number and verification code are required.' });
+        }
+
+        const otpConfig = await getOtpConfig();
+        if (!otpConfig.enabled) {
+            return res.status(400).json({ error: 'WhatsApp OTP verification is not enabled.' });
+        }
+
+        const normalized = otpStore.normalizePhone(phone);
+        const result = otpStore.verifyOtp(normalized, otp, otpConfig);
+
+        if (!result.valid) {
+            return res.status(400).json({ error: result.reason });
+        }
+
+        // Issue a short-lived phoneVerifiedToken — proves the phone was verified.
+        // Registration endpoint will check this token before creating the account.
+        const phoneVerifiedToken = jwt.sign(
+            { verifiedPhone: phone, normalized },
+            process.env.JWT_SECRET,
+            { expiresIn: '10m', algorithm: 'HS256' }
+        );
+
+        return res.json({
+            success: true,
+            phoneVerifiedToken,
+            message: 'Phone number verified successfully.'
+        });
+    } catch (err) {
+        console.error('[VERIFY OTP] Error:', err);
+        res.status(500).json({ error: 'Server error. Please try again.' });
+    }
+});
 
 // REGISTER
 router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
@@ -47,6 +216,26 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         // 1. Enforce Allow Registration Policy
         if (securityConfig && securityConfig.allowRegistration === false) {
             return res.status(403).json({ error: 'User registration is currently disabled by the administrator.' });
+        }
+
+        // 1b. Enforce WhatsApp OTP verification (if enabled)
+        const otpConfig = await getOtpConfig();
+        if (otpConfig.enabled) {
+            const { phoneVerifiedToken } = req.body;
+            if (!phoneVerifiedToken) {
+                return res.status(400).json({ error: 'Phone verification is required. Please verify your WhatsApp number before registering.', requiresOtp: true });
+            }
+            try {
+                const decoded = jwt.verify(phoneVerifiedToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+                // Ensure the verified phone matches the phone in the registration request
+                const submittedNormalized = otpStore.normalizePhone(phone || '');
+                const tokenNormalized = decoded.normalized || otpStore.normalizePhone(decoded.verifiedPhone || '');
+                if (submittedNormalized !== tokenNormalized) {
+                    return res.status(400).json({ error: 'Phone number mismatch. Please verify the same number you are registering with.' });
+                }
+            } catch (jwtErr) {
+                return res.status(400).json({ error: 'Phone verification has expired or is invalid. Please verify your WhatsApp number again.', requiresOtp: true });
+            }
         }
 
         // 2. Enforce Mandatory Phone
@@ -343,6 +532,14 @@ router.post('/login', authLimiter, verifyTurnstile, async (req, res) => {
             return res.status(400).json({ error: 'Invalid Credentials' });
         }
 
+        // Block access for deleted or suspended accounts
+        if (user.status === 'deleted') {
+            return res.status(401).json({ error: 'This account no longer exists.' });
+        }
+        if (user.status === 'suspended') {
+            return res.status(403).json({ error: 'Your account has been suspended. Please contact support.' });
+        }
+
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
@@ -502,52 +699,112 @@ router.put('/password', require('../middleware/auth'), async (req, res) => {
     }
 });
 
-// DELETE MY ACCOUNT
+// DELETE MY ACCOUNT — Soft Delete
+// Preserves ALL admin reporting data (Transaction, AiTokenLog, MessageLog, ActivityLog)
+// while removing operational content and blocking login.
 router.delete('/me', require('../middleware/auth'), async (req, res) => {
     try {
         const userId = req.user.realId || req.user.id;
+        const crypto = require('crypto');
+        const { sequelize: seq } = require('../config/database');
+        const { Op } = require('sequelize');
 
         const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Prevent admin from deleting themselves via this route
+        // Super admins cannot self-delete via this route
         if (user.isAdmin) {
             return res.status(403).json({ error: 'Super admins cannot delete their account from here. Please contact the database administrator.' });
         }
 
-        // Delete associated data (cascade should handle FK relationships, but be explicit)
-        const { Op } = require('sequelize');
-        const contactModels = [
-            'WaOrder', 'WaProduct', 'WaStoreCoupon', 'StoreItem', 'WaStore',
-            'VcardEnquiry', 'Vcard', 'NfcOrder', 'NfcCard',
-            'TechPartnerPayout', 'TechPartnerEarning', 'TechPartner',
-            'MetaAdCampaign', 'FlowExecutionLog', 'Flow',
-            'FormResponse', 'Form', 'ContactMessage', 'ChatMessage', 'Message', 'MessageLog',
-            'Conversation', 'ActivityLog', 'SystemNotification', 'ApiUsageLog', 'AiTokenLog',
-            'ApiKey', 'Webhook', 'MediaFile', 'Group', 'Label', 'QuickReply', 'AutoTagRule',
-            'ContactFlowState', 'Contact', 'Campaign', 'Template', 'PaymentSession', 'Transaction',
-            'UserAddon', 'ReferralReward'
+        // ── Step 1: Delete child records that have no direct userId FK ──────────
+        // These link through a parent table (Contact, Conversation, WaStore).
+        // Must be deleted BEFORE the parent to avoid FK constraint errors.
+        try {
+            // WaStore children
+            await seq.query(`DELETE FROM "WaProducts" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :userId)`, { replacements: { userId } });
+            await seq.query(`DELETE FROM "WaOrders" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :userId)`, { replacements: { userId } });
+            await seq.query(`DELETE FROM "WaStoreCoupons" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :userId)`, { replacements: { userId } });
+            // Conversation children
+            await seq.query(`DELETE FROM "ChatMessages" WHERE "conversationId" IN (SELECT id FROM "Conversations" WHERE "userId" = :userId)`, { replacements: { userId } });
+            // Contact children
+            await seq.query(`DELETE FROM "ContactMessages" WHERE "contactId" IN (SELECT id FROM "Contacts" WHERE "userId" = :userId)`, { replacements: { userId } });
+            await seq.query(`DELETE FROM "ContactFlowStates" WHERE "contactId" IN (SELECT id FROM "Contacts" WHERE "userId" = :userId)`, { replacements: { userId } });
+        } catch (nestedErr) {
+            console.warn('[DELETE ACCOUNT] Nested cleanup warning (non-fatal):', nestedErr.message);
+        }
+
+        // ── Step 2: Delete direct-userId operational models ────────────────────
+        // ⚠️  INTENTIONALLY EXCLUDED to preserve admin dashboard reports:
+        //     Transaction, AiTokenLog, MessageLog, ActivityLog
+        const OPERATIONAL_MODELS_WITH_USERID = [
+            'WaStore',          // parent already safe after step 1 cleaned children
+            'VcardEnquiry', 'Vcard',
+            'NfcOrder', 'NfcCard',
+            'TechPartnerPayout', // has userId
+            'TechPartner',
+            'MetaAdCampaign',
+            'FlowExecutionLog', 'Flow',
+            'FormResponse', 'Form',
+            'Message',          // outbox campaign messages (NOT MessageLog which is the aggregate log)
+            'Conversation',
+            'Contact',
+            'ApiUsageLog', 'ApiKey', 'Webhook',
+            'Group', 'Label', 'QuickReply', 'AutoTagRule',
+            'Campaign', 'Template',
+            'MediaFile',
+            'PaymentSession',
+            'UserAddon',
+            'SystemNotification',
         ];
-        for (const modelName of contactModels) {
+
+        for (const modelName of OPERATIONAL_MODELS_WITH_USERID) {
             try {
                 const Model = require(`../models/${modelName}`);
                 if (Model && typeof Model.destroy === 'function') {
                     await Model.destroy({ where: { userId } });
                 }
             } catch (e) {
-                // Model might not exist or have userId - skip silently
+                // Model file may not exist or field name may differ — skip silently
             }
         }
+
+        // ── Step 2b: Models with non-standard FK field names ───────────────────
+        try {
+            const ReferralReward = require('../models/ReferralReward');
+            await ReferralReward.destroy({ where: { [Op.or]: [{ referrerId: userId }, { referredUserId: userId }] } });
+        } catch (e) { /* ignore */ }
+
+        try {
+            const TechPartnerEarning = require('../models/TechPartnerEarning');
+            await TechPartnerEarning.destroy({ where: { [Op.or]: [{ referrerId: userId }, { referredUserId: userId }] } });
+        } catch (e) { /* ignore */ }
 
         // Delete Settings
         try {
             await Settings.destroy({ where: { userId } });
         } catch (e) { /* ignore */ }
 
-        // Finally delete the user
-        await user.destroy();
+        // ── Step 3: Soft-delete the User row ──────────────────────────────────
+        // We KEEP name and email on the row — admin dashboard JOINs for
+        // Top Token Consumers, Activity Logs, and historical purchase records
+        // all rely on this to display the real identity in reports.
+        // We CLEAR only auth/security-sensitive fields.
+        user.status = 'deleted';
+        user.deletedAt = new Date();
+        user.password = '$DELETED$' + crypto.randomBytes(32).toString('hex');
+        user.fbAccessToken = null;
+        user.metaAdsToken = null;
+        user.inviteToken = null;
+        user.referralCode = null;
+        await user.save();
+
+        // Invalidate session cookies
+        clearAuthCookies(res);
+
+        await logActivity(req, 'Account Deleted', `User ${user.email} deleted their own account`);
 
         res.json({ message: 'Account permanently deleted.' });
     } catch (err) {

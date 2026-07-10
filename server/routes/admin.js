@@ -234,11 +234,26 @@ router.get('/stats', async (req, res) => {
         });
         const aiTokenVolumeRaw = Object.entries(tokenMap).map(([date, tokens]) => ({ date, tokens })).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        // Hydrate user names for purchases
-        const userIds = recentPurchases.map(t => t.userId);
-        const purchaseUsers = await User.findAll({ where: { id: userIds }, attributes: ['id', 'name', 'email'] });
+        // Use identity snapshot stored on Transaction row (real name/email at purchase time).
+        // This preserves the real identity even after the user account is deleted.
+        // For older transactions without a snapshot, fall back to live User lookup.
+        const txsNeedingLookup = recentPurchases.filter(t => !t.userName);
+        const fallbackUserIds = txsNeedingLookup.map(t => t.userId);
+        const fallbackUsers = fallbackUserIds.length > 0
+            ? await User.findAll({ where: { id: fallbackUserIds }, attributes: ['id', 'name', 'email'] })
+            : [];
+
         const purchasesWithUser = recentPurchases.map(t => {
-            const u = purchaseUsers.find(user => user.id === t.userId);
+            // Prefer snapshot (frozen at purchase time)
+            if (t.userName) {
+                return {
+                    ...t.dataValues,
+                    userName: t.userName,
+                    userEmail: t.userEmail || 'N/A'
+                };
+            }
+            // Fallback: live User lookup for legacy rows
+            const u = fallbackUsers.find(user => user.id === t.userId);
             return {
                 ...t.dataValues,
                 userName: u ? u.name : 'Unknown User',
@@ -300,7 +315,9 @@ router.get('/users', async (req, res) => {
     }
 });
 
-// DELETE User
+// DELETE User — Soft Delete
+// Preserves ALL admin reporting data (Transaction, AiTokenLog, MessageLog, ActivityLog)
+// while removing operational content and blocking login.
 router.delete('/users/:id', async (req, res) => {
     try {
         const user = await User.findByPk(req.params.id);
@@ -310,46 +327,143 @@ router.delete('/users/:id', async (req, res) => {
         if (user.id === req.user.id) {
             return res.status(400).json({ error: 'Cannot delete yourself' });
         }
-        const models = require('../config/database').sequelize.models;
+
+        const crypto = require('crypto');
+        const { Op } = require('sequelize');
         const uid = user.id;
 
-        // Clean up known deeply nested records (like Store children) first to prevent FK errors when deleting their parents
+        // Log the action FIRST while real data is still available
+        await logActivity(req, 'Delete User', `Admin soft-deleted user ${user.email} (ID: ${user.id})`);
+
+        // ── Step 1: Delete child records that have no direct userId FK ──────────
+        // Must be deleted BEFORE their parent to avoid FK constraint errors.
         try {
-            if (models.WaProduct) await sequelize.query(`DELETE FROM "WaProducts" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
-            if (models.WaOrder) await sequelize.query(`DELETE FROM "WaOrders" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
-            if (models.WaStoreCoupon) await sequelize.query(`DELETE FROM "WaStoreCoupons" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
-            
-            // In case there are ChatMessages referencing Conversations that reference User
-            if (models.ChatMessage) await sequelize.query(`DELETE FROM "ChatMessages" WHERE "conversationId" IN (SELECT id FROM "Conversations" WHERE "userId" = :uid)`, { replacements: { uid } });
-            // In case there are ContactMessages referencing Contacts
-            if (models.ContactMessage) await sequelize.query(`DELETE FROM "ContactMessages" WHERE "contactId" IN (SELECT id FROM "Contacts" WHERE "userId" = :uid)`, { replacements: { uid } });
+            // WaStore children
+            await sequelize.query(`DELETE FROM "WaProducts" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
+            await sequelize.query(`DELETE FROM "WaOrders" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
+            await sequelize.query(`DELETE FROM "WaStoreCoupons" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
+            // Conversation children
+            await sequelize.query(`DELETE FROM "ChatMessages" WHERE "conversationId" IN (SELECT id FROM "Conversations" WHERE "userId" = :uid)`, { replacements: { uid } });
+            // Contact children
+            await sequelize.query(`DELETE FROM "ContactMessages" WHERE "contactId" IN (SELECT id FROM "Contacts" WHERE "userId" = :uid)`, { replacements: { uid } });
+            await sequelize.query(`DELETE FROM "ContactFlowStates" WHERE "contactId" IN (SELECT id FROM "Contacts" WHERE "userId" = :uid)`, { replacements: { uid } });
         } catch (e) {
-            console.warn('Deep nested cleanup error:', e.message);
+            console.warn('[ADMIN DELETE] Nested cleanup warning (non-fatal):', e.message);
         }
 
-        // Clean up all models with userId or similar user-referencing keys
-        for (let pass = 0; pass < 2; pass++) {
-            for (const modelName of Object.keys(models)) {
-                const Model = models[modelName];
-                if (modelName === 'User') continue;
-                
-                if (Model.rawAttributes) {
-                    try {
-                        if (Model.rawAttributes.userId) await Model.destroy({ where: { userId: uid } });
-                        if (Model.rawAttributes.referrerId) await Model.destroy({ where: { referrerId: uid } });
-                        if (Model.rawAttributes.referredUserId) await Model.destroy({ where: { referredUserId: uid } });
-                        if (Model.rawAttributes.authorId) await Model.destroy({ where: { authorId: uid } });
-                    } catch (e) {
-                        // Ignore, might succeed on next pass or if it's already deleted
-                    }
+        // ── Step 2: Delete direct-userId operational models ────────────────────
+        // ⚠️  INTENTIONALLY EXCLUDED to preserve admin dashboard reports:
+        //     Transaction, AiTokenLog, MessageLog, ActivityLog
+        const OPERATIONAL_MODELS_WITH_USERID = [
+            'WaStore',          // parent safe after step 1 cleaned children
+            'VcardEnquiry', 'Vcard',
+            'NfcOrder', 'NfcCard',
+            'TechPartnerPayout', // has userId field
+            'TechPartner',
+            'MetaAdCampaign',
+            'FlowExecutionLog', 'Flow',
+            'FormResponse', 'Form',
+            'Message',          // outbox campaign messages (NOT MessageLog aggregate)
+            'Conversation',
+            'Contact',
+            'ApiUsageLog', 'ApiKey', 'Webhook',
+            'Group', 'Label', 'QuickReply', 'AutoTagRule',
+            'Campaign', 'Template',
+            'MediaFile',
+            'PaymentSession',
+            'UserAddon',
+            'SystemNotification',
+        ];
+
+        for (const modelName of OPERATIONAL_MODELS_WITH_USERID) {
+            try {
+                const Model = require(`../models/${modelName}`);
+                if (Model && typeof Model.destroy === 'function') {
+                    await Model.destroy({ where: { userId: uid } });
                 }
+            } catch (e) {
+                // Model file may not exist or field name may differ — skip silently
             }
         }
-        await user.destroy();
-        await logActivity(req, 'Delete User', `Admin deleted user ${user.email} (ID: ${user.id})`);
-        res.json({ message: 'User deleted' });
+
+        // ── Step 2b: Models with non-standard FK field names ───────────────────
+        try {
+            const ReferralReward = require('../models/ReferralReward');
+            await ReferralReward.destroy({ where: { [Op.or]: [{ referrerId: uid }, { referredUserId: uid }] } });
+        } catch (e) { /* ignore */ }
+
+        try {
+            const TechPartnerEarning = require('../models/TechPartnerEarning');
+            await TechPartnerEarning.destroy({ where: { [Op.or]: [{ referrerId: uid }, { referredUserId: uid }] } });
+        } catch (e) { /* ignore */ }
+
+        // Delete Settings
+        try {
+            const Settings = require('../models/Settings');
+            await Settings.destroy({ where: { userId: uid } });
+        } catch (e) { /* ignore */ }
+
+        // ── Step 3: Soft-delete the User row ──────────────────────────────────
+        // We KEEP name and email — admin JOINs for Top Token Consumers,
+        // Activity Logs, and historical reports rely on these for identity.
+        // We CLEAR only auth/security-sensitive fields.
+        user.status = 'deleted';
+        user.deletedAt = new Date();
+        user.password = '$DELETED$' + crypto.randomBytes(32).toString('hex');
+        user.fbAccessToken = null;
+        user.metaAdsToken = null;
+        user.inviteToken = null;
+        user.referralCode = null;
+        await user.save();
+
+        res.json({ message: 'User deleted successfully.' });
     } catch (err) {
-        console.error(err);
+        console.error('[ADMIN DELETE USER]', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// REACTIVATE User — Reverse a soft-delete
+// Restores login access. Operational data (contacts, store, etc.) that was
+// cleaned during deletion is gone, but all historical reporting data
+// (Transactions, AiTokenLogs, MessageLogs, ActivityLogs) remains intact.
+router.patch('/users/:id/reactivate', async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        if (user.status === 'active') {
+            return res.status(400).json({ error: 'User account is already active.' });
+        }
+
+        const crypto = require('crypto');
+        const bcrypt = require('bcryptjs');
+
+        // Generate a secure temporary password — admin must send a password-reset link
+        const tempPassword = crypto.randomBytes(12).toString('hex'); // 24-char random
+        const salt = await bcrypt.genSalt(10);
+        const hashedTemp = await bcrypt.hash(tempPassword, salt);
+
+        user.status = 'active';
+        user.deletedAt = null;
+        user.password = hashedTemp; // Temp password; user will need to reset
+        await user.save();
+
+        await logActivity(req, 'Reactivate User', `Admin reactivated user ${user.email} (ID: ${user.id})`);
+
+        res.json({
+            message: `Account reactivated. A temporary password has been set — please send the user a password reset link so they can regain access.`,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                status: user.status
+            }
+        });
+    } catch (err) {
+        console.error('[ADMIN REACTIVATE USER]', err);
         res.status(500).json({ error: 'Server Error' });
     }
 });

@@ -693,6 +693,225 @@ const AdminSystemControls = () => {
                                 >
                                     <RefreshCw className="w-5 h-5" /> Purge System Cache
                                 </button>
+
+                                {/* ── WhatsApp Number Verification ── */}
+                                <div className="col-span-2 border border-slate-200 dark:border-white/10 rounded-xl p-4 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                                📱 WhatsApp Number Verification (OTP)
+                                            </h4>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                Require new users to verify their WhatsApp number with a one-time code before registering.
+                                            </p>
+                                        </div>
+                                        <Toggle
+                                            enabled={config.settings?.whatsappOtp?.enabled || false}
+                                            onChange={(val) => {
+                                                const updated = {
+                                                    ...config,
+                                                    settings: {
+                                                        ...config.settings,
+                                                        whatsappOtp: { ...(config.settings?.whatsappOtp || {}), enabled: val }
+                                                    }
+                                                };
+                                                handleSave(updated);
+                                            }}
+                                        />
+                                    </div>
+
+                                    {config.settings?.whatsappOtp?.enabled && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-white/5">
+                                            <div>
+                                                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                                    OTP Validity (seconds)
+                                                    <span className="normal-case font-normal ml-1 text-slate-400">— default 300 (5 min)</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="60" max="900"
+                                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm"
+                                                    value={config.settings?.whatsappOtp?.otpExpirySec || 300}
+                                                    onChange={(e) => setConfig({
+                                                        ...config,
+                                                        settings: {
+                                                            ...config.settings,
+                                                            whatsappOtp: { ...(config.settings?.whatsappOtp || {}), otpExpirySec: parseInt(e.target.value) || 300 }
+                                                        }
+                                                    })}
+                                                    onBlur={() => handleSave()}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                                    Resend Cooldown (seconds)
+                                                    <span className="normal-case font-normal ml-1 text-slate-400">— default 60s</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="30" max="600"
+                                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm"
+                                                    value={config.settings?.whatsappOtp?.resendCooldownSec || 60}
+                                                    onChange={(e) => setConfig({
+                                                        ...config,
+                                                        settings: {
+                                                            ...config.settings,
+                                                            whatsappOtp: { ...(config.settings?.whatsappOtp || {}), resendCooldownSec: parseInt(e.target.value) || 60 }
+                                                        }
+                                                    })}
+                                                    onBlur={() => handleSave()}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                                    Max codes per hour / phone
+                                                    <span className="normal-case font-normal ml-1 text-slate-400">— anti-bombing</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1" max="10"
+                                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm"
+                                                    value={config.settings?.whatsappOtp?.maxResendPerHour || 3}
+                                                    onChange={(e) => setConfig({
+                                                        ...config,
+                                                        settings: {
+                                                            ...config.settings,
+                                                            whatsappOtp: { ...(config.settings?.whatsappOtp || {}), maxResendPerHour: parseInt(e.target.value) || 3 }
+                                                        }
+                                                    })}
+                                                    onBlur={() => handleSave()}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                                    Max wrong attempts
+                                                    <span className="normal-case font-normal ml-1 text-slate-400">— before OTP is invalidated</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1" max="10"
+                                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm"
+                                                    value={config.settings?.whatsappOtp?.maxVerifyAttempts || 5}
+                                                    onChange={(e) => setConfig({
+                                                        ...config,
+                                                        settings: {
+                                                            ...config.settings,
+                                                            whatsappOtp: { ...(config.settings?.whatsappOtp || {}), maxVerifyAttempts: parseInt(e.target.value) || 5 }
+                                                        }
+                                                    })}
+                                                    onBlur={() => handleSave()}
+                                                />
+                                            </div>
+
+                                            {/* ── WhatsApp Template (recommended) ── */}
+                                            <div className="col-span-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/40">
+                                                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-1 flex items-center gap-1">
+                                                    ✅ Recommended: Use an Approved WhatsApp Template
+                                                </p>
+                                                <p className="text-xs text-emerald-600 dark:text-emerald-500">
+                                                    New registrants have never messaged your number, so Meta requires a pre-approved template for outbound OTPs. Create an authentication template in your Meta Business Manager, then enter its name below.
+                                                </p>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                                    WhatsApp Template Name
+                                                    <span className="normal-case font-normal ml-1 text-slate-400">— from Meta Business Manager</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm font-mono"
+                                                    placeholder="e.g. otp_verification"
+                                                    value={config.settings?.whatsappOtp?.templateName || ''}
+                                                    onChange={(e) => setConfig({
+                                                        ...config,
+                                                        settings: {
+                                                            ...config.settings,
+                                                            whatsappOtp: { ...(config.settings?.whatsappOtp || {}), templateName: e.target.value }
+                                                        }
+                                                    })}
+                                                    onBlur={() => handleSave()}
+                                                />
+                                                <p className="text-xs text-slate-400 mt-1">
+                                                    Leave empty to use plain text mode (only works if user previously messaged you within 24h).
+                                                </p>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                                    Template Language Code
+                                                    <span className="normal-case font-normal ml-1 text-slate-400">— e.g. en, en_US, hi</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm font-mono"
+                                                    placeholder="en"
+                                                    value={config.settings?.whatsappOtp?.templateLanguage || 'en'}
+                                                    onChange={(e) => setConfig({
+                                                        ...config,
+                                                        settings: {
+                                                            ...config.settings,
+                                                            whatsappOtp: { ...(config.settings?.whatsappOtp || {}), templateLanguage: e.target.value }
+                                                        }
+                                                    })}
+                                                    onBlur={() => handleSave()}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                                    OTP Variable Position in Template
+                                                    <span className="normal-case font-normal ml-1 text-slate-400">— which {'{{N}}'} holds the OTP</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1" max="5"
+                                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm"
+                                                    placeholder="1"
+                                                    value={config.settings?.whatsappOtp?.otpVariableIndex || 1}
+                                                    onChange={(e) => setConfig({
+                                                        ...config,
+                                                        settings: {
+                                                            ...config.settings,
+                                                            whatsappOtp: { ...(config.settings?.whatsappOtp || {}), otpVariableIndex: parseInt(e.target.value) || 1 }
+                                                        }
+                                                    })}
+                                                    onBlur={() => handleSave()}
+                                                />
+                                                <p className="text-xs text-slate-400 mt-1">
+                                                    If your template body is <em>"Your code is {'{{1}}'}. Valid for {'{{2}}'} mins."</em> — OTP is at position 1.
+                                                </p>
+                                            </div>
+
+                                            <div className="col-span-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                                                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                                                    Text Fallback Message
+                                                    <span className="normal-case font-normal ml-1 text-amber-500">— used only when template name is empty</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-700/40 dark:bg-black/20 dark:text-white text-sm font-mono"
+                                                    placeholder="Your {{appName}} code is *{{otp}}*. Valid for {{minutes}} minutes."
+                                                    value={config.settings?.whatsappOtp?.messageTemplate || ''}
+                                                    onChange={(e) => setConfig({
+                                                        ...config,
+                                                        settings: {
+                                                            ...config.settings,
+                                                            whatsappOtp: { ...(config.settings?.whatsappOtp || {}), messageTemplate: e.target.value }
+                                                        }
+                                                    })}
+                                                    onBlur={() => handleSave()}
+                                                />
+                                                <p className="text-xs text-slate-400 mt-1">
+                                                    Variables: <code>{'{{otp}}'}</code>, <code>{'{{appName}}'}</code>, <code>{'{{minutes}}'}</code>. Only sent when no template name is set above.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

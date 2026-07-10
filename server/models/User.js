@@ -229,6 +229,20 @@ const User = sequelize.define('User', {
         defaultValue: null,
         allowNull: true,
         comment: 'Stores CAPI config: { pixelId, accessToken, testEventCode }'
+    },
+    // ── Account Lifecycle ──────────────────────────────────────────────────────
+    // Name and email are intentionally kept on soft-deleted accounts so that
+    // admin dashboard JOINs (Top Token Consumers, Activity Logs, Recent Purchases)
+    // continue showing real identity in historical reports.
+    status: {
+        type: DataTypes.ENUM('active', 'suspended', 'deleted'),
+        defaultValue: 'active',
+        comment: 'active = normal, suspended = admin blocked, deleted = account closed (soft delete)'
+    },
+    deletedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Timestamp when the account was soft-deleted'
     }
 }, {
     timestamps: true

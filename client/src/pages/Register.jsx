@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Check, Eye, EyeOff, MessageSquare, Users, Layers, TrendingUp, Sparkles, Shield, Store, CreditCard, Megaphone } from 'lucide-react';
@@ -85,6 +85,17 @@ const Register = () => {
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [mockMessages, setMockMessages] = useState([]);
 
+    // ── OTP verification state ──
+    const [otpStep, setOtpStep] = useState('idle');      // 'idle' | 'sending' | 'input' | 'verifying' | 'verified'
+    const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+    const [otpError, setOtpError] = useState('');
+    const [phoneVerifiedToken, setPhoneVerifiedToken] = useState(null);
+    const [otpExpiry, setOtpExpiry] = useState(0);      // seconds remaining until OTP expires
+    const [cooldown, setCooldown] = useState(0);         // seconds remaining until resend allowed
+    const otpExpiryRef = useRef(null);
+    const cooldownRef = useRef(null);
+    const otpInputRefs = useRef([]);
+
     useEffect(() => {
         const conversation = [
             { id: 1, sender: 'user', text: 'Hi! Are you open today? 👋' },
@@ -115,6 +126,120 @@ const Register = () => {
     const searchParams = new URLSearchParams(location.search);
     const inviteToken = searchParams.get('invite');
     const refFromUrl = searchParams.get('ref');
+
+    // Whether WhatsApp OTP is enabled in system config
+    const otpEnabled = publicSettings?.whatsappOtpEnabled === true;
+
+    // ── OTP timer helpers ──
+    const startExpiryTimer = (seconds) => {
+        if (otpExpiryRef.current) clearInterval(otpExpiryRef.current);
+        setOtpExpiry(seconds);
+        otpExpiryRef.current = setInterval(() => {
+            setOtpExpiry(prev => {
+                if (prev <= 1) { clearInterval(otpExpiryRef.current); return 0; }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const startCooldownTimer = (seconds) => {
+        if (cooldownRef.current) clearInterval(cooldownRef.current);
+        setCooldown(seconds);
+        cooldownRef.current = setInterval(() => {
+            setCooldown(prev => {
+                if (prev <= 1) { clearInterval(cooldownRef.current); return 0; }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            if (otpExpiryRef.current) clearInterval(otpExpiryRef.current);
+            if (cooldownRef.current) clearInterval(cooldownRef.current);
+        };
+    }, []);
+
+    // ── Send OTP ──
+    const handleSendOtp = async () => {
+        if (localNumber.length < 5) {
+            setOtpError('Please enter a valid phone number first.');
+            return;
+        }
+        setOtpError('');
+        setOtpStep('sending');
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/send-otp`, { phone });
+            setOtpDigits(['', '', '', '', '', '']);
+            setOtpStep('input');
+            startExpiryTimer(res.data.expiresIn || 300);
+            startCooldownTimer(res.data.cooldownSec || 60);
+            // Focus first OTP box
+            setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Failed to send verification code. Try again.';
+            const retryAfter = err.response?.data?.retryAfterSec;
+            if (retryAfter) startCooldownTimer(retryAfter);
+            setOtpError(msg);
+            setOtpStep(otpStep === 'sending' ? 'idle' : otpStep);
+        }
+    };
+
+    // ── Verify OTP ──
+    const handleVerifyOtp = async (digits) => {
+        const code = (digits || otpDigits).join('');
+        if (code.length < 6) return;
+        setOtpError('');
+        setOtpStep('verifying');
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/verify-otp`, { phone, otp: code });
+            setPhoneVerifiedToken(res.data.phoneVerifiedToken);
+            setOtpStep('verified');
+            if (otpExpiryRef.current) clearInterval(otpExpiryRef.current);
+            if (cooldownRef.current) clearInterval(cooldownRef.current);
+        } catch (err) {
+            setOtpError(err.response?.data?.error || 'Incorrect code. Please try again.');
+            setOtpStep('input');
+            setOtpDigits(['', '', '', '', '', '']);
+            setTimeout(() => otpInputRefs.current[0]?.focus(), 50);
+        }
+    };
+
+    // ── OTP digit box key handler ──
+    const handleOtpKey = (index, e) => {
+        if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+            otpInputRefs.current[index - 1]?.focus();
+        }
+    };
+
+    // ── OTP digit change ──
+    const handleOtpDigit = (index, value) => {
+        const digit = value.replace(/\D/g, '').slice(-1);
+        const next = [...otpDigits];
+        next[index] = digit;
+        setOtpDigits(next);
+        if (digit && index < 5) {
+            otpInputRefs.current[index + 1]?.focus();
+        }
+        // Auto-submit when all 6 filled
+        if (next.every(d => d !== '') && next.join('').length === 6) {
+            handleVerifyOtp(next);
+        }
+    };
+
+    // ── Reset OTP when phone number changes ──
+    useEffect(() => {
+        if (otpStep !== 'idle') {
+            setOtpStep('idle');
+            setPhoneVerifiedToken(null);
+            setOtpDigits(['', '', '', '', '', '']);
+            setOtpError('');
+            if (otpExpiryRef.current) clearInterval(otpExpiryRef.current);
+            if (cooldownRef.current) clearInterval(cooldownRef.current);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phone]);
 
     // ── Referral code helpers ──
     const REF_KEY = 'referral_code';
@@ -200,6 +325,12 @@ const Register = () => {
             return;
         }
 
+        // Enforce OTP verification before submission
+        if (otpEnabled && otpStep !== 'verified') {
+            setError('Please verify your WhatsApp number with the code before creating your account.');
+            return;
+        }
+
         if (TURNSTILE_SITE_KEY && !turnstileToken) {
             setError('Please complete the security check.');
             return;
@@ -208,7 +339,7 @@ const Register = () => {
         // Pass selected plan ID, trial intent, and phone to backend
         const isTrial = selectedPlan?.startTrial || false;
         setIsSubmitting(true);
-        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial, turnstileToken);
+        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial, turnstileToken, phoneVerifiedToken);
         setIsSubmitting(false);
 
         if (res.success) {
@@ -492,7 +623,8 @@ const Register = () => {
                                 <select
                                     value={dialCode}
                                     onChange={(e) => setDialCode(e.target.value)}
-                                    className="w-32 shrink-0 px-2 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-white dark:bg-slate-950 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer font-medium text-sm"
+                                    disabled={otpStep === 'verified'}
+                                    className="w-32 shrink-0 px-2 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-white dark:bg-slate-950 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                     {COUNTRY_CODES.map(c => (
                                         <option key={c.code + c.dial} value={c.dial} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900">
@@ -505,12 +637,113 @@ const Register = () => {
                                     required
                                     value={localNumber}
                                     onChange={(e) => setLocalNumber(e.target.value.replace(/\D/g, ''))}
-                                    className="flex-1 min-w-0 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400"
+                                    disabled={otpStep === 'verified'}
+                                    className="flex-1 min-w-0 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400 disabled:opacity-60 disabled:cursor-not-allowed"
                                     placeholder="9876543210"
                                     maxLength={12}
                                 />
                             </div>
                             <p className="text-xs text-slate-400 dark:text-slate-500">Enter number without leading zero</p>
+
+                            {/* ── WhatsApp OTP Section ── */}
+                            {otpEnabled && (
+                                <div className="mt-3">
+                                    {/* Verified badge */}
+                                    {otpStep === 'verified' && (
+                                        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-sm font-semibold mt-1">
+                                            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                                                <Check className="w-3 h-3 text-white" />
+                                            </div>
+                                            WhatsApp number verified
+                                            <button type="button" onClick={() => { setOtpStep('idle'); setPhoneVerifiedToken(null); }} className="ml-auto text-xs text-slate-400 hover:text-slate-600 underline">Change</button>
+                                        </div>
+                                    )}
+
+                                    {/* Send OTP button — shown when idle */}
+                                    {(otpStep === 'idle') && localNumber.length >= 5 && (
+                                        <button
+                                            type="button"
+                                            onClick={handleSendOtp}
+                                            className="mt-2 w-full py-2 rounded-xl border border-emerald-400 text-emerald-600 dark:text-emerald-400 text-sm font-semibold hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            📲 Send WhatsApp Verification Code
+                                        </button>
+                                    )}
+
+                                    {/* Sending spinner */}
+                                    {otpStep === 'sending' && (
+                                        <div className="flex items-center gap-2 mt-2 text-slate-500 dark:text-slate-400 text-sm">
+                                            <div className="w-4 h-4 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin" />
+                                            Sending code to your WhatsApp...
+                                        </div>
+                                    )}
+
+                                    {/* OTP digit input */}
+                                    {(otpStep === 'input' || otpStep === 'verifying') && (
+                                        <div className="mt-3 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+                                                    Enter the 6-digit code sent to your WhatsApp
+                                                </p>
+                                                {otpExpiry > 0 ? (
+                                                    <span className="text-xs text-slate-400">expires in {otpExpiry}s</span>
+                                                ) : (
+                                                    <span className="text-xs text-red-500">Code expired</span>
+                                                )}
+                                            </div>
+
+                                            {/* 6 digit boxes */}
+                                            <div className="flex gap-2 justify-center">
+                                                {otpDigits.map((digit, i) => (
+                                                    <input
+                                                        key={i}
+                                                        ref={el => otpInputRefs.current[i] = el}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={1}
+                                                        value={digit}
+                                                        disabled={otpStep === 'verifying' || otpExpiry === 0}
+                                                        onChange={(e) => handleOtpDigit(i, e.target.value)}
+                                                        onKeyDown={(e) => handleOtpKey(i, e)}
+                                                        className="w-10 h-12 text-center text-xl font-bold border-2 rounded-xl outline-none transition-all
+                                                            border-slate-200 dark:border-slate-700
+                                                            bg-white dark:bg-slate-900
+                                                            text-slate-900 dark:text-white
+                                                            focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30
+                                                            disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    />
+                                                ))}
+                                            </div>
+
+                                            {/* Verifying spinner */}
+                                            {otpStep === 'verifying' && (
+                                                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                                                    <div className="w-4 h-4 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin" />
+                                                    Verifying...
+                                                </div>
+                                            )}
+
+                                            {/* Resend row */}
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-400">Didn't receive it?</span>
+                                                <button
+                                                    type="button"
+                                                    disabled={cooldown > 0 || otpStep === 'verifying'}
+                                                    onClick={handleSendOtp}
+                                                    className="font-semibold text-emerald-600 dark:text-emerald-400 disabled:text-slate-400 disabled:cursor-not-allowed hover:underline transition-colors"
+                                                >
+                                                    {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* OTP error */}
+                                    {otpError && (
+                                        <p className="text-xs text-red-500 mt-2 font-medium">{otpError}</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-1.5">

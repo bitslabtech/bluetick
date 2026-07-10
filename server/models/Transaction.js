@@ -51,6 +51,25 @@ const Transaction = sequelize.define('Transaction', {
     discountApplied: {
         type: DataTypes.FLOAT,
         defaultValue: 0
+    },
+    // ── Identity Snapshot ──────────────────────────────────────────────
+    // Captured at the moment of purchase. Preserved forever for audit,
+    // tax, and legal purposes even if the user account is later deleted.
+    // (Standard practice: Stripe, Razorpay, PayPal all do this.)
+    userName: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'User full name at the time of purchase — frozen for audit trail'
+    },
+    userEmail: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'User email at the time of purchase — frozen for audit trail'
+    },
+    userPhone: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'User phone at the time of purchase — frozen for audit trail'
     }
 }, {
     timestamps: true

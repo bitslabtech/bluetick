@@ -66,7 +66,8 @@ const AdminUsers = () => {
         if (!deleteId) return;
         try {
             await axios.delete(`${import.meta.env.VITE_API_URL}/api/admin/users/${deleteId}`);
-            setUsers(users.filter(u => u.id !== deleteId));
+            // Update local state to reflect soft-delete (status='deleted') instead of removing from list
+            setUsers(users.map(u => u.id === deleteId ? { ...u, status: 'deleted' } : u));
             setDeleteId(null);
         } catch (err) {
             console.error("Error deleting user:", err);
@@ -77,6 +78,35 @@ const AdminUsers = () => {
                 confirmText: 'OK'
             });
         }
+    };
+
+    const handleReactivate = async (targetUser) => {
+        showModal({
+            type: 'warning',
+            title: 'Reactivate Account',
+            message: `Reactivate ${targetUser.name}'s account?\n\nTheir login access will be restored. Note: operational data (contacts, store, etc.) deleted during closure is gone, but all transaction and usage history is intact.`,
+            confirmText: 'Reactivate',
+            cancelText: 'Cancel',
+            onConfirm: async () => {
+                try {
+                    await axios.patch(`${import.meta.env.VITE_API_URL}/api/admin/users/${targetUser.id}/reactivate`);
+                    setUsers(users.map(u => u.id === targetUser.id ? { ...u, status: 'active' } : u));
+                    showModal({
+                        type: 'success',
+                        title: 'Account Reactivated',
+                        message: `${targetUser.name}'s account is now active. Please send them a password reset link so they can log in.`,
+                        confirmText: 'OK'
+                    });
+                } catch (err) {
+                    showModal({
+                        type: 'warning',
+                        title: 'Reactivation Failed',
+                        message: err.response?.data?.error || 'Something went wrong.',
+                        confirmText: 'OK'
+                    });
+                }
+            }
+        });
     };
 
     // Guard: skip redirect while isTransitioning is true (impersonate sets it before user swap)
@@ -390,7 +420,7 @@ const AdminUsers = () => {
 
                                 return (
                                     <>
-                                        {!u.isAdmin && (
+                                        {!u.isAdmin && u.status !== 'deleted' && (
                                             <button onClick={() => { handleImpersonate(u); setActiveMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-500 hover:bg-slate-50 dark:hover:bg-white/5 font-medium text-left">
                                                 <Eye className="w-4 h-4" /> Impersonate
                                             </button>
@@ -399,13 +429,26 @@ const AdminUsers = () => {
                                             <History className="w-4 h-4" /> Impersonation History
                                         </button>
                                         <div className="my-1 border-t border-slate-100 dark:border-white/5"></div>
-                                        <button onClick={() => { openEditModal(u); setActiveMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-text-secondary hover:bg-slate-50 dark:hover:bg-white/5 font-medium text-left">
-                                            <Edit className="w-4 h-4" /> Edit User
-                                        </button>
-                                        <button onClick={() => { openTrialModal(u); setActiveMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 font-medium text-left">
-                                            <ShieldCheck className="w-4 h-4" /> Grant Trial
-                                        </button>
-                                        {!u.isAdmin && (
+                                        {u.status !== 'deleted' && (
+                                            <button onClick={() => { openEditModal(u); setActiveMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-text-secondary hover:bg-slate-50 dark:hover:bg-white/5 font-medium text-left">
+                                                <Edit className="w-4 h-4" /> Edit User
+                                            </button>
+                                        )}
+                                        {u.status !== 'deleted' && (
+                                            <button onClick={() => { openTrialModal(u); setActiveMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 font-medium text-left">
+                                                <ShieldCheck className="w-4 h-4" /> Grant Trial
+                                            </button>
+                                        )}
+                                        {/* Reactivate — only for soft-deleted accounts */}
+                                        {u.status === 'deleted' && (
+                                            <button
+                                                onClick={() => { handleReactivate(u); setActiveMenu(null); }}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-medium text-left"
+                                            >
+                                                <ShieldCheck className="w-4 h-4" /> Reactivate Account
+                                            </button>
+                                        )}
+                                        {!u.isAdmin && u.status !== 'deleted' && (
                                             <button
                                                 onClick={() => {
                                                     setDeleteId(u.id);

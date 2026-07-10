@@ -62,6 +62,10 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
         currency: targetPlan.currency || 'INR',
         planName: targetPlan.name,
         status: 'COMPLETED',
+        // Snapshot real identity at purchase time — preserved for audit/legal even if account is later deleted
+        userName: user.name || null,
+        userEmail: user.email || null,
+        userPhone: user.phone || null,
         ...extraTxnFields
     });
 
