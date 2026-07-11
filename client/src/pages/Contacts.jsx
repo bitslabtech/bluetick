@@ -56,13 +56,13 @@ const normaliseCSVRow = (row) => {
         const key = Object.keys(row).find(k => patterns.some(p => p.test(k)));
         return key ? String(row[key] || '').trim() : '';
     };
-    
+
     const groupStr = find([/^group$/i, /^list$/i]);
     const parsedGroups = groupStr ? groupStr.split(',').map(t => t.trim()).filter(Boolean) : [];
-    
+
     const tagStr = find([/^tag$/i, /^tags$/i, /^label$/i, /^labels$/i]);
     const parsedTags = tagStr ? tagStr.split(',').map(t => t.trim()).filter(Boolean) : [];
-    
+
     return {
         name: find([/^name$/i, /^full.?name$/i, /^contact.?name$/i, /^first.?name$/i]),
         phone: find([/^phone$/i, /^mobile$/i, /^tel/i, /^number$/i, /^whatsapp$/i, /^cell$/i]),
@@ -104,7 +104,7 @@ const MultiSelectDropdown = ({ options, value, onChange, placeholder }) => {
 
     return (
         <div className="relative w-full" ref={dropdownRef}>
-            <div 
+            <div
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full min-h-[42px] bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 flex flex-wrap gap-1 items-center cursor-pointer transition-all focus-within:border-primary"
             >
@@ -214,14 +214,14 @@ const Contacts = () => {
         const handleMessage = async (event) => {
             if (event.data?.type === 'GOOGLE_CONTACTS') {
                 const contactsToImport = event.data.contacts || [];
-                
+
                 // Fetch existing phones from DB for duplicate detection
                 let existingPhonesSet = new Set();
                 try {
                     const existRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/existing-phones`);
                     (existRes.data.phones || []).forEach(p => existingPhonesSet.add(p));
                 } catch (e) { /* non-fatal, skip DB check */ }
-                
+
                 const seenPhones = new Set();
                 const mappedContacts = contactsToImport.map(c => {
                     const finalGroups = [...(c.tags || [])];
@@ -250,20 +250,20 @@ const Contacts = () => {
                         tags: finalGroups, labels: finalLabels, isValid, isDuplicate, alreadyExists
                     };
                 });
-                
+
                 if (mappedContacts.length === 0) {
                     showToast({ type: 'warning', title: 'No Contacts Found', message: 'No valid contacts with phone numbers found in Google Contacts.' });
                     return;
                 }
-                
+
                 // Ensure the modal is open and clear previous previews
                 setShowContactModal(true);
                 setImportValidationPreview([]);
-                
+
                 const totalContacts = mappedContacts.length;
                 let batchSize = totalContacts > 200 ? Math.ceil(totalContacts / 40) : (totalContacts > 50 ? 5 : 1);
                 let currentIdx = 0;
-                
+
                 const timer = setInterval(() => {
                     if (currentIdx < totalContacts) {
                         const nextBatch = mappedContacts.slice(currentIdx, currentIdx + batchSize);
@@ -719,11 +719,11 @@ const Contacts = () => {
     };
 
     const ruleTypeConfig = {
-        keyword:       { label: 'Keyword',      icon: Hash,              color: 'text-blue-400',   desc: 'Exact whole-word match' },
-        contains:      { label: 'Contains',     icon: Type,              color: 'text-violet-400', desc: 'Message includes this phrase' },
-        regex:         { label: 'Regex',        icon: Code2,             color: 'text-orange-400', desc: 'Advanced pattern match' },
-        ctwa:          { label: 'Ad Click',     icon: MousePointerClick, color: 'text-pink-400',   desc: 'Contact from WhatsApp Ad' },
-        first_message: { label: 'First Message',icon: Sparkles,          color: 'text-emerald-400',desc: 'Brand new contact' },
+        keyword: { label: 'Keyword', icon: Hash, color: 'text-blue-400', desc: 'Exact whole-word match' },
+        contains: { label: 'Contains', icon: Type, color: 'text-violet-400', desc: 'Message includes this phrase' },
+        regex: { label: 'Regex', icon: Code2, color: 'text-orange-400', desc: 'Advanced pattern match' },
+        ctwa: { label: 'Ad Click', icon: MousePointerClick, color: 'text-pink-400', desc: 'Contact from WhatsApp Ad' },
+        first_message: { label: 'First Message', icon: Sparkles, color: 'text-emerald-400', desc: 'Brand new contact' },
     };
 
     const handleSelectAll = (e) => {
@@ -886,7 +886,7 @@ const Contacts = () => {
                                     placeholder="Search contacts..."
                                 />
                             </div>
-                            
+
                             <div className="flex items-center bg-slate-100 dark:bg-background-dark rounded-lg p-1 shrink-0">
                                 <button
                                     onClick={() => setViewMode('grid')}
@@ -911,7 +911,7 @@ const Contacts = () => {
                                     onChange={(e) => setStatusFilter(e.target.value)}
                                     className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-0 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
                                 >
-                                    <option value="All">All Statuses</option>
+                                    <option value="All">All Status</option>
                                     <option value="Valid">Valid</option>
                                     <option value="Invalid">Invalid</option>
                                     <option value="Unknown">Pending Check</option>
@@ -1645,9 +1645,9 @@ const Contacts = () => {
                                 </div>
                             </div>
                             <button
-                                onClick={() => { 
-                                    setShowContactModal(false); 
-                                    setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' }); 
+                                onClick={() => {
+                                    setShowContactModal(false);
+                                    setNewContact({ name: '', phone: '', email: '', tags: '', labelId: '' });
                                     setBulkImportGroups([]);
                                     setBulkImportLabelIds([]);
                                     setCountryCodePrefix('');
@@ -1672,8 +1672,8 @@ const Contacts = () => {
                                         key={tab.id}
                                         onClick={() => setContactModalTab(tab.id)}
                                         className={`flex-1 flex items-center justify-center gap-1.5 py-3.5 text-xs font-bold transition-all border-b-2 ${contactModalTab === tab.id
-                                                ? 'text-indigo-600 dark:text-white border-indigo-600 dark:border-white bg-indigo-50 dark:bg-white/10'
-                                                : 'text-slate-500 dark:text-text-secondary border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
+                                            ? 'text-indigo-600 dark:text-white border-indigo-600 dark:border-white bg-indigo-50 dark:bg-white/10'
+                                            : 'text-slate-500 dark:text-text-secondary border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
                                             }`}
                                     >
                                         <tab.icon className="w-3.5 h-3.5" />
@@ -1699,37 +1699,37 @@ const Contacts = () => {
                                                     </h4>
                                                     <p className="text-[11px] text-slate-500 dark:text-text-secondary mt-0.5">Filter results to inspect import errors</p>
                                                 </div>
-                                                
+
                                                 {/* Interactive Filters */}
                                                 <div className="flex flex-wrap justify-center gap-1.5 text-xs font-bold shrink-0">
-                                                    <button 
+                                                    <button
                                                         onClick={() => setActiveFilter('all')}
                                                         className={`px-3 py-1.5 rounded-xl transition-all border ${activeFilter === 'all' ? 'bg-slate-950 dark:bg-white text-white dark:text-black border-transparent shadow-sm' : 'bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-text-secondary border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10'}`}
                                                     >
                                                         All ({importValidationPreview.length})
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => setActiveFilter('valid')}
                                                         className={`px-3 py-1.5 rounded-xl transition-all border flex items-center gap-1 ${activeFilter === 'valid' ? 'bg-emerald-500 text-white border-transparent shadow-lg shadow-emerald-500/20' : 'bg-slate-50 dark:bg-white/5 text-emerald-600 dark:text-emerald-400 border-slate-200 dark:border-white/5 hover:bg-emerald-50/50 dark:hover:bg-emerald-500/5'}`}
                                                     >
                                                         <CheckCircle className="w-3.5 h-3.5" />
                                                         Valid ({importValidationPreview.filter(c => c.isValid).length})
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => setActiveFilter('duplicate')}
                                                         className={`px-3 py-1.5 rounded-xl transition-all border flex items-center gap-1 ${activeFilter === 'duplicate' ? 'bg-amber-500 text-white border-transparent shadow-lg shadow-amber-500/20' : 'bg-slate-50 dark:bg-white/5 text-amber-600 dark:text-amber-400 border-slate-200 dark:border-white/5 hover:bg-amber-50/50 dark:hover:bg-amber-500/5'}`}
                                                     >
                                                         <Tags className="w-3.5 h-3.5" />
                                                         Duplicate ({importValidationPreview.filter(c => c.isDuplicate).length})
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => setActiveFilter('exists')}
                                                         className={`px-3 py-1.5 rounded-xl transition-all border flex items-center gap-1 ${activeFilter === 'exists' ? 'bg-blue-500 text-white border-transparent shadow-lg shadow-blue-500/20' : 'bg-slate-50 dark:bg-white/5 text-blue-600 dark:text-blue-400 border-slate-200 dark:border-white/5 hover:bg-blue-50/50 dark:hover:bg-blue-500/5'}`}
                                                     >
                                                         <CheckCircle className="w-3.5 h-3.5" />
                                                         Exists ({importValidationPreview.filter(c => c.alreadyExists).length})
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => setActiveFilter('invalid')}
                                                         className={`px-3 py-1.5 rounded-xl transition-all border flex items-center gap-1 ${activeFilter === 'invalid' ? 'bg-red-500 text-white border-transparent shadow-lg shadow-red-500/20' : 'bg-slate-50 dark:bg-white/5 text-red-600 dark:text-red-400 border-slate-200 dark:border-white/5 hover:bg-red-50/50 dark:hover:bg-red-500/5'}`}
                                                     >
@@ -1738,8 +1738,8 @@ const Contacts = () => {
                                                     </button>
                                                 </div>
                                             </div>
-                                            
-                                            <div 
+
+                                            <div
                                                 ref={importListRef}
                                                 className="h-[340px] overflow-y-auto custom-scrollbar border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50/50 dark:bg-black/10 p-3 space-y-2"
                                             >
@@ -1759,13 +1759,13 @@ const Contacts = () => {
                                                                 initial={{ opacity: 0, x: -100 }}
                                                                 animate={{ opacity: 1, x: 0 }}
                                                                 exit={{ opacity: 0, x: 100 }}
-                                                                transition={{ 
+                                                                transition={{
                                                                     type: "spring",
                                                                     stiffness: 350,
                                                                     damping: 28
                                                                 }}
-                                                                className={`group relative flex items-center justify-between p-3 rounded-xl text-sm transition-all border hover:shadow-md ${contact.isValid 
-                                                                    ? 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20' 
+                                                                className={`group relative flex items-center justify-between p-3 rounded-xl text-sm transition-all border hover:shadow-md ${contact.isValid
+                                                                    ? 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
                                                                     : 'bg-red-50/40 dark:bg-red-950/10 border-red-100 dark:border-red-900/20 hover:border-red-200 dark:hover:border-red-900/40'}`}
                                                             >
                                                                 <div className="flex items-center gap-3 overflow-hidden">
@@ -1795,7 +1795,7 @@ const Contacts = () => {
                                                                         )}
                                                                     </div>
                                                                 </div>
-                                                                
+
                                                                 {/* Status Badges */}
                                                                 <div className="flex flex-wrap gap-1 shrink-0 ml-2">
                                                                     {contact.alreadyExists && (
@@ -1923,277 +1923,277 @@ const Contacts = () => {
                                                         Upload an <span className="text-slate-900 dark:text-white font-semibold">.xlsx</span>, <span className="text-slate-900 dark:text-white font-semibold">.csv</span> or{' '}
                                                         <span className="text-slate-900 dark:text-white font-semibold">.vcf</span> file.
                                                     </p>
-                                                <button
-                                            onClick={async () => {
-                                                try {
-                                                    const workbook = new ExcelJS.Workbook();
-                                                    const sheet = workbook.addWorksheet('Contacts');
-                                                    
-                                                    // Add hidden sheet for data validation source
-                                                    const metaSheet = workbook.addWorksheet('ValidationData', { state: 'hidden' });
-                                                    const groupNames = availableGroups.map(g => g.name);
-                                                    const tagNames = availableLabels.map(l => l.name);
-                                                    if (groupNames.length > 0) {
-                                                        // Put them in column A of metaSheet
-                                                        groupNames.forEach((name, idx) => {
-                                                            metaSheet.getCell(`A${idx + 1}`).value = name;
-                                                        });
-                                                    }
-                                                    if (tagNames.length > 0) {
-                                                        // Put them in column B of metaSheet
-                                                        tagNames.forEach((name, idx) => {
-                                                            metaSheet.getCell(`B${idx + 1}`).value = name;
-                                                        });
-                                                    }
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                const workbook = new ExcelJS.Workbook();
+                                                                const sheet = workbook.addWorksheet('Contacts');
 
-                                                    // Setup main sheet columns
-                                                    sheet.columns = [
-                                                        { header: 'Name', key: 'name', width: 20 },
-                                                        { header: 'Phone', key: 'phone', width: 20 },
-                                                        { header: 'Email', key: 'email', width: 25 },
-                                                        { header: 'Group', key: 'group', width: 20 },
-                                                        { header: 'Tag', key: 'tag', width: 20 }
-                                                    ];
-                                                    
-                                                    // Apply headers styling
-                                                    sheet.getRow(1).font = { bold: true };
-                                                    
-                                                    // Add sample data
-                                                    sheet.addRow({ name: 'John Doe', phone: '+1234567890', email: 'john@example.com', group: groupNames[0] || '', tag: tagNames[0] || '' });
-                                                    sheet.addRow({ name: 'Jane Smith', phone: '+9876543210', email: 'jane@test.com', group: groupNames[0] || '', tag: tagNames[0] || '' });
-
-                                                    // Add Data Validation to Group column (Column D) and Tag column (Column E)
-                                                    if (groupNames.length > 0) {
-                                                        for (let i = 2; i <= 1000; i++) {
-                                                            sheet.getCell(`D${i}`).dataValidation = {
-                                                                type: 'list',
-                                                                allowBlank: true,
-                                                                // Reference the hidden sheet A1:A<length>
-                                                                formulae: [`ValidationData!$A$1:$A$${groupNames.length}`]
-                                                            };
-                                                        }
-                                                    }
-                                                    if (tagNames.length > 0) {
-                                                        for (let i = 2; i <= 1000; i++) {
-                                                            sheet.getCell(`E${i}`).dataValidation = {
-                                                                type: 'list',
-                                                                allowBlank: true,
-                                                                formulae: [`ValidationData!$B$1:$B$${tagNames.length}`]
-                                                            };
-                                                        }
-                                                    }
-
-                                                    // Generate buffer and download
-                                                    const buffer = await workbook.xlsx.writeBuffer();
-                                                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                                                    const url = URL.createObjectURL(blob);
-                                                    const a = document.createElement('a');
-                                                    a.href = url; 
-                                                    a.download = 'contacts_template.xlsx';
-                                                    document.body.appendChild(a); 
-                                                    a.click(); 
-                                                    document.body.removeChild(a);
-                                                    URL.revokeObjectURL(url);
-                                                } catch (err) {
-                                                    showToast({ type: 'error', title: 'Error', message: 'Could not generate template' });
-                                                    console.error(err);
-                                                }
-                                            }}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg text-xs font-medium text-slate-700 dark:text-white transition-colors border border-slate-200 dark:border-white/10 shrink-0"
-                                        >
-                                            <Download className="w-3.5 h-3.5" /> Excel Template (.xlsx)
-                                        </button>
-                                    </div>
-
-
-
-                                    <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl cursor-pointer bg-slate-50 dark:bg-background-dark/40 hover:bg-slate-100 dark:hover:bg-background-dark hover:border-primary/50 transition-all group">
-                                        <UploadCloud className="w-9 h-9 text-slate-400 dark:text-text-secondary group-hover:text-primary mb-2 transition-colors" />
-                                        <p className="text-sm text-slate-500 dark:text-text-secondary">
-                                            <span className="font-bold text-primary">Click to upload</span> or drag and drop
-                                        </p>
-                                        <p className="text-xs text-slate-400 dark:text-text-secondary mt-1">.xlsx, .csv, or .vcf — max 5MB</p>
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept=".xlsx,.csv,.vcf,text/vcard,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-                                            onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (!file) return;
-                                                const ext = file.name.split('.').pop().toLowerCase();
-
-                                                const doImport = async (contactsToImport) => {
-                                                    // Fetch existing phones from DB for duplicate detection
-                                                    let existingPhonesSet = new Set();
-                                                    try {
-                                                        const existRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/existing-phones`);
-                                                        (existRes.data.phones || []).forEach(p => existingPhonesSet.add(p));
-                                                    } catch (e) { /* non-fatal, skip DB check */ }
-
-                                                    const seenPhones = new Set();
-                                                    
-                                                    const mappedContacts = contactsToImport.map(c => {
-                                                        const finalGroups = [...(c.tags || [])];
-                                                        bulkImportGroups.forEach(g => {
-                                                            if (!finalGroups.includes(g)) finalGroups.push(g);
-                                                        });
-
-                                                        const finalLabels = [];
-                                                        if (c.csvLabels && c.csvLabels.length > 0) {
-                                                            c.csvLabels.forEach(tagName => {
-                                                                const matchedLabel = availableLabels.find(l => l.name.toLowerCase() === tagName.toLowerCase());
-                                                                if (matchedLabel && !finalLabels.some(l => l.id === matchedLabel.id)) {
-                                                                    finalLabels.push(matchedLabel);
-                                                                }
-                                                            });
-                                                        }
-
-                                                        bulkImportLabelIds.forEach(id => {
-                                                            const matchedLabel = availableLabels.find(l => l.id === id);
-                                                            if (matchedLabel && !finalLabels.some(l => l.id === matchedLabel.id)) {
-                                                                finalLabels.push(matchedLabel);
-                                                            }
-                                                        });
-
-                                                        let originalPhoneStr = c.phone ? c.phone.toString() : '';
-                                                        let phoneWithPrefix = originalPhoneStr;
-                                                        if (countryCodePrefix && originalPhoneStr) {
-                                                            phoneWithPrefix = countryCodePrefix + originalPhoneStr;
-                                                        }
-
-                                                        const rawPhone = phoneWithPrefix.replace(/\D/g, '');
-                                                        const alreadyExists = rawPhone && existingPhonesSet.has(rawPhone);
-                                                        const isDuplicate = rawPhone && seenPhones.has(rawPhone) && !alreadyExists;
-                                                        if (rawPhone) {
-                                                            seenPhones.add(rawPhone);
-                                                        }
-
-                                                        const isValid = !!(c.name && phoneWithPrefix && !isDuplicate && !alreadyExists);
-
-                                                        return {
-                                                            name: c.name,
-                                                            phone: phoneWithPrefix,
-                                                            email: c.email,
-                                                            tags: finalGroups,
-                                                            labels: finalLabels,
-                                                            isValid,
-                                                            isDuplicate,
-                                                            alreadyExists
-                                                        };
-                                                    });
-
-                                                    if (mappedContacts.length === 0) {
-                                                        showToast({ type: 'warning', title: 'No Contacts Found', message: 'The file appears to be empty or improperly formatted.' });
-                                                        return;
-                                                    }
-                                                    
-                                                    setImportValidationPreview([]);
-                                                    const totalContacts = mappedContacts.length;
-                                                    let batchSize = 1;
-                                                    if (totalContacts > 200) {
-                                                        batchSize = Math.ceil(totalContacts / 40);
-                                                    } else if (totalContacts > 50) {
-                                                        batchSize = 5;
-                                                    }
-
-                                                    let currentIdx = 0;
-                                                    const timer = setInterval(() => {
-                                                        if (currentIdx < totalContacts) {
-                                                            const nextBatch = mappedContacts.slice(currentIdx, currentIdx + batchSize);
-                                                            setImportValidationPreview(prev => [...(prev || []), ...nextBatch]);
-                                                            currentIdx += batchSize;
-                                                        } else {
-                                                            clearInterval(timer);
-                                                        }
-                                                    }, 30);
-                                                };
-
-                                                if (ext === 'vcf') {
-                                                    const reader = new FileReader();
-                                                    reader.onload = (ev) => {
-                                                        const parsed = parseVCF(ev.target.result);
-                                                        doImport(parsed.filter(c => c.phone).map(c => ({
-                                                            name: c.name || c.phone,
-                                                            phone: c.phone,
-                                                            email: c.email || '',
-                                                            tags: [],
-                                                            csvLabels: []
-                                                        })));
-                                                    };
-                                                    reader.readAsText(file);
-                                                } else if (ext === 'xlsx') {
-                                                    // Excel
-                                                    const reader = new FileReader();
-                                                    reader.onload = async (ev) => {
-                                                        try {
-                                                            const workbook = new ExcelJS.Workbook();
-                                                            await workbook.xlsx.load(ev.target.result);
-                                                            const worksheet = workbook.worksheets[0];
-                                                            
-                                                            if (!worksheet) {
-                                                                showToast({ type: 'error', title: 'Parse Error', message: 'No worksheets found in Excel file.' });
-                                                                return;
-                                                            }
-                                                            
-                                                            const contacts = [];
-                                                            let headers = [];
-                                                            
-                                                            worksheet.eachRow((row, rowNumber) => {
-                                                                if (rowNumber === 1) {
-                                                                    // Map headers
-                                                                    headers = row.values.map(v => String(v || '').trim());
-                                                                } else {
-                                                                    // Build row object
-                                                                    const rowObj = {};
-                                                                    row.values.forEach((val, idx) => {
-                                                                        if (headers[idx]) {
-                                                                            // Get value, handle rich text or formulas if any
-                                                                            let finalVal = val;
-                                                                            if (val && typeof val === 'object') {
-                                                                                if (val.richText) {
-                                                                                    finalVal = val.richText.map(rt => rt.text).join('');
-                                                                                } else if (val.result) {
-                                                                                    finalVal = val.result;
-                                                                                } else if (val.text) {
-                                                                                    finalVal = val.text;
-                                                                                }
-                                                                            }
-                                                                            rowObj[headers[idx]] = String(finalVal || '').trim();
-                                                                        }
+                                                                // Add hidden sheet for data validation source
+                                                                const metaSheet = workbook.addWorksheet('ValidationData', { state: 'hidden' });
+                                                                const groupNames = availableGroups.map(g => g.name);
+                                                                const tagNames = availableLabels.map(l => l.name);
+                                                                if (groupNames.length > 0) {
+                                                                    // Put them in column A of metaSheet
+                                                                    groupNames.forEach((name, idx) => {
+                                                                        metaSheet.getCell(`A${idx + 1}`).value = name;
                                                                     });
-                                                                    
-                                                                    const norm = normaliseCSVRow(rowObj);
-                                                                    if (norm.name && norm.phone) {
-                                                                        contacts.push(norm);
+                                                                }
+                                                                if (tagNames.length > 0) {
+                                                                    // Put them in column B of metaSheet
+                                                                    tagNames.forEach((name, idx) => {
+                                                                        metaSheet.getCell(`B${idx + 1}`).value = name;
+                                                                    });
+                                                                }
+
+                                                                // Setup main sheet columns
+                                                                sheet.columns = [
+                                                                    { header: 'Name', key: 'name', width: 20 },
+                                                                    { header: 'Phone', key: 'phone', width: 20 },
+                                                                    { header: 'Email', key: 'email', width: 25 },
+                                                                    { header: 'Group', key: 'group', width: 20 },
+                                                                    { header: 'Tag', key: 'tag', width: 20 }
+                                                                ];
+
+                                                                // Apply headers styling
+                                                                sheet.getRow(1).font = { bold: true };
+
+                                                                // Add sample data
+                                                                sheet.addRow({ name: 'John Doe', phone: '+1234567890', email: 'john@example.com', group: groupNames[0] || '', tag: tagNames[0] || '' });
+                                                                sheet.addRow({ name: 'Jane Smith', phone: '+9876543210', email: 'jane@test.com', group: groupNames[0] || '', tag: tagNames[0] || '' });
+
+                                                                // Add Data Validation to Group column (Column D) and Tag column (Column E)
+                                                                if (groupNames.length > 0) {
+                                                                    for (let i = 2; i <= 1000; i++) {
+                                                                        sheet.getCell(`D${i}`).dataValidation = {
+                                                                            type: 'list',
+                                                                            allowBlank: true,
+                                                                            // Reference the hidden sheet A1:A<length>
+                                                                            formulae: [`ValidationData!$A$1:$A$${groupNames.length}`]
+                                                                        };
                                                                     }
                                                                 }
-                                                            });
-                                                            doImport(contacts);
-                                                        } catch (err) {
-                                                            showToast({ type: 'error', title: 'Parse Error', message: 'Could not read Excel file: ' + err.message });
-                                                        }
-                                                    };
-                                                    reader.readAsArrayBuffer(file);
-                                                } else {
-                                                    // CSV (flexible column detection)
-                                                    Papa.parse(file, {
-                                                        header: true,
-                                                        skipEmptyLines: true,
-                                                        complete: (results) => {
-                                                            const contacts = results.data
-                                                                .map(normaliseCSVRow)
-                                                                .filter(r => r.name && r.phone);
-                                                            doImport(contacts);
-                                                        },
-                                                        error: (err) => {
-                                                            showToast({ type: 'error', title: 'Parse Error', message: 'Could not read file: ' + err.message });
-                                                        }
-                                                    });
-                                                }
-                                                e.target.value = ''; // reset input
-                                            }}
-                                        />
-                                            </label>
+                                                                if (tagNames.length > 0) {
+                                                                    for (let i = 2; i <= 1000; i++) {
+                                                                        sheet.getCell(`E${i}`).dataValidation = {
+                                                                            type: 'list',
+                                                                            allowBlank: true,
+                                                                            formulae: [`ValidationData!$B$1:$B$${tagNames.length}`]
+                                                                        };
+                                                                    }
+                                                                }
+
+                                                                // Generate buffer and download
+                                                                const buffer = await workbook.xlsx.writeBuffer();
+                                                                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                                                                const url = URL.createObjectURL(blob);
+                                                                const a = document.createElement('a');
+                                                                a.href = url;
+                                                                a.download = 'contacts_template.xlsx';
+                                                                document.body.appendChild(a);
+                                                                a.click();
+                                                                document.body.removeChild(a);
+                                                                URL.revokeObjectURL(url);
+                                                            } catch (err) {
+                                                                showToast({ type: 'error', title: 'Error', message: 'Could not generate template' });
+                                                                console.error(err);
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg text-xs font-medium text-slate-700 dark:text-white transition-colors border border-slate-200 dark:border-white/10 shrink-0"
+                                                    >
+                                                        <Download className="w-3.5 h-3.5" /> Excel Template (.xlsx)
+                                                    </button>
+                                                </div>
+
+
+
+                                                <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl cursor-pointer bg-slate-50 dark:bg-background-dark/40 hover:bg-slate-100 dark:hover:bg-background-dark hover:border-primary/50 transition-all group">
+                                                    <UploadCloud className="w-9 h-9 text-slate-400 dark:text-text-secondary group-hover:text-primary mb-2 transition-colors" />
+                                                    <p className="text-sm text-slate-500 dark:text-text-secondary">
+                                                        <span className="font-bold text-primary">Click to upload</span> or drag and drop
+                                                    </p>
+                                                    <p className="text-xs text-slate-400 dark:text-text-secondary mt-1">.xlsx, .csv, or .vcf — max 5MB</p>
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept=".xlsx,.csv,.vcf,text/vcard,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files[0];
+                                                            if (!file) return;
+                                                            const ext = file.name.split('.').pop().toLowerCase();
+
+                                                            const doImport = async (contactsToImport) => {
+                                                                // Fetch existing phones from DB for duplicate detection
+                                                                let existingPhonesSet = new Set();
+                                                                try {
+                                                                    const existRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/existing-phones`);
+                                                                    (existRes.data.phones || []).forEach(p => existingPhonesSet.add(p));
+                                                                } catch (e) { /* non-fatal, skip DB check */ }
+
+                                                                const seenPhones = new Set();
+
+                                                                const mappedContacts = contactsToImport.map(c => {
+                                                                    const finalGroups = [...(c.tags || [])];
+                                                                    bulkImportGroups.forEach(g => {
+                                                                        if (!finalGroups.includes(g)) finalGroups.push(g);
+                                                                    });
+
+                                                                    const finalLabels = [];
+                                                                    if (c.csvLabels && c.csvLabels.length > 0) {
+                                                                        c.csvLabels.forEach(tagName => {
+                                                                            const matchedLabel = availableLabels.find(l => l.name.toLowerCase() === tagName.toLowerCase());
+                                                                            if (matchedLabel && !finalLabels.some(l => l.id === matchedLabel.id)) {
+                                                                                finalLabels.push(matchedLabel);
+                                                                            }
+                                                                        });
+                                                                    }
+
+                                                                    bulkImportLabelIds.forEach(id => {
+                                                                        const matchedLabel = availableLabels.find(l => l.id === id);
+                                                                        if (matchedLabel && !finalLabels.some(l => l.id === matchedLabel.id)) {
+                                                                            finalLabels.push(matchedLabel);
+                                                                        }
+                                                                    });
+
+                                                                    let originalPhoneStr = c.phone ? c.phone.toString() : '';
+                                                                    let phoneWithPrefix = originalPhoneStr;
+                                                                    if (countryCodePrefix && originalPhoneStr) {
+                                                                        phoneWithPrefix = countryCodePrefix + originalPhoneStr;
+                                                                    }
+
+                                                                    const rawPhone = phoneWithPrefix.replace(/\D/g, '');
+                                                                    const alreadyExists = rawPhone && existingPhonesSet.has(rawPhone);
+                                                                    const isDuplicate = rawPhone && seenPhones.has(rawPhone) && !alreadyExists;
+                                                                    if (rawPhone) {
+                                                                        seenPhones.add(rawPhone);
+                                                                    }
+
+                                                                    const isValid = !!(c.name && phoneWithPrefix && !isDuplicate && !alreadyExists);
+
+                                                                    return {
+                                                                        name: c.name,
+                                                                        phone: phoneWithPrefix,
+                                                                        email: c.email,
+                                                                        tags: finalGroups,
+                                                                        labels: finalLabels,
+                                                                        isValid,
+                                                                        isDuplicate,
+                                                                        alreadyExists
+                                                                    };
+                                                                });
+
+                                                                if (mappedContacts.length === 0) {
+                                                                    showToast({ type: 'warning', title: 'No Contacts Found', message: 'The file appears to be empty or improperly formatted.' });
+                                                                    return;
+                                                                }
+
+                                                                setImportValidationPreview([]);
+                                                                const totalContacts = mappedContacts.length;
+                                                                let batchSize = 1;
+                                                                if (totalContacts > 200) {
+                                                                    batchSize = Math.ceil(totalContacts / 40);
+                                                                } else if (totalContacts > 50) {
+                                                                    batchSize = 5;
+                                                                }
+
+                                                                let currentIdx = 0;
+                                                                const timer = setInterval(() => {
+                                                                    if (currentIdx < totalContacts) {
+                                                                        const nextBatch = mappedContacts.slice(currentIdx, currentIdx + batchSize);
+                                                                        setImportValidationPreview(prev => [...(prev || []), ...nextBatch]);
+                                                                        currentIdx += batchSize;
+                                                                    } else {
+                                                                        clearInterval(timer);
+                                                                    }
+                                                                }, 30);
+                                                            };
+
+                                                            if (ext === 'vcf') {
+                                                                const reader = new FileReader();
+                                                                reader.onload = (ev) => {
+                                                                    const parsed = parseVCF(ev.target.result);
+                                                                    doImport(parsed.filter(c => c.phone).map(c => ({
+                                                                        name: c.name || c.phone,
+                                                                        phone: c.phone,
+                                                                        email: c.email || '',
+                                                                        tags: [],
+                                                                        csvLabels: []
+                                                                    })));
+                                                                };
+                                                                reader.readAsText(file);
+                                                            } else if (ext === 'xlsx') {
+                                                                // Excel
+                                                                const reader = new FileReader();
+                                                                reader.onload = async (ev) => {
+                                                                    try {
+                                                                        const workbook = new ExcelJS.Workbook();
+                                                                        await workbook.xlsx.load(ev.target.result);
+                                                                        const worksheet = workbook.worksheets[0];
+
+                                                                        if (!worksheet) {
+                                                                            showToast({ type: 'error', title: 'Parse Error', message: 'No worksheets found in Excel file.' });
+                                                                            return;
+                                                                        }
+
+                                                                        const contacts = [];
+                                                                        let headers = [];
+
+                                                                        worksheet.eachRow((row, rowNumber) => {
+                                                                            if (rowNumber === 1) {
+                                                                                // Map headers
+                                                                                headers = row.values.map(v => String(v || '').trim());
+                                                                            } else {
+                                                                                // Build row object
+                                                                                const rowObj = {};
+                                                                                row.values.forEach((val, idx) => {
+                                                                                    if (headers[idx]) {
+                                                                                        // Get value, handle rich text or formulas if any
+                                                                                        let finalVal = val;
+                                                                                        if (val && typeof val === 'object') {
+                                                                                            if (val.richText) {
+                                                                                                finalVal = val.richText.map(rt => rt.text).join('');
+                                                                                            } else if (val.result) {
+                                                                                                finalVal = val.result;
+                                                                                            } else if (val.text) {
+                                                                                                finalVal = val.text;
+                                                                                            }
+                                                                                        }
+                                                                                        rowObj[headers[idx]] = String(finalVal || '').trim();
+                                                                                    }
+                                                                                });
+
+                                                                                const norm = normaliseCSVRow(rowObj);
+                                                                                if (norm.name && norm.phone) {
+                                                                                    contacts.push(norm);
+                                                                                }
+                                                                            }
+                                                                        });
+                                                                        doImport(contacts);
+                                                                    } catch (err) {
+                                                                        showToast({ type: 'error', title: 'Parse Error', message: 'Could not read Excel file: ' + err.message });
+                                                                    }
+                                                                };
+                                                                reader.readAsArrayBuffer(file);
+                                                            } else {
+                                                                // CSV (flexible column detection)
+                                                                Papa.parse(file, {
+                                                                    header: true,
+                                                                    skipEmptyLines: true,
+                                                                    complete: (results) => {
+                                                                        const contacts = results.data
+                                                                            .map(normaliseCSVRow)
+                                                                            .filter(r => r.name && r.phone);
+                                                                        doImport(contacts);
+                                                                    },
+                                                                    error: (err) => {
+                                                                        showToast({ type: 'error', title: 'Parse Error', message: 'Could not read file: ' + err.message });
+                                                                    }
+                                                                });
+                                                            }
+                                                            e.target.value = ''; // reset input
+                                                        }}
+                                                    />
+                                                </label>
                                             </div>
                                         </div>
                                     )}
@@ -2273,16 +2273,16 @@ const Contacts = () => {
                                             onClick={async () => {
                                                 try {
                                                     const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/google/auth-url`);
-                                                    
+
                                                     // Open in a centered popup window
                                                     const width = 500;
                                                     const height = 650;
                                                     const left = window.screenX + (window.outerWidth - width) / 2;
                                                     const top = window.screenY + (window.outerHeight - height) / 2;
-                                                    
+
                                                     window.open(
-                                                        res.data.url, 
-                                                        'GoogleAuth', 
+                                                        res.data.url,
+                                                        'GoogleAuth',
                                                         `width=${width},height=${height},left=${left},top=${top},location=no,status=no`
                                                     );
                                                 } catch {

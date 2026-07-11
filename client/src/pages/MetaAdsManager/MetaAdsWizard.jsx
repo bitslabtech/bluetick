@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Sparkles, Target, Type, CreditCard, ChevronRight, ChevronLeft, 
-    CheckCircle2, AlertTriangle, Loader2, Megaphone, MapPin, 
+import {
+    Sparkles, Target, Type, CreditCard, ChevronRight, ChevronLeft,
+    CheckCircle2, AlertTriangle, Loader2, Megaphone, MapPin,
     Users, Briefcase, Zap, Image, TrendingUp, ExternalLink, MoreVertical,
     Bot, MessageCircle, Mail, ArrowRight, Workflow, Radio, Globe,
     PenLine, SlidersHorizontal, Hash, FileText, Plus, X, Tag,
@@ -170,16 +170,15 @@ function LocationSearchInput({ selectedLocations, onChange, placeholder = 'Searc
                                             type="button"
                                             onMouseDown={(e) => { e.preventDefault(); addLocation(loc); }}
                                             onMouseEnter={() => setActiveIdx(idx)}
-                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                                                isSelected ? 'bg-red-50 dark:bg-red-500/10' :
-                                                activeIdx === idx ? 'bg-slate-50 dark:bg-white/5' : 'hover:bg-slate-50 dark:hover:bg-white/5'
-                                            }`}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isSelected ? 'bg-red-50 dark:bg-red-500/10' :
+                                                    activeIdx === idx ? 'bg-slate-50 dark:bg-white/5' : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                                }`}
                                         >
                                             <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-lg flex-shrink-0">
                                                 {TYPE_ICON[loc.type] || '📍'}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className={`text-sm font-bold truncate ${ isSelected ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white' }`}>
+                                                <p className={`text-sm font-bold truncate ${isSelected ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'}`}>
                                                     {loc.name}
                                                 </p>
                                                 <p className="text-[11px] text-slate-400 truncate">
@@ -237,11 +236,10 @@ function LocationSearchInput({ selectedLocations, onChange, placeholder = 'Searc
                             key={loc.key}
                             type="button"
                             onClick={() => isSelected ? removeLocation(loc.key) : addLocation(loc)}
-                            className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${
-                                isSelected
+                            className={`text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all ${isSelected
                                     ? 'border-red-400 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
                                     : 'border-slate-200 dark:border-white/10 text-slate-500 hover:border-red-300 hover:text-red-600 dark:hover:border-red-500/40'
-                            }`}
+                                }`}
                         >
                             {TYPE_ICON[loc.type]} {loc.name}
                         </button>
@@ -404,10 +402,9 @@ function InterestSearchInput({ selectedInterests, onChange, placeholder = 'Type 
                                             type="button"
                                             onMouseDown={(e) => { e.preventDefault(); addInterest(item.name); }}
                                             onMouseEnter={() => setActiveIdx(idx)}
-                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                                                isSelected ? 'bg-blue-50 dark:bg-blue-500/10' :
-                                                activeIdx === idx ? 'bg-slate-50 dark:bg-white/5' : 'hover:bg-slate-50 dark:hover:bg-white/5'
-                                            }`}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-500/10' :
+                                                    activeIdx === idx ? 'bg-slate-50 dark:bg-white/5' : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                                }`}
                                         >
                                             <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center flex-shrink-0">
                                                 <Tag className="w-4 h-4 text-blue-400" />
@@ -678,7 +675,7 @@ export default function MetaAdsWizard() {
                 businessDescription: `Business Name: ${businessData.name}\n${businessData.description}`,
                 targetLocations: targetLocations.length > 0 ? targetLocations.map(l => l.name) : undefined
             }, { withCredentials: true });
-            
+
             setAudienceData(res.data.research);
             toast.success(`AI Research completed! (${res.data.tokensDeducted} tokens used)`);
             setCurrentStep(1);
@@ -698,7 +695,7 @@ export default function MetaAdsWizard() {
                 tone: 'High-converting, action-oriented for WhatsApp',
                 language: adLanguage
             }, { withCredentials: true });
-            
+
             setCreativeData(res.data.copy.variations);
             toast.success(`AI Copy generated! (${res.data.tokensDeducted} tokens used)`);
             setCurrentStep(2);
@@ -720,7 +717,7 @@ export default function MetaAdsWizard() {
             const res = await axios.post('/api/meta-ads/ai-image', {
                 businessDescription: imageContext
             }, { withCredentials: true });
-            
+
             setGeneratedImage(res.data.imageUrl);
             toast.success(`AI Image generated! (${res.data.tokensDeducted} tokens used)`);
         } catch (err) {
@@ -770,15 +767,15 @@ export default function MetaAdsWizard() {
         setLoading(true);
         try {
             const res = await axios.post('/api/meta-ads/publish', {
-                campaignName: `${businessData.name.replace(/\s+/g,'_')}_AI_Campaign`,
+                campaignName: `${businessData.name.replace(/\s+/g, '_')}_AI_Campaign`,
                 objective: budgetData.objective,
                 dailyBudget: budgetData.budgetType === 'daily' ? budgetData.dailyBudget : undefined,
                 lifetimeBudget: budgetData.budgetType === 'lifetime' ? budgetData.lifetimeBudget : undefined,
                 budgetType: budgetData.budgetType,
                 targeting: {
                     ...(audienceData || {}),
-                    locations:       targetLocations.map(l => l.name || l),
-                    locationKeys:    targetLocations.map(l => l.key).filter(Boolean),
+                    locations: targetLocations.map(l => l.name || l),
+                    locationKeys: targetLocations.map(l => l.key).filter(Boolean),
                     locationObjects: targetLocations,
                     gender,
                     targetingLanguage: targetingLanguage || undefined,
@@ -789,16 +786,16 @@ export default function MetaAdsWizard() {
                 imageUrl: generatedImage,
                 scheduling: {
                     startDate: schedulingStart || null,
-                    endDate:   schedulingEnd   || null,
+                    endDate: schedulingEnd || null,
                 },
                 automation: {
-                    type:       automationType,
-                    flowId:     automationType === 'flowbot'  ? selectedFlowId    : null,
+                    type: automationType,
+                    flowId: automationType === 'flowbot' ? selectedFlowId : null,
                     templateId: automationType === 'template' ? selectedTemplateId : null,
                     icebreaker: icebreaker || null,
                 }
             }, { withCredentials: true });
-            
+
             if (res.data?.adWarning) {
                 toast.warning(`Campaign saved, but there was an issue: ${res.data.adWarning}`, { duration: 8000 });
             } else {
@@ -857,14 +854,14 @@ export default function MetaAdsWizard() {
                 lifetimeBudget: manual.budgetType === 'lifetime' ? manual.lifetimeBudget : undefined,
                 budgetType: manual.budgetType,
                 targeting: {
-                    age_min:            manual.ageMin,
-                    age_max:            manual.ageMax,
-                    locations:          manualLocations.map(l => l.name || l),
-                    locationKeys:       manualLocations.map(l => l.key).filter(Boolean),
-                    locationObjects:    manualLocations,
-                    interests:          manualInterests,
+                    age_min: manual.ageMin,
+                    age_max: manual.ageMax,
+                    locations: manualLocations.map(l => l.name || l),
+                    locationKeys: manualLocations.map(l => l.key).filter(Boolean),
+                    locationObjects: manualLocations,
+                    interests: manualInterests,
                     gender,
-                    targetingLanguage:  targetingLanguage || undefined,
+                    targetingLanguage: targetingLanguage || undefined,
                     placements,
                     messengerPositions,
                 },
@@ -872,12 +869,12 @@ export default function MetaAdsWizard() {
                 imageUrl: manualImage || null,
                 scheduling: {
                     startDate: schedulingStart || null,
-                    endDate:   schedulingEnd   || null,
+                    endDate: schedulingEnd || null,
                 },
                 automation: {
-                    type:       automationType,
-                    flowId:     automationType === 'flowbot'   ? selectedFlowId   : null,
-                    templateId: automationType === 'template'  ? selectedTemplateId : null,
+                    type: automationType,
+                    flowId: automationType === 'flowbot' ? selectedFlowId : null,
+                    templateId: automationType === 'template' ? selectedTemplateId : null,
                     icebreaker: icebreaker || null,
                 }
             }, { withCredentials: true });
@@ -960,9 +957,9 @@ export default function MetaAdsWizard() {
     const renderManualForm = () => {
         const OBJECTIVES = [
             { value: 'OUTCOME_ENGAGEMENT', label: 'Engagement', desc: 'Drive WhatsApp chats (CTWA)', emoji: '💬', ctwa: true },
-            { value: 'OUTCOME_TRAFFIC',    label: 'Traffic',    desc: 'Drive website/link clicks',  emoji: '🌐' },
-            { value: 'OUTCOME_LEADS',      label: 'Lead Gen',   desc: 'Collect qualified leads',     emoji: '🎯' },
-            { value: 'OUTCOME_AWARENESS',  label: 'Awareness',  desc: 'Maximize brand reach',        emoji: '📢' },
+            { value: 'OUTCOME_TRAFFIC', label: 'Traffic', desc: 'Drive website/link clicks', emoji: '🌐' },
+            { value: 'OUTCOME_LEADS', label: 'Lead Gen', desc: 'Collect qualified leads', emoji: '🎯' },
+            { value: 'OUTCOME_AWARENESS', label: 'Awareness', desc: 'Maximize brand reach', emoji: '📢' },
         ];
         const QUICK_INTERESTS = ['Small Business', 'E-commerce', 'Entrepreneurship', 'Digital Marketing', 'Online Shopping', 'Real Estate', 'Health & Fitness', 'Fashion', 'Technology', 'Education'];
 
@@ -988,7 +985,7 @@ export default function MetaAdsWizard() {
                                 className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm font-medium outline-none focus:ring-2 focus:ring-violet-400/50 transition-all placeholder-slate-400"
                                 placeholder="e.g. Diwali Sale 2025 – WhatsApp Leads"
                                 value={manual.campaignName}
-                                onChange={e => setManual({...manual, campaignName: e.target.value})}
+                                onChange={e => setManual({ ...manual, campaignName: e.target.value })}
                             />
                         </div>
                         <div>
@@ -998,12 +995,11 @@ export default function MetaAdsWizard() {
                                     <button
                                         key={obj.value}
                                         type="button"
-                                        onClick={() => setManual({...manual, objective: obj.value})}
-                                        className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-center ${
-                                            manual.objective === obj.value
+                                        onClick={() => setManual({ ...manual, objective: obj.value })}
+                                        className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-center ${manual.objective === obj.value
                                                 ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 shadow-lg shadow-violet-500/10'
                                                 : 'border-slate-100 dark:border-white/5 hover:border-violet-200 dark:hover:border-violet-500/30 bg-white dark:bg-surface-dark'
-                                        }`}
+                                            }`}
                                     >
                                         {manual.objective === obj.value && (
                                             <span className="absolute top-2 right-2 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
@@ -1059,18 +1055,17 @@ export default function MetaAdsWizard() {
                     {/* Budget Type Toggle */}
                     <div className="flex gap-2 mb-4">
                         {[
-                            { type: 'daily',    label: '📅 Daily Budget',    desc: 'Spend per day, runs until paused' },
+                            { type: 'daily', label: '📅 Daily Budget', desc: 'Spend per day, runs until paused' },
                             { type: 'lifetime', label: '🎯 Fixed Budget', desc: 'Fixed total, auto-stops at end date' },
                         ].map(opt => (
                             <button
                                 key={opt.type}
                                 type="button"
-                                onClick={() => setManual({...manual, budgetType: opt.type})}
-                                className={`flex-1 px-3 py-3 rounded-xl border-2 text-left transition-all ${
-                                    manual.budgetType === opt.type
+                                onClick={() => setManual({ ...manual, budgetType: opt.type })}
+                                className={`flex-1 px-3 py-3 rounded-xl border-2 text-left transition-all ${manual.budgetType === opt.type
                                         ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
                                         : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-slate-300'
-                                }`}
+                                    }`}
                             >
                                 <p className={`text-xs font-bold ${manual.budgetType === opt.type ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-600 dark:text-slate-300'}`}>{opt.label}</p>
                                 <p className="text-[10px] text-slate-400 mt-0.5">{opt.desc}</p>
@@ -1086,13 +1081,13 @@ export default function MetaAdsWizard() {
                                     type="range" min="100" max="50000" step="100"
                                     className="w-full accent-emerald-500 h-2 cursor-pointer"
                                     value={manual.dailyBudget}
-                                    onChange={e => setManual({...manual, dailyBudget: parseInt(e.target.value)})}
+                                    onChange={e => setManual({ ...manual, dailyBudget: parseInt(e.target.value) })}
                                 />
                                 <div className="flex justify-between text-xs text-slate-400 mt-2">
                                     <span>₹100 <span className="text-slate-300">(Meta Min)</span></span>
                                     <div className="flex gap-2">
                                         {[500, 1000, 5000, 10000].map(v => (
-                                            <button key={v} type="button" onClick={() => setManual({...manual, dailyBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${ manual.dailyBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
+                                            <button key={v} type="button" onClick={() => setManual({ ...manual, dailyBudget: v })} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${manual.dailyBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v >= 1000 ? `${v / 1000}K` : v}</button>
                                         ))}
                                     </div>
                                     <span>₹50K+</span>
@@ -1105,13 +1100,13 @@ export default function MetaAdsWizard() {
                                     type="range" min="500" max="500000" step="500"
                                     className="w-full accent-emerald-500 h-2 cursor-pointer"
                                     value={manual.lifetimeBudget}
-                                    onChange={e => setManual({...manual, lifetimeBudget: parseInt(e.target.value)})}
+                                    onChange={e => setManual({ ...manual, lifetimeBudget: parseInt(e.target.value) })}
                                 />
                                 <div className="flex justify-between text-xs text-slate-400 mt-2">
                                     <span>₹500 <span className="text-slate-300">(Meta Min)</span></span>
                                     <div className="flex gap-2">
                                         {[3000, 5000, 10000, 50000].map(v => (
-                                            <button key={v} type="button" onClick={() => setManual({...manual, lifetimeBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${ manual.lifetimeBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
+                                            <button key={v} type="button" onClick={() => setManual({ ...manual, lifetimeBudget: v })} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${manual.lifetimeBudget === v ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v >= 1000 ? `${v / 1000}K` : v}</button>
                                         ))}
                                     </div>
                                     <span>₹5L+</span>
@@ -1161,14 +1156,14 @@ export default function MetaAdsWizard() {
                             <div>
                                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Min Age</label>
                                 <div className="relative">
-                                    <input type="number" min="13" max="65" className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-center text-lg font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50" value={manual.ageMin} onChange={e => setManual({...manual, ageMin: parseInt(e.target.value)||18})} />
+                                    <input type="number" min="13" max="65" className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-center text-lg font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50" value={manual.ageMin} onChange={e => setManual({ ...manual, ageMin: parseInt(e.target.value) || 18 })} />
                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">yrs</span>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Max Age</label>
                                 <div className="relative">
-                                    <input type="number" min="13" max="65" className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-center text-lg font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50" value={manual.ageMax} onChange={e => setManual({...manual, ageMax: parseInt(e.target.value)||55})} />
+                                    <input type="number" min="13" max="65" className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-center text-lg font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-400/50" value={manual.ageMax} onChange={e => setManual({ ...manual, ageMax: parseInt(e.target.value) || 55 })} />
                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">yrs</span>
                                 </div>
                             </div>
@@ -1230,11 +1225,10 @@ export default function MetaAdsWizard() {
                                         key={g.value}
                                         type="button"
                                         onClick={() => setGender(g.value)}
-                                        className={`flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border-2 transition-all text-center ${
-                                            gender === g.value
+                                        className={`flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border-2 transition-all text-center ${gender === g.value
                                                 ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 shadow-lg shadow-violet-500/10'
                                                 : 'border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark hover:border-violet-200'
-                                        }`}
+                                            }`}
                                     >
                                         <span className="text-2xl">{g.emoji}</span>
                                         <span className={`text-xs font-bold ${gender === g.value ? 'text-violet-700 dark:text-violet-300' : 'text-slate-600 dark:text-slate-400'}`}>{g.label}</span>
@@ -1331,12 +1325,12 @@ export default function MetaAdsWizard() {
                                         <span className="text-[9px] bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-semibold">Mobile Only</span>
                                     </div>
                                     <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
-                                        <input type="checkbox" className="rounded text-blue-500 w-4 h-4 cursor-pointer" 
-                                            checked={messengerPositions.includes('messenger_story')} 
+                                        <input type="checkbox" className="rounded text-blue-500 w-4 h-4 cursor-pointer"
+                                            checked={messengerPositions.includes('messenger_story')}
                                             onChange={(e) => {
                                                 if (e.target.checked) setMessengerPositions(p => [...p, 'messenger_story']);
                                                 else setMessengerPositions(p => p.filter(x => x !== 'messenger_story'));
-                                            }} 
+                                            }}
                                         />
                                         Messenger Stories
                                     </label>
@@ -1416,11 +1410,10 @@ export default function MetaAdsWizard() {
                             const durationH = Math.round((new Date(schedulingEnd) - new Date(schedulingStart)) / 3600000);
                             const tooShort = durationH < 24;
                             return (
-                                <div className={`mt-3 flex items-center gap-2 border rounded-xl px-4 py-2.5 ${
-                                    tooShort
+                                <div className={`mt-3 flex items-center gap-2 border rounded-xl px-4 py-2.5 ${tooShort
                                         ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30'
                                         : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30'
-                                }`}>
+                                    }`}>
                                     <span className={`text-xs font-bold ${tooShort ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
                                         {tooShort ? '⚠️ Too short! Min 24h required:' : '📅 Campaign scheduled:'}
                                     </span>
@@ -1454,7 +1447,7 @@ export default function MetaAdsWizard() {
                                 className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-400/50 transition-all leading-relaxed resize-none"
                                 placeholder="Write your main ad text here. Use a hook in the first line. E.g.: 🔥 Flat 50% OFF on all dresses — limited time only! Click below to get your exclusive discount on WhatsApp."
                                 value={manual.primaryText}
-                                onChange={e => setManual({...manual, primaryText: e.target.value})}
+                                onChange={e => setManual({ ...manual, primaryText: e.target.value })}
                             />
                             <p className="text-right text-[10px] text-slate-400 mt-1">{manual.primaryText.length}/200</p>
                         </div>
@@ -1466,7 +1459,7 @@ export default function MetaAdsWizard() {
                                 className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-400/50 transition-all"
                                 placeholder="e.g. Chat Now & Get 50% OFF!"
                                 value={manual.headline}
-                                onChange={e => setManual({...manual, headline: e.target.value})}
+                                onChange={e => setManual({ ...manual, headline: e.target.value })}
                             />
                             <p className="text-right text-[10px] text-slate-400 mt-1">{manual.headline.length}/40</p>
                         </div>
@@ -1612,11 +1605,10 @@ export default function MetaAdsWizard() {
                     <button
                         onClick={handleManualPublish}
                         disabled={loading || !Object.values(checklistChecks).every(Boolean)}
-                        className={`flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all text-sm ${
-                            metaConnected
+                        className={`flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all text-sm ${metaConnected
                                 ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-violet-500/25'
                                 : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-amber-500/25'
-                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                            } disabled:opacity-60 disabled:cursor-not-allowed`}
                     >
                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Megaphone className="w-5 h-5" />}
                         {metaConnected ? 'Publish Campaign' : 'Save as Draft'}
@@ -1627,7 +1619,7 @@ export default function MetaAdsWizard() {
     };
 
     const renderStepContent = () => {
-        switch(currentStep) {
+        switch (currentStep) {
             case 0:
                 return (
                     <div className="space-y-6">
@@ -1641,22 +1633,22 @@ export default function MetaAdsWizard() {
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Business / Product Name</label>
-                            <input 
+                            <input
                                 type="text"
                                 className="w-full bg-slate-50 dark:bg-surface-dark/50 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium"
                                 placeholder="e.g. FitLife Gym"
                                 value={businessData.name}
-                                onChange={(e) => setBusinessData({...businessData, name: e.target.value})}
+                                onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">What are you selling / offering?</label>
-                            <textarea 
+                            <textarea
                                 rows={5}
                                 className="w-full bg-slate-50 dark:bg-surface-dark/50 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm leading-relaxed"
                                 placeholder="e.g. We are offering a 30-day weight loss bootcamp. It includes personal training, diet plans, and access to the gym 24/7. Target audience is working professionals looking to get back in shape."
                                 value={businessData.description}
-                                onChange={(e) => setBusinessData({...businessData, description: e.target.value})}
+                                onChange={(e) => setBusinessData({ ...businessData, description: e.target.value })}
                             />
                         </div>
 
@@ -1670,11 +1662,10 @@ export default function MetaAdsWizard() {
                                     <button
                                         key={lang.code}
                                         onClick={() => setAdLanguage(lang.code)}
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border-2 ${
-                                            adLanguage === lang.code
+                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border-2 ${adLanguage === lang.code
                                                 ? 'border-primary bg-primary/10 text-primary dark:text-primary'
                                                 : 'border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                                        }`}
+                                            }`}
                                     >
                                         <span>{lang.flag}</span> {lang.label.split(' ').pop()}
                                     </button>
@@ -1718,7 +1709,7 @@ export default function MetaAdsWizard() {
                         </div>
 
                         <div className="pt-4 flex justify-end">
-                            <button 
+                            <button
                                 onClick={handleGenerateAudience}
                                 disabled={loading || !businessData.description}
                                 className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 md:px-8 py-3.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
@@ -1750,11 +1741,11 @@ export default function MetaAdsWizard() {
                                     <div className="flex gap-4">
                                         <div>
                                             <label className="text-xs text-slate-500 block mb-1">Min Age</label>
-                                            <input type="number" className="w-20 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-center" value={audienceData?.age_min} onChange={e => setAudienceData({...audienceData, age_min: e.target.value})} />
+                                            <input type="number" className="w-20 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-center" value={audienceData?.age_min} onChange={e => setAudienceData({ ...audienceData, age_min: e.target.value })} />
                                         </div>
                                         <div>
                                             <label className="text-xs text-slate-500 block mb-1">Max Age</label>
-                                            <input type="number" className="w-20 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-center" value={audienceData?.age_max} onChange={e => setAudienceData({...audienceData, age_max: e.target.value})} />
+                                            <input type="number" className="w-20 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-center" value={audienceData?.age_max} onChange={e => setAudienceData({ ...audienceData, age_max: e.target.value })} />
                                         </div>
                                     </div>
                                 </div>
@@ -1771,7 +1762,7 @@ export default function MetaAdsWizard() {
                                             <span key={i} className="flex items-center gap-1.5 bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300 px-3 py-1 rounded-full text-xs font-bold">
                                                 📍 {loc}
                                                 <button
-                                                    onClick={() => setAudienceData({...audienceData, locations: audienceData.locations.filter((_, idx) => idx !== i)})}
+                                                    onClick={() => setAudienceData({ ...audienceData, locations: audienceData.locations.filter((_, idx) => idx !== i) })}
                                                     className="hover:text-red-900 transition-colors text-sm leading-none"
                                                 >×</button>
                                             </span>
@@ -1787,7 +1778,7 @@ export default function MetaAdsWizard() {
                                                 if (e.key === 'Enter' && e.target.value.trim()) {
                                                     const loc = e.target.value.trim();
                                                     if (!audienceData.locations?.includes(loc)) {
-                                                        setAudienceData({...audienceData, locations: [...(audienceData.locations || []), loc]});
+                                                        setAudienceData({ ...audienceData, locations: [...(audienceData.locations || []), loc] });
                                                     }
                                                     e.target.value = '';
                                                 }
@@ -1811,7 +1802,7 @@ export default function MetaAdsWizard() {
 
                         <div className="pt-6 flex justify-between">
                             <button onClick={() => setCurrentStep(0)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium px-4 py-2">Back</button>
-                            <button 
+                            <button
                                 onClick={handleGenerateCopy}
                                 disabled={loading}
                                 className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 md:px-8 py-3.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
@@ -1837,7 +1828,7 @@ export default function MetaAdsWizard() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {creativeData?.map((variation, index) => (
-                                <motion.div 
+                                <motion.div
                                     key={index}
                                     whileHover={{ y: -4 }}
                                     onClick={() => setSelectedCreativeIndex(index)}
@@ -1895,7 +1886,7 @@ export default function MetaAdsWizard() {
                                     <p className="text-xs text-slate-400">Without an image, your ad cannot appear in feeds</p>
                                 </div>
                             </div>
-                            
+
                             <input
                                 ref={aiImageRef}
                                 type="file"
@@ -1945,7 +1936,7 @@ export default function MetaAdsWizard() {
 
                         <div className="pt-6 flex justify-between">
                             <button onClick={() => setCurrentStep(1)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium px-4 py-2">Back</button>
-                            <button 
+                            <button
                                 onClick={() => setCurrentStep(3)}
                                 className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 md:px-8 py-3.5 rounded-xl font-bold transition-all"
                             >
@@ -1977,11 +1968,10 @@ export default function MetaAdsWizard() {
                             <motion.div
                                 whileHover={{ y: -2 }}
                                 onClick={() => setAutomationType('flowbot')}
-                                className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all ${
-                                    automationType === 'flowbot'
+                                className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all ${automationType === 'flowbot'
                                         ? 'border-purple-500 ring-4 ring-purple-500/10 bg-purple-50 dark:bg-purple-500/5'
                                         : 'border-slate-200 dark:border-white/10 hover:border-purple-300 bg-white dark:bg-surface-dark'
-                                }`}
+                                    }`}
                             >
                                 {automationType === 'flowbot' && (
                                     <div className="absolute top-3 right-3">
@@ -2004,11 +1994,10 @@ export default function MetaAdsWizard() {
                             <motion.div
                                 whileHover={{ y: -2 }}
                                 onClick={() => setAutomationType('template')}
-                                className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all ${
-                                    automationType === 'template'
+                                className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all ${automationType === 'template'
                                         ? 'border-blue-500 ring-4 ring-blue-500/10 bg-blue-50 dark:bg-blue-500/5'
                                         : 'border-slate-200 dark:border-white/10 hover:border-blue-300 bg-white dark:bg-surface-dark'
-                                }`}
+                                    }`}
                             >
                                 {automationType === 'template' && (
                                     <div className="absolute top-3 right-3">
@@ -2028,11 +2017,10 @@ export default function MetaAdsWizard() {
                             <motion.div
                                 whileHover={{ y: -2 }}
                                 onClick={() => setAutomationType('none')}
-                                className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all ${
-                                    automationType === 'none'
+                                className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all ${automationType === 'none'
                                         ? 'border-slate-500 ring-4 ring-slate-500/10 bg-slate-50 dark:bg-white/5'
                                         : 'border-slate-200 dark:border-white/10 hover:border-slate-300 bg-white dark:bg-surface-dark'
-                                }`}
+                                    }`}
                             >
                                 {automationType === 'none' && (
                                     <div className="absolute top-3 right-3">
@@ -2083,17 +2071,15 @@ export default function MetaAdsWizard() {
                                                     <div
                                                         key={flow.id}
                                                         onClick={() => setSelectedFlowId(flow.id)}
-                                                        className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
-                                                            selectedFlowId === flow.id
+                                                        className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${selectedFlowId === flow.id
                                                                 ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10'
                                                                 : 'border-slate-100 dark:border-white/5 hover:border-purple-200 dark:hover:border-purple-500/30'
-                                                        }`}
+                                                            }`}
                                                     >
-                                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                                            flow.isActive
+                                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${flow.isActive
                                                                 ? 'bg-green-100 dark:bg-green-500/20 text-green-600'
                                                                 : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-                                                        }`}>
+                                                            }`}>
                                                             <Workflow className="w-4 h-4" />
                                                         </div>
                                                         <div className="min-w-0 flex-1">
@@ -2146,11 +2132,10 @@ export default function MetaAdsWizard() {
                                                     <div
                                                         key={tpl.id || tpl.name}
                                                         onClick={() => setSelectedTemplateId(tpl.id || tpl.name)}
-                                                        className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
-                                                            (selectedTemplateId === tpl.id || selectedTemplateId === tpl.name)
+                                                        className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${(selectedTemplateId === tpl.id || selectedTemplateId === tpl.name)
                                                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
                                                                 : 'border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-500/30'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
                                                             <Mail className="w-4 h-4" />
@@ -2196,7 +2181,7 @@ export default function MetaAdsWizard() {
 
                         <div className="pt-4 flex justify-between">
                             <button onClick={() => setCurrentStep(2)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium px-4 py-2">Back</button>
-                            <button 
+                            <button
                                 onClick={() => setCurrentStep(4)}
                                 className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 md:px-8 py-3.5 rounded-xl font-bold transition-all"
                             >
@@ -2280,23 +2265,22 @@ export default function MetaAdsWizard() {
                                 <CreditCard className="w-5 h-5 text-slate-400" />
                                 <h4 className="font-bold text-slate-900 dark:text-white">Budget &amp; Schedule</h4>
                             </div>
-                            
+
                             <div className="space-y-4">
                                 {/* Budget Type Toggle */}
                                 <div className="flex gap-2">
                                     {[
-                                        { type: 'daily',    label: '📅 Daily Budget',    desc: 'Runs indefinitely per day' },
+                                        { type: 'daily', label: '📅 Daily Budget', desc: 'Runs indefinitely per day' },
                                         { type: 'lifetime', label: '🎯 Fixed Budget', desc: 'Fixed total, auto-stops' },
                                     ].map(opt => (
                                         <button
                                             key={opt.type}
                                             type="button"
-                                            onClick={() => setBudgetData({...budgetData, budgetType: opt.type})}
-                                            className={`flex-1 px-3 py-3 rounded-xl border-2 text-left transition-all ${
-                                                budgetData.budgetType === opt.type
+                                            onClick={() => setBudgetData({ ...budgetData, budgetType: opt.type })}
+                                            className={`flex-1 px-3 py-3 rounded-xl border-2 text-left transition-all ${budgetData.budgetType === opt.type
                                                     ? 'border-primary bg-blue-50 dark:bg-primary/10'
                                                     : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-slate-300'
-                                            }`}
+                                                }`}
                                         >
                                             <p className={`text-xs font-bold ${budgetData.budgetType === opt.type ? 'text-primary' : 'text-slate-600 dark:text-slate-300'}`}>{opt.label}</p>
                                             <p className="text-[10px] text-slate-400 mt-0.5">{opt.desc}</p>
@@ -2311,17 +2295,17 @@ export default function MetaAdsWizard() {
                                                 <span>Daily Amount</span>
                                                 <span className="text-primary">₹{budgetData.dailyBudget.toLocaleString()}/day</span>
                                             </label>
-                                            <input 
+                                            <input
                                                 type="range" min="100" max="50000" step="100"
                                                 className="w-full accent-primary h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
                                                 value={budgetData.dailyBudget}
-                                                onChange={(e) => setBudgetData({...budgetData, dailyBudget: parseInt(e.target.value)})}
+                                                onChange={(e) => setBudgetData({ ...budgetData, dailyBudget: parseInt(e.target.value) })}
                                             />
                                             <div className="flex justify-between text-xs text-slate-500 mt-2">
                                                 <span>₹100 <span className="text-slate-400 dark:text-slate-500">(Meta Min)</span></span>
                                                 <div className="flex gap-2">
                                                     {[500, 1000, 5000, 10000].map(v => (
-                                                        <button key={v} type="button" onClick={() => setBudgetData({...budgetData, dailyBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${budgetData.dailyBudget === v ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
+                                                        <button key={v} type="button" onClick={() => setBudgetData({ ...budgetData, dailyBudget: v })} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${budgetData.dailyBudget === v ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v >= 1000 ? `${v / 1000}K` : v}</button>
                                                     ))}
                                                 </div>
                                                 <span>₹50,000+</span>
@@ -2333,17 +2317,17 @@ export default function MetaAdsWizard() {
                                                 <span>Total Fixed Amount</span>
                                                 <span className="text-primary">₹{budgetData.lifetimeBudget.toLocaleString()} total</span>
                                             </label>
-                                            <input 
+                                            <input
                                                 type="range" min="500" max="500000" step="500"
                                                 className="w-full accent-primary h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
                                                 value={budgetData.lifetimeBudget}
-                                                onChange={(e) => setBudgetData({...budgetData, lifetimeBudget: parseInt(e.target.value)})}
+                                                onChange={(e) => setBudgetData({ ...budgetData, lifetimeBudget: parseInt(e.target.value) })}
                                             />
                                             <div className="flex justify-between text-xs text-slate-500 mt-2">
                                                 <span>₹500 <span className="text-slate-400 dark:text-slate-500">(Meta Min)</span></span>
                                                 <div className="flex gap-2">
                                                     {[3000, 5000, 10000, 50000].map(v => (
-                                                        <button key={v} type="button" onClick={() => setBudgetData({...budgetData, lifetimeBudget: v})} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${budgetData.lifetimeBudget === v ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v>=1000?`${v/1000}K`:v}</button>
+                                                        <button key={v} type="button" onClick={() => setBudgetData({ ...budgetData, lifetimeBudget: v })} className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${budgetData.lifetimeBudget === v ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500 hover:bg-slate-300'}`}>₹{v >= 1000 ? `${v / 1000}K` : v}</button>
                                                     ))}
                                                 </div>
                                                 <span>₹5L+</span>
@@ -2386,14 +2370,13 @@ export default function MetaAdsWizard() {
 
                         <div className="pt-6 flex justify-between">
                             <button onClick={() => setCurrentStep(3)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium px-4 py-2 border border-slate-200 dark:border-white/10 rounded-xl">Back to Automation</button>
-                            <button 
+                            <button
                                 onClick={handlePublish}
                                 disabled={loading || !Object.values(checklistChecks).every(Boolean)}
-                                className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold shadow-lg transition-all w-full justify-center ml-4 ${
-                                    metaConnected
+                                className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold shadow-lg transition-all w-full justify-center ml-4 ${metaConnected
                                         ? 'bg-primary hover:bg-primary/90 shadow-md text-white'
                                         : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25 text-white'
-                                } disabled:opacity-60 disabled:cursor-not-allowed`}
+                                    } disabled:opacity-60 disabled:cursor-not-allowed`}
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Megaphone className="w-5 h-5" />}
                                 {metaConnected ? 'Publish Ad Campaign' : 'Save as Draft'}
@@ -2552,67 +2535,67 @@ export default function MetaAdsWizard() {
                                 ].map((item, i) => {
                                     const isExpanded = expandedCheck === item.id;
                                     return (
-                                    <div key={item.id} className={`flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5'}`} onClick={() => !item.done && setExpandedCheck(isExpanded ? null : item.id)}>
-                                        <div className="flex items-start gap-4">
-                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${item.done ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-amber-100 dark:bg-amber-500/20 shadow-sm'}`}>
-                                                {item.done ? '✅' : item.icon}
-                                            </div>
-                                            <div className="flex-1 min-w-0 flex items-center justify-between">
-                                                <div>
-                                                    <p className={`font-bold text-sm ${item.done ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'}`}>{item.title}</p>
-                                                    {!item.done && <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">Click to view fix instructions</p>}
+                                        <div key={item.id} className={`flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5'}`} onClick={() => !item.done && setExpandedCheck(isExpanded ? null : item.id)}>
+                                            <div className="flex items-start gap-4">
+                                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${item.done ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-amber-100 dark:bg-amber-500/20 shadow-sm'}`}>
+                                                    {item.done ? '✅' : item.icon}
                                                 </div>
-                                                {!item.done && (
-                                                    <ChevronDown className={`w-5 h-5 text-amber-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                                                )}
-                                            </div>
-                                        </div>
-                                        
-                                        <AnimatePresence>
-                                            {!item.done && isExpanded && (
-                                                <motion.div
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                    exit={{ height: 0, opacity: 0 }}
-                                                    className="pt-4 overflow-hidden"
-                                                >
-                                                    <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-inner border border-amber-100 dark:border-amber-500/20">
-                                                        <p className="text-xs text-slate-600 dark:text-slate-300 mb-3 font-medium">{item.desc}</p>
-                                                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">How to fix this:</p>
-                                                        <ol className="list-decimal pl-5 text-xs text-slate-600 dark:text-slate-400 space-y-2">
-                                                            {item.steps.map((step, idx) => (
-                                                                <li key={idx} className="flex items-start gap-2">
-                                                                    <div dangerouslySetInnerHTML={{__html: step}} />
-                                                                </li>
-                                                            ))}
-                                                        </ol>
-                                                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex gap-3">
-                                                            {item.link && (
-                                                                item.internal ? (
-                                                                    <button 
-                                                                        onClick={(e) => { e.stopPropagation(); setShowChecklist(false); navigate(item.link); }} 
-                                                                        className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors inline-flex items-center gap-1"
-                                                                    >
-                                                                        {item.linkLabel}
-                                                                    </button>
-                                                                ) : (
-                                                                    <a 
-                                                                        href={item.link} 
-                                                                        target="_blank" 
-                                                                        rel="noreferrer" 
-                                                                        onClick={e => e.stopPropagation()} 
-                                                                        className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors inline-flex items-center gap-1"
-                                                                    >
-                                                                        {item.linkLabel}
-                                                                    </a>
-                                                                )
-                                                            )}
-                                                        </div>
+                                                <div className="flex-1 min-w-0 flex items-center justify-between">
+                                                    <div>
+                                                        <p className={`font-bold text-sm ${item.done ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'}`}>{item.title}</p>
+                                                        {!item.done && <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">Click to view fix instructions</p>}
                                                     </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
+                                                    {!item.done && (
+                                                        <ChevronDown className={`w-5 h-5 text-amber-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <AnimatePresence>
+                                                {!item.done && isExpanded && (
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        className="pt-4 overflow-hidden"
+                                                    >
+                                                        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-inner border border-amber-100 dark:border-amber-500/20">
+                                                            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3 font-medium">{item.desc}</p>
+                                                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">How to fix this:</p>
+                                                            <ol className="list-decimal pl-5 text-xs text-slate-600 dark:text-slate-400 space-y-2">
+                                                                {item.steps.map((step, idx) => (
+                                                                    <li key={idx} className="flex items-start gap-2">
+                                                                        <div dangerouslySetInnerHTML={{ __html: step }} />
+                                                                    </li>
+                                                                ))}
+                                                            </ol>
+                                                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex gap-3">
+                                                                {item.link && (
+                                                                    item.internal ? (
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); setShowChecklist(false); navigate(item.link); }}
+                                                                            className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors inline-flex items-center gap-1"
+                                                                        >
+                                                                            {item.linkLabel}
+                                                                        </button>
+                                                                    ) : (
+                                                                        <a
+                                                                            href={item.link}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            onClick={e => e.stopPropagation()}
+                                                                            className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors inline-flex items-center gap-1"
+                                                                        >
+                                                                            {item.linkLabel}
+                                                                        </a>
+                                                                    )
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
                                     );
                                 })}
 
@@ -2806,11 +2789,10 @@ export default function MetaAdsWizard() {
                         animate={{ x: creationMode === 'manual' ? 'calc(100% + 8px)' : '0%' }}
                         transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                     >
-                        <div className={`h-full w-full rounded-2xl shadow-lg ${
-                            creationMode === 'ai'
+                        <div className={`h-full w-full rounded-2xl shadow-lg ${creationMode === 'ai'
                                 ? 'bg-primary'
                                 : 'bg-violet-600'
-                        }`} />
+                            }`} />
                     </motion.div>
 
                     {/* AI Mode Button */}
@@ -2818,19 +2800,18 @@ export default function MetaAdsWizard() {
                         onClick={() => setCreationMode('ai')}
                         className="relative z-10 flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-2xl transition-colors group"
                     >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                            creationMode === 'ai'
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${creationMode === 'ai'
                                 ? 'bg-white/20 text-white'
                                 : 'bg-primary/10 text-primary group-hover:bg-primary/15'
-                        }`}>
+                            }`}>
                             <Sparkles className="w-5 h-5" />
                         </div>
                         <div className="text-left flex-1">
-                            <p className={`font-bold text-sm transition-colors flex items-center gap-2 ${ creationMode === 'ai' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
-                                AI-Assisted Wizard
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold ${ creationMode === 'ai' ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>Recommended</span>
+                            <p className={`font-bold text-sm transition-colors flex items-center gap-2 ${creationMode === 'ai' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                                AI-Assisted Ads
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold ${creationMode === 'ai' ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>Recommended</span>
                             </p>
-                            <p className={`text-xs transition-colors ${ creationMode === 'ai' ? 'text-white/70' : 'text-slate-400'}`}>
+                            <p className={`text-xs transition-colors ${creationMode === 'ai' ? 'text-white/70' : 'text-slate-400'}`}>
                                 Let AI generate targeting & copy
                             </p>
                         </div>
@@ -2844,18 +2825,17 @@ export default function MetaAdsWizard() {
                         onClick={() => setCreationMode('manual')}
                         className="relative z-10 flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-2xl transition-colors group"
                     >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                            creationMode === 'manual'
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${creationMode === 'manual'
                                 ? 'bg-white/20 text-white'
                                 : 'bg-violet-500/10 text-violet-600 group-hover:bg-violet-500/15'
-                        }`}>
+                            }`}>
                             <SlidersHorizontal className="w-5 h-5" />
                         </div>
                         <div className="text-left flex-1">
-                            <p className={`font-bold text-sm transition-colors ${ creationMode === 'manual' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                            <p className={`font-bold text-sm transition-colors ${creationMode === 'manual' ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                                 Manual Builder
                             </p>
-                            <p className={`text-xs transition-colors ${ creationMode === 'manual' ? 'text-white/70' : 'text-slate-400'}`}>
+                            <p className={`text-xs transition-colors ${creationMode === 'manual' ? 'text-white/70' : 'text-slate-400'}`}>
                                 Full control, zero AI tokens
                             </p>
                         </div>

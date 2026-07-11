@@ -14,7 +14,7 @@ export default defineConfig({
   // Prevent Vite from eagerly pre-bundling heavy libraries that should only
   // load on-demand when their lazy page chunk is first navigated to.
   optimizeDeps: {
-    exclude: ['recharts', '@xyflow/react', 'framer-motion', '@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities']
+    exclude: ['@xyflow/react', 'framer-motion', '@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities']
   },
   build: {
     modulePreload: false, // Keep disabled so Vite doesn't preload lazy chunks in index.html

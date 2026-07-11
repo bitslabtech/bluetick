@@ -33,14 +33,26 @@ router.get('/', async (req, res) => {
 });
 
 // GET system templates (for superadmin global configuration)
+// Fetches templates from the exact CRM account used to send system messages
 router.get('/system', async (req, res) => {
     try {
+        const SystemConfig = require('../models/SystemConfig');
         const User = require('../models/User');
-        const adminUser = await User.findOne({ where: { isAdmin: true } });
-        if (!adminUser) return res.json([]);
-        
+
+        // Resolve the linked CRM account the same way systemMessenger.js does
+        const config = await SystemConfig.getCachedConfig();
+        let linkedUserId = config?.settings?.linkedAdminUserId;
+
+        // Fallback: if no explicit linked account, use the first admin user
+        if (!linkedUserId) {
+            const adminUser = await User.findOne({ where: { isAdmin: true } });
+            linkedUserId = adminUser?.id;
+        }
+
+        if (!linkedUserId) return res.json([]);
+
         const templates = await Template.findAll({
-            where: { userId: adminUser.id },
+            where: { userId: linkedUserId },
             order: [['createdAt', 'DESC']]
         });
         res.json(templates);
