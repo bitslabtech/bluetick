@@ -322,9 +322,9 @@ const Settings = () => {
 
             // Fetch CRM templates for OTP selection
             try {
-                const tmplRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/templates`);
+                const tmplRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/templates/system`);
                 if (tmplRes.data && Array.isArray(tmplRes.data)) {
-                    setCrmTemplates(tmplRes.data.filter(t => t.category === 'AUTHENTICATION'));
+                    setCrmTemplates(tmplRes.data.filter(t => t.category?.toUpperCase() === 'AUTHENTICATION'));
                 }
             } catch (err) {
                 console.error("Error fetching templates:", err);

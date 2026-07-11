@@ -32,6 +32,23 @@ router.get('/', async (req, res) => {
     }
 });
 
+// GET system templates (for superadmin global configuration)
+router.get('/system', async (req, res) => {
+    try {
+        const User = require('../models/User');
+        const adminUser = await User.findOne({ where: { isAdmin: true } });
+        if (!adminUser) return res.json([]);
+        
+        const templates = await Template.findAll({
+            where: { userId: adminUser.id, status: 'APPROVED' },
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(templates);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST upload media for template (Resumable Upload API)
 const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
 router.post('/upload', upload.single('file'), async (req, res) => {
