@@ -14,7 +14,7 @@ import {
     Upload, UserPlus, MoreVertical, Trash2, FolderPlus, Download,
     ChevronLeft, ChevronRight, Menu, HelpCircle, Bell, User, UploadCloud, Plus,
     X, MessageSquare, Clock, CheckCircle2, ChevronDown, AlertCircle, Tags, Lock, AlertTriangle, Phone,
-    Zap, ToggleLeft, ToggleRight, Edit2, Save, Hash, Type, Code2, MousePointerClick, Sparkles, XCircle, Loader2
+    Zap, ToggleLeft, ToggleRight, Edit2, Save, Hash, Type, Code2, MousePointerClick, Sparkles, XCircle, Loader2, FolderCog
 } from 'lucide-react';
 import ManageLabelsModal from '../components/ManageLabelsModal';
 

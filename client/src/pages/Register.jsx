@@ -42,28 +42,28 @@ const COUNTRY_CODES = [
 // Per-country subscriber number lengths (digits after the dial code)
 // Source: ITU-T E.164 national significant number lengths
 const PHONE_LENGTHS = {
-    '+91':  { min: 10, max: 10 }, // India
-    '+1':   { min: 10, max: 10 }, // USA / Canada
-    '+44':  { min: 10, max: 10 }, // UK
-    '+971': { min: 9,  max: 9  }, // UAE
-    '+966': { min: 9,  max: 9  }, // Saudi Arabia
-    '+61':  { min: 9,  max: 9  }, // Australia
-    '+65':  { min: 8,  max: 8  }, // Singapore
-    '+60':  { min: 9,  max: 11 }, // Malaysia
-    '+92':  { min: 10, max: 10 }, // Pakistan
+    '+91': { min: 10, max: 10 }, // India
+    '+1': { min: 10, max: 10 }, // USA / Canada
+    '+44': { min: 10, max: 10 }, // UK
+    '+971': { min: 9, max: 9 }, // UAE
+    '+966': { min: 9, max: 9 }, // Saudi Arabia
+    '+61': { min: 9, max: 9 }, // Australia
+    '+65': { min: 8, max: 8 }, // Singapore
+    '+60': { min: 9, max: 11 }, // Malaysia
+    '+92': { min: 10, max: 10 }, // Pakistan
     '+880': { min: 10, max: 10 }, // Bangladesh
-    '+94':  { min: 9,  max: 9  }, // Sri Lanka
+    '+94': { min: 9, max: 9 }, // Sri Lanka
     '+977': { min: 10, max: 10 }, // Nepal
-    '+49':  { min: 10, max: 11 }, // Germany
-    '+33':  { min: 9,  max: 9  }, // France
+    '+49': { min: 10, max: 11 }, // Germany
+    '+33': { min: 9, max: 9 }, // France
     '+234': { min: 10, max: 10 }, // Nigeria
-    '+27':  { min: 9,  max: 9  }, // South Africa
-    '+254': { min: 9,  max: 9  }, // Kenya
-    '+55':  { min: 10, max: 11 }, // Brazil
-    '+62':  { min: 9,  max: 12 }, // Indonesia
-    '+63':  { min: 10, max: 10 }, // Philippines
-    '+66':  { min: 9,  max: 9  }, // Thailand
-    '+20':  { min: 10, max: 10 }, // Egypt
+    '+27': { min: 9, max: 9 }, // South Africa
+    '+254': { min: 9, max: 9 }, // Kenya
+    '+55': { min: 10, max: 11 }, // Brazil
+    '+62': { min: 9, max: 12 }, // Indonesia
+    '+63': { min: 10, max: 10 }, // Philippines
+    '+66': { min: 9, max: 9 }, // Thailand
+    '+20': { min: 10, max: 10 }, // Egypt
 };
 
 const getPhoneLength = (dial) => PHONE_LENGTHS[dial] || { min: 6, max: 15 };
@@ -132,10 +132,10 @@ const Register = () => {
             { id: 3, sender: 'user', text: 'Awesome! Can you share the store catalog?' },
             { id: 4, sender: 'bot', text: 'Here is our digital catalog. Click below to browse! 📋', button: 'View Catalog 🛍️' },
         ];
-        
+
         let index = 1;
         setMockMessages([conversation[0]]);
-        
+
         const interval = setInterval(() => {
             index = (index + 1) % (conversation.length + 1);
             if (index === 0) {
@@ -144,7 +144,7 @@ const Register = () => {
                 setMockMessages(conversation.slice(0, index));
             }
         }, 2500);
-        
+
         return () => clearInterval(interval);
     }, []);
 
@@ -269,7 +269,7 @@ const Register = () => {
             if (otpExpiryRef.current) clearInterval(otpExpiryRef.current);
             if (cooldownRef.current) clearInterval(cooldownRef.current);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phone]);
 
     // ── Referral code helpers ──
@@ -392,7 +392,7 @@ const Register = () => {
             const registeredUser = res.user;
             if (registeredUser?.planStatus === 'Pending') {
                 let targetPlanForCheckout = selectedPlan;
-                
+
                 // If direct registration (selectedPlan is null), we use the assigned plan details (the default plan)
                 if (!targetPlanForCheckout && registeredUser.planDetails) {
                     targetPlanForCheckout = registeredUser.planDetails;
@@ -404,7 +404,7 @@ const Register = () => {
                     return;
                 }
             }
-            
+
             // If they started a trial plan or are free, go to dashboard
             navigate('/dashboard');
         } else {
@@ -413,7 +413,7 @@ const Register = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-display transition-colors duration-300">
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 font-display transition-colors duration-300">
             {/* Left Column - Branding & Plan/Platform Details (Only visible on desktop) */}
             <div className={`hidden md:flex md:w-[40%] xl:w-[35%] relative overflow-hidden ${(publicSettings?.registerBannerUrl && !selectedPlan) ? '' : 'border-r border-slate-200/50 dark:border-slate-800/50 flex-col justify-between p-10 lg:p-12'}`}>
                 {(publicSettings?.registerBannerUrl && !selectedPlan) ? (
@@ -422,7 +422,7 @@ const Register = () => {
                     <>
                         {/* Elegant Static Background */}
                         <div className="absolute inset-0 bg-slate-50/50 dark:bg-slate-900 -z-20" />
-                        
+
                         {/* Subtle Gradient Wash */}
                         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-emerald-500/5 dark:from-primary/10 dark:via-slate-900/50 dark:to-emerald-500/10 pointer-events-none -z-10" />
 
@@ -445,114 +445,114 @@ const Register = () => {
 
                         {/* Main Content Pane */}
                         <div className="relative z-10 my-auto py-6">
-                    {selectedPlan ? (() => {
-                        const sym = CURRENCY_SYMBOLS[publicSettings?.currency] || publicSettings?.currency || '$';
-                        const interval = selectedPlan.interval || 'month';
-                        let displayPrice = parseFloat(selectedPlan.price) || 0;
-                        let intervalLabel = ' / mo';
-                        if (interval === 'month' && parseFloat(selectedPlan.monthlyPrice) > 0) {
-                            displayPrice = parseFloat(selectedPlan.monthlyPrice);
-                            intervalLabel = ' / mo';
-                        } else if (interval === 'half-year' && parseFloat(selectedPlan.halfYearlyPrice) > 0) {
-                            displayPrice = parseFloat(selectedPlan.halfYearlyPrice);
-                            intervalLabel = ' / 6 months';
-                        } else if (interval === 'year' && parseFloat(selectedPlan.yearlyPrice) > 0) {
-                            displayPrice = parseFloat(selectedPlan.yearlyPrice);
-                            intervalLabel = ' / yr';
-                        }
+                            {selectedPlan ? (() => {
+                                const sym = CURRENCY_SYMBOLS[publicSettings?.currency] || publicSettings?.currency || '$';
+                                const interval = selectedPlan.interval || 'month';
+                                let displayPrice = parseFloat(selectedPlan.price) || 0;
+                                let intervalLabel = ' / mo';
+                                if (interval === 'month' && parseFloat(selectedPlan.monthlyPrice) > 0) {
+                                    displayPrice = parseFloat(selectedPlan.monthlyPrice);
+                                    intervalLabel = ' / mo';
+                                } else if (interval === 'half-year' && parseFloat(selectedPlan.halfYearlyPrice) > 0) {
+                                    displayPrice = parseFloat(selectedPlan.halfYearlyPrice);
+                                    intervalLabel = ' / 6 months';
+                                } else if (interval === 'year' && parseFloat(selectedPlan.yearlyPrice) > 0) {
+                                    displayPrice = parseFloat(selectedPlan.yearlyPrice);
+                                    intervalLabel = ' / yr';
+                                }
 
-                        return (
-                            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 lg:p-8 shadow-sm space-y-6">
-                                <div className="space-y-2">
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
-                                        <Sparkles className="w-3.5 h-3.5" />
-                                        Selected Plan
-                                    </span>
-                                    <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-                                        {selectedPlan.name}
-                                    </h2>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                        {selectedPlan.description || 'Unlock the full potential of your business communication.'}
-                                    </p>
-                                </div>
-
-                                {selectedPlan.startTrial && (
-                                    <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl space-y-1">
-                                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-sm font-semibold">
-                                            <span className="flex h-2 w-2 relative">
-                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                return (
+                                    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 lg:p-8 shadow-sm space-y-6">
+                                        <div className="space-y-2">
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
+                                                <Sparkles className="w-3.5 h-3.5" />
+                                                Selected Plan
                                             </span>
-                                            {selectedPlan.trialDays}-Day Free Trial Active
+                                            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                                                {selectedPlan.name}
+                                            </h2>
+                                            <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                                {selectedPlan.description || 'Unlock the full potential of your business communication.'}
+                                            </p>
                                         </div>
-                                        <p className="text-xs text-emerald-600/80 dark:text-slate-300">
-                                            Enjoy full access for free. No charges will be made today.
-                                        </p>
-                                    </div>
-                                )}
 
-                                <div className="py-4 border-y border-slate-100 dark:border-slate-800/60">
-                                    <div className="flex items-baseline gap-1 text-slate-900 dark:text-white">
-                                        <span className="text-4xl font-extrabold tracking-tight">{sym}{displayPrice.toLocaleString()}</span>
-                                        <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">{intervalLabel}</span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">What's included</h4>
-                                    <ul className="space-y-3.5">
-                                        <li className="flex items-start gap-3">
-                                            <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
-                                                <Check className="w-3.5 h-3.5" />
-                                            </div>
-                                            <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                                                <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.messageLimit?.toLocaleString()}</strong> messages per month
-                                            </span>
-                                        </li>
-
-                                        <li className="flex items-start gap-3">
-                                            <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
-                                                <Check className="w-3.5 h-3.5" />
-                                            </div>
-                                            <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                                                <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.contactLimit?.toLocaleString()}</strong> contacts
-                                            </span>
-                                        </li>
-
-                                        {selectedPlan.templateLimit > 0 && (
-                                            <li className="flex items-start gap-3">
-                                                <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
-                                                    <Check className="w-3.5 h-3.5" />
+                                        {selectedPlan.startTrial && (
+                                            <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl space-y-1">
+                                                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-sm font-semibold">
+                                                    <span className="flex h-2 w-2 relative">
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                    </span>
+                                                    {selectedPlan.trialDays}-Day Free Trial Active
                                                 </div>
-                                                <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                                                    <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.templateLimit}</strong> message templates
-                                                </span>
-                                            </li>
+                                                <p className="text-xs text-emerald-600/80 dark:text-slate-300">
+                                                    Enjoy full access for free. No charges will be made today.
+                                                </p>
+                                            </div>
                                         )}
 
-                                        {selectedPlan.teamMemberLimit > 0 && (
-                                            <li className="flex items-start gap-3">
-                                                <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
-                                                    <Check className="w-3.5 h-3.5" />
-                                                </div>
-                                                <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                                                    <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.teamMemberLimit}</strong> team members
-                                                </span>
-                                            </li>
-                                        )}
+                                        <div className="py-4 border-y border-slate-100 dark:border-slate-800/60">
+                                            <div className="flex items-baseline gap-1 text-slate-900 dark:text-white">
+                                                <span className="text-4xl font-extrabold tracking-tight">{sym}{displayPrice.toLocaleString()}</span>
+                                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">{intervalLabel}</span>
+                                            </div>
+                                        </div>
 
-                                        {Array.isArray(selectedPlan.features) && selectedPlan.features.map((feature, idx) => feature?.trim() && (
-                                            <li key={idx} className="flex items-start gap-3">
-                                                <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
-                                                    <Check className="w-3.5 h-3.5" />
-                                                </div>
-                                                <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">{feature}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        );
-                    })() : null}
+                                        <div className="space-y-4">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">What's included</h4>
+                                            <ul className="space-y-3.5">
+                                                <li className="flex items-start gap-3">
+                                                    <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                        <Check className="w-3.5 h-3.5" />
+                                                    </div>
+                                                    <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                                                        <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.messageLimit?.toLocaleString()}</strong> messages per month
+                                                    </span>
+                                                </li>
+
+                                                <li className="flex items-start gap-3">
+                                                    <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                        <Check className="w-3.5 h-3.5" />
+                                                    </div>
+                                                    <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                                                        <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.contactLimit?.toLocaleString()}</strong> contacts
+                                                    </span>
+                                                </li>
+
+                                                {selectedPlan.templateLimit > 0 && (
+                                                    <li className="flex items-start gap-3">
+                                                        <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                            <Check className="w-3.5 h-3.5" />
+                                                        </div>
+                                                        <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                                                            <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.templateLimit}</strong> message templates
+                                                        </span>
+                                                    </li>
+                                                )}
+
+                                                {selectedPlan.teamMemberLimit > 0 && (
+                                                    <li className="flex items-start gap-3">
+                                                        <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                            <Check className="w-3.5 h-3.5" />
+                                                        </div>
+                                                        <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                                                            <strong className="text-slate-900 dark:text-white font-semibold">{selectedPlan.teamMemberLimit}</strong> team members
+                                                        </span>
+                                                    </li>
+                                                )}
+
+                                                {Array.isArray(selectedPlan.features) && selectedPlan.features.map((feature, idx) => feature?.trim() && (
+                                                    <li key={idx} className="flex items-start gap-3">
+                                                        <div className="mt-0.5 shrink-0 p-1 bg-primary/10 rounded-md text-primary">
+                                                            <Check className="w-3.5 h-3.5" />
+                                                        </div>
+                                                        <span className="text-sm text-slate-700 dark:text-slate-300 leading-snug">{feature}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                );
+                            })() : null}
                         </div>
                     </>
                 )}
@@ -561,14 +561,14 @@ const Register = () => {
             {/* Right Column - Registration Form */}
             <div className="w-full md:w-[60%] xl:w-[65%] flex items-center justify-center p-6 sm:p-12 lg:p-16 overflow-y-auto">
                 <div className="w-full max-w-lg space-y-8 bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-2xl border border-slate-200/80 dark:border-slate-800/50 shadow-sm">
-                    
-                    {/* Header for Mobile/Fallback (Hidden on Desktop) */}
-                    <div className="text-center md:text-left space-y-3">
-                        <div className="flex justify-center md:justify-start mb-2">
+
+                    {/* Header */}
+                    <div className="text-center space-y-3">
+                        <div className="flex justify-center mb-2">
                             {publicSettings?.logoUrl ? (
                                 <img src={publicSettings.logoUrl} alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
                             ) : (
-                                <div className="p-3 bg-primary rounded-xl md:hidden">
+                                <div className="p-3 bg-primary rounded-xl">
                                     <LayoutDashboard className="h-6 w-6 text-white" />
                                 </div>
                             )}
@@ -652,139 +652,158 @@ const Register = () => {
 
                         <div className="space-y-1.5">
                             <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Phone Number</label>
-                            <div className="flex gap-2">
-                                <select
-                                    value={dialCode}
-                                    onChange={(e) => setDialCode(e.target.value)}
-                                    disabled={otpStep === 'verified'}
-                                    className="w-32 shrink-0 px-2 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-white dark:bg-slate-950 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                                >
-                                    {COUNTRY_CODES.map(c => (
-                                        <option key={c.code + c.dial} value={c.dial} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900">
-                                            {c.flag} {c.dial}
-                                        </option>
-                                    ))}
-                                </select>
-                                <input
-                                    type="tel"
-                                    required
-                                    value={localNumber}
-                                    onChange={(e) => {
-                                        const digits = e.target.value.replace(/\D/g, '');
-                                        const { max } = getPhoneLength(dialCode);
-                                        setLocalNumber(digits.slice(0, max));
-                                    }}
-                                    disabled={otpStep === 'verified'}
-                                    className="flex-1 min-w-0 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    placeholder={dialCode === '+91' ? '9876543210' : 'Phone number'}
-                                    maxLength={getPhoneLength(dialCode).max}
-                                />
-                            </div>
-                            <p className="text-xs text-slate-400 dark:text-slate-500">
-                                Enter number without leading zero
-                                {' '}·{' '}
-                                {(() => { const { min, max } = getPhoneLength(dialCode); return min === max ? `${min} digits required` : `${min}–${max} digits`; })()}
-                            </p>
-
-                            {/* ── WhatsApp OTP Section ── */}
-                            {otpEnabled && (
-                                <div className="mt-3">
-                                    {/* Verified badge */}
-                                    {otpStep === 'verified' && (
-                                        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-sm font-semibold mt-1">
-                                            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                                                <Check className="w-3 h-3 text-white" />
-                                            </div>
-                                            WhatsApp number verified
-                                            <button type="button" onClick={() => { setOtpStep('idle'); setPhoneVerifiedToken(null); }} className="ml-auto text-xs text-slate-400 hover:text-slate-600 underline">Change</button>
-                                        </div>
-                                    )}
-
-                                    {/* Send OTP button — shown when idle */}
-                                    {(otpStep === 'idle') && localNumber.length >= getPhoneLength(dialCode).min && (
-                                        <button
-                                            type="button"
-                                            onClick={handleSendOtp}
-                                            className="mt-2 w-full py-2 rounded-xl border border-emerald-400 text-emerald-600 dark:text-emerald-400 text-sm font-semibold hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            📲 Send WhatsApp Verification Code
-                                        </button>
-                                    )}
-
-                                    {/* Sending spinner */}
-                                    {otpStep === 'sending' && (
-                                        <div className="flex items-center gap-2 mt-2 text-slate-500 dark:text-slate-400 text-sm">
-                                            <div className="w-4 h-4 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin" />
-                                            Sending code to your WhatsApp...
-                                        </div>
-                                    )}
-
-                                    {/* OTP digit input */}
-                                    {(otpStep === 'input' || otpStep === 'verifying') && (
-                                        <div className="mt-3 space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                                                    Enter the 6-digit code sent to your WhatsApp
-                                                </p>
-                                                {otpExpiry > 0 ? (
-                                                    <span className="text-xs text-slate-400">expires in {otpExpiry}s</span>
-                                                ) : (
-                                                    <span className="text-xs text-red-500">Code expired</span>
+                            
+                            <div className="relative transition-all duration-300 ease-in-out">
+                                {/* State 1: IDLE - Phone Input */}
+                                {otpStep === 'idle' && (
+                                    <div className="space-y-2 animate-[fadeIn_0.3s_ease-out]">
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={dialCode}
+                                                onChange={(e) => setDialCode(e.target.value)}
+                                                className="w-32 shrink-0 px-2 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-white dark:bg-slate-950 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer font-medium text-sm"
+                                            >
+                                                {COUNTRY_CODES.map(c => (
+                                                    <option key={c.code + c.dial} value={c.dial} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900">
+                                                        {c.flag} {c.dial}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="relative flex-1 min-w-0">
+                                                <input
+                                                    type="tel"
+                                                    required
+                                                    value={localNumber}
+                                                    onChange={(e) => {
+                                                        const digits = e.target.value.replace(/\D/g, '');
+                                                        const { max } = getPhoneLength(dialCode);
+                                                        setLocalNumber(digits.slice(0, max));
+                                                    }}
+                                                    className="w-full px-4 py-2.5 pr-28 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400"
+                                                    placeholder={dialCode === '+91' ? '9876543210' : 'Phone number'}
+                                                    maxLength={getPhoneLength(dialCode).max}
+                                                />
+                                                {otpEnabled && localNumber.length >= getPhoneLength(dialCode).min && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleSendOtp}
+                                                        className="absolute right-1.5 top-1.5 bottom-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all"
+                                                    >
+                                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.878-.788-1.46-1.761-1.633-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                                                        Send OTP
+                                                    </button>
                                                 )}
                                             </div>
+                                        </div>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                                            Enter number without leading zero · {(() => { const { min, max } = getPhoneLength(dialCode); return min === max ? `${min} digits required` : `${min}–${max} digits`; })()}
+                                        </p>
+                                        {otpError && <p className="text-xs text-red-500 font-medium">{otpError}</p>}
+                                    </div>
+                                )}
 
-                                            {/* 6 digit boxes */}
-                                            <div className="flex gap-2 justify-center">
-                                                {otpDigits.map((digit, i) => (
-                                                    <input
-                                                        key={i}
-                                                        ref={el => otpInputRefs.current[i] = el}
-                                                        type="text"
-                                                        inputMode="numeric"
-                                                        maxLength={1}
-                                                        value={digit}
-                                                        disabled={otpStep === 'verifying' || otpExpiry === 0}
-                                                        onChange={(e) => handleOtpDigit(i, e.target.value)}
-                                                        onKeyDown={(e) => handleOtpKey(i, e)}
-                                                        className="w-10 h-12 text-center text-xl font-bold border-2 rounded-xl outline-none transition-all
-                                                            border-slate-200 dark:border-slate-700
-                                                            bg-white dark:bg-slate-900
-                                                            text-slate-900 dark:text-white
-                                                            focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30
-                                                            disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    />
-                                                ))}
+                                {/* State 2: SENDING - Loader Block */}
+                                {otpStep === 'sending' && (
+                                    <div className="animate-[fadeIn_0.3s_ease-out] flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
+                                        <div className="w-10 h-10 border-4 border-slate-200 dark:border-slate-700 border-t-emerald-500 rounded-full animate-spin mb-4" />
+                                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sending Verification Code</p>
+                                        <p className="text-xs text-slate-500 mt-1">Please wait a moment...</p>
+                                    </div>
+                                )}
+
+                                {/* State 3: INPUT / VERIFYING - OTP Entry */}
+                                {(otpStep === 'input' || otpStep === 'verifying') && (
+                                    <div className="animate-[fadeIn_0.4s_ease-out] p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4 shadow-inner">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                                    Enter 6-digit code
+                                                </p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                    Sent via WhatsApp to <span className="font-semibold text-slate-700 dark:text-slate-300">{dialCode} {localNumber}</span>
+                                                </p>
                                             </div>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => { setOtpStep('idle'); setOtpError(''); }}
+                                                className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline transition-colors px-2 py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg"
+                                            >
+                                                Edit Number
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="flex gap-2 justify-center py-2">
+                                            {otpDigits.map((digit, i) => (
+                                                <input
+                                                    key={i}
+                                                    ref={el => otpInputRefs.current[i] = el}
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    maxLength={1}
+                                                    value={digit}
+                                                    disabled={otpStep === 'verifying' || otpExpiry === 0}
+                                                    onChange={(e) => handleOtpDigit(i, e.target.value)}
+                                                    onKeyDown={(e) => handleOtpKey(i, e)}
+                                                    className="w-10 h-12 text-center text-xl font-bold border-2 rounded-xl outline-none transition-all
+                                                        border-slate-200 dark:border-slate-700
+                                                        bg-white dark:bg-slate-900
+                                                        text-slate-900 dark:text-white
+                                                        focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30
+                                                        disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                                />
+                                            ))}
+                                        </div>
 
-                                            {/* Verifying spinner */}
-                                            {otpStep === 'verifying' && (
-                                                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-                                                    <div className="w-4 h-4 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin" />
-                                                    Verifying...
-                                                </div>
-                                            )}
-
-                                            {/* Resend row */}
-                                            <div className="flex items-center justify-between text-xs">
-                                                <span className="text-slate-400">Didn't receive it?</span>
+                                        {otpStep === 'verifying' ? (
+                                            <div className="flex items-center justify-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                                                <div className="w-4 h-4 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+                                                Verifying code...
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-between text-xs px-1">
+                                                {otpExpiry > 0 ? (
+                                                    <span className="text-slate-500 dark:text-slate-400 font-medium">Expires in {otpExpiry}s</span>
+                                                ) : (
+                                                    <span className="text-red-500 font-semibold">Code expired</span>
+                                                )}
+                                                
                                                 <button
                                                     type="button"
-                                                    disabled={cooldown > 0 || otpStep === 'verifying'}
+                                                    disabled={cooldown > 0}
                                                     onClick={handleSendOtp}
-                                                    className="font-semibold text-emerald-600 dark:text-emerald-400 disabled:text-slate-400 disabled:cursor-not-allowed hover:underline transition-colors"
+                                                    className="font-semibold text-emerald-600 dark:text-emerald-400 disabled:text-slate-400 dark:disabled:text-slate-600 hover:underline transition-colors"
                                                 >
                                                     {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
                                                 </button>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {/* OTP error */}
-                                    {otpError && (
-                                        <p className="text-xs text-red-500 mt-2 font-medium">{otpError}</p>
-                                    )}
-                                </div>
-                            )}
+                                        {otpError && <p className="text-xs text-red-500 font-medium text-center">{otpError}</p>}
+                                    </div>
+                                )}
+
+                                {/* State 4: VERIFIED - Success Block */}
+                                {otpStep === 'verified' && (
+                                    <div className="animate-[fadeIn_0.4s_ease-out] flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm shrink-0">
+                                                <Check className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-emerald-800 dark:text-emerald-400">WhatsApp Verified</p>
+                                                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-500/80 mt-0.5">{dialCode} {localNumber}</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => { setOtpStep('idle'); setPhoneVerifiedToken(null); }}
+                                            className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 px-3 py-1.5 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all"
+                                        >
+                                            Edit Number
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="space-y-1.5">
@@ -812,8 +831,8 @@ const Register = () => {
 
                         {TURNSTILE_SITE_KEY && (
                             <div className="flex justify-center mt-4">
-                                <Turnstile 
-                                    siteKey={TURNSTILE_SITE_KEY} 
+                                <Turnstile
+                                    siteKey={TURNSTILE_SITE_KEY}
                                     onSuccess={(token) => setTurnstileToken(token)}
                                     onError={() => setError('Captcha verification failed. Please refresh.')}
                                     onExpire={() => setTurnstileToken('')}
@@ -821,18 +840,28 @@ const Register = () => {
                             </div>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="w-full mt-2 py-2.5 bg-primary text-white rounded-xl hover:opacity-90 font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                            {isSubmitting ? 'Processing...' : (selectedPlan?.startTrial
-                                ? `🎉 Start ${selectedPlan.trialDays}-Day Free Trial`
-                                : selectedPlan && selectedPlan.price > 0
-                                ? 'Continue to Payment'
-                                : 'Create Account')}
-                        </button>
+                        <div className="relative group w-full mt-2">
+                            <button
+                                type="submit"
+                                disabled={isSubmitting || (otpEnabled && otpStep !== 'verified')}
+                                className="w-full py-2.5 bg-primary text-white rounded-xl hover:opacity-90 font-medium transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50"
+                            >
+                                {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                {isSubmitting ? 'Processing...' : (selectedPlan?.startTrial
+                                    ? `🎉 Start ${selectedPlan.trialDays}-Day Free Trial`
+                                    : selectedPlan && selectedPlan.price > 0
+                                        ? 'Continue to Payment'
+                                        : 'Create Account')}
+                            </button>
+
+                            {/* Hover Tooltip for disabled state */}
+                            {otpEnabled && otpStep !== 'verified' && !isSubmitting && (
+                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-max max-w-[280px] text-center opacity-0 group-hover:opacity-100 group-hover:-translate-y-1 transition-all duration-200 pointer-events-none z-10 px-3 py-2 bg-slate-800 dark:bg-slate-700 text-white text-xs font-medium rounded-lg shadow-xl">
+                                    Verify your WhatsApp number to create an account
+                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 dark:bg-slate-700 rotate-45" />
+                                </div>
+                            )}
+                        </div>
                     </form>
 
                     <div className="text-center text-sm text-slate-500 dark:text-slate-400 pt-2">
