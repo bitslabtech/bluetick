@@ -274,7 +274,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             };
             fetchWaUnread();
             const interval = setInterval(fetchWaUnread, 30000); // 30 sec poll
-            return () => clearInterval(interval);
+            
+            const handleUpdate = () => fetchWaUnread();
+            window.addEventListener('whatsapp_unread_update', handleUpdate);
+            
+            return () => {
+                clearInterval(interval);
+                window.removeEventListener('whatsapp_unread_update', handleUpdate);
+            };
         }
     }, [user]);
 

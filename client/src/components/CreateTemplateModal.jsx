@@ -488,6 +488,16 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         // 3. Body Variables - all sample values must be filled
         const unfilledVars = Object.entries(bodyVariables).filter(([, v]) => !v.trim());
         if (unfilledVars.length > 0) errors.bodyVariables = `Please fill in sample values for: ${unfilledVars.map(([k]) => `{{${k}}}`).join(', ')}`;
+        
+        // Authentication specific variable validation
+        if (selectedArchetype?.id === 'authentication') {
+            const varCount = Object.keys(bodyVariables).length;
+            if (varCount === 0) {
+                errors.bodyVariables = (errors.bodyVariables ? errors.bodyVariables + ' ' : '') + 'Authentication templates must have at least one variable {{1}} for the OTP code.';
+            } else if (varCount > 2) {
+                errors.bodyVariables = (errors.bodyVariables ? errors.bodyVariables + ' ' : '') + 'Authentication templates can have a maximum of 2 variables ({{1}} for OTP, {{2}} for expiration).';
+            }
+        }
 
         // 4. Header media upload required
         if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(formData.headerType) && !formData.headerFile) {
@@ -1092,7 +1102,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                 <div>
                                                     <p className="text-sm font-bold text-rose-700 dark:text-rose-300 mb-1">Authentication Template Rules</p>
                                                     <ul className="text-xs text-rose-600 dark:text-rose-400 space-y-1 list-disc list-inside">
-                                                        <li>Body must contain exactly one variable <code className="bg-rose-100 dark:bg-rose-900/40 px-1 rounded">{'{{1}}'}</code> for the OTP code</li>
+                                                        <li>Body must contain <code className="bg-rose-100 dark:bg-rose-900/40 px-1 rounded">{'{{1}}'}</code> for the OTP code. You can optionally include <code className="bg-rose-100 dark:bg-rose-900/40 px-1 rounded">{'{{2}}'}</code> for expiration time</li>
                                                         <li>No header, footer, or promotional links allowed</li>
                                                         <li>A <strong>"Copy Code"</strong> OTP button will be added automatically</li>
                                                         <li>Category is locked to <strong>AUTHENTICATION</strong></li>
@@ -1123,7 +1133,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                     maxLength={1024}
                                                     className={`w-full bg-slate-50 dark:bg-background-dark border rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-1 outline-none resize-none transition-all ${enhancedSuccess === 'content' ? 'border-transparent' : validationErrors.content ? 'border-red-400 dark:border-red-500 focus:border-red-400 focus:ring-red-400/30' : 'border-slate-200 dark:border-white/10 focus:border-primary focus:ring-primary'}`}
                                                     placeholder={selectedArchetype?.id === 'authentication'
-                                                        ? 'Your verification code is {{1}}.'
+                                                        ? 'Your verification code is {{1}}. It expires in {{2}} minutes.'
                                                         : 'Hello {{1}}, check out our new offers!'}
                                                 />
                                             </div>

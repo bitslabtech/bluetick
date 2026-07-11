@@ -377,16 +377,33 @@ router.post('/', async (req, res) => {
                 components.push(headerComp);
             }
 
-            if (content) {
-                const bodyComp = { type: "BODY", text: content };
-                if (req.body.bodyVariables && req.body.bodyVariables.length > 0) {
-                    bodyComp.example = { body_text: [req.body.bodyVariables] };
-                }
-                components.push(bodyComp);
-            }
+            if (category === 'AUTHENTICATION') {
+                components.push({
+                    type: "BODY",
+                    add_security_recommendation: false
+                });
 
-            if (footer) {
-                components.push({ type: "FOOTER", text: footer });
+                if (req.body.bodyVariables && req.body.bodyVariables.length > 1) {
+                    const expMinutes = parseInt(req.body.bodyVariables[1], 10);
+                    if (!isNaN(expMinutes)) {
+                        components.push({
+                            type: "FOOTER",
+                            code_expiration_minutes: expMinutes
+                        });
+                    }
+                }
+            } else {
+                if (content) {
+                    const bodyComp = { type: "BODY", text: content };
+                    if (req.body.bodyVariables && req.body.bodyVariables.length > 0) {
+                        bodyComp.example = { body_text: [req.body.bodyVariables] };
+                    }
+                    components.push(bodyComp);
+                }
+
+                if (footer) {
+                    components.push({ type: "FOOTER", text: footer });
+                }
             }
 
             if (buttons && buttons.length > 0) {
@@ -565,16 +582,34 @@ router.put('/:id', async (req, res) => {
                 components.push(headerComp);
             }
 
-            if (content) {
-                const bodyComp = { type: "BODY", text: content };
-                if (req.body.bodyVariables && req.body.bodyVariables.length > 0) {
-                    bodyComp.example = { body_text: [req.body.bodyVariables] };
-                }
-                components.push(bodyComp);
-            }
+            const effectiveCategory = category || template.category;
+            if (effectiveCategory === 'AUTHENTICATION') {
+                components.push({
+                    type: "BODY",
+                    add_security_recommendation: false
+                });
 
-            if (footer) {
-                components.push({ type: "FOOTER", text: footer });
+                if (req.body.bodyVariables && req.body.bodyVariables.length > 1) {
+                    const expMinutes = parseInt(req.body.bodyVariables[1], 10);
+                    if (!isNaN(expMinutes)) {
+                        components.push({
+                            type: "FOOTER",
+                            code_expiration_minutes: expMinutes
+                        });
+                    }
+                }
+            } else {
+                if (content) {
+                    const bodyComp = { type: "BODY", text: content };
+                    if (req.body.bodyVariables && req.body.bodyVariables.length > 0) {
+                        bodyComp.example = { body_text: [req.body.bodyVariables] };
+                    }
+                    components.push(bodyComp);
+                }
+
+                if (footer) {
+                    components.push({ type: "FOOTER", text: footer });
+                }
             }
 
             if (buttons && buttons.length > 0) {

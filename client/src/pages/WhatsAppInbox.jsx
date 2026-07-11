@@ -270,6 +270,9 @@ const WhatsAppInbox = () => {
                         : conversation.contactName;
                     showBrowserNotification(safeName, message.body || '📎 Media');
                 }
+                
+                // Instantly update sidebar badge
+                window.dispatchEvent(new Event('whatsapp_unread_update'));
             }
         });
 
@@ -441,6 +444,7 @@ const WhatsAppInbox = () => {
             if (conv?.unreadCount > 0) {
                 await axios.post(`${API_BASE}/api/whatsapp/chat/conversations/${chatId}/read`, {});
                 setConversations(prev => prev.map(c => c.id === chatId ? { ...c, unreadCount: 0 } : c));
+                window.dispatchEvent(new Event('whatsapp_unread_update'));
             }
         } catch (err) { console.error('Failed to fetch messages:', err); }
         finally { setLoadingMessages(false); }
