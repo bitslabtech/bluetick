@@ -324,7 +324,13 @@ const Settings = () => {
             try {
                 const tmplRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/templates/system`);
                 if (tmplRes.data && Array.isArray(tmplRes.data)) {
-                    setCrmTemplates(tmplRes.data.filter(t => t.category?.toUpperCase() === 'AUTHENTICATION'));
+                    console.log("System templates fetched:", tmplRes.data);
+                    const validTemplates = tmplRes.data.filter(t => 
+                        t.category?.toUpperCase() === 'AUTHENTICATION' && 
+                        t.status?.toUpperCase() === 'APPROVED'
+                    );
+                    console.log("Filtered valid auth templates:", validTemplates);
+                    setCrmTemplates(validTemplates);
                 }
             } catch (err) {
                 console.error("Error fetching templates:", err);

@@ -40,7 +40,7 @@ router.get('/system', async (req, res) => {
         if (!adminUser) return res.json([]);
         
         const templates = await Template.findAll({
-            where: { userId: adminUser.id, status: 'APPROVED' },
+            where: { userId: adminUser.id },
             order: [['createdAt', 'DESC']]
         });
         res.json(templates);
