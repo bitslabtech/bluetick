@@ -114,7 +114,7 @@ router.post('/send-otp', authLimiter, async (req, res) => {
             for (let i = 0; i < varIndex; i++) bodyParams.push({ type: 'text', text: '' });
             bodyParams.push({ type: 'text', text: otp });
 
-            result = await sendSystemMessage(phone, 'template', {
+            let templatePayload = {
                 templateName: otpConfig.templateName,
                 languageCode: otpConfig.templateLanguage || 'en',
                 components: [
@@ -123,7 +123,26 @@ router.post('/send-otp', authLimiter, async (req, res) => {
                         parameters: bodyParams
                     }
                 ]
-            });
+            };
+
+            // By default, try WITHOUT the button component first. 
+            // Meta API: "If you are using the copy code button, do not include a button component"
+            result = await sendSystemMessage(phone, 'template', templatePayload);
+
+            // If it fails with 131008 (Required parameter is missing), the template likely 
+            // has an Autofill button or is a Utility template that REQUIRES the button component.
+            if (!result.success && result.error?.error?.code === 131008) {
+                console.log('[OTP] Retrying with URL button component...');
+                templatePayload.components.push({
+                    type: 'button',
+                    sub_type: 'url',
+                    index: '0',
+                    parameters: [
+                        { type: 'text', text: otp }
+                    ]
+                });
+                result = await sendSystemMessage(phone, 'template', templatePayload);
+            }
         } else {
             // ── TEXT MODE (fallback — only works within 24h conversation window) ──
             const messageBody = otpConfig.messageTemplate

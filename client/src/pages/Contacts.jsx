@@ -11,7 +11,7 @@ import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
 import {
     Search, Filter, Tag, LayoutGrid, List, Users, CheckCircle, Ban,
-    FolderCog, Upload, UserPlus, MoreVertical, Trash2, FolderPlus, Download,
+    Upload, UserPlus, MoreVertical, Trash2, FolderPlus, Download,
     ChevronLeft, ChevronRight, Menu, HelpCircle, Bell, User, UploadCloud, Plus,
     X, MessageSquare, Clock, CheckCircle2, ChevronDown, AlertCircle, Tags, Lock, AlertTriangle, Phone,
     Zap, ToggleLeft, ToggleRight, Edit2, Save, Hash, Type, Code2, MousePointerClick, Sparkles, XCircle, Loader2
@@ -325,17 +325,25 @@ const Contacts = () => {
     // CRUD Handlers
     const handleSaveGroup = async () => {
         try {
-            if (editingGroup) {
+            const isEditing = !!editingGroup;
+            if (isEditing) {
                 await axios.put(`${import.meta.env.VITE_API_URL}/api/groups/${editingGroup.id}`, groupForm);
             } else {
                 await axios.post(`${import.meta.env.VITE_API_URL}/api/groups`, groupForm);
             }
             fetchGroups();
             setEditingGroup(null);
-            setShowGroupsModal(false);
+            setIsCreatingGroup(false); // Return to the group list inside the modal
             setGroupForm({ name: '', description: '', color: '#3B82F6' });
+            showToast({
+                type: 'success',
+                title: isEditing ? 'Group Updated' : 'Group Created',
+                message: isEditing
+                    ? `"${groupForm.name}" has been updated successfully.`
+                    : `"${groupForm.name}" group created successfully.`
+            });
         } catch (err) {
-            alert('Error saving group: ' + (err.response?.data?.error || err.message));
+            showToast({ type: 'error', title: 'Error', message: 'Error saving group: ' + (err.response?.data?.error || err.message) });
         }
     };
 
@@ -361,6 +369,10 @@ const Contacts = () => {
     useEffect(() => {
         if (showGroupsModal) {
             fetchGroups();
+            // Always open on the list view — reset any leftover create/edit state
+            setIsCreatingGroup(false);
+            setEditingGroup(null);
+            setGroupForm({ name: '', description: '', color: '#3B82F6' });
         }
     }, [showGroupsModal]);
 
@@ -1424,7 +1436,7 @@ const Contacts = () => {
                                     }}
                                     className="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white rounded-xl transition-colors tooltip" title="Edit Contact"
                                 >
-                                    <FolderCog className="w-5 h-5" />
+                                    <Edit2 className="w-5 h-5" />
                                 </button>
                                 <button
                                     onClick={() => handleDeleteContact(viewingContact)}
@@ -2351,7 +2363,7 @@ const Contacts = () => {
                                                 }}
                                                 className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
                                             >
-                                                <option value="">No Group</option>
+                                                <option value="">Select Group</option>
                                                 {availableGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
                                                 <option value="CREATE_NEW_GROUP" className="font-bold text-primary">+ Create New Group</option>
                                             </select>
@@ -2369,7 +2381,7 @@ const Contacts = () => {
                                                 }}
                                                 className="w-full bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:border-primary outline-none appearance-none cursor-pointer transition-colors"
                                             >
-                                                <option value="">No Tag</option>
+                                                <option value="">Select Tag</option>
                                                 {availableLabels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                                                 <option value="CREATE_NEW_LABEL" className="font-bold text-primary">+ Create New Tag</option>
                                             </select>
@@ -2665,23 +2677,46 @@ const Contacts = () => {
                                     </div>
                                     <div>
                                         <label className="block text-sm text-slate-600 dark:text-text-secondary mb-3">Group Color</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {groupColors.map((color) => (
-                                                <button
-                                                    key={color.value}
-                                                    type="button"
-                                                    onClick={() => setGroupForm({ ...groupForm, color: color.value })}
-                                                    className={`size-8 rounded-full transition-all border-2 ${groupForm.color === color.value ? 'border-white scale-110 shadow-lg shadow-white/20' : 'border-transparent hover:scale-105'}`}
-                                                    style={{ backgroundColor: color.value }}
-                                                    title={color.name}
+                                        <div className="flex flex-wrap gap-2.5 items-center">
+                                            {groupColors.map((color) => {
+                                                const isSelected = groupForm.color === color.value;
+                                                return (
+                                                    <button
+                                                        key={color.value}
+                                                        type="button"
+                                                        onClick={() => setGroupForm({ ...groupForm, color: color.value })}
+                                                        title={color.name}
+                                                        style={{
+                                                            backgroundColor: color.value,
+                                                            boxShadow: isSelected ? `0 0 0 2px white, 0 0 0 4px ${color.value}` : 'none'
+                                                        }}
+                                                        className={`relative size-8 rounded-full transition-all duration-200 flex items-center justify-center ${isSelected ? 'scale-110' : 'hover:scale-105 hover:brightness-110'}`}
+                                                    >
+                                                        {isSelected && (
+                                                            <svg className="w-4 h-4 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                            {/* Custom color picker */}
+                                            <div className="relative size-8 rounded-full overflow-hidden border-2 border-dashed border-slate-300 dark:border-white/20 hover:border-primary transition-colors cursor-pointer" title="Custom color">
+                                                <input
+                                                    type="color"
+                                                    value={groupForm.color}
+                                                    onChange={(e) => setGroupForm({ ...groupForm, color: e.target.value })}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                                 />
-                                            ))}
-                                            <input
-                                                type="color"
-                                                value={groupForm.color}
-                                                onChange={(e) => setGroupForm({ ...groupForm, color: e.target.value })}
-                                                className="size-8 rounded-full bg-transparent border-none cursor-pointer overflow-hidden p-0"
-                                            />
+                                                <div className="w-full h-full rounded-full flex items-center justify-center text-slate-400 dark:text-white/40 text-xs font-bold pointer-events-none"
+                                                    style={{ backgroundColor: groupColors.some(c => c.value === groupForm.color) ? 'transparent' : groupForm.color }}>
+                                                    {groupColors.some(c => c.value === groupForm.color) ? '+' : (
+                                                        <svg className="w-3 h-3 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex justify-end gap-3 pt-2">

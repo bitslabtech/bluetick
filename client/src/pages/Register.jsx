@@ -39,6 +39,35 @@ const COUNTRY_CODES = [
     { code: 'EG', dial: '+20', flag: '🇪🇬', name: 'Egypt' },
 ];
 
+// Per-country subscriber number lengths (digits after the dial code)
+// Source: ITU-T E.164 national significant number lengths
+const PHONE_LENGTHS = {
+    '+91':  { min: 10, max: 10 }, // India
+    '+1':   { min: 10, max: 10 }, // USA / Canada
+    '+44':  { min: 10, max: 10 }, // UK
+    '+971': { min: 9,  max: 9  }, // UAE
+    '+966': { min: 9,  max: 9  }, // Saudi Arabia
+    '+61':  { min: 9,  max: 9  }, // Australia
+    '+65':  { min: 8,  max: 8  }, // Singapore
+    '+60':  { min: 9,  max: 11 }, // Malaysia
+    '+92':  { min: 10, max: 10 }, // Pakistan
+    '+880': { min: 10, max: 10 }, // Bangladesh
+    '+94':  { min: 9,  max: 9  }, // Sri Lanka
+    '+977': { min: 10, max: 10 }, // Nepal
+    '+49':  { min: 10, max: 11 }, // Germany
+    '+33':  { min: 9,  max: 9  }, // France
+    '+234': { min: 10, max: 10 }, // Nigeria
+    '+27':  { min: 9,  max: 9  }, // South Africa
+    '+254': { min: 9,  max: 9  }, // Kenya
+    '+55':  { min: 10, max: 11 }, // Brazil
+    '+62':  { min: 9,  max: 12 }, // Indonesia
+    '+63':  { min: 10, max: 10 }, // Philippines
+    '+66':  { min: 9,  max: 9  }, // Thailand
+    '+20':  { min: 10, max: 10 }, // Egypt
+};
+
+const getPhoneLength = (dial) => PHONE_LENGTHS[dial] || { min: 6, max: 15 };
+
 const FEATURE_HIGHLIGHTS = [
     {
         title: "WhatsApp Automation & CRM",
@@ -163,8 +192,10 @@ const Register = () => {
 
     // ── Send OTP ──
     const handleSendOtp = async () => {
-        if (localNumber.length < 5) {
-            setOtpError('Please enter a valid phone number first.');
+        const { min, max } = getPhoneLength(dialCode);
+        if (localNumber.length < min || localNumber.length > max) {
+            const hint = min === max ? `${min} digits` : `${min}–${max} digits`;
+            setOtpError(`Please enter a valid phone number (${hint} for ${dialCode}).`);
             return;
         }
         setOtpError('');
@@ -320,8 +351,10 @@ const Register = () => {
         e.preventDefault();
         setError('');
 
-        if (localNumber.length < 5) {
-            setError('Please enter a valid phone number.');
+        const { min: pMin, max: pMax } = getPhoneLength(dialCode);
+        if (localNumber.length < pMin || localNumber.length > pMax) {
+            const hint = pMin === pMax ? `${pMin} digits` : `${pMin}–${pMax} digits`;
+            setError(`Please enter a valid phone number (${hint} for ${dialCode}).`);
             return;
         }
 
@@ -636,14 +669,22 @@ const Register = () => {
                                     type="tel"
                                     required
                                     value={localNumber}
-                                    onChange={(e) => setLocalNumber(e.target.value.replace(/\D/g, ''))}
+                                    onChange={(e) => {
+                                        const digits = e.target.value.replace(/\D/g, '');
+                                        const { max } = getPhoneLength(dialCode);
+                                        setLocalNumber(digits.slice(0, max));
+                                    }}
                                     disabled={otpStep === 'verified'}
                                     className="flex-1 min-w-0 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    placeholder="9876543210"
-                                    maxLength={12}
+                                    placeholder={dialCode === '+91' ? '9876543210' : 'Phone number'}
+                                    maxLength={getPhoneLength(dialCode).max}
                                 />
                             </div>
-                            <p className="text-xs text-slate-400 dark:text-slate-500">Enter number without leading zero</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500">
+                                Enter number without leading zero
+                                {' '}·{' '}
+                                {(() => { const { min, max } = getPhoneLength(dialCode); return min === max ? `${min} digits required` : `${min}–${max} digits`; })()}
+                            </p>
 
                             {/* ── WhatsApp OTP Section ── */}
                             {otpEnabled && (
@@ -660,7 +701,7 @@ const Register = () => {
                                     )}
 
                                     {/* Send OTP button — shown when idle */}
-                                    {(otpStep === 'idle') && localNumber.length >= 5 && (
+                                    {(otpStep === 'idle') && localNumber.length >= getPhoneLength(dialCode).min && (
                                         <button
                                             type="button"
                                             onClick={handleSendOtp}

@@ -45,17 +45,21 @@ export default function ManageLabelsModal({ onClose }) {
     const handleSave = async (e) => {
         e.preventDefault();
         setSaving(true);
+        const isCreating = editingLabel === 'new';
         try {
-            if (editingLabel === 'new') {
+            if (isCreating) {
                 const res = await axios.post(`${API_BASE}/api/labels`, { name: formName, color: formColor });
                 setLabels([res.data, ...labels]);
+                showToast({ type: 'success', title: 'Tag Created', message: `"${formName}" tag created successfully.` });
             } else {
                 const res = await axios.put(`${API_BASE}/api/labels/${editingLabel.id}`, { name: formName, color: formColor });
                 setLabels(labels.map(l => l.id === editingLabel.id ? res.data : l));
+                showToast({ type: 'success', title: 'Tag Updated', message: `"${formName}" has been updated successfully.` });
             }
             setEditingLabel(null);
         } catch (err) {
             console.error('Failed to save label', err);
+            showToast({ type: 'error', title: 'Error', message: 'Failed to save tag. Please try again.' });
         } finally {
             setSaving(false);
         }
