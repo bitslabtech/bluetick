@@ -86,16 +86,16 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
 
                             <div className="flex gap-4">
                                 {[
-                                    { id: 'twitter', icon: Twitter, defaultUrl: 'https://twitter.com' },
-                                    { id: 'facebook', icon: Facebook, defaultUrl: 'https://facebook.com' },
-                                    { id: 'linkedin', icon: Linkedin, defaultUrl: 'https://linkedin.com' },
-                                    { id: 'instagram', icon: Instagram, defaultUrl: 'https://instagram.com' }
-                                ].map((soc, index) => {
-                                    const url = config.seo?.socialLinks?.[soc.id] || soc.defaultUrl;
-                                    const SocIcon = soc.icon;
+                                    { id: 'twitter', icon: Twitter },
+                                    { id: 'facebook', icon: Facebook },
+                                    { id: 'linkedin', icon: Linkedin },
+                                    { id: 'instagram', icon: Instagram }
+                                ].map(({ id, icon: Icon }) => {
+                                    const url = config.seo?.socialLinks?.[id];
+                                    if (!url) return null;
                                     return (
-                                        <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 hover:bg-indigo-600 hover:text-white transition-colors">
-                                            <SocIcon className="w-4 h-4" />
+                                        <a key={id} href={url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 hover:bg-indigo-600 hover:text-white transition-colors">
+                                            <Icon className="w-4 h-4" />
                                         </a>
                                     );
                                 })}
@@ -153,6 +153,7 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                                     <ul className="space-y-4 text-slate-600 font-medium">
                                         <li><Link to="/privacy" className="hover:text-indigo-600 transition-colors">Privacy Policy</Link></li>
                                         <li><Link to="/terms" className="hover:text-indigo-600 transition-colors">Terms of Service</Link></li>
+                                        <li><Link to="/refund-policy" className="hover:text-indigo-600 transition-colors">Refund Policy</Link></li>
                                     </ul>
                                 </div>
                             </>
