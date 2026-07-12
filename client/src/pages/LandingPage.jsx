@@ -3014,11 +3014,7 @@ export default function LandingPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xs">
-                                        {config.brand.footerText
-                                            ? config.brand.footerText.replace(config.brand.name, publicSettings?.appName || config.brand.name)
-                                            : 'The operating system for official WhatsApp Business API conversations.'}
-                                    </p>
+
                                     <div className="flex gap-4">
                                         {[
                                             { id: 'twitter', icon: Twitter, defaultUrl: 'https://twitter.com' },

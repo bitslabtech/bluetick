@@ -83,7 +83,7 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                                     </div>
                                 )}
                             </div>
-                            <p className="text-slate-500 font-medium max-w-xs">{config.brand?.footerText || 'The operating system for official WhatsApp Business API conversations.'}</p>
+
                             <div className="flex gap-4">
                                 {[
                                     { id: 'twitter', icon: Twitter, defaultUrl: 'https://twitter.com' },

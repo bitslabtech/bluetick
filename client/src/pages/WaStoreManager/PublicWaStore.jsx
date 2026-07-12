@@ -413,7 +413,8 @@ export default function PublicWaStore() {
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="text-center py-24 bg-white rounded-3xl border border-gray-100 shadow-sm">
