@@ -215,7 +215,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                                 className={`p-3 rounded-lg border-2 cursor-pointer transition-all mb-2 ${!localData.isAny
                                         ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
                                         : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                                    }`}
+                                    } cursor-pointer`}
                             >
                                 <div className="flex items-center gap-2">
                                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${!localData.isAny ? 'border-indigo-500' : 'border-slate-400'
@@ -233,7 +233,7 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                                 className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${localData.isAny
                                         ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
                                         : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                                    }`}
+                                    } cursor-pointer`}
                             >
                                 <div className="flex items-center gap-2">
                                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${localData.isAny ? 'border-indigo-500' : 'border-slate-400'
@@ -245,7 +245,6 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                                 <p className="text-xs text-slate-500 mt-1 ml-6">Flow starts for any unhandled incoming message.</p>
                             </div>
                         </div>
-
                         {/* Keyword Input — always visible when "Specific Keyword" is selected */}
                         {!localData.isAny && (
                             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
@@ -1195,14 +1194,45 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Variable</label>
-                            <input
-                                type="text"
-                                value={localData.variable || ''}
-                                onChange={(e) => handleChange('variable', e.target.value)}
+                            <select
+                                value={['{{contact.name}}', '{{contact.phone}}', '{{contact.email}}', '{{contact.tags}}', '{{contact.groups}}', '{{contact.labels}}', '{{contact.status}}'].includes(localData.variable) ? localData.variable : (localData.variable ? 'custom' : '')}
+                                onChange={(e) => {
+                                    if (e.target.value === 'custom') {
+                                        handleChange('variable', '{{vars.custom}}');
+                                    } else {
+                                        handleChange('variable', e.target.value);
+                                    }
+                                }}
                                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none text-sm"
-                                placeholder="e.g. {{vars.name}}"
-                            />
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Include double curly braces for variables.</p>
+                            >
+                                <option value="" disabled>Select a variable...</option>
+                                <optgroup label="Contact Properties">
+                                    <option value="{{contact.tags}}">Contact Tags</option>
+                                    <option value="{{contact.groups}}">Contact Groups</option>
+                                    <option value="{{contact.labels}}">Contact Labels</option>
+                                    <option value="{{contact.name}}">Contact Name</option>
+                                    <option value="{{contact.phone}}">Contact Phone</option>
+                                    <option value="{{contact.email}}">Contact Email</option>
+                                    <option value="{{contact.status}}">Contact Status</option>
+                                </optgroup>
+                                <optgroup label="Flow Variables">
+                                    <option value="custom">Custom Flow Variable...</option>
+                                </optgroup>
+                            </select>
+                            
+                            {(!['{{contact.name}}', '{{contact.phone}}', '{{contact.email}}', '{{contact.tags}}', '{{contact.groups}}', '{{contact.labels}}', '{{contact.status}}', ''].includes(localData.variable)) && (
+                                <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Custom Variable</label>
+                                    <input
+                                        type="text"
+                                        value={localData.variable || ''}
+                                        onChange={(e) => handleChange('variable', e.target.value)}
+                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white outline-none text-sm focus:border-indigo-500 transition-colors"
+                                        placeholder="e.g. {{vars.score}}"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">Wrap custom variables in {'{{vars.variable_name}}'}</p>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Operator</label>
@@ -1494,11 +1524,10 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
     return (
         <>
             {/* Mobile Backdrop */}
-            <div className="md:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity" onClick={onClose} />
-            
+            <div className="md:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity cursor-pointer" onClick={onClose} />
             <aside className="fixed md:absolute bottom-0 md:bottom-auto left-0 md:left-auto md:right-0 w-full md:w-80 h-[85vh] md:h-full bg-white dark:bg-slate-900 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-xl z-50 rounded-t-3xl md:rounded-none animate-in slide-in-from-bottom-full md:slide-in-from-right-full duration-300">
                 {/* Mobile Drag Handle Indicator */}
-                <div className="md:hidden w-full flex justify-center pt-3 pb-1 flex-shrink-0" onClick={onClose}>
+                <div className="md:hidden w-full flex justify-center pt-3 pb-1 flex-shrink-0 cursor-pointer" onClick={onClose}>
                     <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full cursor-pointer hover:bg-slate-300 transition-colors" />
                 </div>
                 
@@ -1529,26 +1558,26 @@ const FlowConfigurator = ({ node, updateNodeData, onClose, onDelete }) => {
                 </div>
             )}
         </aside>
-        <MediaPickerModal
-            isOpen={mediaPickerOpen}
-            onClose={() => setMediaPickerOpen(false)}
-            onSelect={handleMediaManagerSelect}
-            allowedTypes={
-                localData.mediaType === 'image' ? 'image' :
-                localData.mediaType === 'video' ? 'video' :
-                localData.mediaType === 'document' ? 'document' :
-                'all'
-            }
-            mimeConstraints={
-                localData.mediaType === 'image' ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] :
-                localData.mediaType === 'video' ? ['video/mp4', 'video/webm', 'video/3gpp'] :
-                localData.mediaType === 'document' ? ['application/pdf', 'text/csv', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'] :
-                localData.mediaType === 'audio' ? ['audio/mpeg', 'audio/ogg', 'audio/wav'] :
-                null
-            }
-            title={`Pick ${localData.mediaType || 'Media'} from Library`}
-            multiple={false}
-        />
+            <MediaPickerModal
+                isOpen={mediaPickerOpen}
+                onClose={() => setMediaPickerOpen(false)}
+                onSelect={handleMediaManagerSelect}
+                allowedTypes={
+                    localData.mediaType === 'image' ? 'image' :
+                    localData.mediaType === 'video' ? 'video' :
+                    localData.mediaType === 'document' ? 'document' :
+                    'all'
+                }
+                mimeConstraints={
+                    localData.mediaType === 'image' ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] :
+                    localData.mediaType === 'video' ? ['video/mp4', 'video/webm', 'video/3gpp'] :
+                    localData.mediaType === 'document' ? ['application/pdf', 'text/csv', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'] :
+                    localData.mediaType === 'audio' ? ['audio/mpeg', 'audio/ogg', 'audio/wav'] :
+                    null
+                }
+                title={`Pick ${localData.mediaType || 'Media'} from Library`}
+                multiple={false}
+            />
         </>
     );
 };

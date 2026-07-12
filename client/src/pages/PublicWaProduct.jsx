@@ -318,7 +318,6 @@ export default function PublicWaProduct({ customSlug }) {
                 cartCount={cartCount} 
                 setIsCartOpen={setIsCartOpen} 
             />
-
             <main className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12 pt-4 pb-10 md:py-10">
                 
                 {/* ─── VISUAL BREADCRUMB ─── */}
@@ -421,7 +420,7 @@ export default function PublicWaProduct({ customSlug }) {
 
                         {/* Main Image Viewport */}
                         <div 
-                            className="flex-1 max-w-[500px] aspect-square bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in" 
+                            className="flex-1 max-w-[500px] aspect-square bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer" 
                             onClick={() => setIsLightboxOpen(true)}
                             onTouchStart={(e) => {
                                 touchStartX.current = e.targetTouches[0].clientX;
@@ -766,7 +765,6 @@ export default function PublicWaProduct({ customSlug }) {
                     </div>
                 </div>
             </main>
-
             {/* ─── CHECKOUT MODAL ─── */}
             {isCheckoutModalOpen && (
                 <WaStoreCheckoutModal 
@@ -779,9 +777,6 @@ export default function PublicWaProduct({ customSlug }) {
                     onCheckoutSuccess={handleCheckoutSuccess} 
                 />
             )}
-
-
-
             {/* ─── CART DRAWER ─── */}
             <AnimatePresence>
                 {isCartOpen && (
@@ -792,7 +787,7 @@ export default function PublicWaProduct({ customSlug }) {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
                             onClick={() => setIsCartOpen(false)}
                         />
                         
@@ -884,7 +879,6 @@ export default function PublicWaProduct({ customSlug }) {
                     </div>
                 )}
             </AnimatePresence>
-
             {/* ─── FULLSCREEN LIGHTBOX MODAL ─── */}
             <AnimatePresence>
                 {isLightboxOpen && product.imageUrls && product.imageUrls[activeImageIdx] && (
@@ -892,7 +886,7 @@ export default function PublicWaProduct({ customSlug }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center select-none"
+                        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center select-none cursor-pointer"
                         onClick={() => setIsLightboxOpen(false)}
                     >
                         {/* Close button */}
@@ -905,7 +899,7 @@ export default function PublicWaProduct({ customSlug }) {
                         </button>
 
                         {/* Image Container */}
-                        <div className="relative w-full max-w-4xl h-[70vh] flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
+                        <div className="relative w-full max-w-4xl h-[70vh] flex items-center justify-center p-4 cursor-pointer" onClick={e => e.stopPropagation()}>
                             <img
                                 src={imgUrl(product.imageUrls[activeImageIdx])}
                                 alt={product.name}
@@ -941,7 +935,7 @@ export default function PublicWaProduct({ customSlug }) {
 
                         {/* Bottom Thumbnail Strip for Lightbox */}
                         {product.imageUrls.length > 1 && (
-                            <div className="absolute bottom-8 flex gap-2 overflow-x-auto max-w-[80vw] px-4 py-2 scrollbar-hide z-10" onClick={e => e.stopPropagation()}>
+                            <div className="absolute bottom-8 flex gap-2 overflow-x-auto max-w-[80vw] px-4 py-2 scrollbar-hide z-10 cursor-pointer" onClick={e => e.stopPropagation()}>
                                 {product.imageUrls.map((url, idx) => (
                                     <button
                                         key={idx}
@@ -958,9 +952,7 @@ export default function PublicWaProduct({ customSlug }) {
                     </motion.div>
                 )}
             </AnimatePresence>
-
             <WaStoreFooter store={store} />
-
             {/* Sticky Mobile Add To Cart / Checkout Bar */}
             <div 
                 className="md:hidden fixed left-0 w-full bg-white/95 backdrop-blur-md dark:bg-black/95 border-t border-gray-200 dark:border-white/10 px-2 py-3 z-30 flex items-center gap-1.5 sm:gap-2 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] overflow-x-auto hide-scrollbar"

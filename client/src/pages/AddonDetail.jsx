@@ -92,262 +92,260 @@ const AddonDetail = () => {
 
     return (
         <>
-        <div className="p-4 sm:p-6 lg:p-8 w-full max-w-6xl mx-auto space-y-6 pb-28 md:pb-8">
+            <div className="p-4 sm:p-6 lg:p-8 w-full max-w-6xl mx-auto space-y-6 pb-28 md:pb-8">
 
-            {/* Back button + installed badge */}
-            <div className="flex items-center justify-between">
-                <button
-                    onClick={() => navigate('/marketplace')}
-                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors group"
-                >
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-                    Back to Marketplace
-                </button>
-                {owned && (
-                    <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20 shadow-sm">
-                            <CheckCircle className="w-3.5 h-3.5" /> Installed & Active
-                        </span>
-                        {daysLeft !== null && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-sm animate-pulse-slow">
-                                <Clock className="w-3.5 h-3.5" />
-                                {daysLeft <= 0 ? 'Expires Today' : `Expiring in ${daysLeft} Days`}
+                {/* Back button + installed badge */}
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={() => navigate('/marketplace')}
+                        className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors group"
+                    >
+                        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                        Back to Marketplace
+                    </button>
+                    {owned && (
+                        <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20 shadow-sm">
+                                <CheckCircle className="w-3.5 h-3.5" /> Installed & Active
                             </span>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                {/* Main Content */}
-                <div className="lg:col-span-8 space-y-8">
-
-                    {/* Page Title + Short Description */}
-                    <div>
-                        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight">
-                            {addon.name}
-                        </h1>
-                        {(addon.shortDescription || addon.description) && (
-                            <p className="text-base text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
-                                {addon.shortDescription || addon.description}
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Media */}
-                    {hasMedia && (
-                        <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-900 relative aspect-video">
-                            {hasVideo ? (
-                                addon.demoVideoUrl.includes('youtube.com') || addon.demoVideoUrl.includes('youtu.be') ? (
-                                    <iframe
-                                        className="absolute inset-0 w-full h-full"
-                                        src={addon.demoVideoUrl.replace('watch?v=', 'embed/').split('&')[0]}
-                                        title="Demo Video"
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                    ></iframe>
-                                ) : (
-                                    <video className="absolute inset-0 w-full h-full object-cover" controls muted loop playsInline src={addon.demoVideoUrl}></video>
-                                )
-                            ) : (
-                                <img src={addon.bannerUrl} alt={addon.name} className="absolute inset-0 w-full h-full object-cover" />
+                            {daysLeft !== null && (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-sm animate-pulse-slow">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {daysLeft <= 0 ? 'Expires Today' : `Expiring in ${daysLeft} Days`}
+                                </span>
                             )}
                         </div>
                     )}
+                </div>
 
-                    {/* Long Description */}
-                    {addon.longDescription && (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">About this Add-on</h3>
-                            <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">
-                                {addon.longDescription}
-                            </p>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                    {/* Main Content */}
+                    <div className="lg:col-span-8 space-y-8">
+
+                        {/* Page Title + Short Description */}
+                        <div>
+                            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight">
+                                {addon.name}
+                            </h1>
+                            {(addon.shortDescription || addon.description) && (
+                                <p className="text-base text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
+                                    {addon.shortDescription || addon.description}
+                                </p>
+                            )}
                         </div>
-                    )}
 
-                    {/* Dynamic Core Features */}
-                    {addon.features && addon.features.filter(f => f.trim()).length > 0 && (
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                <Zap className="w-5 h-5 text-indigo-500" />
-                                Features
-                            </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {addon.features.filter(f => f.trim()).map((feat, idx) => (
-                                    <div key={idx} className="flex gap-3 p-4 rounded-xl bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-colors">
-                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-                                            <CheckCircle className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        {/* Media */}
+                        {hasMedia && (
+                            <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-900 relative aspect-video">
+                                {hasVideo ? (
+                                    addon.demoVideoUrl.includes('youtube.com') || addon.demoVideoUrl.includes('youtu.be') ? (
+                                        <iframe
+                                            className="absolute inset-0 w-full h-full"
+                                            src={addon.demoVideoUrl.replace('watch?v=', 'embed/').split('&')[0]}
+                                            title="Demo Video"
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        ></iframe>
+                                    ) : (
+                                        <video className="absolute inset-0 w-full h-full object-cover" controls muted loop playsInline src={addon.demoVideoUrl}></video>
+                                    )
+                                ) : (
+                                    <img src={addon.bannerUrl} alt={addon.name} className="absolute inset-0 w-full h-full object-cover" />
+                                )}
+                            </div>
+                        )}
+
+                        {/* Long Description */}
+                        {addon.longDescription && (
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">About this Add-on</h3>
+                                <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">
+                                    {addon.longDescription}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Dynamic Core Features */}
+                        {addon.features && addon.features.filter(f => f.trim()).length > 0 && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Zap className="w-5 h-5 text-indigo-500" />
+                                    Features
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {addon.features.filter(f => f.trim()).map((feat, idx) => (
+                                        <div key={idx} className="flex gap-3 p-4 rounded-xl bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-colors">
+                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
+                                                <CheckCircle className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                            </div>
+                                            <span className="text-gray-700 dark:text-gray-300 font-medium text-sm leading-snug pt-1.5">{feat}</span>
                                         </div>
-                                        <span className="text-gray-700 dark:text-gray-300 font-medium text-sm leading-snug pt-1.5">{feat}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* CTA Sidebar */}
+                    <div className="lg:col-span-4">
+                        <div className="sticky top-20 bg-white dark:bg-gray-800 rounded-3xl p-4 md:p-6 shadow-2xl border border-gray-100 dark:border-gray-700 space-y-6 overflow-hidden">
+                            {/* Premium "Most Popular" Banner logic (optional visual flair) */}
+                            <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl tracking-wider uppercase shadow-md">
+                                Premium Addon
+                            </div>
+                            {addon.badge && (
+                                <div className="pt-2 px-1">
+                                    <span className="bg-pink-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg inline-flex items-center gap-1">
+                                        <Tag className="w-3 h-3" /> {addon.badge}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Price Block */}
+                            <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-900/10 dark:to-gray-800 border border-indigo-100 dark:border-indigo-800/30 overflow-hidden">
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay"></div>
+
+                                <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1 relative z-10 flex items-center gap-1.5">
+                                    <Zap className="w-3.5 h-3.5" /> Instant Activation
+                                </p>
+
+                                {addon.price > 0 ? (
+                                    <div className="relative z-10">
+                                        <div className="flex items-baseline gap-0.5 mt-2">
+                                            <span className="text-lg font-bold text-gray-400 dark:text-gray-500">{getCurrencySymbol(addon.currency)}</span>
+                                            <span className="text-3xl font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tight">
+                                                {Math.floor(Number(addon.price))}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
+                                            {addon.currency} <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span> {addon.isRecurring ? `Billed ${addon.recurringInterval}ly` : 'One-time payment'}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="relative z-10">
+                                        <span className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600 mt-2 block">Free</span>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-2">No credit card required</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Included Features Checklist */}
+                            <div className="space-y-3 px-1">
+                                <p className="font-bold text-gray-900 dark:text-white text-sm mb-4">Included with your purchase:</p>
+                                {[
+                                    'Full access to core addon features',
+                                    'Priority technical support',
+                                    'Free updates & maintenance',
+                                    'Seamless 1-click integration'
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-start gap-3">
+                                        <div className="mt-0.5 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                                            <CheckCircle className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                                        </div>
+                                        <span className="text-sm text-gray-600 dark:text-gray-300 leading-snug">{item}</span>
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    )}
-                </div>
 
-                {/* CTA Sidebar */}
-                <div className="lg:col-span-4">
-                    <div className="sticky top-20 bg-white dark:bg-gray-800 rounded-3xl p-4 md:p-6 shadow-2xl border border-gray-100 dark:border-gray-700 space-y-6 overflow-hidden">
-                        {/* Premium "Most Popular" Banner logic (optional visual flair) */}
-                        <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl tracking-wider uppercase shadow-md">
-                            Premium Addon
-                        </div>
-                        {addon.badge && (
-                            <div className="pt-2 px-1">
-                                <span className="bg-pink-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg inline-flex items-center gap-1">
-                                    <Tag className="w-3 h-3" /> {addon.badge}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Price Block */}
-                        <div className="relative p-4 md:p-6 rounded-2xl bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-900/10 dark:to-gray-800 border border-indigo-100 dark:border-indigo-800/30 overflow-hidden">
-                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay"></div>
-
-                            <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1 relative z-10 flex items-center gap-1.5">
-                                <Zap className="w-3.5 h-3.5" /> Instant Activation
-                            </p>
-
-                            {addon.price > 0 ? (
-                                <div className="relative z-10">
-                                    <div className="flex items-baseline gap-0.5 mt-2">
-                                        <span className="text-lg font-bold text-gray-400 dark:text-gray-500">{getCurrencySymbol(addon.currency)}</span>
-                                        <span className="text-3xl font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tight">
-                                            {Math.floor(Number(addon.price))}
-                                        </span>
+                            <div className="pt-2 hidden md:block">
+                                {owned ? (
+                                    <div className="space-y-4">
+                                        <Link
+                                            to={`/addons/${addon.module_key}`}
+                                            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-base font-bold rounded-xl flex justify-center items-center gap-2 transition-all shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5"
+                                        >
+                                            <Settings className="w-5 h-5" /> Manage This Module
+                                        </Link>
+                                        <p className="text-center text-xs font-medium text-gray-500 dark:text-gray-400">Ready to configure in your workspace.</p>
                                     </div>
-                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
-                                        {addon.currency} <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span> {addon.isRecurring ? `Billed ${addon.recurringInterval}ly` : 'One-time payment'}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="relative z-10">
-                                    <span className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600 mt-2 block">Free</span>
-                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-2">No credit card required</p>
-                                </div>
-                            )}
-                        </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <button
+                                            onClick={() => setShowPurchaseModal(true)}
+                                            disabled={purchasing}
+                                            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-base font-bold rounded-xl flex justify-center items-center gap-2 transition-all shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] max-w-full hover:-translate-y-1 transform disabled:opacity-70 disabled:transform-none relative overflow-hidden group"
+                                        >
+                                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                                            <span className="relative flex items-center gap-2">
+                                                {purchasing ? (
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                ) : (
+                                                    <><ShoppingCart className="w-5 h-5 animate-bounce-slow" /> {addon.price > 0 ? 'Purchase Now' : 'Enable Free Add-on'}</>
+                                                )}
+                                            </span>
+                                        </button>
 
-                        {/* Included Features Checklist */}
-                        <div className="space-y-3 px-1">
-                            <p className="font-bold text-gray-900 dark:text-white text-sm mb-4">Included with your purchase:</p>
-                            {[
-                                'Full access to core addon features',
-                                'Priority technical support',
-                                'Free updates & maintenance',
-                                'Seamless 1-click integration'
-                            ].map((item, i) => (
-                                <div key={i} className="flex items-start gap-3">
-                                    <div className="mt-0.5 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                                        <CheckCircle className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                                    </div>
-                                    <span className="text-sm text-gray-600 dark:text-gray-300 leading-snug">{item}</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="pt-2 hidden md:block">
-                            {owned ? (
-                                <div className="space-y-4">
-                                    <Link
-                                        to={`/addons/${addon.module_key}`}
-                                        className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-base font-bold rounded-xl flex justify-center items-center gap-2 transition-all shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5"
-                                    >
-                                        <Settings className="w-5 h-5" /> Manage This Module
-                                    </Link>
-                                    <p className="text-center text-xs font-medium text-gray-500 dark:text-gray-400">Ready to configure in your workspace.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <button
-                                        onClick={() => setShowPurchaseModal(true)}
-                                        disabled={purchasing}
-                                        className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-base font-bold rounded-xl flex justify-center items-center gap-2 transition-all shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] max-w-full hover:-translate-y-1 transform disabled:opacity-70 disabled:transform-none relative overflow-hidden group"
-                                    >
-                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-                                        <span className="relative flex items-center gap-2">
-                                            {purchasing ? (
-                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                            ) : (
-                                                <><ShoppingCart className="w-5 h-5 animate-bounce-slow" /> {addon.price > 0 ? 'Purchase Now' : 'Enable Free Add-on'}</>
+                                        {/* Trust Badges Row */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
+                                            {addon.price > 0 && (
+                                                <div className="flex items-center gap-2 justify-center bg-gray-50 dark:bg-gray-800/80 rounded-lg p-2 border border-gray-100 dark:border-gray-700">
+                                                    <ShieldCheck className="w-4 h-4 text-green-500" />
+                                                    <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">256-bit Secure</span>
+                                                </div>
                                             )}
-                                        </span>
-                                    </button>
-
-                                    {/* Trust Badges Row */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
-                                        {addon.price > 0 && (
                                             <div className="flex items-center gap-2 justify-center bg-gray-50 dark:bg-gray-800/80 rounded-lg p-2 border border-gray-100 dark:border-gray-700">
-                                                <ShieldCheck className="w-4 h-4 text-green-500" />
-                                                <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">256-bit Secure</span>
+                                                <Zap className="w-4 h-4 text-yellow-500" />
+                                                <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Instant Setup</span>
                                             </div>
-                                        )}
-                                        <div className="flex items-center gap-2 justify-center bg-gray-50 dark:bg-gray-800/80 rounded-lg p-2 border border-gray-100 dark:border-gray-700">
-                                            <Zap className="w-4 h-4 text-yellow-500" />
-                                            <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Instant Setup</span>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
+
                 </div>
-
             </div>
-        </div>
-
-        {/* Mobile Sticky Action Bar */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.15)] z-40 p-4 pb-6 flex items-center justify-between gap-4">
-            <div className="flex flex-col">
-                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mb-0.5">{addon.price > 0 ? 'Total Price' : 'Free Add-on'}</span>
-                {addon.price > 0 ? (
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tight">
-                            {getCurrencySymbol(addon.currency)}{Math.floor(Number(addon.price))}
-                        </span>
-                        <span className="text-[10px] text-gray-500 font-medium">
-                            / {addon.isRecurring ? addon.recurringInterval : 'lifetime'}
-                        </span>
-                    </div>
-                ) : (
-                    <span className="text-xl font-extrabold text-green-600 dark:text-green-400">Free</span>
-                )}
+            {/* Mobile Sticky Action Bar */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.15)] z-40 p-4 pb-6 flex items-center justify-between gap-4">
+                <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mb-0.5">{addon.price > 0 ? 'Total Price' : 'Free Add-on'}</span>
+                    {addon.price > 0 ? (
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tight">
+                                {getCurrencySymbol(addon.currency)}{Math.floor(Number(addon.price))}
+                            </span>
+                            <span className="text-[10px] text-gray-500 font-medium">
+                                / {addon.isRecurring ? addon.recurringInterval : 'lifetime'}
+                            </span>
+                        </div>
+                    ) : (
+                        <span className="text-xl font-extrabold text-green-600 dark:text-green-400">Free</span>
+                    )}
+                </div>
+                
+                <div className="flex-1 max-w-[60%]">
+                    {owned ? (
+                        <Link
+                            to={`/addons/${addon.module_key}`}
+                            className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-indigo-500/25 transition-all"
+                        >
+                            <Settings className="w-4 h-4" /> Manage Addon
+                        </Link>
+                    ) : (
+                        <button
+                            onClick={() => setShowPurchaseModal(true)}
+                            disabled={purchasing}
+                            className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold rounded-xl flex justify-center items-center gap-1 shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-70 disabled:transform-none"
+                        >
+                            {purchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                                <><ShoppingCart className="w-4 h-4" /> {addon.price > 0 ? 'Purchase Now' : 'Enable Free'}</>
+                            )}
+                        </button>
+                    )}
+                </div>
             </div>
-            
-            <div className="flex-1 max-w-[60%]">
-                {owned ? (
-                    <Link
-                        to={`/addons/${addon.module_key}`}
-                        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-indigo-500/25 transition-all"
-                    >
-                        <Settings className="w-4 h-4" /> Manage Addon
-                    </Link>
-                ) : (
-                    <button
-                        onClick={() => setShowPurchaseModal(true)}
-                        disabled={purchasing}
-                        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold rounded-xl flex justify-center items-center gap-1 shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-70 disabled:transform-none"
-                    >
-                        {purchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : (
-                            <><ShoppingCart className="w-4 h-4" /> {addon.price > 0 ? 'Purchase Now' : 'Enable Free'}</>
-                        )}
-                    </button>
-                )}
-            </div>
-        </div>
-
             {/* Purchase Confirmation Modal */}
             {showPurchaseModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowPurchaseModal(false)}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 cursor-pointer" onClick={() => setShowPurchaseModal(false)}>
                     {/* Backdrop */}
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" />
 
                     {/* Modal */}
                     <div
-                        className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-scale-in"
+                        className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-scale-in cursor-pointer"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close Button */}

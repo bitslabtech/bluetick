@@ -110,7 +110,7 @@ function FileThumbnail({ file, selected, onClick, disabled, disabledReason }) {
                     ? "border-slate-200 dark:border-white/5 cursor-not-allowed opacity-40 grayscale"
                     : `cursor-pointer ${selected ? "border-primary shadow-lg shadow-primary/25 ring-2 ring-primary/30" : "border-transparent hover:border-primary/40 hover:shadow-md"}`
                 }
-                bg-white dark:bg-surface-dark`}
+                bg-white dark:bg-surface-dark cursor-pointer`}
         >
             <div className="aspect-square bg-slate-100 dark:bg-white/5 overflow-hidden flex items-center justify-center">
                 {vid ? (
@@ -131,14 +131,12 @@ function FileThumbnail({ file, selected, onClick, disabled, disabledReason }) {
                     </div>
                 )}
             </div>
-
             {/* Selection circle — only for non-disabled */}
             {!disabled && (
                 <div className={`absolute top-2 left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shadow-sm ${selected ? "bg-primary border-primary scale-110" : "border-white/80 bg-black/20 group-hover:bg-black/30"}`}>
                     {selected && <Check className="w-3 h-3 text-white" />}
                 </div>
             )}
-
             {/* "Not supported" badge for disabled files */}
             {disabled && (
                 <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
@@ -147,14 +145,12 @@ function FileThumbnail({ file, selected, onClick, disabled, disabledReason }) {
                     </span>
                 </div>
             )}
-
             {/* Hover zoom — only for non-disabled */}
             {!disabled && (
                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                     <ZoomIn className="w-5 h-5 text-white/80" />
                 </div>
             )}
-
             <div className="p-1.5 border-t border-slate-100 dark:border-white/5">
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate" title={file.fileName}>{file.fileName || "Unnamed"}</p>
                 <span className="text-[9px] font-medium text-slate-400">{formatBytes(file.sizeBytes)}</span>
@@ -336,8 +332,8 @@ export default function MediaPickerModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="bg-white dark:bg-[#0f172a] w-full max-w-4xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-white/10" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="bg-white dark:bg-[#0f172a] w-full max-w-4xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-white/10 cursor-pointer" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/10 flex-shrink-0">
@@ -418,7 +414,7 @@ export default function MediaPickerModal({
                         onDragLeave={() => setDragOver(false)}
                         onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleUpload(f); }}
                         onClick={() => !uploading && uploadInputRef.current?.click()}
-                        className={`cursor-pointer border-2 border-dashed rounded-xl py-3 px-4 flex items-center gap-3 transition-all duration-150 ${dragOver ? "border-primary bg-primary/5" : "border-slate-200 dark:border-white/10 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/5"} ${uploading ? "opacity-60 cursor-not-allowed" : ""}`}
+                        className={`cursor-pointer border-2 border-dashed rounded-xl py-3 px-4 flex items-center gap-3 transition-all duration-150 ${dragOver ? "border-primary bg-primary/5" : "border-slate-200 dark:border-white/10 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/5"} ${uploading ? "opacity-60 cursor-not-allowed" : ""} cursor-pointer`}
                     >
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${dragOver ? "bg-primary text-white" : uploading ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-white/10 text-slate-400"}`}>
                             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
@@ -461,7 +457,7 @@ export default function MediaPickerModal({
                                         onClick={() => toggleSelect(file.id)}
                                         disabled={!compatible}
                                         disabledReason={!compatible ? `Not supported here. Only ${constraintLabel} accepted.` : undefined}
-                                    />
+                                        className="cursor-pointer" />
                                 );
                             })}
                         </div>
@@ -489,7 +485,7 @@ export default function MediaPickerModal({
                                                     ${compatible
                                                         ? `cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 ${sel ? "bg-primary/5" : ""}`
                                                         : "opacity-40 grayscale cursor-not-allowed"
-                                                    }`}
+                                                    } cursor-pointer`}
                                             >
                                                 <td className="px-3 py-2.5">
                                                     {compatible ? (

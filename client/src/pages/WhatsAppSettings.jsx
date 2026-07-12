@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import {
     Save, MessageCircle, Clock, MapPin, Mail, Globe,
-    Briefcase, Info, Check, X, CalendarClock, RefreshCw, Upload, Image as ImageIcon, Copy, Link2, Shield
+    Briefcase, Info, Check, X, CalendarClock, RefreshCw, Upload, Image as ImageIcon, Copy, Link2, Shield, BellOff, AlertTriangle, Plus
 } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
@@ -31,7 +31,7 @@ export default function WhatsAppSettings() {
     const [loading, setLoading] = useState(true);
     const [webhookCopied, setWebhookCopied] = useState(false);
     const [tokenCopied, setTokenCopied] = useState(false);
-    // Public base URL (ngrok or production domain) — persisted in localStorage
+    // Public base URL (ngrok or production domain) â€” persisted in localStorage
     const [publicBaseUrl, setPublicBaseUrl] = useState(
         () => localStorage.getItem('publicBaseUrl') || import.meta.env.VITE_API_URL || ''
     );
@@ -111,7 +111,12 @@ export default function WhatsAppSettings() {
                         text: wa.offHoursMessage?.text || '',
                         timezone: wa.offHoursMessage?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
                         schedule
-                    }
+                    },
+                    // Opt-Out fields
+                    optOutEnabled: wa.optOutEnabled !== false,
+                    optOutAck: wa.optOutAck || "You've been unsubscribed from our messages. Reply START to re-subscribe at any time.",
+                    optInAck: wa.optInAck || "You've been re-subscribed! You'll receive our messages again. Reply STOP at any time to opt out.",
+                    customOptOutKeywords: wa.customOptOutKeywords || []
                 });
             }
         } catch (err) {
@@ -591,10 +596,100 @@ export default function WhatsAppSettings() {
                             )}
                         </div>
 
+                        {/* â”€â”€ Opt-Out Management Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden transition-all duration-300">
+                            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-background-dark/30">
+                                <div>
+                                    <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <BellOff className="w-5 h-5 text-slate-500" /> Opt-Out Management
+                                    </h2>
+                                    <p className="text-xs text-slate-500 mt-1">Auto-detect unsubscribe keywords and send an acknowledgement. Opted-out contacts are excluded from all broadcasts.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={automations.optOutEnabled !== false}
+                                        onChange={e => setAutomations({ ...automations, optOutEnabled: e.target.checked })}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-[#25D366]"></div>
+                                </label>
+                            </div>
+
+                            {automations.optOutEnabled !== false && (
+                                <div className="p-4 md:p-6 bg-white dark:bg-surface-dark space-y-6 animate-in slide-in-from-top-2 fade-in duration-200">
+
+                                    {/* Built-in Keywords (read-only) */}
+                                    <div>
+                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Built-in Opt-Out Keywords</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {['STOP', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].map(kw => (
+                                                <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 font-mono">{kw}</span>
+                                            ))}
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-500/10 border border-green-500/20 rounded-lg text-xs font-bold text-green-600 dark:text-green-400">
+                                                <Check className="w-3 h-3" /> Stop promotions
+                                                <span className="ml-0.5 text-[9px] font-medium opacity-70">(Meta button)</span>
+                                            </span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-1.5">These keywords are always active. Contact status flips to <span className="font-bold line-through">Opted Out</span>.</p>
+                                    </div>
+
+                                    {/* Custom Keywords */}
+                                    <div>
+                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Custom Opt-Out Keywords <span className="text-slate-400 font-normal">(Optional)</span></label>
+                                        <input
+                                            type="text"
+                                            value={(automations.customOptOutKeywords || []).join(', ')}
+                                            onChange={e => {
+                                                const raw = e.target.value;
+                                                const keywords = raw.split(',').map(k => k.trim()).filter(Boolean);
+                                                setAutomations({ ...automations, customOptOutKeywords: keywords });
+                                            }}
+                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 outline-none transition-all"
+                                            placeholder="e.g. à¤°à¥à¤•à¥‹, arret, basta (comma-separated, case-insensitive)"
+                                        />
+                                        <p className="text-[10px] text-slate-400 mt-1">Add keywords in any language. Multilingual opt-out support.</p>
+                                    </div>
+
+                                    {/* Opt-Out Ack */}
+                                    <div>
+                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Opt-Out Confirmation Message</label>
+                                        <textarea
+                                            value={automations.optOutAck || ''}
+                                            onChange={e => setAutomations({ ...automations, optOutAck: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 outline-none transition-all resize-none h-20"
+                                            placeholder="You've been unsubscribed. Reply START to re-subscribe."
+                                        />
+                                        <p className="text-[10px] text-slate-400 mt-1">Sent instantly when a contact sends STOP. Uses the free 24h conversation window â€” no template credits used.</p>
+                                    </div>
+
+                                    {/* Opt-In Ack */}
+                                    <div>
+                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Re-Subscribe Confirmation Message</label>
+                                        <textarea
+                                            value={automations.optInAck || ''}
+                                            onChange={e => setAutomations({ ...automations, optInAck: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 outline-none transition-all resize-none h-20"
+                                            placeholder="You've been re-subscribed! Reply STOP to opt out again."
+                                        />
+                                        <p className="text-[10px] text-slate-400 mt-1">Sent when a contact sends START after previously opting out. Status automatically flips back to Active.</p>
+                                    </div>
+
+                                    {/* Compliance note */}
+                                    <div className="flex items-start gap-2.5 bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20 rounded-xl p-3">
+                                        <Shield className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                                        <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-snug">
+                                            <span className="font-bold">GDPR &amp; Meta Policy Compliant.</span> Opt-outs are processed immediately. Opted-out contacts are permanently excluded from all broadcasts and campaigns, in compliance with Meta's messaging policies.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {/* â”€â”€ End Opt-Out Management Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+
                     </div>
 
                 </div>
-            </div>
             </div>
 
             {/* Sticky Bottom Actions */}
@@ -620,6 +715,7 @@ export default function WhatsAppSettings() {
                     </button>
                 </div>
             </div>
+        </div>
         </div>
     );
 }

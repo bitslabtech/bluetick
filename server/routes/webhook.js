@@ -238,21 +238,21 @@ router.post('/:userId', (req, res, next) => {
                             console.error('[WEBHOOK ERROR] Failed to update ChatMessage:', err.message);
                         }
 
-                        // --- Auto Invalidate Contact if WhatsApp Number is Invalid ---
+                        // --- Auto-mark Contact as 'Not on WhatsApp' on Meta error 131026 ---
                         if (rawStatus === 'failed' && statusUpdate.errors && statusUpdate.errors.length > 0) {
                             const errCode = statusUpdate.errors[0].code;
-                            // 131026 = Message undeliverable - User is not using WhatsApp
+                            // 131026 = Message undeliverable - recipient is not a WhatsApp user
                             if (errCode === 131026) {
                                 try {
                                     const updatedCount = await Contact.update(
-                                        { status: 'Invalid' },
+                                        { status: 'Not on WhatsApp' },
                                         { where: { phone: statusUpdate.recipient_id, userId: userId } }
                                     );
                                     if (updatedCount[0] > 0) {
-                                        console.log(`[WEBHOOK] Contact ${statusUpdate.recipient_id} marked as Invalid due to Meta error 131026`);
+                                        console.log(`[WEBHOOK] Contact ${statusUpdate.recipient_id} marked as "Not on WhatsApp" due to Meta error 131026`);
                                     }
                                 } catch (err) {
-                                    console.error('[WEBHOOK ERROR] Failed to invalidate contact:', err.message);
+                                    console.error('[WEBHOOK ERROR] Failed to mark contact as Not on WhatsApp:', err.message);
                                 }
                             }
                         }
@@ -388,6 +388,69 @@ router.post('/:userId', (req, res, next) => {
                         }
 
                         console.log(`[WEBHOOK] Incoming message from ${contactWaId}: "${messageBody}"`);
+
+                        // ─── OPT-OUT / OPT-IN DETECTION ─────────────────────────────────────────
+                        // Industry-standard keywords (STOP/UNSUBSCRIBE/CANCEL/END/QUIT)
+                        // Also catches Meta's mandatory "Stop promotions" marketing opt-out button
+                        {
+                            const OPT_OUT_KEYWORDS = ['stop', 'unsubscribe', 'cancel', 'end', 'quit'];
+                            const OPT_IN_KEYWORDS  = ['start', 'subscribe'];
+                            const META_OPTOUT_BUTTON = 'stop promotions'; // Meta's built-in marketing opt-out
+
+                            const normalizedBody = (messageBody || '').trim().toLowerCase();
+                            const isOptOut = OPT_OUT_KEYWORDS.includes(normalizedBody) || normalizedBody === META_OPTOUT_BUTTON;
+                            const isOptIn  = OPT_IN_KEYWORDS.includes(normalizedBody);
+
+                            const optSettings = foundSettings || (await Settings.findOne({ where: { userId } }));
+                            const optOutEnabled = optSettings?.whatsappAutomations?.optOutEnabled !== false; // default true
+
+                            if (optOutEnabled && (isOptOut || isOptIn)) {
+                                try {
+                                    const contactToUpdate = await Contact.findOne({ where: { phone: contactWaId, userId } });
+                                    const newStatus = isOptOut ? 'Opted Out' : 'Active';
+
+                                    if (contactToUpdate) {
+                                        await contactToUpdate.update({ status: newStatus });
+                                        console.log(`[WEBHOOK][OPT] Contact ${contactWaId} → '${newStatus}' (keyword: "${normalizedBody}")`);
+                                    }
+
+                                    // Send acknowledgement reply using the free 24h conversation window (no template credits used)
+                                    if (optSettings?.metaAccessToken && optSettings?.metaPhoneNumberId) {
+                                        const automations = optSettings.whatsappAutomations || {};
+                                        const defaultOptOutAck = "You've been unsubscribed from our messages. Reply START to re-subscribe at any time.";
+                                        const defaultOptInAck  = "You've been re-subscribed! You'll receive our messages again. Reply STOP at any time to opt out.";
+                                        const ackText = isOptOut
+                                            ? (automations.optOutAck || defaultOptOutAck)
+                                            : (automations.optInAck  || defaultOptInAck);
+
+                                        await axios.post(
+                                            `https://graph.facebook.com/v22.0/${optSettings.metaPhoneNumberId}/messages`,
+                                            {
+                                                messaging_product: 'whatsapp',
+                                                to: contactWaId,
+                                                type: 'text',
+                                                text: { body: ackText }
+                                            },
+                                            { headers: { Authorization: `Bearer ${optSettings.metaAccessToken}`, 'Content-Type': 'application/json' } }
+                                        );
+                                        console.log(`[WEBHOOK][OPT] Ack sent to ${contactWaId}: "${ackText.substring(0, 60)}..."`);
+                                    }
+
+                                    // Add custom keywords from settings (multilingual support)
+                                    const customOptOutKw = (optSettings?.whatsappAutomations?.customOptOutKeywords || []).map(k => (k || '').trim().toLowerCase());
+                                    if (!isOptIn && !isOptOut && customOptOutKw.includes(normalizedBody)) {
+                                        // Custom opt-out keyword matched — handle same as STOP
+                                        if (contactToUpdate) await contactToUpdate.update({ status: 'Opted Out' });
+                                        console.log(`[WEBHOOK][OPT] Custom opt-out keyword "${normalizedBody}" matched for ${contactWaId}`);
+                                    }
+                                } catch (optErr) {
+                                    console.error('[WEBHOOK][OPT] Opt-out/in handling failed (non-fatal):', optErr.message);
+                                }
+                                // Skip ALL further processing (FlowBot, auto-reply, etc.) for opt-out/opt-in messages
+                                continue;
+                            }
+                        }
+                        // ─── END OPT-OUT DETECTION ───────────────────────────────────────────────
 
                         // --- TRACK CAMPAIGN BUTTON CLICKS ---
                         const outboundContextId = message.context?.id || null;
@@ -533,30 +596,39 @@ router.post('/:userId', (req, res, next) => {
                                         // 1. Ensure we have the Contact
                                         let contact = await Contact.findOne({ where: { phone: contactWaId, userId } });
                                         if (!contact) {
+                                            // New contact messaging us — they're definitively on WhatsApp → 'Active'
                                             contact = await Contact.create({
                                                 phone: contactWaId,
                                                 name: contactName,
                                                 userId,
+                                                status: 'Active', // Inbound message proves they're on WhatsApp
                                                 // CTWA: stamp the ad source on the contact's first touch
                                                 ctwaSource: referralData || null
                                             });
+                                        } else if (contact.status !== 'Active') {
+                                            // Existing contact who messaged us — upgrade to 'Active'
+                                            // (e.g., was 'New' or even 'Not on WhatsApp' but now proving they are on WA)
+                                            try {
+                                                await contact.update({ status: 'Active' });
+                                            } catch (statusErr) {
+                                                console.error('[WEBHOOK] Failed to upgrade contact status to Active:', statusErr.message);
+                                            }
+                                        }
 
-                                            // ── AUTO-TAGGING: Fire rules for this new contact ──
-                                            // isFirstMessage = true because this contact was just created
+                                        // ── AUTO-TAGGING: only for brand-new contacts ──
+                                        if (contact.isNewRecord) {
                                             applyAutoTags(contact, messageBody, true, referralData).catch(() => {});
 
                                             if (referralData) {
                                                 console.log(`[WEBHOOK][CTWA] New contact ${contactWaId} attributed to Ad ID: ${referralData.source_id}`);
 
                                                 // ── CTWA AUTO-REPLY: Fire instant welcome message within the 72h free window ──
-                                                // If user has configured a ctwaAutoReplyTemplate in Settings, send it now
                                                 try {
                                                     const ctwaTemplate = settings?.ctwaAutoReplyTemplate;
                                                     if (ctwaTemplate && ctwaTemplate.enabled && ctwaTemplate.templateName && settings.metaAccessToken && settings.metaPhoneNumberId) {
                                                         console.log(`[WEBHOOK][CTWA] Firing auto-reply template: "${ctwaTemplate.templateName}" to ${contactWaId}`);
 
                                                         const templateComponents = [];
-                                                        // Inject contact name as header variable if configured
                                                         if (ctwaTemplate.injectName) {
                                                             templateComponents.push({
                                                                 type: 'body',
@@ -584,12 +656,10 @@ router.post('/:userId', (req, res, next) => {
                                                         console.log(`[WEBHOOK][CTWA] Auto-reply sent. Message ID: ${autoReplyRes.data?.messages?.[0]?.id}`);
                                                     }
                                                 } catch (ctwaAutoErr) {
-                                                    // Non-fatal — log but don't block the rest of message processing
                                                     console.error('[WEBHOOK][CTWA] Auto-reply failed (non-critical):', ctwaAutoErr.response?.data?.error?.message || ctwaAutoErr.message);
                                                 }
                                             }
                                         }
-
 
                                     const runner = new FlowRunner(settings, conversation, userId, 'keyword');
 

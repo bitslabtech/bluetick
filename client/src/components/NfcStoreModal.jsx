@@ -112,7 +112,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                                         <div 
                                             key={p.id} 
                                             onClick={() => setProductType(p.id)}
-                                            className={`cursor-pointer rounded-2xl border-2 overflow-hidden transition-all flex flex-col ${productType === p.id ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 shadow-md shadow-indigo-500/20 transform -translate-y-1' : 'border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30 bg-white dark:bg-slate-800'}`}
+                                            className={`cursor-pointer rounded-2xl border-2 overflow-hidden transition-all flex flex-col ${productType === p.id ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 shadow-md shadow-indigo-500/20 transform -translate-y-1' : 'border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30 bg-white dark:bg-slate-800'} cursor-pointer`}
                                         >
                                             <div className="h-32 w-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center shrink-0">
                                                 {p.imageUrl ? (

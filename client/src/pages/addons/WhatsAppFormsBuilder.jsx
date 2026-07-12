@@ -131,10 +131,10 @@ const DraggableFieldItem = ({ field, editingFieldId, setEditingFieldId, deleteFi
     return (
         <div
             ref={setNodeRef} style={style}
-            className={`p-5 rounded-2xl border transition-all group flex gap-4 ${isDragging ? 'shadow-2xl shadow-indigo-500/10 border-indigo-500 bg-white dark:bg-surface-dark scale-[1.02] opacity-90' : editingFieldId === field.id ? 'bg-indigo-50 dark:bg-indigo-900/10 border-indigo-500 shadow-lg shadow-indigo-500/5' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-sm cursor-pointer'}`}
+            className={`p-5 rounded-2xl border transition-all group flex gap-4 ${isDragging ? 'shadow-2xl shadow-indigo-500/10 border-indigo-500 bg-white dark:bg-surface-dark scale-[1.02] opacity-90' : editingFieldId === field.id ? 'bg-indigo-50 dark:bg-indigo-900/10 border-indigo-500 shadow-lg shadow-indigo-500/5' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-sm cursor-pointer'} cursor-pointer`}
             onClick={() => setEditingFieldId(field.id)}
         >
-            <div className="pt-2 cursor-grab active:cursor-grabbing text-slate-300 hover:text-indigo-500 shrink-0 outline-none" {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}>
+            <div className="pt-2 cursor-grab active:cursor-grabbing text-slate-300 hover:text-indigo-500 shrink-0 outline-none cursor-pointer" {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}>
                 <GripVertical className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -1001,477 +1001,476 @@ const BuilderView = (props) => {
         viewMode, setViewMode, pgConfigured
     } = props;
     return (
-<>
-                        <div className="flex-1 flex flex-col bg-white dark:bg-surface-dark border-r border-slate-200 dark:border-white/5 relative z-10 overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] max-w-full">
-                            <div className="flex-1 flex overflow-hidden">
-                                {/* Left Sidebar for Nodes */}
-                                <div className="w-64 bg-slate-50 dark:bg-black/20 border-r border-slate-200 dark:border-white/10 overflow-y-auto p-5 hidden md:block shrink-0">
-                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-6">Form Elements</h3>
+        <>
+            <div className="flex-1 flex flex-col bg-white dark:bg-surface-dark border-r border-slate-200 dark:border-white/5 relative z-10 overflow-hidden shadow-[20px_0_40px_-20px_rgba(0,0,0,0.05)] max-w-full">
+                <div className="flex-1 flex overflow-hidden">
+                    {/* Left Sidebar for Nodes */}
+                    <div className="w-64 bg-slate-50 dark:bg-black/20 border-r border-slate-200 dark:border-white/10 overflow-y-auto p-5 hidden md:block shrink-0">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-6">Form Elements</h3>
 
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2"><LayoutList className="w-4 h-4" /> Basic Fields</h4>
-                                            <div className="space-y-2">
-                                                <button onClick={() => addField('text')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-indigo-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Type className="w-4 h-4 text-indigo-500" /> Short Text</button>
-                                                <button onClick={() => addField('phone')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-green-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Smartphone className="w-4 h-4 text-green-500" /> Phone Number</button>
-                                                <button onClick={() => addField('email')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-blue-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Mail className="w-4 h-4 text-blue-500" /> Email Address</button>
-                                                <button onClick={() => addField('select')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-purple-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><List className="w-4 h-4 text-purple-500" /> Dropdown / Select</button>
-                                                <button onClick={() => addField('radio')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-blue-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><ToggleRight className="w-4 h-4 text-blue-500" /> Multiple Choice</button>
-                                                <button onClick={() => addField('number')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-orange-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><span className="w-4 h-4 font-bold text-orange-500 text-sm flex items-center">#</span> Number</button>
-                                                <button onClick={() => addField('yesno')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-green-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><ToggleRight className="w-4 h-4 text-green-500" /> Yes / No Toggle</button>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2"><Layers className="w-4 h-4" /> Advanced Fields</h4>
-                                            <div className="space-y-2">
-                                                <button onClick={() => addField('date')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-amber-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Calendar className="w-4 h-4 text-amber-500" /> Date Picker</button>
-                                                <button onClick={() => addField('time')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-amber-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Clock className="w-4 h-4 text-amber-500" /> Time Picker</button>
-                                                <button onClick={() => addField('rating')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-amber-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Star className="w-4 h-4 text-amber-500" /> Star Rating</button>
-                                                <button onClick={() => addField('signature')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-amber-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><PenTool className="w-4 h-4 text-amber-500" /> Signature Pad</button>
-                                                <button onClick={() => addField('file')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-rose-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><UploadCloud className="w-4 h-4 text-rose-500" /> File Upload</button>
-                                                <button onClick={() => addField('image')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-rose-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><ImageIcon className="w-4 h-4 text-rose-500" /> Image Upload</button>
-                                                <button onClick={() => addField('address')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-teal-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><MapPinned className="w-4 h-4 text-teal-500" /> Address Block</button>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <div className="space-y-6">
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2"><LayoutList className="w-4 h-4" /> Basic Fields</h4>
+                                <div className="space-y-2">
+                                    <button onClick={() => addField('text')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-indigo-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Type className="w-4 h-4 text-indigo-500" /> Short Text</button>
+                                    <button onClick={() => addField('phone')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-green-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Smartphone className="w-4 h-4 text-green-500" /> Phone Number</button>
+                                    <button onClick={() => addField('email')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-blue-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Mail className="w-4 h-4 text-blue-500" /> Email Address</button>
+                                    <button onClick={() => addField('select')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-purple-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><List className="w-4 h-4 text-purple-500" /> Dropdown / Select</button>
+                                    <button onClick={() => addField('radio')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-blue-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><ToggleRight className="w-4 h-4 text-blue-500" /> Multiple Choice</button>
+                                    <button onClick={() => addField('number')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-orange-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><span className="w-4 h-4 font-bold text-orange-500 text-sm flex items-center">#</span> Number</button>
+                                    <button onClick={() => addField('yesno')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-green-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><ToggleRight className="w-4 h-4 text-green-500" /> Yes / No Toggle</button>
                                 </div>
+                            </div>
 
-                                {/* Main Center Canvas */}
-                                <div className="flex-1 flex flex-col bg-slate-100/50 dark:bg-[#0B1120] relative overflow-hidden">
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2"><Layers className="w-4 h-4" /> Advanced Fields</h4>
+                                <div className="space-y-2">
+                                    <button onClick={() => addField('date')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-amber-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Calendar className="w-4 h-4 text-amber-500" /> Date Picker</button>
+                                    <button onClick={() => addField('time')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-amber-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Clock className="w-4 h-4 text-amber-500" /> Time Picker</button>
+                                    <button onClick={() => addField('rating')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-amber-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><Star className="w-4 h-4 text-amber-500" /> Star Rating</button>
+                                    <button onClick={() => addField('signature')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-amber-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><PenTool className="w-4 h-4 text-amber-500" /> Signature Pad</button>
+                                    <button onClick={() => addField('file')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-rose-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><UploadCloud className="w-4 h-4 text-rose-500" /> File Upload</button>
+                                    <button onClick={() => addField('image')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-rose-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><ImageIcon className="w-4 h-4 text-rose-500" /> Image Upload</button>
+                                    <button onClick={() => addField('address')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-surface-dark hover:border-teal-500 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs transition-colors shadow-sm text-left"><MapPinned className="w-4 h-4 text-teal-500" /> Address Block</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                                    {/* TOP SETTINGS BAR (EDGE-TO-EDGE) */}
-                                    <div className="shrink-0 bg-white dark:bg-[#0B1120] border-b border-slate-200 dark:border-white/10 px-4 md:px-6 py-2.5 flex items-stretch gap-0 z-30 overflow-x-auto scrollbar-hide shadow-sm relative">
+                    {/* Main Center Canvas */}
+                    <div className="flex-1 flex flex-col bg-slate-100/50 dark:bg-[#0B1120] relative overflow-hidden">
 
-                                        {/* Layout / Multi-step */}
-                                        <div className="flex flex-col items-start justify-center gap-1 pr-6 shrink-0">
-                                            <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Layout</span>
-                                            <div className="flex items-center gap-2">
-                                                <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" checked={activeForm.formLogic?.isMultiStep || false} onChange={e => updateNestedState('formLogic', 'isMultiStep', e.target.checked)} />
-                                                    <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-                                                    <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">{activeForm.formLogic?.isMultiStep ? 'Multi-Page' : 'Single'}</span>
-                                                </label>
-                                                {activeForm.formLogic?.isMultiStep && (
-                                                    <input type="number" min="1" value={activeForm.formLogic?.fieldsPerPage || 3} onChange={e => updateNestedState('formLogic', 'fieldsPerPage', parseInt(e.target.value) || 1)} className="w-9 h-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded text-center text-[11px] font-mono font-bold outline-none focus:border-indigo-500 text-indigo-600" title="Items per page" />
-                                                )}
-                                            </div>
-                                        </div>
+                        {/* TOP SETTINGS BAR (EDGE-TO-EDGE) */}
+                        <div className="shrink-0 bg-white dark:bg-[#0B1120] border-b border-slate-200 dark:border-white/10 px-4 md:px-6 py-2.5 flex items-stretch gap-0 z-30 overflow-x-auto scrollbar-hide shadow-sm relative">
 
-                                        {/* Block Duplicates */}
-                                        <div className="flex flex-col items-start justify-center gap-1 px-4 md:px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
-                                            <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Duplicates</span>
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" checked={activeForm.restrictions?.preventDuplicates || false} onChange={e => updateNestedState('restrictions', 'preventDuplicates', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Block</span>
+                            {/* Layout / Multi-step */}
+                            <div className="flex flex-col items-start justify-center gap-1 pr-6 shrink-0">
+                                <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Layout</span>
+                                <div className="flex items-center gap-2">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" className="sr-only peer" checked={activeForm.formLogic?.isMultiStep || false} onChange={e => updateNestedState('formLogic', 'isMultiStep', e.target.checked)} />
+                                        <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">{activeForm.formLogic?.isMultiStep ? 'Multi-Page' : 'Single'}</span>
+                                    </label>
+                                    {activeForm.formLogic?.isMultiStep && (
+                                        <input type="number" min="1" value={activeForm.formLogic?.fieldsPerPage || 3} onChange={e => updateNestedState('formLogic', 'fieldsPerPage', parseInt(e.target.value) || 1)} className="w-9 h-5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded text-center text-[11px] font-mono font-bold outline-none focus:border-indigo-500 text-indigo-600" title="Items per page" />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Block Duplicates */}
+                            <div className="flex flex-col items-start justify-center gap-1 px-4 md:px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
+                                <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Duplicates</span>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={activeForm.restrictions?.preventDuplicates || false} onChange={e => updateNestedState('restrictions', 'preventDuplicates', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Block</span>
+                                </label>
+                            </div>
+
+                            {/* Submission Limit */}
+                            <div className="flex flex-col items-start justify-center gap-1 px-4 md:px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
+                                <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Max Submissions</span>
+                                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 focus-within:border-indigo-400 transition-colors">
+                                    <ShieldAlert className="w-3 h-3 text-slate-400 shrink-0" />
+                                    <input type="number" min="1" value={activeForm.restrictions?.maxSubmissions || ''} onChange={e => updateNestedState('restrictions', 'maxSubmissions', e.target.value)} className="bg-transparent border-none outline-none font-mono text-[11px] w-16 placeholder:text-slate-300" placeholder="Unlimited" />
+                                </div>
+                            </div>
+
+                            {/* Expiry Date */}
+                            <div className="flex flex-col items-start justify-center gap-1 px-4 md:px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
+                                <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Expires At</span>
+                                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 focus-within:border-indigo-400 transition-colors">
+                                    <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                    <input type="datetime-local" value={activeForm.restrictions?.closeDate || ''} onChange={e => updateNestedState('restrictions', 'closeDate', e.target.value)} className="bg-transparent border-none outline-none font-mono text-[11px] text-slate-600 dark:text-slate-300 w-36" />
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* SCROLLING CANVAS */}
+                        <div className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-hide flex flex-col relative w-full">
+                            <div className="max-w-3xl mx-auto w-full space-y-6 flex-1 pb-16">
+                                <div className="p-4 md:p-6 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-500/20 mb-6 flex flex-col md:flex-row gap-6 md:items-center">
+                                    <div className="flex-1">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-2 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Brand Logo</label>
+                                        <div className="flex gap-2">
+                                            {activeForm.brandConfig?.logoUrl?.startsWith('data:image') ? (
+                                                <div className="flex-1 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-500/30 px-4 py-2 rounded-xl flex items-center justify-between min-w-0">
+                                                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate flex items-center gap-2" title={activeForm.brandConfig?.logoName || 'Local Image Uploaded'}><ImageIcon className="w-4 h-4 shrink-0" /> {activeForm.brandConfig?.logoName || 'Local Image Uploaded'}</span>
+                                                    <button onClick={() => { updateNestedState('brandConfig', 'logoUrl', ''); updateNestedState('brandConfig', 'logoName', ''); }} className="text-slate-400 hover:text-red-500 transition-colors bg-white dark:bg-black p-1 rounded-full shadow-sm"><Trash2 className="w-3 h-3" /></button>
+                                                </div>
+                                            ) : (
+                                                <input type="text" value={activeForm.brandConfig?.logoUrl || ''} onChange={e => updateNestedState('brandConfig', 'logoUrl', e.target.value)} className="flex-1 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 px-4 py-2 rounded-xl focus:border-indigo-500 outline-none text-sm font-mono min-w-0" placeholder="https://... or upload" />
+                                            )}
+                                            <label className="flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border border-indigo-100 dark:border-indigo-800 px-4 py-2 rounded-xl cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-800/50 transition-colors flex items-center gap-2">
+                                                <UploadCloud className="w-4 h-4" />
+                                                <span className="text-sm font-bold hidden sm:inline">Upload</span>
+                                                <input type="file" className="hidden cursor-pointer" accept="image/*" onClick={(e) => { e.target.value = null; }} onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        if (file.size > 2 * 1024 * 1024) return showToast('Image must be less than 2MB', 'error');
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            updateNestedState('brandConfig', 'logoUrl', reader.result);
+                                                            updateNestedState('brandConfig', 'logoName', file.name);
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }} />
                                             </label>
                                         </div>
-
-                                        {/* Submission Limit */}
-                                        <div className="flex flex-col items-start justify-center gap-1 px-4 md:px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
-                                            <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Max Submissions</span>
-                                            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 focus-within:border-indigo-400 transition-colors">
-                                                <ShieldAlert className="w-3 h-3 text-slate-400 shrink-0" />
-                                                <input type="number" min="1" value={activeForm.restrictions?.maxSubmissions || ''} onChange={e => updateNestedState('restrictions', 'maxSubmissions', e.target.value)} className="bg-transparent border-none outline-none font-mono text-[11px] w-16 placeholder:text-slate-300" placeholder="Unlimited" />
-                                            </div>
-                                        </div>
-
-                                        {/* Expiry Date */}
-                                        <div className="flex flex-col items-start justify-center gap-1 px-4 md:px-6 border-l border-slate-200 dark:border-white/10 shrink-0">
-                                            <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Expires At</span>
-                                            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 focus-within:border-indigo-400 transition-colors">
-                                                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                                                <input type="datetime-local" value={activeForm.restrictions?.closeDate || ''} onChange={e => updateNestedState('restrictions', 'closeDate', e.target.value)} className="bg-transparent border-none outline-none font-mono text-[11px] text-slate-600 dark:text-slate-300 w-36" />
-                                            </div>
-                                        </div>
-
                                     </div>
-
-                                    {/* SCROLLING CANVAS */}
-                                    <div className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-hide flex flex-col relative w-full">
-                                        <div className="max-w-3xl mx-auto w-full space-y-6 flex-1 pb-16">
-                                            <div className="p-4 md:p-6 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-500/20 mb-6 flex flex-col md:flex-row gap-6 md:items-center">
-                                                <div className="flex-1">
-                                                    <label className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-2 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Brand Logo</label>
-                                                    <div className="flex gap-2">
-                                                        {activeForm.brandConfig?.logoUrl?.startsWith('data:image') ? (
-                                                            <div className="flex-1 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-500/30 px-4 py-2 rounded-xl flex items-center justify-between min-w-0">
-                                                                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate flex items-center gap-2" title={activeForm.brandConfig?.logoName || 'Local Image Uploaded'}><ImageIcon className="w-4 h-4 shrink-0" /> {activeForm.brandConfig?.logoName || 'Local Image Uploaded'}</span>
-                                                                <button onClick={() => { updateNestedState('brandConfig', 'logoUrl', ''); updateNestedState('brandConfig', 'logoName', ''); }} className="text-slate-400 hover:text-red-500 transition-colors bg-white dark:bg-black p-1 rounded-full shadow-sm"><Trash2 className="w-3 h-3" /></button>
-                                                            </div>
-                                                        ) : (
-                                                            <input type="text" value={activeForm.brandConfig?.logoUrl || ''} onChange={e => updateNestedState('brandConfig', 'logoUrl', e.target.value)} className="flex-1 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 px-4 py-2 rounded-xl focus:border-indigo-500 outline-none text-sm font-mono min-w-0" placeholder="https://... or upload" />
-                                                        )}
-                                                        <label className="flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border border-indigo-100 dark:border-indigo-800 px-4 py-2 rounded-xl cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-800/50 transition-colors flex items-center gap-2">
-                                                            <UploadCloud className="w-4 h-4" />
-                                                            <span className="text-sm font-bold hidden sm:inline">Upload</span>
-                                                            <input type="file" className="hidden" accept="image/*" onClick={(e) => { e.target.value = null; }} onChange={(e) => {
-                                                                const file = e.target.files[0];
-                                                                if (file) {
-                                                                    if (file.size > 2 * 1024 * 1024) return showToast('Image must be less than 2MB', 'error');
-                                                                    const reader = new FileReader();
-                                                                    reader.onloadend = () => {
-                                                                        updateNestedState('brandConfig', 'logoUrl', reader.result);
-                                                                        updateNestedState('brandConfig', 'logoName', file.name);
-                                                                    };
-                                                                    reader.readAsDataURL(file);
-                                                                }
-                                                            }} />
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <div className="w-full md:w-32">
-                                                    <label className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-2 block">Theme Color</label>
-                                                    <div className="flex gap-3 items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl">
-                                                        <input type="color" value={activeForm.brandConfig?.primaryColor || '#4f46e5'} onChange={e => updateNestedState('brandConfig', 'primaryColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 p-0 shrink-0 bg-transparent" />
-                                                        <span className="text-xs font-bold uppercase text-slate-500 font-mono">{activeForm.brandConfig?.primaryColor || '#4f46e5'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="p-4 md:p-6 rounded-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 focus-within:border-indigo-500 focus-within:ring-4 ring-indigo-500/10 mb-8 shadow-sm">
-                                                <input
-                                                    type="text"
-                                                    value={activeForm.name}
-                                                    onChange={e => setActiveForm({ ...activeForm, name: e.target.value })}
-                                                    className="w-full bg-transparent text-2xl font-extrabold text-slate-900 dark:text-white outline-none mb-2 placeholder:text-slate-300"
-                                                    placeholder="Form Title"
-                                                />
-                                                <textarea
-                                                    value={activeForm.description}
-                                                    onChange={e => setActiveForm({ ...activeForm, description: e.target.value })}
-                                                    className="w-full bg-transparent text-sm text-slate-500 dark:text-slate-400 outline-none resize-none leading-relaxed"
-                                                    placeholder="Enter description criteria..."
-                                                    rows={2}
-                                                />
-                                            </div>
-
-                                            {/* MONETIZATION / PAYMENT CONFIG */}
-                                            <div className="p-4 md:p-6 rounded-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 mb-8 shadow-sm transition-all focus-within:ring-4 ring-green-500/10 focus-within:border-green-500">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                                        <CreditCard className="w-5 h-5 text-green-500" /> Payments & Checkout
-                                                    </h3>
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" className="sr-only peer" checked={activeForm.paymentConfig?.requirePayment || false} onChange={e => updateNestedState('paymentConfig', 'requirePayment', e.target.checked)} />
-                                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 dark:peer-checked:bg-green-500"></div>
-                                                    </label>
-                                                </div>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Collect payments before accepting form submissions. Only paid responses will be saved.</p>
-
-                                                {activeForm.paymentConfig?.requirePayment && !pgConfigured && (
-                                                    <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold border border-red-200 dark:border-red-500/20 flex gap-2 items-start">
-                                                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                                        <span>You haven't configured a Payment Gateway (Razorpay/Stripe) in your global Settings. Submissions on this form will be rejected until a Gateway is correctly bound.</span>
-                                                    </div>
-                                                )}
-
-                                                {activeForm.paymentConfig?.requirePayment && (
-                                                    <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-white/5 animate-in fade-in slide-in-from-bottom-2">
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                            <div>
-                                                                <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Payment Gateway</label>
-                                                                <select
-                                                                    value={activeForm.paymentConfig?.gatewayUsed || 'razorpay'}
-                                                                    onChange={e => updateNestedState('paymentConfig', 'gatewayUsed', e.target.value)}
-                                                                    className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:border-green-500 text-sm font-bold text-slate-700 dark:text-slate-300"
-                                                                >
-                                                                    <option value="razorpay">Razorpay</option>
-                                                                    <option value="stripe">Stripe</option>
-                                                                    <option value="phonepe">PhonePe</option>
-                                                                    <option value="cashfree">Cashfree</option>
-                                                                </select>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Currency</label>
-                                                                <select
-                                                                    value={activeForm.paymentConfig?.currency || 'INR'}
-                                                                    onChange={e => updateNestedState('paymentConfig', 'currency', e.target.value)}
-                                                                    className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:border-green-500 text-sm font-bold text-slate-700 dark:text-slate-300"
-                                                                >
-                                                                    <option value="INR">₹ INR (Indian Rupee)</option>
-                                                                    <option value="USD">$ USD (US Dollar)</option>
-                                                                    <option value="EUR">€ EUR (Euro)</option>
-                                                                    <option value="GBP">£ GBP (British Pound)</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-
-                                                        <div>
-                                                            <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Checkout Amount Type</label>
-                                                            <div className="flex gap-3">
-                                                                <button
-                                                                    onClick={() => updateNestedState('paymentConfig', 'amountType', 'fixed')}
-                                                                    className={`flex-1 py-3 px-4 rounded-xl border font-bold text-sm flex items-center justify-center gap-2 transition-all ${(!activeForm.paymentConfig?.amountType || activeForm.paymentConfig?.amountType === 'fixed') ? 'bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-400 shadow-sm' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300'}`}
-                                                                >
-                                                                    {(!activeForm.paymentConfig?.currency || activeForm.paymentConfig?.currency === 'INR') ? <IndianRupee className="w-4 h-4" /> : activeForm.paymentConfig?.currency === 'EUR' ? <Euro className="w-4 h-4" /> : activeForm.paymentConfig?.currency === 'GBP' ? <PoundSterling className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />} Fixed Amount
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => updateNestedState('paymentConfig', 'amountType', 'dynamic')}
-                                                                    className={`flex-1 py-3 px-4 rounded-xl border font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeForm.paymentConfig?.amountType === 'dynamic' ? 'bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-400 shadow-sm' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300'}`}
-                                                                >
-                                                                    <TrendingUp className="w-4 h-4" /> Dynamic (Based on Field)
-                                                                </button>
-                                                            </div>
-                                                        </div>
-
-                                                        {(!activeForm.paymentConfig?.amountType || activeForm.paymentConfig?.amountType === 'fixed') ? (
-                                                            <div>
-                                                                <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Amount to Charge</label>
-                                                                <div className="relative">
-                                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
-                                                                        {(!activeForm.paymentConfig?.currency || activeForm.paymentConfig?.currency === 'INR') ? '₹' : activeForm.paymentConfig?.currency === 'EUR' ? '€' : activeForm.paymentConfig?.currency === 'GBP' ? '£' : '$'}
-                                                                    </div>
-                                                                    <input
-                                                                        type="number"
-                                                                        min="1"
-                                                                        value={activeForm.paymentConfig?.fixedAmount || ''}
-                                                                        onChange={e => updateNestedState('paymentConfig', 'fixedAmount', e.target.value)}
-                                                                        placeholder="100.00"
-                                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl pl-8 pr-4 py-3 outline-none focus:border-green-500 text-sm font-mono text-slate-900 dark:text-white"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <div>
-                                                                <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Map Amount to Field</label>
-                                                                <select
-                                                                    value={activeForm.paymentConfig?.dynamicFieldId || ''}
-                                                                    onChange={e => updateNestedState('paymentConfig', 'dynamicFieldId', e.target.value)}
-                                                                    className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:border-green-500 text-sm font-bold text-slate-700 dark:text-slate-300"
-                                                                >
-                                                                    <option value="" disabled>Select a field...</option>
-                                                                    {(activeForm.fields || []).filter(f => ['select', 'radio', 'number'].includes(f.type)).map(field => (
-                                                                        <option key={field.id} value={field.id}>{field.label || `Unnamed ${field.type}`}</option>
-                                                                    ))}
-                                                                </select>
-                                                                <p className="text-xs text-slate-500 mt-2">
-                                                                    Select a dropdown or radio field. You can set explicit prices for each option in the field's editor. For number inputs, the user's input will be charged directly.
-                                                                </p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => setEditingFieldId(null)} onDragEnd={handleDragEnd}>
-                                                    <SortableContext items={(activeForm.fields || []).map(f => f.id)} strategy={verticalListSortingStrategy}>
-                                                        <div className="space-y-4 relative pb-32">
-                                                            {(activeForm.fields || []).map((field) => (
-                                                                <DraggableFieldItem
-                                                                    key={field.id}
-                                                                    field={field}
-                                                                    editingFieldId={editingFieldId}
-                                                                    setEditingFieldId={setEditingFieldId}
-                                                                    deleteField={deleteField}
-                                                                    updateField={updateField}
-                                                                    isPaymentDynamicField={activeForm.paymentConfig?.amountType === 'dynamic' && activeForm.paymentConfig?.dynamicFieldId === field.id}
-                                                                    paymentCurrencySymbol={(!activeForm.paymentConfig?.currency || activeForm.paymentConfig?.currency === 'INR') ? '₹' : activeForm.paymentConfig?.currency === 'EUR' ? '€' : activeForm.paymentConfig?.currency === 'GBP' ? '£' : '$'}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    </SortableContext>
-                                                </DndContext>
-                                            </div>
+                                    <div className="w-full md:w-32">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-2 block">Theme Color</label>
+                                        <div className="flex gap-3 items-center bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl">
+                                            <input type="color" value={activeForm.brandConfig?.primaryColor || '#4f46e5'} onChange={e => updateNestedState('brandConfig', 'primaryColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 p-0 shrink-0 bg-transparent" />
+                                            <span className="text-xs font-bold uppercase text-slate-500 font-mono">{activeForm.brandConfig?.primaryColor || '#4f46e5'}</span>
                                         </div>
                                     </div>
                                 </div>
 
+                                <div className="p-4 md:p-6 rounded-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 focus-within:border-indigo-500 focus-within:ring-4 ring-indigo-500/10 mb-8 shadow-sm">
+                                    <input
+                                        type="text"
+                                        value={activeForm.name}
+                                        onChange={e => setActiveForm({ ...activeForm, name: e.target.value })}
+                                        className="w-full bg-transparent text-2xl font-extrabold text-slate-900 dark:text-white outline-none mb-2 placeholder:text-slate-300"
+                                        placeholder="Form Title"
+                                    />
+                                    <textarea
+                                        value={activeForm.description}
+                                        onChange={e => setActiveForm({ ...activeForm, description: e.target.value })}
+                                        className="w-full bg-transparent text-sm text-slate-500 dark:text-slate-400 outline-none resize-none leading-relaxed"
+                                        placeholder="Enter description criteria..."
+                                        rows={2}
+                                    />
+                                </div>
 
-                                <div className="hidden lg:flex flex-col w-[450px] max-w-full bg-[#F5F5F7] dark:bg-[#0B1120] relative z-0 items-center justify-center p-4 md:p-8 overflow-y-auto border-l border-slate-300 dark:border-slate-800">
-                                    <div className="absolute top-10 flex flex-col items-center">
-                                        <div className="px-4 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-[10px] font-bold uppercase tracking-widest mb-3 border border-green-200 dark:border-green-500/20 flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Dynamic Mapping UI
-                                        </div>
+                                {/* MONETIZATION / PAYMENT CONFIG */}
+                                <div className="p-4 md:p-6 rounded-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 mb-8 shadow-sm transition-all focus-within:ring-4 ring-green-500/10 focus-within:border-green-500">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                            <CreditCard className="w-5 h-5 text-green-500" /> Payments & Checkout
+                                        </h3>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" className="sr-only peer" checked={activeForm.paymentConfig?.requirePayment || false} onChange={e => updateNestedState('paymentConfig', 'requirePayment', e.target.checked)} />
+                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 dark:peer-checked:bg-green-500"></div>
+                                        </label>
                                     </div>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Collect payments before accepting form submissions. Only paid responses will be saved.</p>
 
-                                    <div className="w-[320px] max-w-full h-[650px] bg-black rounded-[3rem] p-3 shadow-2xl relative border-4 border-slate-400 dark:border-slate-800 shadow-slate-900/40">
-                                        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-2xl z-20 flex justify-center">
-                                            <div className="w-12 h-1 bg-[#1C1C1E] mt-2 rounded-full"></div>
+                                    {activeForm.paymentConfig?.requirePayment && !pgConfigured && (
+                                        <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold border border-red-200 dark:border-red-500/20 flex gap-2 items-start">
+                                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                            <span>You haven't configured a Payment Gateway (Razorpay/Stripe) in your global Settings. Submissions on this form will be rejected until a Gateway is correctly bound.</span>
                                         </div>
+                                    )}
 
-                                        <div className="w-full h-full rounded-[2.5rem] overflow-x-hidden overflow-y-auto scrollbar-hide flex flex-col pt-10 relative bg-[#F2F2F7] text-black">
+                                    {activeForm.paymentConfig?.requirePayment && (
+                                        <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-white/5 animate-in fade-in slide-in-from-bottom-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Payment Gateway</label>
+                                                    <select
+                                                        value={activeForm.paymentConfig?.gatewayUsed || 'razorpay'}
+                                                        onChange={e => updateNestedState('paymentConfig', 'gatewayUsed', e.target.value)}
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:border-green-500 text-sm font-bold text-slate-700 dark:text-slate-300"
+                                                    >
+                                                        <option value="razorpay">Razorpay</option>
+                                                        <option value="stripe">Stripe</option>
+                                                        <option value="phonepe">PhonePe</option>
+                                                        <option value="cashfree">Cashfree</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Currency</label>
+                                                    <select
+                                                        value={activeForm.paymentConfig?.currency || 'INR'}
+                                                        onChange={e => updateNestedState('paymentConfig', 'currency', e.target.value)}
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:border-green-500 text-sm font-bold text-slate-700 dark:text-slate-300"
+                                                    >
+                                                        <option value="INR">₹ INR (Indian Rupee)</option>
+                                                        <option value="USD">$ USD (US Dollar)</option>
+                                                        <option value="EUR">€ EUR (Euro)</option>
+                                                        <option value="GBP">£ GBP (British Pound)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
 
-                                            {activeForm.brandConfig?.logoUrl && (
-                                                <div className="px-4 md:px-6 pt-3 flex justify-center pb-0">
-                                                    <img src={activeForm.brandConfig.logoUrl} alt="Logo" className="h-14 object-contain" />
+                                            <div>
+                                                <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Checkout Amount Type</label>
+                                                <div className="flex gap-3">
+                                                    <button
+                                                        onClick={() => updateNestedState('paymentConfig', 'amountType', 'fixed')}
+                                                        className={`flex-1 py-3 px-4 rounded-xl border font-bold text-sm flex items-center justify-center gap-2 transition-all ${(!activeForm.paymentConfig?.amountType || activeForm.paymentConfig?.amountType === 'fixed') ? 'bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-400 shadow-sm' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300'}`}
+                                                    >
+                                                        {(!activeForm.paymentConfig?.currency || activeForm.paymentConfig?.currency === 'INR') ? <IndianRupee className="w-4 h-4" /> : activeForm.paymentConfig?.currency === 'EUR' ? <Euro className="w-4 h-4" /> : activeForm.paymentConfig?.currency === 'GBP' ? <PoundSterling className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />} Fixed Amount
+                                                    </button>
+                                                    <button
+                                                        onClick={() => updateNestedState('paymentConfig', 'amountType', 'dynamic')}
+                                                        className={`flex-1 py-3 px-4 rounded-xl border font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeForm.paymentConfig?.amountType === 'dynamic' ? 'bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-400 shadow-sm' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300'}`}
+                                                    >
+                                                        <TrendingUp className="w-4 h-4" /> Dynamic (Based on Field)
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {(!activeForm.paymentConfig?.amountType || activeForm.paymentConfig?.amountType === 'fixed') ? (
+                                                <div>
+                                                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Amount to Charge</label>
+                                                    <div className="relative">
+                                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
+                                                            {(!activeForm.paymentConfig?.currency || activeForm.paymentConfig?.currency === 'INR') ? '₹' : activeForm.paymentConfig?.currency === 'EUR' ? '€' : activeForm.paymentConfig?.currency === 'GBP' ? '£' : '$'}
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            value={activeForm.paymentConfig?.fixedAmount || ''}
+                                                            onChange={e => updateNestedState('paymentConfig', 'fixedAmount', e.target.value)}
+                                                            placeholder="100.00"
+                                                            className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl pl-8 pr-4 py-3 outline-none focus:border-green-500 text-sm font-mono text-slate-900 dark:text-white"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Map Amount to Field</label>
+                                                    <select
+                                                        value={activeForm.paymentConfig?.dynamicFieldId || ''}
+                                                        onChange={e => updateNestedState('paymentConfig', 'dynamicFieldId', e.target.value)}
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:border-green-500 text-sm font-bold text-slate-700 dark:text-slate-300"
+                                                    >
+                                                        <option value="" disabled>Select a field...</option>
+                                                        {(activeForm.fields || []).filter(f => ['select', 'radio', 'number'].includes(f.type)).map(field => (
+                                                            <option key={field.id} value={field.id}>{field.label || `Unnamed ${field.type}`}</option>
+                                                        ))}
+                                                    </select>
+                                                    <p className="text-xs text-slate-500 mt-2">
+                                                        Select a dropdown or radio field. You can set explicit prices for each option in the field's editor. For number inputs, the user's input will be charged directly.
+                                                    </p>
                                                 </div>
                                             )}
+                                        </div>
+                                    )}
+                                </div>
 
-                                            <div className="shrink-0 px-4 md:px-6 py-4 border-b border-black/5 mt-2">
-                                                <h1 className="text-xl font-bold tracking-tight" style={{ color: activeForm.brandConfig?.primaryColor || '#000' }}>{activeForm.name || 'Untitled Endpoint'}</h1>
+                                <div className="space-y-4">
+                                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => setEditingFieldId(null)} onDragEnd={handleDragEnd}>
+                                        <SortableContext items={(activeForm.fields || []).map(f => f.id)} strategy={verticalListSortingStrategy}>
+                                            <div className="space-y-4 relative pb-32">
+                                                {(activeForm.fields || []).map((field) => (
+                                                    <DraggableFieldItem
+                                                        key={field.id}
+                                                        field={field}
+                                                        editingFieldId={editingFieldId}
+                                                        setEditingFieldId={setEditingFieldId}
+                                                        deleteField={deleteField}
+                                                        updateField={updateField}
+                                                        isPaymentDynamicField={activeForm.paymentConfig?.amountType === 'dynamic' && activeForm.paymentConfig?.dynamicFieldId === field.id}
+                                                        paymentCurrencySymbol={(!activeForm.paymentConfig?.currency || activeForm.paymentConfig?.currency === 'INR') ? '₹' : activeForm.paymentConfig?.currency === 'EUR' ? '€' : activeForm.paymentConfig?.currency === 'GBP' ? '£' : '$'}
+                                                    />
+                                                ))}
                                             </div>
+                                        </SortableContext>
+                                    </DndContext>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                                            <div className="p-4 md:p-6 flex-1 space-y-6">
-                                                {activeForm.description && (
-                                                    <p className="text-sm leading-relaxed text-slate-500">
-                                                        {activeForm.description}
-                                                    </p>
-                                                )}
 
-                                                {/* Multi-step step dots */}
-                                                {activeForm.formLogic?.isMultiStep && (() => {
-                                                    const perPage = activeForm.formLogic?.fieldsPerPage || 3;
-                                                    const totalSteps = Math.ceil((activeForm.fields || []).length / perPage) || 1;
-                                                    return (
-                                                        <div className="flex items-center justify-center gap-2 py-1">
-                                                            {Array.from({ length: totalSteps }).map((_, i) => (
-                                                                <button key={i} onClick={() => setPreviewStep(i)}
-                                                                    className={`rounded-full transition-all ${i === previewStep ? 'w-5 h-2' : 'w-2 h-2'}`}
-                                                                    style={{ backgroundColor: i === previewStep ? (activeForm.brandConfig?.primaryColor || '#4f46e5') : '#d1d5db' }}
-                                                                />
+                    <div className="hidden lg:flex flex-col w-[450px] max-w-full bg-[#F5F5F7] dark:bg-[#0B1120] relative z-0 items-center justify-center p-4 md:p-8 overflow-y-auto border-l border-slate-300 dark:border-slate-800">
+                        <div className="absolute top-10 flex flex-col items-center">
+                            <div className="px-4 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-[10px] font-bold uppercase tracking-widest mb-3 border border-green-200 dark:border-green-500/20 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Dynamic Mapping UI
+                            </div>
+                        </div>
+
+                        <div className="w-[320px] max-w-full h-[650px] bg-black rounded-[3rem] p-3 shadow-2xl relative border-4 border-slate-400 dark:border-slate-800 shadow-slate-900/40">
+                            <div className="absolute top-3 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-2xl z-20 flex justify-center">
+                                <div className="w-12 h-1 bg-[#1C1C1E] mt-2 rounded-full"></div>
+                            </div>
+
+                            <div className="w-full h-full rounded-[2.5rem] overflow-x-hidden overflow-y-auto scrollbar-hide flex flex-col pt-10 relative bg-[#F2F2F7] text-black">
+
+                                {activeForm.brandConfig?.logoUrl && (
+                                    <div className="px-4 md:px-6 pt-3 flex justify-center pb-0">
+                                        <img src={activeForm.brandConfig.logoUrl} alt="Logo" className="h-14 object-contain" />
+                                    </div>
+                                )}
+
+                                <div className="shrink-0 px-4 md:px-6 py-4 border-b border-black/5 mt-2">
+                                    <h1 className="text-xl font-bold tracking-tight" style={{ color: activeForm.brandConfig?.primaryColor || '#000' }}>{activeForm.name || 'Untitled Endpoint'}</h1>
+                                </div>
+
+                                <div className="p-4 md:p-6 flex-1 space-y-6">
+                                    {activeForm.description && (
+                                        <p className="text-sm leading-relaxed text-slate-500">
+                                            {activeForm.description}
+                                        </p>
+                                    )}
+
+                                    {/* Multi-step step dots */}
+                                    {activeForm.formLogic?.isMultiStep && (() => {
+                                        const perPage = activeForm.formLogic?.fieldsPerPage || 3;
+                                        const totalSteps = Math.ceil((activeForm.fields || []).length / perPage) || 1;
+                                        return (
+                                            <div className="flex items-center justify-center gap-2 py-1">
+                                                {Array.from({ length: totalSteps }).map((_, i) => (
+                                                    <button key={i} onClick={() => setPreviewStep(i)}
+                                                        className={`rounded-full transition-all ${i === previewStep ? 'w-5 h-2' : 'w-2 h-2'}`}
+                                                        style={{ backgroundColor: i === previewStep ? (activeForm.brandConfig?.primaryColor || '#4f46e5') : '#d1d5db' }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
+
+                                    <div className="space-y-5">
+                                        {(() => {
+                                            const allFields = activeForm.fields || [];
+                                            const isMulti = activeForm.formLogic?.isMultiStep;
+                                            const perPage = activeForm.formLogic?.fieldsPerPage || 3;
+                                            const step = Math.min(previewStep, Math.max(0, Math.ceil(allFields.length / perPage) - 1));
+                                            const visibleFields = isMulti
+                                                ? allFields.slice(step * perPage, step * perPage + perPage)
+                                                : allFields;
+                                                
+                                            const needsExplicitContact = !allFields.some(f => f.type === 'phone' || f.type === 'email') && activeForm.restrictions?.preventDuplicates;
+
+                                            return (
+                                                <>
+                                                    {needsExplicitContact && step === 0 && (
+                                                        <div className="space-y-2 mb-5">
+                                                            <label className="block text-xs font-bold uppercase tracking-widest px-1 text-slate-500">
+                                                                WhatsApp / Contact Number <span className="text-red-500">*</span>
+                                                            </label>
+                                                            <div className="flex w-full rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full overflow-hidden text-sm font-medium">
+                                                                <div className="bg-slate-50 border-r border-slate-100 px-3 py-3 flex items-center justify-center text-slate-600 font-bold tracking-tight">+91</div>
+                                                                <div className="px-3 py-3 text-slate-400 w-full">+15551234567</div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {visibleFields.map((field) => (
+                                                <div key={field.id} className="space-y-2">
+                                                    <label className="block text-xs font-bold uppercase tracking-widest px-1 text-slate-500">
+                                                        {field.label} {field.required && <span className="text-red-500">*</span>}
+                                                    </label>
+                                                    {field.type === 'text' && (
+                                                        <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm text-slate-400 font-medium">Input mapped area</div>
+                                                    )}
+                                                    {field.type === 'phone' && (
+                                                        <div className="flex w-full rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full overflow-hidden text-sm font-medium">
+                                                            <div className="bg-slate-50 border-r border-slate-100 px-3 py-3 flex items-center justify-center text-slate-600 font-bold tracking-tight">+91</div>
+                                                            <div className="px-3 py-3 text-slate-400 w-full">1234567890</div>
+                                                        </div>
+                                                    )}
+                                                    {field.type === 'email' && (
+                                                        <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm text-slate-400 font-medium">name@example.com</div>
+                                                    )}
+                                                    {field.type === 'number' && (
+                                                        <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm text-slate-400 font-medium font-mono">0 {field.minValue !== undefined && field.maxValue !== undefined ? `(${field.minValue}-${field.maxValue})` : ''}</div>
+                                                    )}
+                                                    {field.type === 'yesno' && (
+                                                        <div className="flex gap-3">
+                                                            <div className="flex-1 py-3 rounded-xl bg-white border-2 border-transparent shadow-sm text-sm font-bold text-slate-400 flex justify-center items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-green-500" /> Yes</div>
+                                                            <div className="flex-1 py-3 rounded-xl bg-white border-2 border-transparent shadow-sm text-sm font-bold text-slate-400 flex justify-center items-center gap-1.5"><X className="w-4 h-4 text-red-500" /> No</div>
+                                                        </div>
+                                                    )}
+                                                    {field.type === 'image' && (
+                                                        <div className="w-full py-6 rounded-xl border-2 border-dashed border-slate-200 bg-white/50 text-slate-400 flex flex-col items-center justify-center gap-2 shadow-sm">
+                                                            <ImageIcon className="w-5 h-5" />
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest">Upload Image {field.acceptTypes ? `(${field.acceptTypes})` : '(PNG, JPG)'}</span>
+                                                        </div>
+                                                    )}
+                                                    {field.type === 'address' && (
+                                                        <div className="space-y-2">
+                                                            <div className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm text-xs text-slate-400">Street Address</div>
+                                                            <div className="flex gap-2">
+                                                                <div className="flex-[7] px-4 py-2.5 rounded-xl bg-white shadow-sm text-xs text-slate-400">City</div>
+                                                                <div className="flex-[3] px-4 py-2.5 rounded-xl bg-white shadow-sm text-xs text-slate-400">ZIP</div>
+                                                            </div>
+                                                            <div className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm text-xs text-slate-400">State / Country</div>
+                                                        </div>
+                                                    )}
+                                                    {field.type === 'select' && (
+                                                        <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm flex items-center justify-between text-slate-400 font-medium">
+                                                            Dropdown Array UI <ChevronDown width={16} />
+                                                        </div>
+                                                    )}
+                                                    {field.type === 'radio' && (
+                                                        <div className="space-y-3 pt-1">
+                                                            {(field.options || ['Option 1']).map((opt, i) => (
+                                                                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full">
+                                                                    <div className="w-4 h-4 rounded-full border border-slate-300"></div>
+                                                                    <span className="text-sm font-medium">{opt}</span>
+                                                                </div>
                                                             ))}
                                                         </div>
-                                                    );
-                                                })()}
-
-                                                <div className="space-y-5">
-                                                    {(() => {
-                                                        const allFields = activeForm.fields || [];
-                                                        const isMulti = activeForm.formLogic?.isMultiStep;
-                                                        const perPage = activeForm.formLogic?.fieldsPerPage || 3;
-                                                        const step = Math.min(previewStep, Math.max(0, Math.ceil(allFields.length / perPage) - 1));
-                                                        const visibleFields = isMulti
-                                                            ? allFields.slice(step * perPage, step * perPage + perPage)
-                                                            : allFields;
-                                                            
-                                                        const needsExplicitContact = !allFields.some(f => f.type === 'phone' || f.type === 'email') && activeForm.restrictions?.preventDuplicates;
-
-                                                        return (
-                                                            <>
-                                                                {needsExplicitContact && step === 0 && (
-                                                                    <div className="space-y-2 mb-5">
-                                                                        <label className="block text-xs font-bold uppercase tracking-widest px-1 text-slate-500">
-                                                                            WhatsApp / Contact Number <span className="text-red-500">*</span>
-                                                                        </label>
-                                                                        <div className="flex w-full rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full overflow-hidden text-sm font-medium">
-                                                                            <div className="bg-slate-50 border-r border-slate-100 px-3 py-3 flex items-center justify-center text-slate-600 font-bold tracking-tight">+91</div>
-                                                                            <div className="px-3 py-3 text-slate-400 w-full">+15551234567</div>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                                {visibleFields.map((field) => (
-                                                            <div key={field.id} className="space-y-2">
-                                                                <label className="block text-xs font-bold uppercase tracking-widest px-1 text-slate-500">
-                                                                    {field.label} {field.required && <span className="text-red-500">*</span>}
-                                                                </label>
-                                                                {field.type === 'text' && (
-                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm text-slate-400 font-medium">Input mapped area</div>
-                                                                )}
-                                                                {field.type === 'phone' && (
-                                                                    <div className="flex w-full rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full overflow-hidden text-sm font-medium">
-                                                                        <div className="bg-slate-50 border-r border-slate-100 px-3 py-3 flex items-center justify-center text-slate-600 font-bold tracking-tight">+91</div>
-                                                                        <div className="px-3 py-3 text-slate-400 w-full">1234567890</div>
-                                                                    </div>
-                                                                )}
-                                                                {field.type === 'email' && (
-                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm text-slate-400 font-medium">name@example.com</div>
-                                                                )}
-                                                                {field.type === 'number' && (
-                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm text-slate-400 font-medium font-mono">0 {field.minValue !== undefined && field.maxValue !== undefined ? `(${field.minValue}-${field.maxValue})` : ''}</div>
-                                                                )}
-                                                                {field.type === 'yesno' && (
-                                                                    <div className="flex gap-3">
-                                                                        <div className="flex-1 py-3 rounded-xl bg-white border-2 border-transparent shadow-sm text-sm font-bold text-slate-400 flex justify-center items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-green-500" /> Yes</div>
-                                                                        <div className="flex-1 py-3 rounded-xl bg-white border-2 border-transparent shadow-sm text-sm font-bold text-slate-400 flex justify-center items-center gap-1.5"><X className="w-4 h-4 text-red-500" /> No</div>
-                                                                    </div>
-                                                                )}
-                                                                {field.type === 'image' && (
-                                                                    <div className="w-full py-6 rounded-xl border-2 border-dashed border-slate-200 bg-white/50 text-slate-400 flex flex-col items-center justify-center gap-2 shadow-sm">
-                                                                        <ImageIcon className="w-5 h-5" />
-                                                                        <span className="text-[10px] font-bold uppercase tracking-widest">Upload Image {field.acceptTypes ? `(${field.acceptTypes})` : '(PNG, JPG)'}</span>
-                                                                    </div>
-                                                                )}
-                                                                {field.type === 'address' && (
-                                                                    <div className="space-y-2">
-                                                                        <div className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm text-xs text-slate-400">Street Address</div>
-                                                                        <div className="flex gap-2">
-                                                                            <div className="flex-[7] px-4 py-2.5 rounded-xl bg-white shadow-sm text-xs text-slate-400">City</div>
-                                                                            <div className="flex-[3] px-4 py-2.5 rounded-xl bg-white shadow-sm text-xs text-slate-400">ZIP</div>
-                                                                        </div>
-                                                                        <div className="w-full px-4 py-2.5 rounded-xl bg-white shadow-sm text-xs text-slate-400">State / Country</div>
-                                                                    </div>
-                                                                )}
-                                                                {field.type === 'select' && (
-                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full text-sm flex items-center justify-between text-slate-400 font-medium">
-                                                                        Dropdown Array UI <ChevronDown width={16} />
-                                                                    </div>
-                                                                )}
-                                                                {field.type === 'radio' && (
-                                                                    <div className="space-y-3 pt-1">
-                                                                        {(field.options || ['Option 1']).map((opt, i) => (
-                                                                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.03)] max-w-full">
-                                                                                <div className="w-4 h-4 rounded-full border border-slate-300"></div>
-                                                                                <span className="text-sm font-medium">{opt}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                                {field.type === 'date' && (
-                                                                    <div className="w-full px-4 py-3 rounded-xl bg-white shadow-sm text-sm text-slate-400 flex gap-2"><Calendar className="w-4 h-4" /> YYYY-MM-DD</div>
-                                                                )}
-                                                                {field.type === 'time' && (
-                                                                    <input type="time" disabled defaultValue="10:30" className="w-full px-4 py-3 rounded-xl bg-white shadow-sm text-sm text-slate-400 opacity-80 pointer-events-none" />
-                                                                )}
-                                                                {field.type === 'file' && (
-                                                                    <div className="w-full py-6 rounded-xl border-2 border-dashed border-slate-200 bg-white/50 text-slate-400 flex flex-col items-center justify-center gap-2 shadow-sm">
-                                                                        <UploadCloud className="w-5 h-5" />
-                                                                        <span className="text-[10px] font-bold uppercase tracking-widest">File Upload Base</span>
-                                                                    </div>
-                                                                )}
-                                                                {field.type === 'rating' && (
-                                                                    <div className="flex gap-1 p-2 bg-white rounded-xl shadow-sm justify-center">
-                                                                        {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-6 h-6 text-slate-200" />)}
-                                                                    </div>
-                                                                )}
-                                                                {field.type === 'signature' && (
-                                                                    <div className="w-full h-24 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-300 flex-col gap-2">
-                                                                        <PenTool className="w-6 h-6" /> <span className="text-xs font-bold uppercase">Sign Canvas</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                        </>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
-
-                                            <div className="p-4 md:p-6 pt-0 mt-auto shrink-0 pb-10">
-                                                {activeForm.formLogic?.isMultiStep ? (() => {
-                                                    const perPage = activeForm.formLogic?.fieldsPerPage || 3;
-                                                    const totalSteps = Math.ceil((activeForm.fields || []).length / perPage) || 1;
-                                                    const isLast = previewStep >= totalSteps - 1;
-                                                    return (
-                                                        <div className="flex gap-2">
-                                                            {previewStep > 0 && (
-                                                                <button onClick={() => setPreviewStep(s => s - 1)} className="flex-1 py-3 rounded-xl border-2 font-bold text-sm transition-all flex justify-center items-center gap-2" style={{ borderColor: activeForm.brandConfig?.primaryColor || '#4f46e5', color: activeForm.brandConfig?.primaryColor || '#4f46e5' }}>
-                                                                    <ArrowLeft className="w-4 h-4" /> Back
-                                                                </button>
-                                                            )}
-                                                            <button onClick={() => !isLast && setPreviewStep(s => s + 1)} className="flex-1 py-3 rounded-xl text-white font-bold text-sm shadow-xl flex justify-center items-center gap-2" style={{ backgroundColor: activeForm.brandConfig?.primaryColor || '#4f46e5' }}>
-                                                                {isLast ? <><Send width={14} /> Submit</> : <>Next <ArrowRight className="w-4 h-4" /></>}
-                                                            </button>
+                                                    )}
+                                                    {field.type === 'date' && (
+                                                        <div className="w-full px-4 py-3 rounded-xl bg-white shadow-sm text-sm text-slate-400 flex gap-2"><Calendar className="w-4 h-4" /> YYYY-MM-DD</div>
+                                                    )}
+                                                    {field.type === 'time' && (
+                                                        <input type="time" disabled defaultValue="10:30" className="w-full px-4 py-3 rounded-xl bg-white shadow-sm text-sm text-slate-400 opacity-80 pointer-events-none" />
+                                                    )}
+                                                    {field.type === 'file' && (
+                                                        <div className="w-full py-6 rounded-xl border-2 border-dashed border-slate-200 bg-white/50 text-slate-400 flex flex-col items-center justify-center gap-2 shadow-sm">
+                                                            <UploadCloud className="w-5 h-5" />
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest">File Upload Base</span>
                                                         </div>
-                                                    );
-                                                })() : (
-                                                    <button disabled className="w-full py-4 rounded-xl text-white font-bold text-sm shadow-xl flex justify-center items-center gap-2 transition-transform" style={{ backgroundColor: activeForm.brandConfig?.primaryColor || '#4f46e5', boxShadow: `0 10px 25px -5px ${activeForm.brandConfig?.primaryColor}60` }}>
-                                                        <Send width={16} /> Submit
+                                                    )}
+                                                    {field.type === 'rating' && (
+                                                        <div className="flex gap-1 p-2 bg-white rounded-xl shadow-sm justify-center">
+                                                            {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-6 h-6 text-slate-200" />)}
+                                                        </div>
+                                                    )}
+                                                    {field.type === 'signature' && (
+                                                        <div className="w-full h-24 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-300 flex-col gap-2">
+                                                            <PenTool className="w-6 h-6" /> <span className="text-xs font-bold uppercase">Sign Canvas</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+
+                                <div className="p-4 md:p-6 pt-0 mt-auto shrink-0 pb-10">
+                                    {activeForm.formLogic?.isMultiStep ? (() => {
+                                        const perPage = activeForm.formLogic?.fieldsPerPage || 3;
+                                        const totalSteps = Math.ceil((activeForm.fields || []).length / perPage) || 1;
+                                        const isLast = previewStep >= totalSteps - 1;
+                                        return (
+                                            <div className="flex gap-2">
+                                                {previewStep > 0 && (
+                                                    <button onClick={() => setPreviewStep(s => s - 1)} className="flex-1 py-3 rounded-xl border-2 font-bold text-sm transition-all flex justify-center items-center gap-2" style={{ borderColor: activeForm.brandConfig?.primaryColor || '#4f46e5', color: activeForm.brandConfig?.primaryColor || '#4f46e5' }}>
+                                                        <ArrowLeft className="w-4 h-4" /> Back
                                                     </button>
                                                 )}
-
-                                                <div className="text-center mt-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1">
-                                                    <Zap className="w-3 h-3" /> Powered by App
-                                                </div>
+                                                <button onClick={() => !isLast && setPreviewStep(s => s + 1)} className="flex-1 py-3 rounded-xl text-white font-bold text-sm shadow-xl flex justify-center items-center gap-2" style={{ backgroundColor: activeForm.brandConfig?.primaryColor || '#4f46e5' }}>
+                                                    {isLast ? <><Send width={14} /> Submit</> : <>Next <ArrowRight className="w-4 h-4" /></>}
+                                                </button>
                                             </div>
-                                        </div>
+                                        );
+                                    })() : (
+                                        <button disabled className="w-full py-4 rounded-xl text-white font-bold text-sm shadow-xl flex justify-center items-center gap-2 transition-transform" style={{ backgroundColor: activeForm.brandConfig?.primaryColor || '#4f46e5', boxShadow: `0 10px 25px -5px ${activeForm.brandConfig?.primaryColor}60` }}>
+                                            <Send width={16} /> Submit
+                                        </button>
+                                    )}
+
+                                    <div className="text-center mt-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1">
+                                        <Zap className="w-3 h-3" /> Powered by App
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </>
-                
+                    </div>
+                </div>
+            </div>
+        </>
     );
 };
 

@@ -28,7 +28,7 @@ export default function WaStoreFooter({ store }) {
 
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setPolicyModal(null)} />
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" onClick={() => setPolicyModal(null)} />
                 <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
                     <div className="px-4 md:px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-3xl">
                         <h2 className="text-xl font-bold text-gray-900">{title}</h2>

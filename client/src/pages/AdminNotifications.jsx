@@ -138,7 +138,6 @@ const AdminNotifications = () => {
             <AdminHeader searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)}>
                 <ThemeToggle />
             </AdminHeader>
-
             <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-[1600px] max-w-full mx-auto w-full pb-7 sm:pb-20">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <div>
@@ -359,7 +358,6 @@ const AdminNotifications = () => {
                     </div>
                 </div>
             </main>
-
             {/* PREVIEW MODAL */}
             <AnimatePresence>
                 {showPreview && (
@@ -367,14 +365,14 @@ const AdminNotifications = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
                         onClick={() => setShowPreview(false)}
                     >
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-white/10"
+                            className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-white/10 cursor-pointer"
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="p-4 md:p-6">

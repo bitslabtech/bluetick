@@ -342,7 +342,6 @@ export default function PublicWaStore({ customSlug }) {
                 cartCount={cartCount}
                 setIsCartOpen={setIsCartOpen}
             />
-
             {/* ─── HERO SLIDER ─── */}
             {slides.length > 0 ? (
                 <div className="relative group w-full mb-6 md:mb-0" onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
@@ -450,14 +449,13 @@ export default function PublicWaStore({ customSlug }) {
                 </div>
             ) : (
                 /* Fallback simple banner if no hero slides */
-                <div className={`py-16 px-4 ${theme.header}`}>
+                (<div className={`py-16 px-4 ${theme.header}`}>
                     <div className="max-w-4xl mx-auto text-center space-y-4">
                         <h1 className={`text-4xl font-bold tracking-tight ${theme.headerLogo}`}>{store.name}</h1>
                         {store.description && <p className={`text-lg ${theme.textMuted}`}>{store.description}</p>}
                     </div>
-                </div>
+                </div>)
             )}
-
             {/* ─── MAIN CONTENT ─── */}
             <main id="products" className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 sm:pt-12">
 
@@ -589,151 +587,149 @@ export default function PublicWaStore({ customSlug }) {
                     const mobileCols = store.gridColumns?.mobile || 2;
                     return (
                         <>
-                        <style>{`
-                            .dynamic-product-grid {
-                                grid-template-columns: repeat(${mobileCols}, minmax(0, 1fr));
-                            }
-                            @media (min-width: 640px) {
+                            <style>{`
                                 .dynamic-product-grid {
-                                    grid-template-columns: repeat(${Math.min(desktopCols, 3)}, minmax(0, 1fr));
+                                    grid-template-columns: repeat(${mobileCols}, minmax(0, 1fr));
                                 }
-                            }
-                            @media (min-width: 1024px) {
-                                .dynamic-product-grid {
-                                    grid-template-columns: repeat(${desktopCols}, minmax(0, 1fr));
+                                @media (min-width: 640px) {
+                                    .dynamic-product-grid {
+                                        grid-template-columns: repeat(${Math.min(desktopCols, 3)}, minmax(0, 1fr));
+                                    }
                                 }
-                            }
-                        `}</style>
-                        <div className="grid gap-4 sm:gap-6 dynamic-product-grid">
-                            {filteredAndSortedProducts.map(product => {
-                                const isOutOfStock = product.trackQuantity ? product.stockQuantity <= 0 : !product.inStock;
-                                const preventAdd = store.inventoryConfig?.preventCartAdd && isOutOfStock;
-                                const showLowStock = store.inventoryConfig?.showLowStock && product.trackQuantity && product.stockQuantity > 0 && product.stockQuantity <= product.lowStockThreshold;
-                                const cartItem = cart.find(item => (item.cartItemId || item.id) === product.id);
-                                const qtyInCart = cartItem ? cartItem.qty : 0;
+                                @media (min-width: 1024px) {
+                                    .dynamic-product-grid {
+                                        grid-template-columns: repeat(${desktopCols}, minmax(0, 1fr));
+                                    }
+                                }
+                            `}</style>
+                            <div className="grid gap-4 sm:gap-6 dynamic-product-grid">
+                                {filteredAndSortedProducts.map(product => {
+                                    const isOutOfStock = product.trackQuantity ? product.stockQuantity <= 0 : !product.inStock;
+                                    const preventAdd = store.inventoryConfig?.preventCartAdd && isOutOfStock;
+                                    const showLowStock = store.inventoryConfig?.showLowStock && product.trackQuantity && product.stockQuantity > 0 && product.stockQuantity <= product.lowStockThreshold;
+                                    const cartItem = cart.find(item => (item.cartItemId || item.id) === product.id);
+                                    const qtyInCart = cartItem ? cartItem.qty : 0;
 
-                                return (
-                                    <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`)}>
+                                    return (
+                                        <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`)}>
+                                            {/* Image Box */}
+                                            <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
+                                                {product.imageUrls && product.imageUrls[0] ? (
+                                                    <img
+                                                        // Product card: ~170px mobile / ~308px desktop (2×/3× Retina needs 400-800px)
+                                                        src={cdnImg(imgUrl(product.imageUrls[0]), { width: 400 })}
+                                                        srcSet={cdnSrcSet(imgUrl(product.imageUrls[0]), [400, 600, 800])}
+                                                        sizes="(max-width: 640px) calc(50vw - 2rem), (max-width: 1024px) calc(33vw - 2rem), calc(25vw - 2rem)"
+                                                        alt={product.name}
+                                                        loading="lazy"
+                                                        decoding="async"
+                                                        className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+                                                        onError={e => e.target.style.display = 'none'}
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
+                                                )}
+                                                {isOutOfStock ? (
+                                                    <div className="absolute top-3 left-3 bg-rose-100 text-rose-700 px-2.5 py-1 rounded-md text-xs font-bold border border-rose-200">
+                                                        Out of Stock
+                                                    </div>
+                                                ) : showLowStock ? (
+                                                    <div className="absolute top-3 left-3 bg-amber-100 text-amber-700 px-2.5 py-1 rounded-md text-xs font-bold border border-amber-200">
+                                                        Only {product.stockQuantity} left
+                                                    </div>
+                                                ) : product.compareAtPrice ? (
+                                                    <div className={`absolute top-3 left-3 ${theme.badgeStyle}`}>
+                                                        Sale
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                            {/* Info */}
+                                            <div className="p-3 md:p-5 flex flex-col flex-1">
+                                                <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-[0.18em] ${theme.textMuted} mb-1 block leading-none`}>
+                                                    {product.category || '\u00A0'}
+                                                </span>
+                                                <h3 className={`text-[13px] md:text-[15px] font-semibold ${theme.text} mb-1.5 line-clamp-2 leading-snug hover:opacity-80 transition-opacity capitalize`}>{product.name}</h3>
 
-                                        {/* Image Box */}
-                                        <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
-                                            {product.imageUrls && product.imageUrls[0] ? (
-                                                <img
-                                                    // Product card: ~170px mobile / ~308px desktop (2×/3× Retina needs 400-800px)
-                                                    src={cdnImg(imgUrl(product.imageUrls[0]), { width: 400 })}
-                                                    srcSet={cdnSrcSet(imgUrl(product.imageUrls[0]), [400, 600, 800])}
-                                                    sizes="(max-width: 640px) calc(50vw - 2rem), (max-width: 1024px) calc(33vw - 2rem), calc(25vw - 2rem)"
-                                                    alt={product.name}
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                    className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
-                                                    onError={e => e.target.style.display = 'none'}
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
-                                            )}
-                                            {isOutOfStock ? (
-                                                <div className="absolute top-3 left-3 bg-rose-100 text-rose-700 px-2.5 py-1 rounded-md text-xs font-bold border border-rose-200">
-                                                    Out of Stock
+                                                <div className="flex items-baseline flex-wrap gap-1 md:gap-2 mb-3 md:mb-5">
+                                                    {(() => {
+                                                        // Find the lowest variant price if variant overrides exist
+                                                        const variantPrices = (product.variants || []).map(v => v.price).filter(p => p != null);
+                                                        const minPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : parseFloat(product.price);
+                                                        const hasVariantPricing = variantPrices.length > 0 && variantPrices.some(p => p !== parseFloat(product.price));
+                                                        return (
+                                                            <>
+                                                                <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>
+                                                                    {hasVariantPricing ? 'from ' : ''}{getCurrencySymbol(store.currency)}{getDisplayPrice(minPrice, product).toFixed(2)}
+                                                                </span>
+                                                                {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
+                                                                    <>
+                                                                        <span className={`${theme.priceCompareStyle || 'text-xs md:text-sm text-gray-400 line-through font-normal'}`}>
+                                                                            {getCurrencySymbol(store.currency)}{getDisplayPrice(product.compareAtPrice, product).toFixed(2)}
+                                                                        </span>
+                                                                        <span className="text-[9px] md:text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-100/50">
+                                                                            {Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100)}% OFF
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
-                                            ) : showLowStock ? (
-                                                <div className="absolute top-3 left-3 bg-amber-100 text-amber-700 px-2.5 py-1 rounded-md text-xs font-bold border border-amber-200">
-                                                    Only {product.stockQuantity} left
-                                                </div>
-                                            ) : product.compareAtPrice ? (
-                                                <div className={`absolute top-3 left-3 ${theme.badgeStyle}`}>
-                                                    Sale
-                                                </div>
-                                            ) : null}
-                                        </div>
 
-                                        {/* Info */}
-                                        <div className="p-3 md:p-5 flex flex-col flex-1">
-                                            <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-[0.18em] ${theme.textMuted} mb-1 block leading-none`}>
-                                                {product.category || '\u00A0'}
-                                            </span>
-                                            <h3 className={`text-[13px] md:text-[15px] font-semibold ${theme.text} mb-1.5 line-clamp-2 leading-snug hover:opacity-80 transition-opacity capitalize`}>{product.name}</h3>
+                                                <div className="mt-auto">
+                                                    <div className="flex items-center w-full h-[36px] md:h-[42px] gap-0 relative">
+                                                        {/* Quantity Selector Slider */}
+                                                        <div className={`flex items-center justify-between border border-gray-205 rounded-[15px] p-1 bg-gray-50 h-full transition-all duration-300 overflow-hidden ${qtyInCart > 0 ? 'w-[45%] opacity-100 mr-2' : 'w-0 opacity-0 pointer-events-none mr-0'
+                                                            }`}>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); updateQty(product.id, -1); }}
+                                                                className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
+                                                            >
+                                                                -
+                                                            </button>
+                                                            <span className="font-bold text-xs text-gray-900 select-none">{qtyInCart}</span>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); updateQty(product.id, 1); }}
+                                                                className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
+                                                            >
+                                                                +
+                                                            </button>
+                                                        </div>
 
-                                            <div className="flex items-baseline flex-wrap gap-1 md:gap-2 mb-3 md:mb-5">
-                                                {(() => {
-                                                    // Find the lowest variant price if variant overrides exist
-                                                    const variantPrices = (product.variants || []).map(v => v.price).filter(p => p != null);
-                                                    const minPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : parseFloat(product.price);
-                                                    const hasVariantPricing = variantPrices.length > 0 && variantPrices.some(p => p !== parseFloat(product.price));
-                                                    return (
-                                                        <>
-                                                            <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>
-                                                                {hasVariantPricing ? 'from ' : ''}{getCurrencySymbol(store.currency)}{getDisplayPrice(minPrice, product).toFixed(2)}
-                                                            </span>
-                                                            {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
+                                                        {/* Sliding Add/View Button */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (qtyInCart > 0) {
+                                                                    setIsCartOpen(true);
+                                                                } else if (!preventAdd) {
+                                                                    addToCart(product);
+                                                                }
+                                                            }}
+                                                            disabled={preventAdd && qtyInCart === 0}
+                                                            className={`h-full transition-all duration-300 flex items-center justify-center gap-1.5 uppercase tracking-widest text-[9.5px] font-bold rounded-[15px] select-none ${qtyInCart > 0
+                                                                ? 'w-[55%] bg-black text-white hover:bg-neutral-800 shadow-sm'
+                                                                : `${theme.buttonStyle} !py-0 flex-1 w-full ${preventAdd ? 'opacity-50 cursor-not-allowed' : ''}`
+                                                                }`}
+                                                        >
+                                                            {qtyInCart > 0 ? (
                                                                 <>
-                                                                    <span className={`${theme.priceCompareStyle || 'text-xs md:text-sm text-gray-400 line-through font-normal'}`}>
-                                                                        {getCurrencySymbol(store.currency)}{getDisplayPrice(product.compareAtPrice, product).toFixed(2)}
-                                                                    </span>
-                                                                    <span className="text-[9px] md:text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-100/50">
-                                                                        {Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100)}% OFF
-                                                                    </span>
+                                                                    <span className="truncate">View Cart</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                                                                    <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
                                                                 </>
                                                             )}
-                                                        </>
-                                                    );
-                                                })()}
-                                            </div>
-
-                                            <div className="mt-auto">
-                                                <div className="flex items-center w-full h-[36px] md:h-[42px] gap-0 relative">
-                                                    {/* Quantity Selector Slider */}
-                                                    <div className={`flex items-center justify-between border border-gray-205 rounded-[15px] p-1 bg-gray-50 h-full transition-all duration-300 overflow-hidden ${qtyInCart > 0 ? 'w-[45%] opacity-100 mr-2' : 'w-0 opacity-0 pointer-events-none mr-0'
-                                                        }`}>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); updateQty(product.id, -1); }}
-                                                            className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
-                                                        >
-                                                            -
-                                                        </button>
-                                                        <span className="font-bold text-xs text-gray-900 select-none">{qtyInCart}</span>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); updateQty(product.id, 1); }}
-                                                            className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
-                                                        >
-                                                            +
                                                         </button>
                                                     </div>
-
-                                                    {/* Sliding Add/View Button */}
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (qtyInCart > 0) {
-                                                                setIsCartOpen(true);
-                                                            } else if (!preventAdd) {
-                                                                addToCart(product);
-                                                            }
-                                                        }}
-                                                        disabled={preventAdd && qtyInCart === 0}
-                                                        className={`h-full transition-all duration-300 flex items-center justify-center gap-1.5 uppercase tracking-widest text-[9.5px] font-bold rounded-[15px] select-none ${qtyInCart > 0
-                                                            ? 'w-[55%] bg-black text-white hover:bg-neutral-800 shadow-sm'
-                                                            : `${theme.buttonStyle} !py-0 flex-1 w-full ${preventAdd ? 'opacity-50 cursor-not-allowed' : ''}`
-                                                            }`}
-                                                    >
-                                                        {qtyInCart > 0 ? (
-                                                            <>
-                                                                <span className="truncate">View Cart</span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-                                                                <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
-                                                            </>
-                                                        )}
-                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
                         </>
                     );
                 })() : (
@@ -745,14 +741,13 @@ export default function PublicWaStore({ customSlug }) {
                     </div>
                 )}
             </main>
-
             {/* ─── CART DRAWER ─── */}
             {/* CSS transitions replace framer-motion — removes vendor-motion from public store critical path */}
             {isCartOpen && (
                 <div className="fixed inset-0 z-50 flex justify-end">
                     {/* Backdrop — CSS fade */}
                     <div
-                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
                         style={{ animation: 'fadeIn 0.2s ease forwards' }}
                         onClick={() => setIsCartOpen(false)}
                     />
@@ -853,7 +848,6 @@ export default function PublicWaStore({ customSlug }) {
                     </div>
                 </div>
             )}
-
             {/* ─── CHECKOUT MODAL ─── */}
             {isCheckoutModalOpen && (
                 <React.Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white" /></div>}>
@@ -868,7 +862,6 @@ export default function PublicWaStore({ customSlug }) {
                     />
                 </React.Suspense>
             )}
-
             {/* ─── MOBILE NAVIGATION DRAWER ─── */}
             <WaStoreFooter store={store} />
         </div>

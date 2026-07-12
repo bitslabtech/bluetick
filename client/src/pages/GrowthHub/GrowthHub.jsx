@@ -454,418 +454,413 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
 
     return (
         <>
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Megaphone className="w-5 h-5 text-primary" /> All Campaigns
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">Manage your ad campaigns — AI-generated or manually built</p>
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Megaphone className="w-5 h-5 text-primary" /> All Campaigns
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-0.5">Manage your ad campaigns — AI-generated or manually built</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                            onClick={handleSyncInsights}
+                            className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                            title="Sync live insights from Meta"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" /> Sync
+                        </button>
+                        <button
+                            onClick={() => navigate('/meta-ads/wizard')}
+                            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-bold shadow-md shadow-primary/20 transition-all text-sm"
+                        >
+                            <Plus className="w-4 h-4" /> New Campaign
+                        </button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                        onClick={handleSyncInsights}
-                        className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-                        title="Sync live insights from Meta"
-                    >
-                        <RefreshCw className="w-3.5 h-3.5" /> Sync
-                    </button>
-                    <button
-                        onClick={() => navigate('/meta-ads/wizard')}
-                        className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-bold shadow-md shadow-primary/20 transition-all text-sm"
-                    >
-                        <Plus className="w-4 h-4" /> New Campaign
-                    </button>
-                </div>
-            </div>
 
-            {/* Budget Overview Strip */}
-            {campaigns.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Daily Budget</p>
-                        <p className="text-xl font-black text-slate-900 dark:text-white">₹{fmt(totalDailyBudget)}<span className="text-xs font-medium text-slate-400">/day</span></p>
-                    </div>
-                    <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Spent</p>
-                        <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{totalSpent > 0 ? `₹${fmt(totalSpent)}` : '—'}</p>
-                        {totalSpent > 0 && <p className="text-[10px] text-slate-400 mt-0.5">across all campaigns</p>}
-                    </div>
-                    <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Impressions</p>
-                        <p className="text-xl font-black text-slate-900 dark:text-white">{totalImpressions > 0 ? fmt(totalImpressions) : '—'}</p>
-                    </div>
-                    <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Active</p>
-                        <p className="text-xl font-black text-slate-900 dark:text-white">{activeCampaigns} <span className="text-xs font-medium text-slate-400">/ {campaigns.length}</span></p>
-                        {activeCampaigns > 0 && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>Live now</span>}
-                    </div>
-                </div>
-            )}
-
-            {/* Search + Status Filter */}
-            {campaigns.length > 0 && (
-                <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                            type="text"
-                            value={searchQ}
-                            onChange={e => setSearchQ(e.target.value)}
-                            placeholder="Search campaigns..."
-                            className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/20"
-                        />
-                    </div>
-                    <select
-                        value={statusFilter}
-                        onChange={e => setStatusFilter(e.target.value)}
-                        className="text-sm border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark text-slate-700 dark:text-white rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="Active">Active</option>
-                        <option value="Published">Published</option>
-                        <option value="Paused">Paused</option>
-                        <option value="Draft">Draft</option>
-                        <option value="Error">Error</option>
-                    </select>
-                </div>
-            )}
-
-            {/* Campaigns Table */}
-            <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
-                {loading ? (
-                    <div className="p-6 space-y-4">
-                        {[1, 2, 3, 4].map(i => (
-                            <Skeleton key={i} height={80} baseColor={isDarkMode ? '#1e293b' : '#f8fafc'} highlightColor={isDarkMode ? '#334155' : '#ffffff'} className="rounded-xl" />
-                        ))}
-                    </div>
-                ) : filteredCampaigns.length === 0 ? (
-                    <div className="p-8 sm:p-16 text-center">
-                        <div className="w-20 h-20 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-5">
-                            <Megaphone className="w-9 h-9 text-indigo-500" />
+                {/* Budget Overview Strip */}
+                {campaigns.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Daily Budget</p>
+                            <p className="text-xl font-black text-slate-900 dark:text-white">₹{fmt(totalDailyBudget)}<span className="text-xs font-medium text-slate-400">/day</span></p>
                         </div>
-                        {campaigns.length === 0 ? (
-                            <>
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No campaigns yet</h3>
-                                <p className="text-slate-500 max-w-sm mx-auto mb-6 text-sm">Use our wizard to create your first high-converting WhatsApp ad campaign.</p>
-                                <button
-                                    onClick={() => navigate('/meta-ads/wizard')}
-                                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-md transition-all"
-                                >
-                                    <Sparkles className="w-5 h-5" /> Create Your First Campaign
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No results found</h3>
-                                <p className="text-slate-500 max-w-sm mx-auto mb-4 text-sm">No campaigns match your search or filter.</p>
-                                <button onClick={() => { setSearchQ(''); setStatusFilter('all'); }} className="text-sm font-bold text-primary hover:underline">Clear filters</button>
-                            </>
-                        )}
-                    </div>
-                ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-white/5">
-                        {filteredCampaigns.map((campaign) => {
-                            const dailyBudget = parseFloat(campaign.dailyBudget || 0);
-                            const spent       = parseFloat(campaign.spend || 0);
-                            const impressions = parseInt(campaign.impressions || 0);
-                            const clicks      = parseInt(campaign.clicks || 0);
-                            const ctr         = campaign.ctr ? parseFloat(campaign.ctr) : null;
-                            const reach       = parseInt(campaign.reach || 0);
-                            const hasInsights = spent > 0 || impressions > 0;
-
-                            return (
-                                <div key={campaign.id} className="p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors group cursor-pointer" onClick={() => navigate('/meta-ads/campaigns/' + campaign.id)}>
-                                    {/* Row top: name + status + budget */}
-                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
-                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                            <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
-                                                <CreditCard className="w-5 h-5" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-primary transition-colors truncate">
-                                                    {campaign.campaignName}
-                                                </p>
-                                                <p className="text-xs text-slate-500 mt-0.5 truncate">
-                                                    {campaign.targeting?.locations?.[0] || 'No location'} • Age {campaign.targeting?.age_min || '?'}–{campaign.targeting?.age_max || '?'} • {campaign.objective?.replace(/_/g, ' ') || 'Engagement'}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Status + Date + Click hint */}
-                                        <div className="flex items-center gap-2 flex-shrink-0">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColors[campaign.status] || statusColors.Draft}`}>
-                                                {campaign.status === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                                                {campaign.status || 'Draft'}
-                                            </span>
-                                            <span className="text-[11px] text-slate-400 hidden sm:block">
-                                                {campaign.createdAt ? formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true }) : '—'}
-                                            </span>
-                                            <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </div>
-                                    </div>
-
-                                    {/* Budget + Spend Row */}
-                                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                        {/* Daily Budget */}
-                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Daily Budget</p>
-                                            <p className="text-base font-black text-slate-900 dark:text-white mt-1">₹{fmt(dailyBudget)}</p>
-                                            <p className="text-[10px] text-slate-400">per day</p>
-                                        </div>
-
-                                        {/* Total Spent */}
-                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Spent</p>
-                                            {hasInsights ? (
-                                                <>
-                                                    <p className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-1">₹{fmt(spent, 2)}</p>
-                                                    <p className="text-[10px] text-slate-400">{campaign.insightsUpdatedAt ? `as of ${formatDistanceToNow(new Date(campaign.insightsUpdatedAt), {addSuffix:true})}` : 'from Meta'}</p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <p className="text-base font-black text-slate-400 mt-1">—</p>
-                                                    <p className="text-[10px] text-slate-400">{campaign.status === 'Draft' ? 'Not yet published' : 'Connect Meta to sync'}</p>
-                                                </>
-                                            )}
-                                        </div>
-
-                                        {/* Impressions */}
-                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Impressions</p>
-                                            <p className={`text-base font-black mt-1 ${impressions > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
-                                                {impressions > 0 ? fmt(impressions) : '—'}
-                                            </p>
-                                            {clicks > 0 && <p className="text-[10px] text-slate-400">{fmt(clicks)} clicks</p>}
-                                        </div>
-
-                                        {/* CTR */}
-                                        <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CTR</p>
-                                            {ctr !== null ? (
-                                                <>
-                                                    <p className={`text-base font-black mt-1 ${ctr >= 1 ? 'text-emerald-600 dark:text-emerald-400' : ctr >= 0.5 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>
-                                                        {ctr.toFixed(2)}%
-                                                    </p>
-                                                    <p className="text-[10px] text-slate-400">{ctr >= 1 ? '🔥 Great' : ctr >= 0.5 ? '⚡ Average' : '⚠️ Low'}</p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <p className="text-base font-black text-slate-400 mt-1">—</p>
-                                                    <p className="text-[10px] text-slate-400">No data yet</p>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Budget Utilization Bar + extra metrics */}
-                                    {hasInsights && dailyBudget > 0 && (
-                                        <div className="mt-3">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Spend vs Daily Budget</span>
-                                                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">₹{fmt(spent, 2)} / ₹{fmt(dailyBudget)}</span>
-                                            </div>
-                                            <div className="h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-500"
-                                                    style={{ width: `${Math.min(100, dailyBudget > 0 ? (spent / dailyBudget) * 100 : 0)}%` }}
-                                                />
-                                            </div>
-                                            <div className="flex gap-4 mt-2">
-                                                {reach > 0 && <span className="text-[10px] text-slate-400">👥 {fmt(reach)} reached</span>}
-                                                {campaign.cpc && <span className="text-[10px] text-slate-400">🖱️ CPC ₹{parseFloat(campaign.cpc).toFixed(2)}</span>}
-                                                {campaign.clicks > 0 && <span className="text-[10px] text-slate-400">🔗 {fmt(campaign.clicks)} clicks</span>}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Action buttons row */}
-                                    <div className="mt-4 flex items-center gap-2 justify-end" ref={openMenu === campaign.id ? menuRef : null}>
-
-                                        {/* Publish for Draft / Retry for Error */}
-                                        {(campaign.status === 'Draft' || campaign.status === 'Error') && (
-                                            <button
-                                                onClick={e => { e.stopPropagation(); handlePublish(campaign); }}
-                                                disabled={!!actionLoading[campaign.id]}
-                                                className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all ${
-                                                    campaign.status === 'Error'
-                                                        ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/10 dark:text-red-400'
-                                                        : 'bg-primary/10 text-primary hover:bg-primary/20'
-                                                } disabled:opacity-50`}
-                                            >
-                                                {actionLoading[campaign.id] === 'publish' ? (
-                                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                                ) : campaign.status === 'Error' ? (
-                                                    <><RefreshCw className="w-3 h-3" /> Retry</>
-                                                ) : (
-                                                    <><Rocket className="w-3 h-3" /> Publish</>
-                                                )}
-                                            </button>
-                                        )}
-
-                                        {/* Pause / Resume — shown for Active, Published, and Paused campaigns */}
-                                        {(campaign.status === 'Active' || campaign.status === 'Published' || campaign.status === 'Paused') && (
-                                            <button
-                                                onClick={e => { e.stopPropagation(); handleToggleStatus(campaign); }}
-                                                disabled={!!actionLoading[campaign.id]}
-                                                className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all ${
-                                                    (campaign.status === 'Active' || campaign.status === 'Published')
-                                                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400'
-                                                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                                } disabled:opacity-50`}
-                                            >
-                                                {actionLoading[campaign.id] === 'pause' || actionLoading[campaign.id] === 'resume' ? (
-                                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                                ) : (campaign.status === 'Active' || campaign.status === 'Published') ? (
-                                                    <><Pause className="w-3 h-3" /> Pause</>
-                                                ) : (
-                                                    <><Play className="w-3 h-3" /> Resume</>
-                                                )}
-                                            </button>
-                                        )}
-
-                                        {/* More menu (⋮) — Edit, Duplicate, Delete */}
-                                        <div className="relative" onClick={e => e.stopPropagation()}>
-                                            <button
-                                                onClick={() => setOpenMenu(openMenu === campaign.id ? null : campaign.id)}
-                                                className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 transition-colors"
-                                            >
-                                                <MoreVertical className="w-3.5 h-3.5" /> More
-                                            </button>
-                                            <AnimatePresence>
-                                                {openMenu === campaign.id && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                        exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                                                        transition={{ duration: 0.15 }}
-                                                        className="absolute right-0 bottom-9 z-20 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden"
-                                                    >
-                                                        {/* Edit */}
-                                                        <button
-                                                            onClick={() => { setOpenMenu(null); setEditModal({ campaign, newName: campaign.campaignName, newBudget: campaign.dailyBudget }); }}
-                                                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-                                                        >
-                                                            <Edit3 className="w-4 h-4" /> Edit Name & Budget
-                                                        </button>
-                                                        {/* Duplicate */}
-                                                        <button
-                                                            onClick={() => handleDuplicate(campaign)}
-                                                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-                                                        >
-                                                            {actionLoading[campaign.id] === 'duplicate' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
-                                                            Duplicate
-                                                        </button>
-                                                        <div className="h-px bg-slate-100 dark:bg-white/5 mx-3" />
-                                                        {/* Delete */}
-                                                        <button
-                                                            onClick={() => handleDelete(campaign)}
-                                                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                                                        >
-                                                            {actionLoading[campaign.id] === 'delete' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                                            Delete
-                                                        </button>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Spent</p>
+                            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{totalSpent > 0 ? `₹${fmt(totalSpent)}` : '—'}</p>
+                            {totalSpent > 0 && <p className="text-[10px] text-slate-400 mt-0.5">across all campaigns</p>}
+                        </div>
+                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Impressions</p>
+                            <p className="text-xl font-black text-slate-900 dark:text-white">{totalImpressions > 0 ? fmt(totalImpressions) : '—'}</p>
+                        </div>
+                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Active</p>
+                            <p className="text-xl font-black text-slate-900 dark:text-white">{activeCampaigns} <span className="text-xs font-medium text-slate-400">/ {campaigns.length}</span></p>
+                            {activeCampaigns > 0 && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>Live now</span>}
+                        </div>
                     </div>
                 )}
-            </div>
-        </div>
 
-        {/* ── Edit Campaign Modal ─────────────────────────── */}
-        <AnimatePresence>
-            {editModal && (
-                <motion.div
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-                    onClick={() => setEditModal(null)}
-                >
+                {/* Search + Status Filter */}
+                {campaigns.length > 0 && (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                                type="text"
+                                value={searchQ}
+                                onChange={e => setSearchQ(e.target.value)}
+                                placeholder="Search campaigns..."
+                                className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                        </div>
+                        <select
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value)}
+                            className="text-sm border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark text-slate-700 dark:text-white rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-primary/20 outline-none"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="Active">Active</option>
+                            <option value="Published">Published</option>
+                            <option value="Paused">Paused</option>
+                            <option value="Draft">Draft</option>
+                            <option value="Error">Error</option>
+                        </select>
+                    </div>
+                )}
+
+                {/* Campaigns Table */}
+                <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
+                    {loading ? (
+                        <div className="p-6 space-y-4">
+                            {[1, 2, 3, 4].map(i => (
+                                <Skeleton key={i} height={80} baseColor={isDarkMode ? '#1e293b' : '#f8fafc'} highlightColor={isDarkMode ? '#334155' : '#ffffff'} className="rounded-xl" />
+                            ))}
+                        </div>
+                    ) : filteredCampaigns.length === 0 ? (
+                        <div className="p-8 sm:p-16 text-center">
+                            <div className="w-20 h-20 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-5">
+                                <Megaphone className="w-9 h-9 text-indigo-500" />
+                            </div>
+                            {campaigns.length === 0 ? (
+                                <>
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No campaigns yet</h3>
+                                    <p className="text-slate-500 max-w-sm mx-auto mb-6 text-sm">Use our wizard to create your first high-converting WhatsApp ad campaign.</p>
+                                    <button
+                                        onClick={() => navigate('/meta-ads/wizard')}
+                                        className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-md transition-all"
+                                    >
+                                        <Sparkles className="w-5 h-5" /> Create Your First Campaign
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No results found</h3>
+                                    <p className="text-slate-500 max-w-sm mx-auto mb-4 text-sm">No campaigns match your search or filter.</p>
+                                    <button onClick={() => { setSearchQ(''); setStatusFilter('all'); }} className="text-sm font-bold text-primary hover:underline">Clear filters</button>
+                                </>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-slate-100 dark:divide-white/5">
+                            {filteredCampaigns.map((campaign) => {
+                                const dailyBudget = parseFloat(campaign.dailyBudget || 0);
+                                const spent       = parseFloat(campaign.spend || 0);
+                                const impressions = parseInt(campaign.impressions || 0);
+                                const clicks      = parseInt(campaign.clicks || 0);
+                                const ctr         = campaign.ctr ? parseFloat(campaign.ctr) : null;
+                                const reach       = parseInt(campaign.reach || 0);
+                                const hasInsights = spent > 0 || impressions > 0;
+
+                                return (
+                                    <div key={campaign.id} className="p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors group cursor-pointer" onClick={() => navigate('/meta-ads/campaigns/' + campaign.id)}>
+                                        {/* Row top: name + status + budget */}
+                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+                                                    <CreditCard className="w-5 h-5" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="font-bold text-slate-900 dark:text-white text-sm group-hover:text-primary transition-colors truncate">
+                                                        {campaign.campaignName}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                                        {campaign.targeting?.locations?.[0] || 'No location'} • Age {campaign.targeting?.age_min || '?'}–{campaign.targeting?.age_max || '?'} • {campaign.objective?.replace(/_/g, ' ') || 'Engagement'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Status + Date + Click hint */}
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColors[campaign.status] || statusColors.Draft}`}>
+                                                    {campaign.status === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                                                    {campaign.status || 'Draft'}
+                                                </span>
+                                                <span className="text-[11px] text-slate-400 hidden sm:block">
+                                                    {campaign.createdAt ? formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true }) : '—'}
+                                                </span>
+                                                <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                        </div>
+                                        {/* Budget + Spend Row */}
+                                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                            {/* Daily Budget */}
+                                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Daily Budget</p>
+                                                <p className="text-base font-black text-slate-900 dark:text-white mt-1">₹{fmt(dailyBudget)}</p>
+                                                <p className="text-[10px] text-slate-400">per day</p>
+                                            </div>
+
+                                            {/* Total Spent */}
+                                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Spent</p>
+                                                {hasInsights ? (
+                                                    <>
+                                                        <p className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-1">₹{fmt(spent, 2)}</p>
+                                                        <p className="text-[10px] text-slate-400">{campaign.insightsUpdatedAt ? `as of ${formatDistanceToNow(new Date(campaign.insightsUpdatedAt), {addSuffix:true})}` : 'from Meta'}</p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <p className="text-base font-black text-slate-400 mt-1">—</p>
+                                                        <p className="text-[10px] text-slate-400">{campaign.status === 'Draft' ? 'Not yet published' : 'Connect Meta to sync'}</p>
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            {/* Impressions */}
+                                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Impressions</p>
+                                                <p className={`text-base font-black mt-1 ${impressions > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                                                    {impressions > 0 ? fmt(impressions) : '—'}
+                                                </p>
+                                                {clicks > 0 && <p className="text-[10px] text-slate-400">{fmt(clicks)} clicks</p>}
+                                            </div>
+
+                                            {/* CTR */}
+                                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CTR</p>
+                                                {ctr !== null ? (
+                                                    <>
+                                                        <p className={`text-base font-black mt-1 ${ctr >= 1 ? 'text-emerald-600 dark:text-emerald-400' : ctr >= 0.5 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>
+                                                            {ctr.toFixed(2)}%
+                                                        </p>
+                                                        <p className="text-[10px] text-slate-400">{ctr >= 1 ? '🔥 Great' : ctr >= 0.5 ? '⚡ Average' : '⚠️ Low'}</p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <p className="text-base font-black text-slate-400 mt-1">—</p>
+                                                        <p className="text-[10px] text-slate-400">No data yet</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {/* Budget Utilization Bar + extra metrics */}
+                                        {hasInsights && dailyBudget > 0 && (
+                                            <div className="mt-3">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Spend vs Daily Budget</span>
+                                                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">₹{fmt(spent, 2)} / ₹{fmt(dailyBudget)}</span>
+                                                </div>
+                                                <div className="h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-500"
+                                                        style={{ width: `${Math.min(100, dailyBudget > 0 ? (spent / dailyBudget) * 100 : 0)}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex gap-4 mt-2">
+                                                    {reach > 0 && <span className="text-[10px] text-slate-400">👥 {fmt(reach)} reached</span>}
+                                                    {campaign.cpc && <span className="text-[10px] text-slate-400">🖱️ CPC ₹{parseFloat(campaign.cpc).toFixed(2)}</span>}
+                                                    {campaign.clicks > 0 && <span className="text-[10px] text-slate-400">🔗 {fmt(campaign.clicks)} clicks</span>}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Action buttons row */}
+                                        <div className="mt-4 flex items-center gap-2 justify-end" ref={openMenu === campaign.id ? menuRef : null}>
+
+                                            {/* Publish for Draft / Retry for Error */}
+                                            {(campaign.status === 'Draft' || campaign.status === 'Error') && (
+                                                <button
+                                                    onClick={e => { e.stopPropagation(); handlePublish(campaign); }}
+                                                    disabled={!!actionLoading[campaign.id]}
+                                                    className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all ${
+                                                        campaign.status === 'Error'
+                                                            ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/10 dark:text-red-400'
+                                                            : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                                    } disabled:opacity-50`}
+                                                >
+                                                    {actionLoading[campaign.id] === 'publish' ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : campaign.status === 'Error' ? (
+                                                        <><RefreshCw className="w-3 h-3" /> Retry</>
+                                                    ) : (
+                                                        <><Rocket className="w-3 h-3" /> Publish</>
+                                                    )}
+                                                </button>
+                                            )}
+
+                                            {/* Pause / Resume — shown for Active, Published, and Paused campaigns */}
+                                            {(campaign.status === 'Active' || campaign.status === 'Published' || campaign.status === 'Paused') && (
+                                                <button
+                                                    onClick={e => { e.stopPropagation(); handleToggleStatus(campaign); }}
+                                                    disabled={!!actionLoading[campaign.id]}
+                                                    className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all ${
+                                                        (campaign.status === 'Active' || campaign.status === 'Published')
+                                                            ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400'
+                                                            : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                                    } disabled:opacity-50`}
+                                                >
+                                                    {actionLoading[campaign.id] === 'pause' || actionLoading[campaign.id] === 'resume' ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (campaign.status === 'Active' || campaign.status === 'Published') ? (
+                                                        <><Pause className="w-3 h-3" /> Pause</>
+                                                    ) : (
+                                                        <><Play className="w-3 h-3" /> Resume</>
+                                                    )}
+                                                </button>
+                                            )}
+
+                                            {/* More menu (⋮) — Edit, Duplicate, Delete */}
+                                            <div className="relative cursor-pointer" onClick={e => e.stopPropagation()}>
+                                                <button
+                                                    onClick={() => setOpenMenu(openMenu === campaign.id ? null : campaign.id)}
+                                                    className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 transition-colors"
+                                                >
+                                                    <MoreVertical className="w-3.5 h-3.5" /> More
+                                                </button>
+                                                <AnimatePresence>
+                                                    {openMenu === campaign.id && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                            exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                                                            transition={{ duration: 0.15 }}
+                                                            className="absolute right-0 bottom-9 z-20 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden"
+                                                        >
+                                                            {/* Edit */}
+                                                            <button
+                                                                onClick={() => { setOpenMenu(null); setEditModal({ campaign, newName: campaign.campaignName, newBudget: campaign.dailyBudget }); }}
+                                                                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                                                            >
+                                                                <Edit3 className="w-4 h-4" /> Edit Name & Budget
+                                                            </button>
+                                                            {/* Duplicate */}
+                                                            <button
+                                                                onClick={() => handleDuplicate(campaign)}
+                                                                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                                                            >
+                                                                {actionLoading[campaign.id] === 'duplicate' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                                                                Duplicate
+                                                            </button>
+                                                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-3" />
+                                                            {/* Delete */}
+                                                            <button
+                                                                onClick={() => handleDelete(campaign)}
+                                                                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                            >
+                                                                {actionLoading[campaign.id] === 'delete' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                                Delete
+                                                            </button>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+            {/* ── Edit Campaign Modal ─────────────────────────── */}
+            <AnimatePresence>
+                {editModal && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        onClick={e => e.stopPropagation()}
-                        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-md overflow-hidden"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+                        onClick={() => setEditModal(null)}
                     >
-                        <div className="p-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                    <Edit3 className="w-5 h-5 text-primary" />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            onClick={e => e.stopPropagation()}
+                            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-md overflow-hidden cursor-pointer"
+                        >
+                            <div className="p-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                        <Edit3 className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 dark:text-white">Edit Campaign</h3>
+                                        <p className="text-xs text-slate-500">Changes sync to Meta in real-time</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setEditModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">
+                                    <X className="w-5 h-5 text-slate-400" />
+                                </button>
+                            </div>
+                            <div className="p-5 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Campaign Name</label>
+                                    <input
+                                        type="text"
+                                        value={editModal.newName}
+                                        onChange={e => setEditModal(prev => ({ ...prev, newName: e.target.value }))}
+                                        className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
+                                    />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-slate-900 dark:text-white">Edit Campaign</h3>
-                                    <p className="text-xs text-slate-500">Changes sync to Meta in real-time</p>
+                                    {/* Show correct label based on budget type stored in creatives */}
+                                    {(() => {
+                                        const budgetType = editModal.campaign?.creatives?.budgetType || 'daily';
+                                        const isFixed = budgetType === 'lifetime';
+                                        return (
+                                            <>
+                                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                                    {isFixed ? 'Fixed Budget (₹)' : 'Daily Budget (₹)'}
+                                                    {isFixed && <span className="ml-2 text-xs font-normal text-amber-600 dark:text-amber-400">Fixed budget — total spend cap</span>}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="100"
+                                                    step="50"
+                                                    value={editModal.newBudget}
+                                                    onChange={e => setEditModal(prev => ({ ...prev, newBudget: e.target.value }))}
+                                                    className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
+                                                />
+                                                <p className="text-xs text-slate-400 mt-1">
+                                                    {isFixed
+                                                        ? 'This is a fixed total budget. Changes sync to Meta within minutes.'
+                                                        : 'Budget change takes effect on Meta within minutes'}
+                                                </p>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
                             </div>
-                            <button onClick={() => setEditModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">
-                                <X className="w-5 h-5 text-slate-400" />
-                            </button>
-                        </div>
-                        <div className="p-5 space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Campaign Name</label>
-                                <input
-                                    type="text"
-                                    value={editModal.newName}
-                                    onChange={e => setEditModal(prev => ({ ...prev, newName: e.target.value }))}
-                                    className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
-                                />
+                            <div className="p-5 border-t border-slate-100 dark:border-white/5 flex justify-end gap-3">
+                                <button onClick={() => setEditModal(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 transition-colors">
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleEditSave}
+                                    disabled={!!actionLoading[editModal.campaign.id]}
+                                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-md shadow-primary/20 transition-all text-sm disabled:opacity-50"
+                                >
+                                    {actionLoading[editModal.campaign.id] === 'edit' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    Save Changes
+                                </button>
                             </div>
-                            <div>
-                                {/* Show correct label based on budget type stored in creatives */}
-                                {(() => {
-                                    const budgetType = editModal.campaign?.creatives?.budgetType || 'daily';
-                                    const isFixed = budgetType === 'lifetime';
-                                    return (
-                                        <>
-                                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                                                {isFixed ? 'Fixed Budget (₹)' : 'Daily Budget (₹)'}
-                                                {isFixed && <span className="ml-2 text-xs font-normal text-amber-600 dark:text-amber-400">Fixed budget — total spend cap</span>}
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="100"
-                                                step="50"
-                                                value={editModal.newBudget}
-                                                onChange={e => setEditModal(prev => ({ ...prev, newBudget: e.target.value }))}
-                                                className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
-                                            />
-                                            <p className="text-xs text-slate-400 mt-1">
-                                                {isFixed
-                                                    ? 'This is a fixed total budget. Changes sync to Meta within minutes.'
-                                                    : 'Budget change takes effect on Meta within minutes'}
-                                            </p>
-                                        </>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-                        <div className="p-5 border-t border-slate-100 dark:border-white/5 flex justify-end gap-3">
-                            <button onClick={() => setEditModal(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 transition-colors">
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleEditSave}
-                                disabled={!!actionLoading[editModal.campaign.id]}
-                                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-md shadow-primary/20 transition-all text-sm disabled:opacity-50"
-                            >
-                                {actionLoading[editModal.campaign.id] === 'edit' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                Save Changes
-                            </button>
-                        </div>
+                        </motion.div>
                     </motion.div>
-                </motion.div>
-            )}
-        </AnimatePresence>
-
-        {/* ── Campaign Detail Panel (slide-over) removed in favor of dedicated page ────────────── */}
+                )}
+            </AnimatePresence>
+            {/* ── Campaign Detail Panel (slide-over) removed in favor of dedicated page ────────────── */}
         </>
     );
 };
@@ -1132,14 +1127,13 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
                     Refresh
                 </button>
             </div>
-
             {/* Quick Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div
                     onClick={() => { setFilterWindow('all'); setPage(1); }}
                     className={`cursor-pointer bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border rounded-2xl p-4 transition-all ${
                         filterWindow === 'all' ? 'border-primary ring-2 ring-primary/10' : 'border-white/60 dark:border-white/10'
-                    }`}
+                    } cursor-pointer`}
                 >
                     <div className="flex items-center gap-2 mb-1">
                         <Users className="w-4 h-4 text-primary" />
@@ -1151,7 +1145,7 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
                     onClick={() => { setFilterWindow('active'); setPage(1); }}
                     className={`cursor-pointer bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border rounded-2xl p-4 transition-all ${
                         filterWindow === 'active' ? 'border-emerald-500 ring-2 ring-emerald-500/10' : 'border-white/60 dark:border-white/10'
-                    }`}
+                    } cursor-pointer`}
                 >
                     <div className="flex items-center gap-2 mb-1">
                         <Timer className="w-4 h-4 text-emerald-500" />
@@ -1163,7 +1157,7 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
                     onClick={() => { setFilterWindow('expired'); setPage(1); }}
                     className={`cursor-pointer bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border rounded-2xl p-4 transition-all ${
                         filterWindow === 'expired' ? 'border-red-500 ring-2 ring-red-500/10' : 'border-white/60 dark:border-white/10'
-                    }`}
+                    } cursor-pointer`}
                 >
                     <div className="flex items-center gap-2 mb-1">
                         <XCircle className="w-4 h-4 text-red-500" />
@@ -1172,7 +1166,6 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
                     <p className="text-2xl font-black text-red-600 dark:text-red-400">{expiredLeads}</p>
                 </div>
             </div>
-
             {/* Search + Filters */}
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
@@ -1196,7 +1189,6 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
                     ))}
                 </select>
             </div>
-
             {/* Leads Table */}
             <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
                 {loading ? (
@@ -1633,7 +1625,6 @@ const CtwaAdSettingsTab = () => {
                     Automatically send a template message the moment a new lead clicks your Click-to-WhatsApp ad and starts a conversation. Engage them within the free 72-hour window before competitors do.
                 </p>
             </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-7 space-y-6">
                     {/* Enable Toggle */}
@@ -1678,7 +1669,7 @@ const CtwaAdSettingsTab = () => {
                                             config.templateName === tpl.name
                                                 ? 'border-primary bg-primary/5 dark:bg-primary/10'
                                                 : 'border-slate-100 dark:border-white/5 hover:border-primary/30'
-                                        }`}
+                                        } cursor-pointer`}
                                     >
                                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${ config.templateName === tpl.name ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-400' }`}>
                                             <Mail className="w-4 h-4" />
@@ -1950,7 +1941,6 @@ export default function GrowthHub() {
 
     return (
         <div className="min-h-screen max-w-[1500px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 lg:gap-10">
-            
             {/* ── Left Sidebar: Navigation ───────────────────────────────── */}
             <div className="lg:w-80 flex-shrink-0 space-y-6 lg:sticky lg:top-8 h-fit">
                 {/* Hub Header */}
@@ -2018,7 +2008,6 @@ export default function GrowthHub() {
                     })}
                 </div>
             </div>
-
             {/* ── Main Content Area ──────────────────────────────────── */}
             <div className="flex-1 min-w-0">
                 <AnimatePresence mode="wait">
@@ -2206,7 +2195,6 @@ export default function GrowthHub() {
                 </motion.div>
             </AnimatePresence>
             </div>
-
             {/* ── Phase 4: Retarget Modal ──────────────────────── */}
             <AnimatePresence>
                 {retargetAd && (
@@ -2214,7 +2202,7 @@ export default function GrowthHub() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+                        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
                         onClick={() => setRetargetAd(null)}
                     >
                         <motion.div
@@ -2222,7 +2210,7 @@ export default function GrowthHub() {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             onClick={e => e.stopPropagation()}
-                            className="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-lg overflow-hidden"
+                            className="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-lg overflow-hidden cursor-pointer"
                         >
                             {/* Modal Header */}
                             <div className="p-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
@@ -2275,7 +2263,7 @@ export default function GrowthHub() {
                                                         retargetSelectedTpl === tpl.name
                                                             ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10'
                                                             : 'border-slate-100 dark:border-white/5 hover:border-purple-200'
-                                                    }`}
+                                                    } cursor-pointer`}
                                                 >
                                                     <Mail className={`w-4 h-4 flex-shrink-0 ${retargetSelectedTpl === tpl.name ? 'text-purple-500' : 'text-slate-400'}`} />
                                                     <div className="flex-1 min-w-0">

@@ -98,7 +98,6 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                     </div>
                 </div>
             </div>
-
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
                 <div className="xl:col-span-8 flex flex-col gap-6">
                     {/* Search Bar */}
@@ -166,7 +165,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                         : data.templateId === template.id
                                             ? 'border-primary ring-1 ring-primary shadow-lg shadow-primary/10 cursor-pointer active:scale-[0.99]'
                                             : 'border-slate-200 dark:border-white/5 hover:border-primary/50 cursor-pointer active:scale-[0.99]'
-                                        }`}
+                                        } cursor-pointer`}
                                 >
                                     {/* Lock overlay */}
                                     {planLocked && (
@@ -235,7 +234,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                         </div>
                                     </div>
                                 </div>
-                            )
+                            );
                         })}
                     </div>
                 </div>
@@ -408,7 +407,6 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                     </div>
                 </div>
             </div>
-
             {/* Mobile Sticky Action Bar */}
             <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-surface-dark border-t border-slate-200 dark:border-white/10 p-4 pb-safe flex items-center justify-between gap-3 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
                 <button

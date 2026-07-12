@@ -227,7 +227,6 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     </label>
                 </div>
             </div>
-
             {/* Storage Overview */}
             {usage && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -292,7 +291,6 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     )}
                 </div>
             )}
-
             {/* Horizontal Type Tabs */}
             <div className="flex items-center gap-1 border-b border-slate-200 dark:border-white/10 overflow-x-auto">
                 {MEDIA_TABS.map(tab => {
@@ -313,7 +311,6 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     );
                 })}
             </div>
-
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 {/* Search */}
@@ -359,7 +356,6 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     </button>
                 )}
             </div>
-
             {/* Drop Zone Banner — clicking anywhere triggers file picker */}
             <div
                 onDragOver={handleDragOver}
@@ -370,7 +366,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     ${dragOver
                         ? "border-primary bg-primary/5 scale-[1.01]"
                         : "border-slate-200 dark:border-white/10 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/5"
-                    } ${uploading ? "opacity-60 cursor-not-allowed" : ""}`}
+                    } ${uploading ? "opacity-60 cursor-not-allowed" : ""} cursor-pointer`}
             >
                 {/* Hidden file input — triggered by clicking the zone or the Upload button above */}
                 <input
@@ -391,7 +387,6 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     <p className="text-xs text-slate-400">Images (JPG/PNG/WebP/GIF/SVG), Videos (MP4/WebM), Documents (PDF/CSV/DOCX). Max 50 MB.</p>
                 </div>
             </div>
-
             {/* File Grid / List */}
             {loading ? (
                 <div className="flex items-center justify-center py-16">
@@ -412,15 +407,15 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                                 ${selectedIds.includes(file.id)
                                     ? "border-primary shadow-lg shadow-primary/20"
                                     : "border-transparent hover:border-primary/40 hover:shadow-md"
-                                } bg-white dark:bg-surface-dark`}
+                                } bg-white dark:bg-surface-dark cursor-pointer`}
                             onClick={() => toggleSelect(file.id)}
                         >
                             {/* Thumbnail */}
-                            <div className="aspect-square bg-slate-100 dark:bg-white/5 overflow-hidden">
+                            <div className="aspect-square bg-white dark:bg-slate-800 overflow-hidden flex items-center justify-center">
                                 <img
                                     src={file.url}
                                     alt={file.fileName}
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                                     onError={e => { e.target.src = ""; e.target.classList.add("hidden"); }}
                                 />
                             </div>
@@ -480,7 +475,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                 </div>
             ) : (
                 /* List view */
-                <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden">
+                (<div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden">
                     <table className="w-full text-sm">
                         <thead className="bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
                             <tr>
@@ -576,9 +571,8 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                             ))}
                         </tbody>
                     </table>
-                </div>
+                </div>)
             )}
-
             {/* Pagination */}
             {totalPages > 1 && (
                 <div className="flex justify-center gap-2 mt-2">
@@ -594,15 +588,14 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     ))}
                 </div>
             )}
-
             {/* Preview Modal */}
             {previewFile && (
                 <div
-                    className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+                    className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
                     onClick={() => setPreviewFile(null)}
                 >
                     <div
-                        className="relative bg-white dark:bg-surface-dark rounded-2xl overflow-hidden max-w-3xl w-full shadow-2xl"
+                        className="relative bg-white dark:bg-surface-dark rounded-2xl overflow-hidden max-w-3xl w-full shadow-2xl cursor-pointer"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/10">

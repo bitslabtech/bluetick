@@ -329,7 +329,7 @@ export default function Team() {
                                     className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${formRole === role.id
                                         ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 dark:border-indigo-500 shadow-md shadow-indigo-500/20 transform scale-[1.02]'
                                         : 'border-slate-200 bg-white dark:bg-slate-900/50 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                                        }`}
+                                        } cursor-pointer`}
                                 >
                                     <div className={`flex items-center gap-3 mb-2 ${formRole === role.id ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400'}`}>
                                         {role.icon}
@@ -412,7 +412,7 @@ export default function Team() {
                                             className={`p-4 rounded-2xl cursor-pointer border transition-all duration-300 ${formInboxVisibility === opt.id
                                                 ? 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/30'
                                                 : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10'
-                                                }`}
+                                                } cursor-pointer`}
                                         >
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className={`text-sm font-bold ${formInboxVisibility === opt.id ? 'text-orange-600 dark:text-orange-400' : 'text-slate-700 dark:text-slate-300'}`}>{opt.title}</span>

@@ -22,7 +22,6 @@ function validateImageFile(file) {
 }
 
 // ─── Multi-Image Uploader Component ─────────────────────────────────────────
-const MAX_IMAGES = 6;
 
 function MultiImageUploader({ imageUrls, onImagesChange, onOpenPicker }) {
 
@@ -49,7 +48,7 @@ function MultiImageUploader({ imageUrls, onImagesChange, onOpenPicker }) {
         <div className="space-y-3">
             <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Product Images <span className="text-slate-400 font-normal">({imageUrls.length}/{MAX_IMAGES})</span>
+                    Product Images <span className="text-slate-400 font-normal">({imageUrls.length})</span>
                 </label>
                 {imageUrls.length > 0 && (
                     <span className="text-xs text-slate-400">First image is the main cover</span>
@@ -60,11 +59,11 @@ function MultiImageUploader({ imageUrls, onImagesChange, onOpenPicker }) {
             {imageUrls.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     {imageUrls.map((url, idx) => (
-                        <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700">
+                        <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center">
                             <img
                                 src={resolveUrl(url)}
                                 alt={`Product image ${idx + 1}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain"
                                 onError={e => e.target.src = ''}
                             />
                             {/* Cover Badge */}
@@ -100,7 +99,7 @@ function MultiImageUploader({ imageUrls, onImagesChange, onOpenPicker }) {
             )}
 
             {/* Add Image Button (Media Library) */}
-            {imageUrls.length < MAX_IMAGES && onOpenPicker && (
+            {onOpenPicker && (
                 <button
                     type="button"
                     onClick={onOpenPicker}
@@ -108,7 +107,6 @@ function MultiImageUploader({ imageUrls, onImagesChange, onOpenPicker }) {
                 >
                     <ImageIcon className="w-7 h-7 text-slate-400" />
                     <p className="text-sm font-medium">Add Image</p>
-                    <p className="text-xs text-slate-400">({MAX_IMAGES - imageUrls.length} slots left)</p>
                 </button>
             )}
         </div>
@@ -181,8 +179,11 @@ export default function WaProductList() {
         return symbols[code] || code;
     };
 
-    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '', sku: '', trackQuantity: false, stockQuantity: 0, lowStockThreshold: 5 };
+    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '', ogImage: '', sku: '', trackQuantity: false, stockQuantity: 0, lowStockThreshold: 5 };
     const [form, setForm] = useState(defaultForm);
+    const [generatingAiSeo, setGeneratingAiSeo] = useState(false);
+    const [showAiSeoModal, setShowAiSeoModal] = useState(false);
+    const [aiSeoStep, setAiSeoStep] = useState(0);
 
     useEffect(() => {
         fetchProducts();
@@ -287,6 +288,7 @@ export default function WaProductList() {
             metaTitle: product.metaTitle || '',
             metaDescription: product.metaDescription || '',
             slug: product.slug || '',
+            ogImage: product.ogImage || '',
             sku: product.sku || '',
             trackQuantity: !!product.trackQuantity,
             stockQuantity: product.stockQuantity ?? 0,
@@ -342,6 +344,58 @@ export default function WaProductList() {
         }
     };
 
+    const handleGenerateAiSeo = async (retryCount = 0) => {
+        if (!form.name) {
+            toast.error("Please enter a product name first");
+            return;
+        }
+        if (retryCount === 0) {
+            setShowAiSeoModal(true);
+            setGeneratingAiSeo(true);
+            setAiSeoStep(0);
+        }
+        
+        try {
+            if (retryCount === 0) {
+                setTimeout(() => setAiSeoStep(1), 1200); 
+                setTimeout(() => setAiSeoStep(2), 2400); 
+            }
+
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/ai-seo`, {
+                productName: form.name,
+                description: form.description,
+                category: form.category,
+                price: form.price
+            });
+            
+            setForm(f => ({ 
+                ...f, 
+                metaTitle: res.data.seo?.metaTitle || f.metaTitle,
+                metaDescription: res.data.seo?.metaDescription || f.metaDescription,
+                slug: res.data.seo?.slug || f.slug
+            }));
+            
+            setAiSeoStep(3); // Success step
+            toast.success(`SEO Generated! (${res.data.tokensDeducted} tokens used)`);
+            
+            setTimeout(() => {
+                setShowAiSeoModal(false);
+                setGeneratingAiSeo(false);
+                setAiSeoStep(0);
+            }, 1000);
+            
+        } catch (error) {
+            if (retryCount < 1) {
+                handleGenerateAiSeo(retryCount + 1);
+            } else {
+                toast.error(error.response?.data?.error || "AI SEO generation failed");
+                setShowAiSeoModal(false);
+                setGeneratingAiSeo(false);
+                setAiSeoStep(0);
+            }
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -389,7 +443,7 @@ export default function WaProductList() {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             {product.imageUrls?.[0] ? (
-                                                <img src={product.imageUrls[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 flex-shrink-0" />
+                                                <img src={product.imageUrls[0]} alt={product.name} className="w-10 h-10 rounded-lg object-contain bg-white dark:bg-slate-800 flex-shrink-0" />
                                             ) : (
                                                 <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
                                                     <ImageIcon className="w-4 h-4 text-slate-400" />
@@ -507,8 +561,7 @@ export default function WaProductList() {
                                                 onSelect: (urls) => {
                                                     const arr = Array.isArray(urls) ? urls : [urls];
                                                     const current = form.imageUrls || [];
-                                                    const available = MAX_IMAGES - current.length;
-                                                    setForm(f => ({ ...f, imageUrls: [...current, ...arr.slice(0, available)] }));
+                                                    setForm(f => ({ ...f, imageUrls: [...current, ...arr] }));
                                                 }
                                             })}
                                         />
@@ -773,7 +826,7 @@ export default function WaProductList() {
                                                         onClick={generateVariantTable}
                                                         className="shrink-0 text-xs flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg font-medium transition-colors border border-indigo-100 dark:border-indigo-500/20"
                                                     >
-                                                        <Layers className="w-3.5 h-3.5" /> Generate Table
+                                                        <Layers className="w-3.5 h-3.5" /> Generate Variation
                                                     </button>
                                                 </div>
 
@@ -846,13 +899,13 @@ export default function WaProductList() {
                                                                                                             updated[idx] = { ...updated[idx], imageUrl: isSelected ? '' : imgUrl };
                                                                                                             setForm({ ...form, variants: updated });
                                                                                                         }}
-                                                                                                        className={`relative w-10 h-10 rounded-md border-2 transition-all overflow-hidden ${
+                                                                                                        className={`relative w-10 h-10 rounded-md border-2 transition-all overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 ${
                                                                                                             isSelected
                                                                                                                 ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-700 shadow-sm'
                                                                                                                 : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300'
                                                                                                         }`}
                                                                                                     >
-                                                                                                        <img src={resolvedSrc} alt="" className="w-full h-full object-cover" />
+                                                                                                        <img src={resolvedSrc} alt="" className="w-full h-full object-contain" />
                                                                                                         {isSelected && (
                                                                                                             <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
                                                                                                                 <Check className="w-5 h-5 text-indigo-600 bg-white rounded-full p-0.5 shadow-sm" />
@@ -873,7 +926,7 @@ export default function WaProductList() {
                                                                                                 updated[idx] = { ...updated[idx], imageUrl: url };
                                                                                                 
                                                                                                 const nextUrls = [...(form.imageUrls || [])];
-                                                                                                if (!nextUrls.includes(url) && nextUrls.length < MAX_IMAGES) {
+                                                                                                if (!nextUrls.includes(url)) {
                                                                                                     nextUrls.push(url);
                                                                                                 }
                                                                                                 
@@ -891,7 +944,7 @@ export default function WaProductList() {
                                                     </div>
                                                 ) : (
                                                     <div className="text-center py-5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
-                                                        <p className="text-xs text-slate-500">Click <span className="font-semibold text-indigo-500">Generate Table</span> to set variations.</p>
+                                                        <p className="text-xs text-slate-500">Click <span className="font-semibold text-indigo-500">Generate Variation</span> to set variations.</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -914,6 +967,17 @@ export default function WaProductList() {
                                 
                                 {isSeoOpen && (
                                     <div className="px-5 pb-5 space-y-4 pt-1">
+                                        <div className="flex justify-end">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleGenerateAiSeo(0)}
+                                                disabled={generatingAiSeo}
+                                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                                            >
+                                                {generatingAiSeo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                                                ✨ AI SEO Expert
+                                            </button>
+                                        </div>
                                         <div className="space-y-1.5">
                                             <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Meta Title</label>
                                             <input 
@@ -947,6 +1011,29 @@ export default function WaProductList() {
                                                 />
                                             </div>
                                         </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Social Sharing Image (OG Image)</label>
+                                            <div className="flex items-center gap-3">
+                                                {form.ogImage ? (
+                                                    <div className="relative group w-20 h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-white flex-shrink-0">
+                                                        <img src={resolveUrl(form.ogImage)} alt="Social preview" className="w-full h-full object-contain" />
+                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                            <button type="button" onClick={() => setForm({...form, ogImage: ''})} className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full"><X className="w-3 h-3" /></button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openPicker({ allowedTypes: 'image', multiple: false, title: 'Select Social Image', onSelect: (url) => setForm({...form, ogImage: url}) })}
+                                                        className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 flex flex-col items-center justify-center text-slate-400 hover:text-indigo-500 transition-colors"
+                                                    >
+                                                        <ImageIcon className="w-5 h-5 mb-1" />
+                                                        <span className="text-[10px] font-medium">Upload</span>
+                                                    </button>
+                                                )}
+                                                <p className="text-xs text-slate-500">Recommended size: 1200 x 630 pixels. This image appears when the product is shared on WhatsApp, Facebook, or Twitter.</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -962,6 +1049,58 @@ export default function WaProductList() {
                                     </div>
                                 </form>
                     </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── AI SEO Expert Progress Modal ─────────────────────────────────────────── */}
+            {showAiSeoModal && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+                    <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 overflow-hidden border border-slate-200 dark:border-slate-800">
+                        
+                        {/* Background Decoration */}
+                        <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl" />
+                        <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-purple-500/10 rounded-full blur-xl" />
+
+                        <div className="relative flex flex-col items-center text-center space-y-4">
+                            <div className="w-16 h-16 bg-gradient-to-tr from-indigo-100 to-purple-100 dark:from-indigo-500/20 dark:to-purple-500/20 rounded-2xl flex items-center justify-center mb-2 shadow-inner">
+                                {aiSeoStep === 3 ? (
+                                    <Check className="w-8 h-8 text-green-500" />
+                                ) : (
+                                    <Wand2 className="w-8 h-8 text-indigo-500 animate-pulse" />
+                                )}
+                            </div>
+                            
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                                {aiSeoStep === 3 ? 'SEO Optimized!' : 'AI SEO Expert'}
+                            </h3>
+                            
+                            <div className="w-full space-y-3">
+                                {/* Step 1 */}
+                                <div className={`flex items-center gap-3 text-sm transition-all duration-300 ${aiSeoStep >= 0 ? 'opacity-100' : 'opacity-40'}`}>
+                                    {aiSeoStep > 0 ? <Check className="w-4 h-4 text-green-500" /> : <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />}
+                                    <span className={aiSeoStep >= 0 ? 'text-slate-700 dark:text-slate-300 font-medium' : 'text-slate-500'}>Analyzing product details...</span>
+                                </div>
+                                {/* Step 2 */}
+                                <div className={`flex items-center gap-3 text-sm transition-all duration-300 ${aiSeoStep >= 1 ? 'opacity-100' : 'opacity-40'}`}>
+                                    {aiSeoStep > 1 ? <Check className="w-4 h-4 text-green-500" /> : (aiSeoStep === 1 ? <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" /> : <div className="w-4 h-4 rounded-full border-2 border-slate-200 dark:border-slate-700" />)}
+                                    <span className={aiSeoStep >= 1 ? 'text-slate-700 dark:text-slate-300 font-medium' : 'text-slate-500'}>Writing meta tags...</span>
+                                </div>
+                                {/* Step 3 */}
+                                <div className={`flex items-center gap-3 text-sm transition-all duration-300 ${aiSeoStep >= 2 ? 'opacity-100' : 'opacity-40'}`}>
+                                    {aiSeoStep > 2 ? <Check className="w-4 h-4 text-green-500" /> : (aiSeoStep === 2 ? <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" /> : <div className="w-4 h-4 rounded-full border-2 border-slate-200 dark:border-slate-700" />)}
+                                    <span className={aiSeoStep >= 2 ? 'text-slate-700 dark:text-slate-300 font-medium' : 'text-slate-500'}>Optimizing URL slug...</span>
+                                </div>
+                            </div>
+
+                            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-4 overflow-hidden">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500 ease-out" 
+                                    style={{ width: `${(aiSeoStep / 3) * 100}%` }}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

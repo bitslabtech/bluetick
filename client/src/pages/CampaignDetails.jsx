@@ -288,7 +288,7 @@ export default function CampaignDetails() {
                 {payload.map((entry, index) => (
                     <div 
                         key={`item-${index}`} 
-                        className={`flex items-center gap-2 cursor-pointer transition-opacity duration-200 hover:opacity-80 ${visibleLines[entry.dataKey] ? 'opacity-100' : 'opacity-40 grayscale'}`}
+                        className={`flex items-center gap-2 cursor-pointer transition-opacity duration-200 hover:opacity-80 ${visibleLines[entry.dataKey] ? 'opacity-100' : 'opacity-40 grayscale'} cursor-pointer`}
                         onClick={() => toggleLine(entry.dataKey)}
                     >
                         <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />

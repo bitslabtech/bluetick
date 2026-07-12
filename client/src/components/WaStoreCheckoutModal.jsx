@@ -270,7 +270,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
 
     return (
         <div className="fixed inset-0 z-[100] flex justify-end">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" onClick={onClose} />
             <div className="w-full max-w-lg bg-white h-full relative z-10 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
                 
                 <div className="px-4 md:px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20">

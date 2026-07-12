@@ -392,11 +392,10 @@ export function GalleryGrid({ images, borderRadius = 12, gap = 8, style = 'grid'
                         </div>
                     ))}
                 </div>
-                
                 {maxIndex > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 16 }}>
                         {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
-                            <div 
+                            <div
                                 key={idx}
                                 onClick={() => setCurrentIndex(idx)}
                                 style={{
@@ -407,7 +406,7 @@ export function GalleryGrid({ images, borderRadius = 12, gap = 8, style = 'grid'
                                     cursor: 'pointer',
                                     transition: 'all 0.3s ease'
                                 }}
-                            />
+                                className="cursor-pointer" />
                         ))}
                     </div>
                 )}
@@ -497,7 +496,6 @@ export function TestimonialCard({ testimonials, cardStyle, quoteColor = '#888', 
                     ))}
                 </div>
             </div>
-
             {maxIndex > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 16 }}>
                     {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
@@ -512,7 +510,7 @@ export function TestimonialCard({ testimonials, cardStyle, quoteColor = '#888', 
                                 cursor: 'pointer',
                                 transition: 'all 0.3s ease'
                             }}
-                        />
+                            className="cursor-pointer" />
                     ))}
                 </div>
             )}
@@ -728,7 +726,14 @@ export function BookingForm({ vcard, accentColor, inputStyle, btnStyle }) {
 
     return (
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <input type="datetime-local" value={form.appointmentDate} onChange={e => setForm(p => ({ ...p, appointmentDate: e.target.value }))} onClick={e => e.target.showPicker && e.target.showPicker()} required style={inputStyle} />
+            <input
+                type="datetime-local"
+                value={form.appointmentDate}
+                onChange={e => setForm(p => ({ ...p, appointmentDate: e.target.value }))}
+                onClick={e => e.target.showPicker && e.target.showPicker()}
+                required
+                style={inputStyle}
+                className="cursor-pointer" />
             {[{ n: 'name', p: 'Your Name', t: 'text' }, { n: 'email', p: 'Email Address', t: 'email' }, { n: 'phone', p: 'Phone Number', t: 'tel' }].map(f => (
                 <input key={f.n} type={f.t} placeholder={f.p} value={form[f.n]}
                     onChange={e => setForm(p => ({ ...p, [f.n]: e.target.value }))}
@@ -828,7 +833,7 @@ export function InstagramSection({ posts, borderColor, displayStyle = 'grid', sl
                                     cursor: 'pointer',
                                     transition: 'all 0.3s ease'
                                 }}
-                            />
+                                className="cursor-pointer" />
                         ))}
                     </div>
                 )}
@@ -991,11 +996,10 @@ export function ServiceCarousel({ services, autoplay, primaryColor, renderCard }
                     </div>
                 ))}
             </div>
-            
             {services.length > 2 && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 20 }}>
                     {Array.from({ length: services.length - 1 }).map((_, idx) => (
-                        <div 
+                        <div
                             key={idx}
                             onClick={() => setCurrentIndex(idx)}
                             style={{
@@ -1006,7 +1010,7 @@ export function ServiceCarousel({ services, autoplay, primaryColor, renderCard }
                                 cursor: 'pointer',
                                 transition: 'all 0.3s ease'
                             }}
-                        />
+                            className="cursor-pointer" />
                     ))}
                 </div>
             )}

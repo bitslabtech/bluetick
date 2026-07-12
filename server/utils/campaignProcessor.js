@@ -37,13 +37,13 @@ const processCampaign = async (campaignId) => {
         let contacts = [];
         if (contactIds === 'all') {
             contacts = await Contact.findAll({
-                where: { userId, status: { [require('sequelize').Op.or]: [{ [require('sequelize').Op.ne]: 'Invalid' }, { [require('sequelize').Op.is]: null }] } },
+                where: { userId, status: { [require('sequelize').Op.notIn]: ['Not on WhatsApp', 'Opted Out'] } },
                 attributes: ['id', 'name', 'phone', 'email', 'tags'],
                 raw: true
             });
         } else if (Array.isArray(contactIds) && contactIds.length > 0) {
             contacts = await Contact.findAll({
-                where: { id: contactIds, userId, status: { [require('sequelize').Op.or]: [{ [require('sequelize').Op.ne]: 'Invalid' }, { [require('sequelize').Op.is]: null }] } },
+                where: { id: contactIds, userId, status: { [require('sequelize').Op.notIn]: ['Not on WhatsApp', 'Opted Out'] } },
                 attributes: ['id', 'name', 'phone', 'email', 'tags'],
                 raw: true
             });
@@ -301,6 +301,20 @@ const processCampaign = async (campaignId) => {
                             messageId: sentMessageId,
                             metaTimestamp: Math.floor(Date.now() / 1000).toString()
                         });
+
+                        // 1b. Flip contact status to 'Active' — Meta accepted the message,
+                        //     confirming this is a valid WhatsApp number.
+                        if (!contact.isTemp && contact.id) {
+                            try {
+                                await Contact.update(
+                                    { status: 'Active' },
+                                    { where: { id: contact.id, status: { [require('sequelize').Op.ne]: 'Active' } } }
+                                );
+                            } catch (statusErr) {
+                                // Non-fatal — don't block campaign delivery
+                                console.error('[CAMPAIGN] Failed to update contact status to Active:', statusErr.message);
+                            }
+                        }
 
                         // 2. Sync to Inbox (Conversation & ChatMessage)
                         try {

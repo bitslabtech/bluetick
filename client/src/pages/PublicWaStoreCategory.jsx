@@ -169,7 +169,6 @@ export default function PublicWaStoreCategory({ customSlug }) {
 
     return (
         <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-20 md:pb-0`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
-            
             <WaStoreHeader 
                 store={store} 
                 theme={theme} 
@@ -179,7 +178,6 @@ export default function PublicWaStoreCategory({ customSlug }) {
                 cartCount={cartCount} 
                 setIsCartOpen={setIsCartOpen} 
             />
-
             <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <nav aria-label="Breadcrumb" className="mb-8">
                     <ol className="flex items-center gap-1.5 flex-wrap text-sm">
@@ -243,48 +241,48 @@ export default function PublicWaStoreCategory({ customSlug }) {
                                 const showLowStock = store.inventoryConfig?.showLowStock && product.trackQuantity && product.stockQuantity > 0 && product.stockQuantity <= product.lowStockThreshold;
 
                                 return (
-                                <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`)}>
-                                    <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
-                                        {product.imageUrls && product.imageUrls[0] ? (
-                                            <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
-                                        )}
-                                        {isOutOfStock ? (
-                                            <div className="absolute top-2 right-2 px-2.5 py-1 bg-red-500/90 text-white text-[10px] font-bold uppercase tracking-wider rounded-md backdrop-blur-sm shadow-sm">Out of Stock</div>
-                                        ) : product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) ? (
-                                            <div className={`absolute top-2 left-2 px-2.5 py-1 ${theme.saleBadge} text-[10px] font-bold uppercase tracking-wider rounded-md backdrop-blur-sm shadow-sm`}>
-                                                Sale {Math.round((1 - parseFloat(product.price) / parseFloat(product.compareAtPrice)) * 100)}%
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                    <div className={`p-3 md:p-4 flex flex-col flex-1 ${theme.cardBodyStyle}`}>
-                                        <div className="flex-1">
-                                            <p className={`text-[9px] md:text-[11px] font-medium tracking-wider uppercase mb-1 md:mb-1.5 leading-none ${theme.textMuted}`}>{product.category}</p>
-                                            <h3 className={`font-semibold text-[13px] md:text-[15px] leading-tight mb-1.5 md:mb-2 ${theme.text} line-clamp-2 capitalize`}>{product.name}</h3>
-                                        </div>
-                                        <div className="mt-auto">
-                                            <div className="flex items-end gap-1.5 md:gap-2 mb-2 md:mb-3">
-                                                <span className={`font-bold text-base md:text-lg ${theme.text}`}>{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
-                                                {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
-                                                    <span className={`text-xs md:text-sm line-through ${theme.textMuted} mb-0 md:mb-0.5`}>{getCurrencySymbol(store.currency)}{parseFloat(product.compareAtPrice).toFixed(2)}</span>
-                                                )}
-                                            </div>
-                                            {showLowStock && (
-                                                <p className="text-orange-500 text-[10px] md:text-xs font-medium mb-2 md:mb-3 leading-tight">Only {product.stockQuantity} left!</p>
+                                    <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`)}>
+                                        <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
+                                            {product.imageUrls && product.imageUrls[0] ? (
+                                                <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center"><ShoppingBag className={`w-12 h-12 ${theme.textMuted}`} /></div>
                                             )}
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); if(!preventAdd) addToCart(product); }}
-                                                disabled={preventAdd}
-                                                className={`w-full py-2 md:py-2.5 text-[12px] md:text-sm font-semibold rounded-lg flex items-center justify-center gap-1.5 md:gap-2 transition-all ${preventAdd ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : theme.buttonStyle}`}
-                                            >
-                                                {preventAdd ? 'Out of Stock' : (
-                                                    <><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /> Add to Cart</>
+                                            {isOutOfStock ? (
+                                                <div className="absolute top-2 right-2 px-2.5 py-1 bg-red-500/90 text-white text-[10px] font-bold uppercase tracking-wider rounded-md backdrop-blur-sm shadow-sm">Out of Stock</div>
+                                            ) : product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) ? (
+                                                <div className={`absolute top-2 left-2 px-2.5 py-1 ${theme.saleBadge} text-[10px] font-bold uppercase tracking-wider rounded-md backdrop-blur-sm shadow-sm`}>
+                                                    Sale {Math.round((1 - parseFloat(product.price) / parseFloat(product.compareAtPrice)) * 100)}%
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                        <div className={`p-3 md:p-4 flex flex-col flex-1 ${theme.cardBodyStyle}`}>
+                                            <div className="flex-1">
+                                                <p className={`text-[9px] md:text-[11px] font-medium tracking-wider uppercase mb-1 md:mb-1.5 leading-none ${theme.textMuted}`}>{product.category}</p>
+                                                <h3 className={`font-semibold text-[13px] md:text-[15px] leading-tight mb-1.5 md:mb-2 ${theme.text} line-clamp-2 capitalize`}>{product.name}</h3>
+                                            </div>
+                                            <div className="mt-auto">
+                                                <div className="flex items-end gap-1.5 md:gap-2 mb-2 md:mb-3">
+                                                    <span className={`font-bold text-base md:text-lg ${theme.text}`}>{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
+                                                    {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
+                                                        <span className={`text-xs md:text-sm line-through ${theme.textMuted} mb-0 md:mb-0.5`}>{getCurrencySymbol(store.currency)}{parseFloat(product.compareAtPrice).toFixed(2)}</span>
+                                                    )}
+                                                </div>
+                                                {showLowStock && (
+                                                    <p className="text-orange-500 text-[10px] md:text-xs font-medium mb-2 md:mb-3 leading-tight">Only {product.stockQuantity} left!</p>
                                                 )}
-                                            </button>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); if(!preventAdd) addToCart(product); }}
+                                                    disabled={preventAdd}
+                                                    className={`w-full py-2 md:py-2.5 text-[12px] md:text-sm font-semibold rounded-lg flex items-center justify-center gap-1.5 md:gap-2 transition-all ${preventAdd ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : theme.buttonStyle}`}
+                                                >
+                                                    {preventAdd ? 'Out of Stock' : (
+                                                        <><Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /> Add to Cart</>
+                                                    )}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
                                 );
                             })}
                         </div>
@@ -297,7 +295,6 @@ export default function PublicWaStoreCategory({ customSlug }) {
                     </div>
                 )}
             </main>
-
             {/* CART DRAWER */}
             <AnimatePresence>
                 {isCartOpen && (
@@ -307,7 +304,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
                             onClick={() => setIsCartOpen(false)}
                         />
                         <motion.div
@@ -336,7 +333,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                                             <div key={item.cartItemId || item.id} className="flex gap-4 items-start">
                                                 <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
                                                     {item.imageUrls && item.imageUrls[0] && (
-                                                        <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-cover" />
+                                                        <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-contain" />
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-1">
@@ -395,7 +392,6 @@ export default function PublicWaStoreCategory({ customSlug }) {
                     </div>
                 )}
             </AnimatePresence>
-            
             {isCheckoutModalOpen && (
                 <WaStoreCheckoutModal 
                     store={store} 
@@ -407,7 +403,6 @@ export default function PublicWaStoreCategory({ customSlug }) {
                     onCheckoutSuccess={handleCheckoutSuccess} 
                 />
             )}
-
             <WaStoreFooter store={store} />
         </div>
     );

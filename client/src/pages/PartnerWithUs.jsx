@@ -56,7 +56,6 @@ const PartnerWithUs = () => {
                     </motion.div>
                 </div>
             </section>
-
             {/* 2. AFFILIATE PROGRAM SECTION */}
             <section id="affiliate" className="py-24 bg-white dark:bg-[#05050A] border-t border-slate-200 dark:border-white/5 relative overflow-hidden">
                 <div className="absolute right-0 top-0 w-96 max-w-full h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
@@ -134,7 +133,6 @@ const PartnerWithUs = () => {
                     </div>
                 </div>
             </section>
-
             {/* 3. TECH PARTNER PROGRAM SECTION */}
             <section id="tech-partner" className="py-24 bg-slate-50 dark:bg-[#0A0A0F] border-t border-slate-200 dark:border-white/5 relative overflow-hidden">
                 <div className="absolute left-0 bottom-0 w-96 max-w-full h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
@@ -228,7 +226,6 @@ const PartnerWithUs = () => {
                     </div>
                 </div>
             </section>
-
             {/* 4. COMPARISON CTA */}
             <section className="py-24 bg-white dark:bg-black">
                 <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
@@ -260,14 +257,13 @@ const PartnerWithUs = () => {
                     </div>
                 </div>
             </section>
-
             {/* MODAL */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer" onClick={() => setIsModalOpen(false)}>
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white dark:bg-[#1C1C1E] rounded-3xl p-4 md:p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-white/10 relative"
+                        className="bg-white dark:bg-[#1C1C1E] rounded-3xl p-4 md:p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-white/10 relative cursor-pointer"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-6 mx-auto">

@@ -54,11 +54,10 @@ const MobileNodePicker = ({ isOpen, onClose, onSelectNode }) => {
     return (
         <div className={`md:hidden fixed inset-0 z-40 transition-all duration-300 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
-            
+            <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity cursor-pointer" onClick={onClose} />
             {/* Drawer */}
             <div className={`absolute bottom-0 left-0 w-full h-[85vh] bg-slate-50 dark:bg-slate-900 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)] flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-                <div className="w-full flex justify-center pt-3 pb-1 flex-shrink-0" onClick={onClose}>
+                <div className="w-full flex justify-center pt-3 pb-1 flex-shrink-0 cursor-pointer" onClick={onClose}>
                     <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full cursor-pointer" />
                 </div>
                 <div className="flex items-center justify-between px-5 pb-3 border-b border-slate-200 dark:border-slate-800/50 flex-shrink-0">

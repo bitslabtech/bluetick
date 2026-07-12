@@ -100,7 +100,15 @@ const Settings = sequelize.define('Settings', {
     },
     whatsappAutomations: {
         type: DataTypes.JSON,
-        defaultValue: { welcomeMessage: { enabled: false, text: '' }, offHoursMessage: { enabled: false, text: '', timezone: 'UTC', schedule: [] } }
+        defaultValue: {
+            welcomeMessage: { enabled: false, text: '' },
+            offHoursMessage: { enabled: false, text: '', timezone: 'UTC', schedule: [] },
+            // Opt-Out Management (Industry-standard STOP/UNSUBSCRIBE handling)
+            optOutEnabled: true,
+            optOutAck: "You've been unsubscribed from our messages. Reply START to re-subscribe at any time.",
+            optInAck: "You've been re-subscribed! You'll receive our messages again. Reply STOP at any time to opt out.",
+            customOptOutKeywords: [] // e.g. ["रुको", "arret"] for multilingual opt-out
+        }
     },
     // Team Policy: Controls inbox visibility + phone privacy for team members
     teamPolicy: {

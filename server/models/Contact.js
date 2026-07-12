@@ -30,8 +30,8 @@ const Contact = sequelize.define('Contact', {
     status: {
         type: DataTypes.STRING,
         allowNull: true,
-        defaultValue: null,
-        comment: 'Set to "Invalid" automatically when Meta returns error 131026 (not a WhatsApp number)'
+        defaultValue: 'New',
+        comment: 'Contact WhatsApp verification state. "New" = added but no message sent yet (orange). "Active" = at least one message successfully accepted by Meta (green). "Not on WhatsApp" = Meta returned error 131026 (red).'
     },
     userId: {
         type: DataTypes.UUID,

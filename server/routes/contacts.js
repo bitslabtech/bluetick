@@ -183,13 +183,22 @@ router.get('/campaign-summary', async (req, res) => {
     try {
         const ownerId = req.user.parentUserId || req.user.id;
 
+        // Count excluded contacts (for UI display in campaign creator)
+        const optedOutCount = await Contact.count({
+            where: { userId: ownerId, status: 'Opted Out' }
+        });
+        const notOnWhatsAppCount = await Contact.count({
+            where: { userId: ownerId, status: 'Not on WhatsApp' }
+        });
+
+        // Sendable contacts = exclude 'Not on WhatsApp' + 'Opted Out'
         const totalContacts = await Contact.count({
-            where: { userId: ownerId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } }
+            where: { userId: ownerId, status: { [Op.notIn]: ['Not on WhatsApp', 'Opted Out'] } }
         });
 
         const contacts = await Contact.findAll({
             attributes: ['tags'],
-            where: { userId: ownerId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } },
+            where: { userId: ownerId, status: { [Op.notIn]: ['Not on WhatsApp', 'Opted Out'] } },
             raw: true
         });
 
@@ -206,20 +215,16 @@ router.get('/campaign-summary', async (req, res) => {
             raw: true
         });
 
-        // 3. Merge them: defined groups + implicit tags (just in case they have a tag without a Group record)
+        // 3. Merge them: defined groups + implicit tags
         const mergedGroupsMap = {};
-        
-        // Add defined groups first (count defaults to 0)
         for (const g of definedGroups) {
             mergedGroupsMap[g.name] = {
-                id: g.name, // The UI currently uses name as id for groups
+                id: g.name,
                 name: g.name,
                 count: (tagCounts[g.name] || 0).toString(),
                 updated: 'Just now'
             };
         }
-
-        // Add any implicit tags that don't have a defined Group record
         for (const tag of Object.keys(tagCounts)) {
             if (!mergedGroupsMap[tag]) {
                 mergedGroupsMap[tag] = {
@@ -233,11 +238,15 @@ router.get('/campaign-summary', async (req, res) => {
 
         const groups = Object.values(mergedGroupsMap).sort((a, b) => a.name.localeCompare(b.name));
 
-        console.log(`[DEBUG] campaign-summary for ${ownerId}: found ${definedGroups.length} definedGroups, returning ${groups.length} groups total.`);
+        console.log(`[DEBUG] campaign-summary for ${ownerId}: ${totalContacts} sendable, ${optedOutCount} opted-out, ${notOnWhatsAppCount} not-on-wa`);
 
         res.json({
             totalContacts: totalContacts.toString(),
-            groups
+            groups,
+            // Exclusion counts for UI display
+            optedOutCount,
+            notOnWhatsAppCount,
+            totalExcluded: optedOutCount + notOnWhatsAppCount
         });
     } catch (err) {
         console.error('[DEBUG] campaign-summary error:', err);
@@ -261,13 +270,13 @@ router.post('/field-coverage', async (req, res) => {
         // phone is always present — short-circuit
         if (field === 'phone') {
             const total = await Contact.count({
-                where: { userId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } }
+                where: { userId, status: { [Op.notIn]: ['Not on WhatsApp', 'Opted Out'] } }
             });
             return res.json({ total, missing: 0 });
         }
 
         const allContacts = await Contact.findAll({
-            where: { userId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } },
+            where: { userId, status: { [Op.notIn]: ['Not on WhatsApp', 'Opted Out'] } },
             attributes: ['name', 'phone', 'email', 'tags'],
             raw: true
         });
@@ -403,7 +412,8 @@ router.post('/import', async (req, res) => {
         const contactsWithUser = allowedContacts.map(c => ({
             ...c,
             phone: c.phone ? String(c.phone).replace(/\D/g, '') : '',
-            userId: req.user.id
+            userId: req.user.id,
+            status: 'New' // All newly imported contacts start as 'New'
         }));
 
         // Break into chunks of 1000 to prevent database query limits / timeouts
@@ -479,7 +489,8 @@ router.post('/', async (req, res) => {
             email,
             tags,
             userId: req.user.id,
-            createdById: req.user.realId || req.user.id
+            createdById: req.user.realId || req.user.id,
+            status: 'New' // New contacts always start as 'New'
         });
 
         // Log Activity

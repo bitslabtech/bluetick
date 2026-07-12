@@ -190,7 +190,6 @@ export default function WaStoreSettings() {
                     Advanced settings and administrative controls for your store.
                 </p>
             </div>
-
             {/* Store Stats Card */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -230,7 +229,6 @@ export default function WaStoreSettings() {
                     </div>
                 </div>
             </div>
-
             {/* Custom Domain Mapping */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -311,7 +309,6 @@ export default function WaStoreSettings() {
                     </div>
                 </div>
             </div>
-
             {/* Product Grid Layout */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -389,7 +386,6 @@ export default function WaStoreSettings() {
                     </button>
                 </div>
             </div>
-
             {/* Product Display Options */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -414,7 +410,7 @@ export default function WaStoreSettings() {
                                     showCrossSells
                                         ? 'bg-indigo-600 border-indigo-600'
                                         : 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
-                                }`}
+                                } cursor-pointer`}
                             >
                                 <div className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow transition-transform ${
                                     showCrossSells ? 'translate-x-5' : 'translate-x-0'
@@ -441,7 +437,6 @@ export default function WaStoreSettings() {
                     </div>
                 </div>
             </div>
-
             {/* Mobile Bottom Menu Config */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -504,7 +499,6 @@ export default function WaStoreSettings() {
                     </div>
                 </div>
             </div>
-
             {/* Checkout & Payment Configuration */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -636,7 +630,6 @@ export default function WaStoreSettings() {
                     </button>
                 </div>
             </div>
-
             {/* Inventory Configuration */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -662,7 +655,7 @@ export default function WaStoreSettings() {
                                     inventoryConfig.enabled
                                         ? 'bg-indigo-600 border-indigo-600'
                                         : 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
-                                }`}
+                                } cursor-pointer`}
                             >
                                 <div className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow transition-transform ${
                                     inventoryConfig.enabled ? 'translate-x-5' : 'translate-x-0'
@@ -746,7 +739,6 @@ export default function WaStoreSettings() {
                     </div>
                 </div>
             </div>
-
             {/* Invoice Configuration */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -799,7 +791,6 @@ export default function WaStoreSettings() {
                     </div>
                 </div>
             </div>
-
             {/* Tax & GST Configuration */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -947,7 +938,6 @@ export default function WaStoreSettings() {
                     </button>
                 </div>
             </div>
-
             {/* Danger Zone */}
             <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-900/30 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-rose-200 dark:border-rose-900/30 flex items-center gap-2">

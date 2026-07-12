@@ -91,8 +91,8 @@ export default function ManageLabelsModal({ onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 cursor-pointer" onClick={e => e.stopPropagation()}>
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                     <h3 className="font-bold text-slate-800 dark:text-white">Manage Tags</h3>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">

@@ -84,4 +84,22 @@ router.put('/:id', [auth, admin], async (req, res) => {
     }
 });
 
+// DELETE /api/contact/:id - Admin endpoint to delete a message
+router.delete('/:id', [auth, admin], async (req, res) => {
+    try {
+        const msgId = req.params.id;
+        const msg = await ContactMessage.findByPk(msgId);
+        
+        if (!msg) {
+            return res.status(404).json({ error: 'Message not found' });
+        }
+
+        await msg.destroy();
+        res.json({ success: true, message: 'Message deleted' });
+    } catch (err) {
+        console.error('Delete Contact Error:', err);
+        res.status(500).json({ error: 'Server error deleting message' });
+    }
+});
+
 module.exports = router;

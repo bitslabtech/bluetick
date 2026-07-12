@@ -403,7 +403,6 @@ const AdminLandingPage = () => {
             <AdminHeader>
                 <ThemeToggle />
             </AdminHeader>
-
             <main className="w-full p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-8 pb-32">
                 {/* Page Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -2090,7 +2089,7 @@ const AdminLandingPage = () => {
                 {/* Page Editor Modal */}
                 {showPageEditor && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowPageEditor(false)}></div>
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" onClick={() => setShowPageEditor(false)}></div>
                         <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col flex-shrink-0 animate-in zoom-in-95 duration-200">
                             <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 dark:border-white/10">
                                 <div>

@@ -972,6 +972,19 @@ router.post('/:storeId/products', async (req, res) => {
         if (payload.wholesalePrice === '') payload.wholesalePrice = null;
         if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
 
+        if (!payload.slug) {
+            payload.slug = payload.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+        }
+        
+        let baseSlug = payload.slug || 'product';
+        let slugExists = await WaProduct.findOne({ where: { storeId: req.params.storeId, slug: baseSlug } });
+        let counter = 1;
+        while (slugExists) {
+            payload.slug = `${baseSlug}-${counter}`;
+            slugExists = await WaProduct.findOne({ where: { storeId: req.params.storeId, slug: payload.slug } });
+            counter++;
+        }
+
         const product = await WaProduct.create(payload);
         res.status(201).json(product);
     } catch (error) {
@@ -993,6 +1006,20 @@ router.put('/products/:productId', async (req, res) => {
         if (payload.compareAtPrice === '') payload.compareAtPrice = null;
         if (payload.wholesalePrice === '') payload.wholesalePrice = null;
         if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
+
+        if (!payload.slug && payload.name) {
+            payload.slug = payload.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+        }
+        if (payload.slug) {
+            let baseSlug = payload.slug;
+            let slugExists = await WaProduct.findOne({ where: { storeId: product.storeId, slug: baseSlug, id: { [Op.ne]: product.id } } });
+            let counter = 1;
+            while (slugExists) {
+                payload.slug = `${baseSlug}-${counter}`;
+                slugExists = await WaProduct.findOne({ where: { storeId: product.storeId, slug: payload.slug, id: { [Op.ne]: product.id } } });
+                counter++;
+            }
+        }
 
         // ── Delete images that were removed or replaced (fire-and-forget) ──
         if (Array.isArray(payload.imageUrls)) {
@@ -1092,6 +1119,80 @@ Be concise but extremely compelling. Max 2 short paragraphs.`;
     } catch (err) {
         console.error('Error generating AI description:', err);
         res.status(500).json({ error: 'Failed to communicate with AI.' });
+    }
+});
+
+router.post('/ai-seo', async (req, res) => {
+    const { productName, description, category, price } = req.body;
+    try {
+        if (!productName) return res.status(400).json({ error: 'Product name is required' });
+
+        const user = await User.findByPk(req.user.id);
+        const sysConfig = await SystemConfig.getConfig();
+        const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_wastore ?? 3;
+        const BASE_COST = 5; 
+        const finalCost = Math.ceil(BASE_COST * multiplier);
+
+        if (user.aiTokenBalance < finalCost) {
+            return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured.' });
+
+        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
+
+        const systemInstruction = `You are an expert e-commerce SEO specialist. 
+The user provides product details (name, description, category, price).
+Your job is to generate a JSON object with:
+1. "metaTitle": A catchy, SEO-friendly meta title (50-60 characters).
+2. "metaDescription": A compelling, keyword-rich meta description (150-160 characters).
+3. "slug": An SEO-friendly URL slug (lowercase, hyphen-separated, no special characters).
+
+Return ONLY valid JSON. No markdown wrappers. Example:
+{
+  "metaTitle": "Premium Blue Cotton T-Shirt | BrandName",
+  "metaDescription": "Upgrade your wardrobe with our Premium Blue Cotton T-Shirt. Breathable, stylish, and perfect for everyday wear. Shop now for the best deals!",
+  "slug": "premium-blue-cotton-tshirt"
+}`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
+        const prompt = `Product Name: ${productName}\nDescription: ${description || 'None'}\nCategory: ${category || 'None'}\nPrice: ${price || 'None'}`;
+        
+        const payload = {
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 300 }
+        };
+
+        const aiRes = await axios.post(url, payload);
+        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        // Clean up markdown if any
+        replyText = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
+        
+        const seoData = JSON.parse(replyText);
+
+        await user.decrement('aiTokenBalance', { by: finalCost });
+        const newBal = (user.aiTokenBalance - finalCost);
+
+        try {
+            await AiTokenLog.create({
+                userId: req.user.id,
+                feature: 'ai_wastore_seo',
+                tokensUsed: finalCost,
+                balanceAfter: Math.max(0, newBal)
+            });
+        } catch (e) { console.warn(e); }
+
+        res.json({
+            seo: seoData,
+            tokensDeducted: finalCost,
+            newBalance: newBal
+        });
+    } catch (err) {
+        console.error('Error generating AI SEO:', err);
+        res.status(500).json({ error: 'Failed to communicate with AI or parse response.' });
     }
 });
 

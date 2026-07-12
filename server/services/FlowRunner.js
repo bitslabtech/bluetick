@@ -702,19 +702,29 @@ class FlowRunner {
 
             case 'conditionNode': {
                 const state = await ContactFlowState.findOne({ where: { contactId } });
+                const Contact = require('../models/Contact');
+                const contact = await Contact.findByPk(contactId);
                 const variableRaw = node.data?.variable || '';
                 
-                let actualValue = variableRaw;
-                if (variableRaw.startsWith('{{vars.') && variableRaw.endsWith('}}')) {
-                    const varName = variableRaw.slice(7, -2);
-                    actualValue = state?.variables?.[varName] !== undefined ? state.variables[varName] : '';
-                }
+                const parseVar = (rawStr) => {
+                    if (typeof rawStr !== 'string') return rawStr;
+                    if (rawStr.startsWith('{{vars.') && rawStr.endsWith('}}')) {
+                        const varName = rawStr.slice(7, -2);
+                        return state?.variables?.[varName] !== undefined ? state.variables[varName] : '';
+                    } else if (rawStr.startsWith('{{contact.') && rawStr.endsWith('}}')) {
+                        const prop = rawStr.slice(10, -2);
+                        if (prop === 'tags' || prop === 'groups') {
+                            return (contact?.tags || []).join(', ');
+                        } else if (prop === 'labels') {
+                            return (contact?.labels || []).map(l => l.name).join(', ');
+                        }
+                        return contact?.[prop] !== undefined ? contact[prop] : '';
+                    }
+                    return rawStr;
+                };
 
-                let targetValue = node.data?.value || '';
-                if (targetValue.startsWith('{{vars.') && targetValue.endsWith('}}')) {
-                    const varName = targetValue.slice(7, -2);
-                    targetValue = state?.variables?.[varName] !== undefined ? state.variables[varName] : '';
-                }
+                let actualValue = parseVar(variableRaw);
+                let targetValue = parseVar(node.data?.value || '');
 
                 const operator = node.data?.operator || '==';
                 let conditionMet = false;

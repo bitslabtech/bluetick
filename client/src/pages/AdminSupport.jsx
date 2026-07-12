@@ -574,7 +574,6 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                     </div>
                 </div>
             </div>
-
             <div className="flex-1 flex gap-8 overflow-hidden">
                 {/* Article List */}
                 <div className="w-1/3 flex flex-col gap-4">
@@ -632,7 +631,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                                                     onClick={() => loadArticle(a)}
                                                     className={`group p-4 rounded-xl border transition-all cursor-pointer ${selectedArticleId === a.id
                                                         ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-900/10'
-                                                        : 'border-transparent hover:border-indigo-100 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                                        : 'border-transparent hover:border-indigo-100 hover:bg-slate-50 dark:hover:bg-white/5'} cursor-pointer`}
                                                 >
                                                     <div className="flex justify-between items-start">
                                                         <h4 className="font-bold text-slate-800 dark:text-white text-sm line-clamp-1 group-hover:text-indigo-600 transition-colors">{a.title}</h4>
@@ -733,19 +732,18 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                     </div>
                 </div>
             </div>
-
             {/* Category Management Modal */}
             <AnimatePresence>
                 {isCatModalOpen && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm cursor-pointer"
                         onClick={() => setIsCatModalOpen(false)}
                     >
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                             onClick={e => e.stopPropagation()}
-                            className="bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
+                            className="bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10 cursor-pointer"
                         >
                             <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
                                 <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">

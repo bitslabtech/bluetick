@@ -35,15 +35,15 @@ router.post('/send', async (req, res) => {
         // (Actual resolution happens in processor, but good to have rough number)
         let estimatedCount = 0;
         if (contactIds === 'all') {
-            estimatedCount = await Contact.count({ where: { userId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } } });
+            estimatedCount = await Contact.count({ where: { userId, status: { [Op.notIn]: ['Not on WhatsApp', 'Opted Out'] } } });
         } else if (Array.isArray(targetGroups) && targetGroups.length > 0) {
             // Resolve tags to contact IDs right here
-            const allContacts = await Contact.findAll({ where: { userId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } }, attributes: ['id', 'tags'], raw: true });
+            const allContacts = await Contact.findAll({ where: { userId, status: { [Op.notIn]: ['Not on WhatsApp', 'Opted Out'] } }, attributes: ['id', 'tags'], raw: true });
             const matchedIds = allContacts.filter(c => c.tags && c.tags.some(t => targetGroups.includes(t))).map(c => c.id);
             estimatedCount = matchedIds.length;
             contactIds = matchedIds; // Override contactIds with the resolved list
         } else if (Array.isArray(contactIds)) {
-            const validContacts = await Contact.findAll({ where: { id: contactIds, userId, status: { [Op.or]: [{ [Op.ne]: 'Invalid' }, { [Op.is]: null }] } }, attributes: ['id'], raw: true });
+            const validContacts = await Contact.findAll({ where: { id: contactIds, userId, status: { [Op.notIn]: ['Not on WhatsApp', 'Opted Out'] } }, attributes: ['id'], raw: true });
             contactIds = validContacts.map(c => c.id);
             estimatedCount = contactIds.length;
         }

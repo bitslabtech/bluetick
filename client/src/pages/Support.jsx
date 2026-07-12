@@ -156,7 +156,6 @@ const Support = () => {
                     <UserDropdown />
                 </div>
             </header>
-
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 scroll-smooth hide-scrollbar">
                 <div className="max-w-6xl mx-auto">
@@ -407,7 +406,6 @@ const Support = () => {
                     )}
                 </div>
             </div>
-
             {/* Article Modal */}
             <AnimatePresence>
                 {selectedArticle && (
@@ -417,7 +415,7 @@ const Support = () => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setSelectedArticle(null)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer"
                         />
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -554,8 +552,8 @@ const RoadmapSuggestionForm = ({ refresh, initiallyOpen }) => {
             </button>
             <AnimatePresence>
                 {isModalOpen && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm cursor-pointer" onClick={() => setIsModalOpen(false)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden cursor-pointer">
                             <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
@@ -726,11 +724,10 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                     )}
                 </>
             )}
-
             <AnimatePresence>
                 {selectedTicket && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedTicket(null)}>
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-surface-dark w-full max-w-4xl h-[90dvh] md:h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm cursor-pointer" onClick={() => setSelectedTicket(null)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-surface-dark w-full max-w-4xl h-[90dvh] md:h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10 cursor-pointer">
                             <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex items-start sm:items-center justify-between bg-slate-50 dark:bg-white/[0.02] gap-4 shrink-0">
                                 <div className="min-w-0">
                                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1"><h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">{selectedTicket.subject}</h2><span className={`w-fit px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold ${selectedTicket.status === 'Open' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>{selectedTicket.status}</span></div>

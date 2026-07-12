@@ -588,7 +588,6 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                     </div>
                 </div>
             </div>
-
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <div className="xl:col-span-2 flex flex-col gap-8">
                     {/* Selected Template Info */}
@@ -1024,7 +1023,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                         <div className="p-4 md:p-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                 <label
-                                    className={`relative flex items-center gap-4 cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 ${scheduleType === 'now' ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-xl shadow-indigo-500/10' : 'border-slate-100 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/30 bg-slate-50 dark:bg-white/5'}`}
+                                    className={`relative flex items-center gap-4 cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 ${scheduleType === 'now' ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-xl shadow-indigo-500/10' : 'border-slate-100 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/30 bg-slate-50 dark:bg-white/5'} cursor-pointer`}
                                     onClick={() => setScheduleType('now')}
                                 >
                                     <div className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors ${scheduleType === 'now' ? 'border-indigo-500' : 'border-slate-300 dark:border-slate-600'}`}>
@@ -1038,7 +1037,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                 </label>
 
                                 <label
-                                    className={`relative flex items-center gap-4 cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 ${scheduleType === 'later' ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-xl shadow-indigo-500/10' : 'border-slate-100 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/30 bg-slate-50 dark:bg-white/5'}`}
+                                    className={`relative flex items-center gap-4 cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 ${scheduleType === 'later' ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-xl shadow-indigo-500/10' : 'border-slate-100 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/30 bg-slate-50 dark:bg-white/5'} cursor-pointer`}
                                     onClick={() => setScheduleType('later')}
                                 >
                                     <div className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors ${scheduleType === 'later' ? 'border-indigo-500' : 'border-slate-300 dark:border-slate-600'}`}>
@@ -1342,7 +1341,6 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                     </div>
                 </div>
             </div>
-
             {/* Mobile Sticky Action Bar */}
             <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-surface-dark border-t border-slate-200 dark:border-white/10 p-4 pb-safe flex items-center justify-between gap-3 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
                 <button
@@ -1361,7 +1359,6 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                     {sending ? 'Processing...' : 'Send'}
                 </button>
             </div>
-
             <MediaPickerModal
                 isOpen={mediaPickerConfig.isOpen}
                 onClose={() => setMediaPickerConfig({ isOpen: false, type: null, index: null, mimeConstraints: [] })}

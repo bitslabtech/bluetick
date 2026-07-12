@@ -40,11 +40,10 @@ export default function Layout() {
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-[55] md:hidden backdrop-blur-sm transition-opacity"
+                    className="fixed inset-0 bg-black/50 z-[55] md:hidden backdrop-blur-sm transition-opacity cursor-pointer"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
-
             <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
             <div className="flex-1 flex flex-col overflow-hidden relative">
 

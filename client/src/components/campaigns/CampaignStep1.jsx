@@ -24,6 +24,8 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
     const [showLockedWarning, setShowLockedWarning] = useState(false);
     const [totalContactsCount, setTotalContactsCount] = useState(0);
     const [retargetCount, setRetargetCount] = useState(0);
+    // Exclusion counts for the exclusion info panel
+    const [exclusionCounts, setExclusionCounts] = useState({ optedOut: 0, notOnWhatsApp: 0, total: 0 });
 
     // Fetch retargeting stats if needed
     useEffect(() => {
@@ -52,9 +54,14 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
             try {
                 // Fetch summary (total count + groups with counts)
                 const summaryRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/campaign-summary`);
-                const { totalContacts, groups } = summaryRes.data;
+                const { totalContacts, groups, optedOutCount, notOnWhatsAppCount, totalExcluded } = summaryRes.data;
 
                 setTotalContactsCount(parseInt(totalContacts, 10));
+                setExclusionCounts({
+                    optedOut: optedOutCount || 0,
+                    notOnWhatsApp: notOnWhatsAppCount || 0,
+                    total: totalExcluded || 0
+                });
 
                 setRecipientGroups([
                     { id: 'all', name: 'All Contacts', count: totalContacts, updated: 'Just now' },
@@ -431,6 +438,54 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                         <span className="font-medium text-sm">Create New Group</span>
                                     </button>
                                 </div>
+
+                                {/* ── Exclusion Info Panel ─────────────────────────────── */}
+                                {!loadingStats && exclusionCounts.total > 0 && (
+                                    <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/[0.06] bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/60 p-4 shadow-sm">
+                                        {/* Decorative background glow */}
+                                        <div className="absolute -top-6 -right-6 w-24 h-24 bg-slate-400/10 rounded-full blur-2xl pointer-events-none" />
+
+                                        <div className="flex items-start gap-3">
+                                            <div className="shrink-0 mt-0.5 p-2 rounded-xl bg-slate-200/80 dark:bg-white/10">
+                                                <ShieldCheck className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                        {exclusionCounts.total.toLocaleString()} contacts will be auto-excluded
+                                                    </p>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-300/50 dark:border-white/10">
+                                                        Protected
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                                    These contacts are silently skipped during sending — no message charges, no failed counts.
+                                                </p>
+
+                                                {/* Breakdown pills */}
+                                                <div className="flex flex-wrap gap-2 mt-3">
+                                                    {exclusionCounts.optedOut > 0 && (
+                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 shadow-sm">
+                                                            <div className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                                                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                                                <span className="line-through">{exclusionCounts.optedOut.toLocaleString()}</span> Opted Out
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {exclusionCounts.notOnWhatsApp > 0 && (
+                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 shadow-sm">
+                                                            <div className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+                                                            <span className="text-[11px] font-semibold text-red-500 dark:text-red-400">
+                                                                {exclusionCounts.notOnWhatsApp.toLocaleString()} Not on WhatsApp
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* ── End Exclusion Info Panel ─────────────────────────── */}
                             </div>
                         </div>
                     )}

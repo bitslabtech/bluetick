@@ -257,7 +257,6 @@ const AdminUsers = () => {
             >
                 <ThemeToggle />
             </AdminHeader>
-
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
 
                 {/* Page Header */}
@@ -402,7 +401,7 @@ const AdminUsers = () => {
                     <>
                         {/* Backdrop to close menu */}
                         <div
-                            className="fixed inset-0 z-40"
+                            className="fixed inset-0 z-40 cursor-pointer"
                             onClick={() => setActiveMenu(null)}
                         />
                         <div
@@ -467,7 +466,6 @@ const AdminUsers = () => {
                 )}
 
             </main >
-
             {/* Delete Modal */}
             {
                 deleteId && (
@@ -495,7 +493,6 @@ const AdminUsers = () => {
                     </div>
                 )
             }
-
             {/* History Modal */}
             {
                 isHistoryOpen && (
@@ -559,7 +556,6 @@ const AdminUsers = () => {
                     />
                 )
             }
-
             {/* Trial Modal */}
             {
                 isTrialModalOpen && (
@@ -571,7 +567,6 @@ const AdminUsers = () => {
                     />
                 )
             }
-
             {/* View User Modal */}
             {
                 isViewModalOpen && (

@@ -208,13 +208,12 @@ export const UIProvider = ({ children }) => {
     return (
         <UIContext.Provider value={{ showModal, closeModal, showToast, formatDate, settings, publicSettings, publicSettingsLoading }}>
             {children}
-
             {/* Modal Layer — CSS-animated, no framer-motion */}
             {modal.isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
                     <div
                         onClick={closeModal}
-                        className="ui-fade-in absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        className="ui-fade-in absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
                     />
                     <div className="ui-modal-in relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
                         <div className="p-6 flex flex-col items-center text-center">
@@ -260,7 +259,6 @@ export const UIProvider = ({ children }) => {
                     </div>
                 </div>
             )}
-
             {/* Toast Layer — CSS-animated, no framer-motion */}
             <div className="fixed top-4 right-4 z-[200] flex flex-col gap-3 pointer-events-none p-4">
                 {toasts.map(toast => (

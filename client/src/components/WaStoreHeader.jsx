@@ -112,7 +112,7 @@ export default function WaStoreHeader({
             <header className={`sticky top-0 z-50 ${theme.header}`}>
                 {theme.id === 'vogue' ? (
                     /* ── VOGUE: Minimal 3-column ── Hamburger | Logo | Search+Cart */
-                    <div className="max-w-[1440px] mx-auto px-4 sm:px-10 h-20 grid grid-cols-3 items-center">
+                    (<div className="max-w-[1440px] mx-auto px-4 sm:px-10 h-20 grid grid-cols-3 items-center">
                         {/* LEFT – Hamburger on mobile, Search on desktop */}
                         <div className="flex items-center justify-start gap-2 relative">
                             <button 
@@ -149,24 +149,22 @@ export default function WaStoreHeader({
                                 )}
                             </div>
                         </div>
-
                         {/* CENTER – Logo or store name */}
                         <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate(`/store/${slug}`)}>
                             {store.logo ? (
                                 // Logo: ~134px display → serve 180w standard / 268w retina
-                                <img
+                                (<img
                                     src={cdnImg(imgUrl(store.logo), { width: 268 })}
                                     srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
                                     sizes="(max-width: 640px) 180px, 268px"
                                     alt={store.name}
                                     className="h-12 max-w-[180px] object-contain"
                                     onError={e => e.target.style.display = 'none'}
-                                />
+                                />)
                             ) : (
                                 <span className="text-xl tracking-[0.25em] uppercase text-black font-normal" style={{ fontFamily: theme.fontFamily }}>{store.name}</span>
                             )}
                         </div>
-
                         {/* RIGHT – Search(mobile) and Cart */}
                         <div className="flex items-center justify-end gap-2">
                             <button 
@@ -190,10 +188,10 @@ export default function WaStoreHeader({
                                 )}
                             </button>
                         </div>
-                    </div>
+                    </div>)
                 ) : theme.id === 'glow' ? (
                     /* ── GLOW: Single Row Header ── Logo | Menu | Search+Cart */
-                    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between md:gap-6 relative">
+                    (<div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between md:gap-6 relative">
                         {/* LEFT: Mobile Menu Button (hidden on desktop) */}
                         <div className="flex items-center shrink-0 w-1/3 md:w-auto md:hidden">
                             <button 
@@ -204,12 +202,11 @@ export default function WaStoreHeader({
                                 <Menu className="w-6 h-6" />
                             </button>
                         </div>
-
                         {/* MIDDLE/LEFT: Logo (Centered on mobile, Left on desktop) */}
                         <div className="flex items-center justify-center md:justify-start shrink-0 w-1/3 md:w-auto">
                             {store.logo ? (
                                 // Logo: ~134px display → serve 180w standard / 268w retina
-                                <img
+                                (<img
                                     src={cdnImg(imgUrl(store.logo), { width: 268 })}
                                     srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
                                     sizes="(max-width: 640px) 180px, 268px"
@@ -217,12 +214,11 @@ export default function WaStoreHeader({
                                     className="w-auto h-10 md:h-12 object-contain cursor-pointer"
                                     onClick={() => navigate(`/store/${slug}`)}
                                     onError={e => e.target.style.display = 'none'}
-                                />
+                                />)
                             ) : (
-                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
+                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo} cursor-pointer`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
                             )}
                         </div>
-
                         {/* MIDDLE: Desktop Mega Menu */}
                         <div className="hidden md:flex flex-1 justify-center">
                             {store.megaMenu && store.megaMenu.length > 0 && (
@@ -280,7 +276,6 @@ export default function WaStoreHeader({
                                 </ul>
                             )}
                         </div>
-
                         {/* RIGHT: Search Bar & Cart */}
                         <div className="flex items-center justify-end gap-2 md:gap-4 shrink-0 w-1/3 md:w-auto">
                             {/* Mobile Search Icon */}
@@ -335,10 +330,10 @@ export default function WaStoreHeader({
                                 )}
                             </button>
                         </div>
-                    </div>
+                    </div>)
                 ) : (
                     /* ── DEFAULT layout for all other themes ── */
-                    <div className={theme.headerWrapper || "max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative"}>
+                    (<div className={theme.headerWrapper || "max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative"}>
                         {/* LEFT: Mobile Menu Button */}
                         <div className="flex items-center shrink-0 w-1/3 md:w-auto md:hidden">
                             <button 
@@ -349,12 +344,11 @@ export default function WaStoreHeader({
                                 <Menu className="w-6 h-6" />
                             </button>
                         </div>
-
                         {/* MIDDLE: Logo (Centered on mobile and desktop) */}
                         <div className={`flex items-center justify-center shrink-0 w-1/3 md:w-auto md:absolute md:left-1/2 md:-translate-x-1/2 ${theme.logoWrapper || ''}`}>
                             {store.logo ? (
                                 // Logo: ~134px display → serve 180w standard / 268w retina
-                                <img
+                                (<img
                                     src={cdnImg(imgUrl(store.logo), { width: 268 })}
                                     srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
                                     sizes="(max-width: 640px) 180px, 268px"
@@ -362,12 +356,11 @@ export default function WaStoreHeader({
                                     className="w-auto h-10 md:h-12 object-contain rounded-md cursor-pointer"
                                     onClick={() => navigate(`/store/${slug}`)}
                                     onError={e => e.target.style.display = 'none'}
-                                />
+                                />)
                             ) : (
-                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo}`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
+                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo} cursor-pointer`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
                             )}
                         </div>
-
                         {/* RIGHT: Search Bar & Cart */}
                         <div className="flex items-center justify-end gap-2 md:gap-4 shrink-0 w-1/3 md:w-full">
                             {/* Mobile Search Icon */}
@@ -422,7 +415,7 @@ export default function WaStoreHeader({
                                 )}
                             </button>
                         </div>
-                    </div>
+                    </div>)
                 )}
 
                 {/* ─── COLLAPSIBLE SEARCH BAR ─── */}
@@ -522,14 +515,13 @@ export default function WaStoreHeader({
                     </div>
                 )}
             </header>
-
             {/* ─── MOBILE NAVIGATION DRAWER ─── */}
             {/* CSS transitions replace framer-motion */}
             {isMobileMenuOpen && (
                 <div className="fixed inset-0 z-[60] flex md:hidden">
                     {/* Backdrop — CSS fade */}
                     <div
-                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
                         style={{ animation: 'fadeIn 0.2s ease forwards' }}
                         onClick={() => setIsMobileMenuOpen(false)}
                     />
@@ -671,11 +663,10 @@ export default function WaStoreHeader({
                     </div>
                 </div>
             )}
-
             {/* ─── POLICY MODAL ─── */}
             {activePolicy && (
-                <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-4 md:p-6" onClick={() => setActivePolicy(null)}>
-                    <div className={`w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl ${theme.pageBg}`} onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-4 md:p-6 cursor-pointer" onClick={() => setActivePolicy(null)}>
+                    <div className={`w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl ${theme.pageBg} cursor-pointer`} onClick={e => e.stopPropagation()}>
                         <div className={`flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/10 ${theme.header}`}>
                             <h2 className={`text-xl font-bold ${theme.text}`}>
                                 {activePolicy === 'privacy' && 'Privacy Policy'}
@@ -696,7 +687,6 @@ export default function WaStoreHeader({
                     </div>
                 </div>
             )}
-
             {/* Mobile Bottom Navigation Bar */}
             <WaStoreMobileBottomMenu 
                 store={store}

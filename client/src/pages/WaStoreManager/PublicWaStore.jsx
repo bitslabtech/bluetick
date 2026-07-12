@@ -327,7 +327,7 @@ export default function PublicWaStore() {
                                     {/* Image Box */}
                                     <div className="relative aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden border border-gray-100 mb-4">
                                         {product.imageUrls && product.imageUrls[0] ? (
-                                            <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
+                                            <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-gray-50"><ShoppingBag className="w-8 h-8 text-gray-300" /></div>
                                         )}
@@ -438,7 +438,7 @@ export default function PublicWaStore() {
                         
                         <div className="md:w-1/2 bg-gray-50 relative">
                             {selectedProduct.imageUrls && selectedProduct.imageUrls[0] ? (
-                                <img src={imgUrl(selectedProduct.imageUrls[0])} alt={selectedProduct.name} className="w-full h-full object-cover min-h-[300px]" onError={e => e.target.style.display = 'none'} />
+                                <img src={imgUrl(selectedProduct.imageUrls[0])} alt={selectedProduct.name} className="w-full h-full object-contain min-h-[300px]" onError={e => e.target.style.display = 'none'} />
                             ) : (
                                 <div className="w-full h-full min-h-[300px] flex items-center justify-center"><ShoppingBag className="w-16 h-16 text-gray-200" /></div>
                             )}
@@ -486,7 +486,7 @@ export default function PublicWaStore() {
                                                         <img
                                                             src={imgUrl(p.imageUrls[0])}
                                                             alt={p.name}
-                                                            className="w-full h-full object-cover group-hover/cs:scale-105 transition-transform duration-300"
+                                                            className="w-full h-full object-contain group-hover/cs:scale-105 transition-transform duration-300"
                                                             onError={e => e.target.style.display = 'none'}
                                                         />
                                                     ) : (
@@ -549,7 +549,7 @@ export default function PublicWaStore() {
                                             <div key={item.id} className="flex gap-4 items-start">
                                                 <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
                                                     {item.imageUrls && item.imageUrls[0] && (
-                                                        <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-cover" />
+                                                        <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-contain" />
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-1">

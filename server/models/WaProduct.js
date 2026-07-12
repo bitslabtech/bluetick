@@ -90,6 +90,24 @@ const WaProduct = sequelize.define('WaProduct', {
         type: DataTypes.INTEGER,
         allowNull: true,
         comment: 'Minimum quantity to qualify for wholesale price'
+    },
+    slug: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'SEO friendly URL slug'
+    },
+    metaTitle: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    metaDescription: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    ogImage: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Social sharing image URL'
     }
 }, {
     timestamps: true

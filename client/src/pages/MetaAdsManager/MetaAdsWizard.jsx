@@ -965,7 +965,6 @@ export default function MetaAdsWizard() {
 
         return (
             <div className="space-y-8">
-
                 {/* ─ Section 1: Campaign Identity ─ */}
                 <div className="group">
                     <div className="flex items-center gap-3 mb-4">
@@ -1034,7 +1033,6 @@ export default function MetaAdsWizard() {
                         )}
                     </div>
                 </div>
-
                 {/* ─ Section 2: Budget ─ */}
                 <div>
                     <div className="flex items-center gap-3 mb-4">
@@ -1136,8 +1134,6 @@ export default function MetaAdsWizard() {
                         </div>
                     )}
                 </div>
-
-
                 {/* ─ Section 3: Audience ─ */}
                 <div>
                     <div className="flex items-center gap-3 mb-4">
@@ -1196,7 +1192,6 @@ export default function MetaAdsWizard() {
                         </div>
                     </div>
                 </div>
-
                 {/* ─ Section 3b: Advanced Targeting — Gender, Language, Placement ─ */}
                 <div>
                     <div className="flex items-center gap-3 mb-4">
@@ -1355,7 +1350,6 @@ export default function MetaAdsWizard() {
                         </div>
                     </div>
                 </div>
-
                 {/* ─ Meta Advantage Audience Notice ─ */}
                 <div className="flex items-start gap-3 p-3.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl">
                     <div className="shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
@@ -1368,9 +1362,7 @@ export default function MetaAdsWizard() {
                         </p>
                     </div>
                 </div>
-
                 {/* ─ Section 3c: Ad Scheduling ─ */}
-
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
@@ -1425,9 +1417,7 @@ export default function MetaAdsWizard() {
                         })()}
                     </div>
                 </div>
-
                 {/* ─ Section 4: Ad Creative ─ */}
-
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
@@ -1491,7 +1481,6 @@ export default function MetaAdsWizard() {
                         )}
                     </div>
                 </div>
-
                 {/* ─ Section 4b: Ad Image (REQUIRED) ─ */}
                 <div>
                     <div className="flex items-center gap-3 mb-4">
@@ -1517,7 +1506,7 @@ export default function MetaAdsWizard() {
 
                     {manualImage ? (
                         // ── Image Preview ──
-                        <div className="relative rounded-2xl overflow-hidden border-2 border-blue-400 dark:border-blue-500/50 shadow-lg">
+                        (<div className="relative rounded-2xl overflow-hidden border-2 border-blue-400 dark:border-blue-500/50 shadow-lg">
                             <img src={manualImage} alt="Ad preview" className="w-full max-h-64 object-cover" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4 gap-2">
                                 <button
@@ -1544,10 +1533,10 @@ export default function MetaAdsWizard() {
                                     <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                             </div>
-                        </div>
+                        </div>)
                     ) : (
                         // ── Upload / Generate Options ──
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        (<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Upload your own */}
                             <button
                                 type="button"
@@ -1563,7 +1552,6 @@ export default function MetaAdsWizard() {
                                     <p className="text-[10px] text-slate-400">Recommended: 1080×1080px (square)</p>
                                 </div>
                             </button>
-
                             {/* AI Generate */}
                             <button
                                 type="button"
@@ -1580,12 +1568,10 @@ export default function MetaAdsWizard() {
                                     <p className="text-[10px] text-violet-500 mt-1 font-medium">Uses AI tokens</p>
                                 </div>
                             </button>
-                        </div>
+                        </div>)
                     )}
                 </div>
-
                 {/* ─ Section 5: Meta Connection Status ─ */}
-
                 {metaConnected === false && (
                     <div className="flex items-start gap-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl">
                         <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -1598,7 +1584,6 @@ export default function MetaAdsWizard() {
                         </button>
                     </div>
                 )}
-
                 {/* ─ Publish Button ─ */}
                 <div className="flex gap-3 pt-2">
                     <button onClick={() => navigate(-1)} className="px-5 py-3.5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-sm">Cancel</button>
@@ -1825,14 +1810,13 @@ export default function MetaAdsWizard() {
                                 <p className="text-sm text-slate-500">Pick the variation that best fits your brand tone.</p>
                             </div>
                         </div>
-
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {creativeData?.map((variation, index) => (
                                 <motion.div
                                     key={index}
                                     whileHover={{ y: -4 }}
                                     onClick={() => setSelectedCreativeIndex(index)}
-                                    className={`cursor-pointer rounded-2xl border-2 transition-all overflow-hidden ${selectedCreativeIndex === index ? 'border-primary ring-4 ring-primary/10' : 'border-slate-200 dark:border-white/10 hover:border-primary/50'}`}
+                                    className={`cursor-pointer rounded-2xl border-2 transition-all overflow-hidden ${selectedCreativeIndex === index ? 'border-primary ring-4 ring-primary/10' : 'border-slate-200 dark:border-white/10 hover:border-primary/50'} cursor-pointer`}
                                 >
                                     {/* Mock Facebook Ad Preview */}
                                     <div className="bg-white dark:bg-[#242526] h-full flex flex-col">
@@ -1874,7 +1858,6 @@ export default function MetaAdsWizard() {
                                 </motion.div>
                             ))}
                         </div>
-
                         {/* ── Ad Image Section (AI Mode) ── */}
                         <div className="bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-2xl p-5">
                             <div className="flex items-center gap-3 mb-4">
@@ -1933,7 +1916,6 @@ export default function MetaAdsWizard() {
                                 </div>
                             )}
                         </div>
-
                         <div className="pt-6 flex justify-between">
                             <button onClick={() => setCurrentStep(1)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium px-4 py-2">Back</button>
                             <button
@@ -1961,7 +1943,6 @@ export default function MetaAdsWizard() {
                                 Attach an automated response to instantly engage leads the moment they message you. This alone can increase your conversion rate by 3-5x.
                             </p>
                         </div>
-
                         {/* Automation Type Selection */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {/* Option A: FlowBot */}
@@ -1971,7 +1952,7 @@ export default function MetaAdsWizard() {
                                 className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all ${automationType === 'flowbot'
                                         ? 'border-purple-500 ring-4 ring-purple-500/10 bg-purple-50 dark:bg-purple-500/5'
                                         : 'border-slate-200 dark:border-white/10 hover:border-purple-300 bg-white dark:bg-surface-dark'
-                                    }`}
+                                    } cursor-pointer`}
                             >
                                 {automationType === 'flowbot' && (
                                     <div className="absolute top-3 right-3">
@@ -1997,7 +1978,7 @@ export default function MetaAdsWizard() {
                                 className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all ${automationType === 'template'
                                         ? 'border-blue-500 ring-4 ring-blue-500/10 bg-blue-50 dark:bg-blue-500/5'
                                         : 'border-slate-200 dark:border-white/10 hover:border-blue-300 bg-white dark:bg-surface-dark'
-                                    }`}
+                                    } cursor-pointer`}
                             >
                                 {automationType === 'template' && (
                                     <div className="absolute top-3 right-3">
@@ -2020,7 +2001,7 @@ export default function MetaAdsWizard() {
                                 className={`relative cursor-pointer rounded-2xl border-2 p-5 transition-all ${automationType === 'none'
                                         ? 'border-slate-500 ring-4 ring-slate-500/10 bg-slate-50 dark:bg-white/5'
                                         : 'border-slate-200 dark:border-white/10 hover:border-slate-300 bg-white dark:bg-surface-dark'
-                                    }`}
+                                    } cursor-pointer`}
                             >
                                 {automationType === 'none' && (
                                     <div className="absolute top-3 right-3">
@@ -2036,7 +2017,6 @@ export default function MetaAdsWizard() {
                                 </p>
                             </motion.div>
                         </div>
-
                         {/* Conditional: FlowBot Selector */}
                         <AnimatePresence mode="wait">
                             {automationType === 'flowbot' && (
@@ -2074,7 +2054,7 @@ export default function MetaAdsWizard() {
                                                         className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${selectedFlowId === flow.id
                                                                 ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10'
                                                                 : 'border-slate-100 dark:border-white/5 hover:border-purple-200 dark:hover:border-purple-500/30'
-                                                            }`}
+                                                            } cursor-pointer`}
                                                     >
                                                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${flow.isActive
                                                                 ? 'bg-green-100 dark:bg-green-500/20 text-green-600'
@@ -2135,7 +2115,7 @@ export default function MetaAdsWizard() {
                                                         className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${(selectedTemplateId === tpl.id || selectedTemplateId === tpl.name)
                                                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
                                                                 : 'border-slate-100 dark:border-white/5 hover:border-blue-200 dark:hover:border-blue-500/30'
-                                                            }`}
+                                                            } cursor-pointer`}
                                                     >
                                                         <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
                                                             <Mail className="w-4 h-4" />
@@ -2155,7 +2135,6 @@ export default function MetaAdsWizard() {
                                 </motion.div>
                             )}
                         </AnimatePresence>
-
                         {/* Icebreaker Message */}
                         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-5 space-y-3">
                             <h4 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
@@ -2178,7 +2157,6 @@ export default function MetaAdsWizard() {
                                 </p>
                             </div>
                         </div>
-
                         <div className="pt-4 flex justify-between">
                             <button onClick={() => setCurrentStep(2)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium px-4 py-2">Back</button>
                             <button
@@ -2389,7 +2367,6 @@ export default function MetaAdsWizard() {
 
     return (
         <div className="min-h-screen p-4 md:p-6 max-w-5xl mx-auto">
-
             {/* ══ Prerequisite Checklist Modal ══ */}
             <AnimatePresence>
                 {showChecklist && (
@@ -2397,7 +2374,7 @@ export default function MetaAdsWizard() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
                         onClick={() => { if (Object.values(checklistChecks).every(Boolean)) setShowChecklist(false); }}
                     >
                         <motion.div
@@ -2405,7 +2382,7 @@ export default function MetaAdsWizard() {
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
                             transition={{ type: 'spring', damping: 20 }}
-                            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 max-w-lg w-full overflow-hidden"
+                            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 max-w-lg w-full overflow-hidden cursor-pointer"
                             onClick={e => e.stopPropagation()}
                         >
                             {/* Header */}
@@ -2535,7 +2512,7 @@ export default function MetaAdsWizard() {
                                 ].map((item, i) => {
                                     const isExpanded = expandedCheck === item.id;
                                     return (
-                                        <div key={item.id} className={`flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5'}`} onClick={() => !item.done && setExpandedCheck(isExpanded ? null : item.id)}>
+                                        <div key={item.id} className={`flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5'} cursor-pointer`} onClick={() => !item.done && setExpandedCheck(isExpanded ? null : item.id)}>
                                             <div className="flex items-start gap-4">
                                                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${item.done ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-amber-100 dark:bg-amber-500/20 shadow-sm'}`}>
                                                     {item.done ? '✅' : item.icon}
@@ -2550,7 +2527,6 @@ export default function MetaAdsWizard() {
                                                     )}
                                                 </div>
                                             </div>
-
                                             <AnimatePresence>
                                                 {!item.done && isExpanded && (
                                                     <motion.div
@@ -2636,7 +2612,6 @@ export default function MetaAdsWizard() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
             {/* ══ Ad Preview Modal ══ */}
             <AnimatePresence>
                 {showPreview && (
@@ -2644,7 +2619,7 @@ export default function MetaAdsWizard() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
                         onClick={() => setShowPreview(false)}
                     >
                         <motion.div
@@ -2652,7 +2627,7 @@ export default function MetaAdsWizard() {
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
                             transition={{ type: 'spring', damping: 20 }}
-                            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 max-w-md w-full overflow-hidden"
+                            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 max-w-md w-full overflow-hidden cursor-pointer"
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/5">
@@ -2753,7 +2728,6 @@ export default function MetaAdsWizard() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
             {/* ══════════════════════════════════════════
                 MODE TOGGLE — Premium dual-mode selector
             ══════════════════════════════════════════ */}
@@ -2873,7 +2847,6 @@ export default function MetaAdsWizard() {
                     </motion.div>
                 </AnimatePresence>
             </div>
-
             {/* ══════════════════════════════════════════
                 CONDITIONAL CONTENT
             ══════════════════════════════════════════ */}
@@ -2887,7 +2860,7 @@ export default function MetaAdsWizard() {
                 >
                     {creationMode === 'ai' ? (
                         // ── AI WIZARD ──
-                        <>
+                        (<>
                             {/* Stepper Header */}
                             <div className="mb-10">
                                 <div className="flex items-center justify-between relative">
@@ -2910,7 +2883,6 @@ export default function MetaAdsWizard() {
                                     })}
                                 </div>
                             </div>
-
                             {/* Main Content Area */}
                             <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-4 md:p-8 shadow-xl mt-12 min-h-[500px]">
                                 <AnimatePresence mode="wait">
@@ -2925,12 +2897,12 @@ export default function MetaAdsWizard() {
                                     </motion.div>
                                 </AnimatePresence>
                             </div>
-                        </>
+                        </>)
                     ) : (
                         // ── MANUAL BUILDER ──
-                        <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-4 md:p-8 shadow-xl">
+                        (<div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-3xl p-4 md:p-8 shadow-xl">
                             {renderManualForm()}
-                        </div>
+                        </div>)
                     )}
                 </motion.div>
             </AnimatePresence>

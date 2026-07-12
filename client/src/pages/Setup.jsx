@@ -197,7 +197,6 @@ export default function Setup() {
         .fade-up { animation: fadeUp 0.35s ease both; }
         .step-bar { background: linear-gradient(90deg,#6366f1,#8b5cf6); }
       `}</style>
-
       {/* Sidebar */}
       <aside className="hidden md:flex w-72 flex-col bg-white/3 border-r border-white/5 p-4 md:p-8">
         <div className="mb-10">
@@ -222,7 +221,6 @@ export default function Setup() {
           <p className="text-xs text-slate-600">Need help? Check the <span className="text-indigo-400">DEPLOYMENT.md</span> file in the docs folder.</p>
         </div>
       </aside>
-
       {/* Main */}
       <main className="flex-1 flex flex-col">
         {/* Top progress bar */}
@@ -273,7 +271,11 @@ export default function Setup() {
                 </div>
                 {dbError && <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-rose-300 text-sm mb-4">{dbError}</div>}
                 {dbTested && <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-emerald-300 text-sm mb-4">✅ Connection successful! You can proceed.</div>}
-                <Btn onClick={testDb} disabled={dbTesting || !db.host || !db.name || !db.user || !db.pass} variant={dbTested ? 'success' : 'primary'}>
+                <Btn
+                  onClick={testDb}
+                  disabled={dbTesting || !db.host || !db.name || !db.user || !db.pass}
+                  variant={dbTested ? 'success' : 'primary'}
+                  className="cursor-pointer">
                   {dbTesting ? '⏳ Testing...' : dbTested ? '✅ Re-test Connection' : '🔌 Test Connection'}
                 </Btn>
               </div>
@@ -380,7 +382,7 @@ export default function Setup() {
                 {installError && (
                   <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 text-rose-300 text-sm mb-4">{installError}</div>
                 )}
-                <Btn onClick={install} disabled={installLoading} variant="success" className="w-full justify-center py-4 text-base">
+                <Btn onClick={install} disabled={installLoading} variant="success" className="w-full justify-center py-4 text-base cursor-pointer">
                   {installLoading ? '⏳ Installing...' : '🚀 Install Bluetick'}
                 </Btn>
                 <p className="text-xs text-slate-500 mt-3 text-center">This will write your configuration and create your admin account.</p>
@@ -389,13 +391,17 @@ export default function Setup() {
 
             {/* Navigation */}
             <div className="flex justify-between mt-10">
-              <Btn onClick={() => setStep(s => s - 1)} disabled={step === 1} variant="secondary">← Back</Btn>
+              <Btn
+                onClick={() => setStep(s => s - 1)}
+                disabled={step === 1}
+                variant="secondary"
+                className="cursor-pointer">← Back</Btn>
               {step < STEPS.length && (
                 <Btn
                   onClick={() => setStep(s => s + 1)}
                   disabled={step === 1 && !sysOk || stepErrors[step] === true}
                   variant="primary"
-                >
+                  className="cursor-pointer">
                   Continue →
                 </Btn>
               )}

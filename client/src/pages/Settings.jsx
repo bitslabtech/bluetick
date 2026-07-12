@@ -1073,7 +1073,6 @@ const Settings = () => {
                     <UserDropdown />
                 </div>
             </header>
-
             <main className="w-full px-4 sm:px-8 lg:px-24 pt-6 md:pt-8 space-y-6 md:space-y-8 pb-32">
                 {/* Page Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1963,7 +1962,7 @@ const Settings = () => {
                                                                 type="text"
                                                                 readOnly
                                                                 value={`${import.meta.env.VITE_API_URL}/api/webhook/${user?.id}`}
-                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy"
+                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy cursor-pointer"
                                                                 onClick={(e) => { e.target.select(); navigator.clipboard.writeText(e.target.value); showToast({ type: 'success', title: 'Copied', message: 'Webhook URL copied to clipboard.' }); }}
                                                             />
                                                         </div>
@@ -1975,7 +1974,7 @@ const Settings = () => {
                                                                 type="text"
                                                                 readOnly
                                                                 value={webhookVerifyToken}
-                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy"
+                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy cursor-pointer"
                                                                 onClick={(e) => { e.target.select(); navigator.clipboard.writeText(e.target.value); showToast({ type: 'success', title: 'Copied', message: 'Token copied to clipboard.' }); }}
                                                             />
                                                         </div>
@@ -2054,7 +2053,7 @@ const Settings = () => {
                                                                 type="text"
                                                                 readOnly
                                                                 value={`${import.meta.env.VITE_API_URL}/api/webhook/${user?.id}`}
-                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy"
+                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy cursor-pointer"
                                                                 onClick={(e) => { e.target.select(); navigator.clipboard.writeText(e.target.value); showToast({ type: 'success', title: 'Copied', message: 'Webhook URL copied to clipboard.' }); }}
                                                             />
                                                         </div>
@@ -2066,7 +2065,7 @@ const Settings = () => {
                                                                 type="text"
                                                                 readOnly
                                                                 value={webhookVerifyToken}
-                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy"
+                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy cursor-pointer"
                                                                 onClick={(e) => { e.target.select(); navigator.clipboard.writeText(e.target.value); showToast({ type: 'success', title: 'Copied', message: 'Token copied to clipboard.' }); }}
                                                             />
                                                         </div>
@@ -2155,7 +2154,7 @@ const Settings = () => {
                                                                 className={`relative p-3 md:p-6 rounded-xl md:rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${activePaymentGateway === gateway.id
                                                                     ? `border-${gateway.color}-500 bg-${gateway.color}-50 dark:bg-slate-900`
                                                                     : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
-                                                                    }`}
+                                                                    } cursor-pointer`}
                                                             >
                                                                 <div className="flex flex-col items-center gap-2 md:gap-4 text-center">
                                                                     <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center ${activePaymentGateway === gateway.id ? `bg-${gateway.color}-500 text-white` : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 shadow-sm border border-slate-200 dark:border-slate-600'
@@ -2640,7 +2639,7 @@ const Settings = () => {
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                         {/* Local Drive */}
                                                         <div
-                                                            className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 'local' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
+                                                            className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 'local' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'} cursor-pointer`}
                                                             onClick={() => setFormData(prev => ({ ...prev, storage: { ...prev.storage, type: 'local' } }))}
                                                         >
                                                             <HardDrive className={`w-8 h-8 ${formData.storage?.type === 'local' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
@@ -2649,7 +2648,7 @@ const Settings = () => {
                                                         </div>
                                                         {/* S3 Storage */}
                                                         <div
-                                                            className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 's3' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
+                                                            className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 's3' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'} cursor-pointer`}
                                                             onClick={() => setFormData(prev => ({ ...prev, storage: { ...prev.storage, type: 's3' } }))}
                                                         >
                                                             <Cloud className={`w-8 h-8 ${formData.storage?.type === 's3' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
@@ -2658,7 +2657,7 @@ const Settings = () => {
                                                         </div>
                                                         {/* Cloudflare R2 */}
                                                         <div
-                                                            className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 'r2' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
+                                                            className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-2 ${formData.storage?.type === 'r2' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-slate-200 dark:border-white/10 hover:border-slate-300'} cursor-pointer`}
                                                             onClick={() => setFormData(prev => ({ ...prev, storage: { ...prev.storage, type: 'r2' } }))}
                                                         >
                                                             <Cloud className={`w-8 h-8 ${formData.storage?.type === 'r2' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-400'}`} />
@@ -3326,7 +3325,6 @@ const Settings = () => {
                     </div>
                 </div >
             </main>
-
             {/* Sticky Bottom Save Button */}
             <div className="sticky bottom-0 left-0 right-0 py-3 px-4 md:px-6 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-white/10 z-40 flex justify-center md:justify-end shadow-sm transition-all mt-auto w-full">
                 <button

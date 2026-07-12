@@ -409,202 +409,203 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         );
     }
 
-    return (<>
-        <aside className={cn(
-            "flex flex-col justify-between border-r border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark p-4 transition-all duration-300",
-            "fixed inset-y-0 left-0 z-[60] w-64 transform overflow-y-auto",
-            isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
-            "md:translate-x-0 md:sticky md:top-0 md:h-screen md:shadow-none"
-        )}>
-            <div className="flex flex-col gap-8">
-                {/* Logo Area */}
-                <div className="flex gap-3 items-center px-2">
-                    {publicSettings?.logoUrl ? (
-                        <img 
-                            src={publicSettings.logoUrl} 
-                            alt="Logo" 
-                            className="h-10 max-w-[200px] object-contain" 
-                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                        />
-                    ) : null}
-                    <div className="flex items-center justify-center rounded-lg bg-primary size-10 text-white shadow-lg shadow-blue-500/20" style={{ display: publicSettings?.logoUrl ? 'none' : 'flex' }}>
-                        <MessageSquare className="w-6 h-6" />
-                    </div>
-                    {/* Mobile Close Button */}
-                    <button
-                        onClick={() => setIsOpen && setIsOpen(false)}
-                        className="md:hidden ml-auto p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Navigation */}
-                <nav className="flex flex-col gap-2">
-                    {items.map((item, index) => {
-                        // Clone the item to safely mutate subItems for unread counts
-                        const clonedItem = { ...item };
-                        if (clonedItem.label === 'WhatsApp' && clonedItem.subItems) {
-                            clonedItem.subItems = clonedItem.subItems.map(sub => {
-                                if (sub.label === 'Live Chat') {
-                                    return { ...sub, unreadCount: unreadWhatsAppMsgs };
-                                }
-                                return sub;
-                            });
-                        }
-
-                        return (
-                            <NavItem
-                                key={clonedItem.path || index}
-                                item={clonedItem}
-                                location={location}
-                                setIsOpen={setIsOpen}
-                                unreadCount={
-                                    clonedItem.label === 'WhatsApp'
-                                        ? unreadWhatsAppMsgs
-                                        : clonedItem.path === '/superadmin/messages'
-                                            ? unreadContactMsgs
-                                            : (clonedItem.path === '/support' || clonedItem.path === '/superadmin/support')
-                                                ? unreadSupportTickets
-                                                : null
-                                }
+    return (
+        <>
+            <aside className={cn(
+                "flex flex-col justify-between border-r border-slate-200 dark:border-surface-dark bg-white dark:bg-background-dark p-4 transition-all duration-300",
+                "fixed inset-y-0 left-0 z-[60] w-64 transform overflow-y-auto",
+                isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
+                "md:translate-x-0 md:sticky md:top-0 md:h-screen md:shadow-none"
+            )}>
+                <div className="flex flex-col gap-8">
+                    {/* Logo Area */}
+                    <div className="flex gap-3 items-center px-2">
+                        {publicSettings?.logoUrl ? (
+                            <img 
+                                src={publicSettings.logoUrl} 
+                                alt="Logo" 
+                                className="h-10 max-w-[200px] object-contain" 
+                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                             />
-                        );
-                    })}
-                </nav>
-            </div>
-
-            <div className="flex flex-col mt-auto shrink-0">
-
-            {/* ── Version Badge (all users) ── */}
-            {currentVersion && (
-                <div className="px-3 pb-3">
-                    <button
-                        onClick={openChangelog}
-                        className="group flex items-center justify-center gap-2 py-3 mt-2 w-full rounded-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-white/10 cursor-pointer"
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                        <div className="relative">
-                            <Sparkles className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:text-purple-500 transition-colors duration-300" />
-                            {hasNewVersion && (
-                                <span className="absolute -top-1.5 -right-1.5 flex h-2.5 w-2.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                                </span>
-                            )}
+                        ) : null}
+                        <div className="flex items-center justify-center rounded-lg bg-primary size-10 text-white shadow-lg shadow-blue-500/20" style={{ display: publicSettings?.logoUrl ? 'none' : 'flex' }}>
+                            <MessageSquare className="w-6 h-6" />
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors duration-300">
-                                Version
-                            </span>
-                            <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 group-hover:bg-purple-500/10 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
-                                v{currentVersion.version}
-                            </span>
-                            {hasNewVersion && (
-                                <span className="text-[9px] font-bold text-red-500 uppercase tracking-wider animate-pulse">New!</span>
-                            )}
-                        </div>
-                    </button>
-                </div>
-            )}
-            </div>
-
-        </aside>
-
-        {/* ── Changelog Modal ── */}
-        {changelogOpen && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setChangelogOpen(false)}>
-                <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-                    {/* Header */}
-                    <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 dark:border-white/5 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                                <Tag className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Changelog</h3>
-                                <p className="text-xs text-slate-500 dark:text-text-secondary">What's new in every update</p>
-                            </div>
-                        </div>
-                        <button onClick={() => setChangelogOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                        {/* Mobile Close Button */}
+                        <button
+                            onClick={() => setIsOpen && setIsOpen(false)}
+                            className="md:hidden ml-auto p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5"
+                        >
                             <X className="w-5 h-5" />
                         </button>
                     </div>
 
-                    {/* Body */}
-                    <div className="overflow-y-auto flex-1 p-4 md:p-6">
-                        {changelogLoading ? (
-                            <div className="flex flex-col gap-6">
-                                {[...Array(3)].map((_, i) => (
-                                    <div key={i} className="animate-pulse">
-                                        <div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-24 mb-2"></div>
-                                        <div className="h-3 bg-slate-200 dark:bg-white/5 rounded w-48 mb-1"></div>
-                                        <div className="h-3 bg-slate-200 dark:bg-white/5 rounded w-64"></div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : changelog.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                                <Tag className="w-10 h-10 mb-3 opacity-20" />
-                                <p className="text-sm font-medium">No changelogs yet.</p>
-                            </div>
-                        ) : (
+                    {/* Navigation */}
+                    <nav className="flex flex-col gap-2">
+                        {items.map((item, index) => {
+                            // Clone the item to safely mutate subItems for unread counts
+                            const clonedItem = { ...item };
+                            if (clonedItem.label === 'WhatsApp' && clonedItem.subItems) {
+                                clonedItem.subItems = clonedItem.subItems.map(sub => {
+                                    if (sub.label === 'Live Chat') {
+                                        return { ...sub, unreadCount: unreadWhatsAppMsgs };
+                                    }
+                                    return sub;
+                                });
+                            }
+
+                            return (
+                                <NavItem
+                                    key={clonedItem.path || index}
+                                    item={clonedItem}
+                                    location={location}
+                                    setIsOpen={setIsOpen}
+                                    unreadCount={
+                                        clonedItem.label === 'WhatsApp'
+                                            ? unreadWhatsAppMsgs
+                                            : clonedItem.path === '/superadmin/messages'
+                                                ? unreadContactMsgs
+                                                : (clonedItem.path === '/support' || clonedItem.path === '/superadmin/support')
+                                                    ? unreadSupportTickets
+                                                    : null
+                                    }
+                                />
+                            );
+                        })}
+                    </nav>
+                </div>
+
+                <div className="flex flex-col mt-auto shrink-0">
+
+                {/* ── Version Badge (all users) ── */}
+                {currentVersion && (
+                    <div className="px-3 pb-3">
+                        <button
+                            onClick={openChangelog}
+                            className="group flex items-center justify-center gap-2 py-3 mt-2 w-full rounded-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-white/10 cursor-pointer"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                             <div className="relative">
-                                {/* Timeline line */}
-                                <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-200 dark:bg-white/10"></div>
+                                <Sparkles className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 group-hover:text-purple-500 transition-colors duration-300" />
+                                {hasNewVersion && (
+                                    <span className="absolute -top-1.5 -right-1.5 flex h-2.5 w-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors duration-300">
+                                    Version
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 group-hover:bg-purple-500/10 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
+                                    v{currentVersion.version}
+                                </span>
+                                {hasNewVersion && (
+                                    <span className="text-[9px] font-bold text-red-500 uppercase tracking-wider animate-pulse">New!</span>
+                                )}
+                            </div>
+                        </button>
+                    </div>
+                )}
+                </div>
 
+            </aside>
+            {/* ── Changelog Modal ── */}
+            {changelogOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 cursor-pointer" onClick={() => setChangelogOpen(false)}>
+                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col cursor-pointer" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 dark:border-white/5 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                                    <Tag className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Changelog</h3>
+                                    <p className="text-xs text-slate-500 dark:text-text-secondary">What's new in every update</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setChangelogOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="overflow-y-auto flex-1 p-4 md:p-6">
+                            {changelogLoading ? (
                                 <div className="flex flex-col gap-6">
-                                    {changelog.map((v, i) => (
-                                        <div key={v.id} className="relative pl-7">
-                                            {/* Timeline dot */}
-                                            <div className={cn(
-                                                "absolute left-0 top-1.5 w-[15px] h-[15px] rounded-full border-2 border-white dark:border-surface-dark z-10",
-                                                v.isCurrent
-                                                    ? "bg-purple-500 shadow-md shadow-purple-500/30"
-                                                    : "bg-slate-300 dark:bg-slate-600"
-                                            )}></div>
-
-                                            {/* Content */}
-                                            <div className={cn(
-                                                "p-4 rounded-xl border transition-colors",
-                                                v.isCurrent
-                                                    ? "bg-purple-50/50 dark:bg-purple-500/5 border-purple-200 dark:border-purple-500/20"
-                                                    : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5"
-                                            )}>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={cn(
-                                                            "px-2 py-0.5 rounded-md text-[10px] font-mono font-bold",
-                                                            v.isCurrent
-                                                                ? "bg-purple-500/10 text-purple-700 dark:text-purple-400"
-                                                                : "bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400"
-                                                        )}>
-                                                            v{v.version}
-                                                        </span>
-                                                        {v.isCurrent && (
-                                                            <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">Current</span>
-                                                        )}
-                                                    </div>
-                                                    {v.releasedAt && (
-                                                        <span className="flex items-center gap-1 text-[10px] text-slate-400">
-                                                            <Calendar className="w-3 h-3" />
-                                                            {new Date(v.releasedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{v.title}</h4>
-                                                {v.changelog && (
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-line">{v.changelog}</p>
-                                                )}
-                                            </div>
+                                    {[...Array(3)].map((_, i) => (
+                                        <div key={i} className="animate-pulse">
+                                            <div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-24 mb-2"></div>
+                                            <div className="h-3 bg-slate-200 dark:bg-white/5 rounded w-48 mb-1"></div>
+                                            <div className="h-3 bg-slate-200 dark:bg-white/5 rounded w-64"></div>
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-                        )}
+                            ) : changelog.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                    <Tag className="w-10 h-10 mb-3 opacity-20" />
+                                    <p className="text-sm font-medium">No changelogs yet.</p>
+                                </div>
+                            ) : (
+                                <div className="relative">
+                                    {/* Timeline line */}
+                                    <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-200 dark:bg-white/10"></div>
+
+                                    <div className="flex flex-col gap-6">
+                                        {changelog.map((v, i) => (
+                                            <div key={v.id} className="relative pl-7">
+                                                {/* Timeline dot */}
+                                                <div className={cn(
+                                                    "absolute left-0 top-1.5 w-[15px] h-[15px] rounded-full border-2 border-white dark:border-surface-dark z-10",
+                                                    v.isCurrent
+                                                        ? "bg-purple-500 shadow-md shadow-purple-500/30"
+                                                        : "bg-slate-300 dark:bg-slate-600"
+                                                )}></div>
+
+                                                {/* Content */}
+                                                <div className={cn(
+                                                    "p-4 rounded-xl border transition-colors",
+                                                    v.isCurrent
+                                                        ? "bg-purple-50/50 dark:bg-purple-500/5 border-purple-200 dark:border-purple-500/20"
+                                                        : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5"
+                                                )}>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={cn(
+                                                                "px-2 py-0.5 rounded-md text-[10px] font-mono font-bold",
+                                                                v.isCurrent
+                                                                    ? "bg-purple-500/10 text-purple-700 dark:text-purple-400"
+                                                                    : "bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400"
+                                                            )}>
+                                                                v{v.version}
+                                                            </span>
+                                                            {v.isCurrent && (
+                                                                <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">Current</span>
+                                                            )}
+                                                        </div>
+                                                        {v.releasedAt && (
+                                                            <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                                                                <Calendar className="w-3 h-3" />
+                                                                {new Date(v.releasedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{v.title}</h4>
+                                                    {v.changelog && (
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-line">{v.changelog}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
-        )}
-    </>);
+            )}
+        </>
+    );
 }

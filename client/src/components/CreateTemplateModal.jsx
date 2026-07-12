@@ -1413,7 +1413,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                     Card {idx + 1}
                                                     {formData.cards.length > 2 && (
                                                         <div
-                                                            className={`p-1 rounded-full hover:bg-black/20 ${activeCardIndex === idx ? 'text-white' : 'text-slate-400'}`}
+                                                            className={`p-1 rounded-full hover:bg-black/20 ${activeCardIndex === idx ? 'text-white' : 'text-slate-400'} cursor-pointer`}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 const newCards = [...formData.cards];
@@ -1833,11 +1833,8 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                         </div>
                                     ) : (
                                         /* Fallback empty state */
-                                        (!formData.content && !formData.cards?.[0]?.content) && (
-                                            <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm italic py-4">
-                                                Start typing to preview
-                                            </div>
-                                        )
+                                        ((!formData.content && !formData.cards?.[0]?.content) && (<div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm italic py-4">Start typing to preview
+                                                                                        </div>))
                                     )}
                                 </div>
                             </div>
@@ -1881,7 +1878,6 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                     )}
                 </div>
             </div>
-            
             {/* Media Manager Picker */}
             <MediaPickerModal
                 isOpen={mediaPickerConfig.isOpen}

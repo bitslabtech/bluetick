@@ -151,8 +151,6 @@ const NotificationBell = () => {
 
     return (
         <div className="relative flex items-center gap-1" ref={containerRef}>
-
-
             {/* Main notification bell */}
             <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -172,7 +170,6 @@ const NotificationBell = () => {
                     </motion.span>
                 )}
             </motion.button>
-
             <AnimatePresence>
                 {isNotificationsOpen && (
                     <motion.div
@@ -214,56 +211,56 @@ const NotificationBell = () => {
                                     {notifications.slice(0, 5).map((notif, i) => {
                                         const isRead = isAdmin ? notif.isRead : getReadIds().includes(notif.id);
                                         return (
-                                        <div
-                                            key={notif.id || i}
-                                            onClick={() => {
-                                                if (!isAdmin && !isRead) {
-                                                    markOneRead(notif.id);
-                                                }
-                                                setIsNotificationsOpen(false);
-                                                navigate(isAdmin ? '/superadmin/alerts' : '/notifications');
-                                            }}
-                                            className={`p-4 transition-colors cursor-pointer group relative ${getBgColor(notif.type, isRead)}`}
-                                        >
-                                            <div className="flex gap-3">
-                                                <div className={`mt-1 size-8 rounded-full flex items-center justify-center flex-shrink-0 ${isAdmin
-                                                    ? 'bg-slate-100 dark:bg-white/5'
-                                                    : (notif.type === 'Warning' ? 'bg-amber-100 dark:bg-amber-900/20'
-                                                        : notif.type === 'Error' ? 'bg-red-100 dark:bg-red-900/20'
-                                                            : notif.type === 'Success' ? 'bg-green-100 dark:bg-green-900/20'
-                                                                : 'bg-blue-100 dark:bg-blue-900/20')
-                                                    }`}>
-                                                    {getIcon(notif.type)}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate pr-6">
-                                                        {isAdmin ? notif.message : notif.title}
-                                                    </p>
-                                                    {!isAdmin && (
-                                                        <p className="text-xs text-slate-500 dark:text-text-secondary mt-0.5 line-clamp-4 leading-relaxed">
-                                                            {notif.message}
+                                            <div
+                                                key={notif.id || i}
+                                                onClick={() => {
+                                                    if (!isAdmin && !isRead) {
+                                                        markOneRead(notif.id);
+                                                    }
+                                                    setIsNotificationsOpen(false);
+                                                    navigate(isAdmin ? '/superadmin/alerts' : '/notifications');
+                                                }}
+                                                className={`p-4 transition-colors cursor-pointer group relative ${getBgColor(notif.type, isRead)} cursor-pointer`}
+                                            >
+                                                <div className="flex gap-3">
+                                                    <div className={`mt-1 size-8 rounded-full flex items-center justify-center flex-shrink-0 ${isAdmin
+                                                        ? 'bg-slate-100 dark:bg-white/5'
+                                                        : (notif.type === 'Warning' ? 'bg-amber-100 dark:bg-amber-900/20'
+                                                            : notif.type === 'Error' ? 'bg-red-100 dark:bg-red-900/20'
+                                                                : notif.type === 'Success' ? 'bg-green-100 dark:bg-green-900/20'
+                                                                    : 'bg-blue-100 dark:bg-blue-900/20')
+                                                        }`}>
+                                                        {getIcon(notif.type)}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate pr-6">
+                                                            {isAdmin ? notif.message : notif.title}
                                                         </p>
-                                                    )}
-                                                    {!isAdmin && notif.buttonName && notif.buttonUrl && (
-                                                        <div className="mt-2">
-                                                            <a
-                                                                href={notif.buttonUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="inline-block px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/20 dark:hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 rounded-md text-[10px] font-bold transition-colors border border-indigo-200 dark:border-indigo-500/30"
-                                                            >
-                                                                {notif.buttonName}
-                                                            </a>
-                                                        </div>
-                                                    )}
-                                                    <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">
-                                                        {new Date(notif.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </p>
+                                                        {!isAdmin && (
+                                                            <p className="text-xs text-slate-500 dark:text-text-secondary mt-0.5 line-clamp-4 leading-relaxed">
+                                                                {notif.message}
+                                                            </p>
+                                                        )}
+                                                        {!isAdmin && notif.buttonName && notif.buttonUrl && (
+                                                            <div className="mt-2">
+                                                                <a
+                                                                    href={notif.buttonUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className="inline-block px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/20 dark:hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 rounded-md text-[10px] font-bold transition-colors border border-indigo-200 dark:border-indigo-500/30"
+                                                                >
+                                                                    {notif.buttonName}
+                                                                </a>
+                                                            </div>
+                                                        )}
+                                                        <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">
+                                                            {new Date(notif.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )})}
+                                        );})}
                                 </div>
                             )}
                         </div>

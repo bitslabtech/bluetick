@@ -893,10 +893,9 @@ const WhatsAppInbox = () => {
     const totalUnread = conversations.reduce((s, c) => s + (c.unreadCount || 0), 0);
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-background-dark overflow-hidden"
+        <div className="flex flex-col h-full bg-white dark:bg-background-dark overflow-hidden cursor-pointer"
             onClick={() => { setShowEmojiPicker(false); }}>
             <TopHeader title="Live Chat" subtitle="Manage your WhatsApp conversations." />
-            
             <div className="flex-1 flex overflow-hidden relative">
                 {/* ═══ LEFT SIDEBAR ═══ */}
                 <div className={`w-full md:w-[360px] max-w-full border-r border-slate-200 dark:border-white/5 flex flex-col bg-white dark:bg-[#111b21] shrink-0 transition-all duration-300 ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
@@ -973,7 +972,7 @@ const WhatsAppInbox = () => {
                 <div className="flex-1 overflow-y-auto">
                     {loading ? (
                         // Skeleton loaders
-                        Array.from({ length: 6 }).map((_, i) => (
+                        (Array.from({ length: 6 }).map((_, i) => (
                             <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
                                 <div className="size-12 rounded-full bg-slate-200 dark:bg-white/10 shrink-0" />
                                 <div className="flex-1 space-y-2">
@@ -981,7 +980,7 @@ const WhatsAppInbox = () => {
                                     <div className="h-2.5 bg-slate-100 dark:bg-white/5 rounded w-1/2" />
                                 </div>
                             </div>
-                        ))
+                        )))
                     ) : filteredConversations.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full p-4 md:p-6 text-center">
                             <MessageSquare className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-3" />
@@ -1011,11 +1010,10 @@ const WhatsAppInbox = () => {
                                     className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors relative ${isActive
                                         ? 'bg-slate-100 dark:bg-[#2a3942]'
                                         : 'hover:bg-slate-50 dark:hover:bg-[#1a2328]'
-                                        }`}
+                                        } cursor-pointer`}
                                 >
                                     {/* Active indicator */}
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-green-500 rounded-r-full" />}
-
                                     {/* Avatar with assignee badge */}
                                     <div className="relative shrink-0">
                                         <div className="size-12 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
@@ -1031,7 +1029,6 @@ const WhatsAppInbox = () => {
                                             </div>
                                         )}
                                     </div>
-
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-baseline">
                                             <h3 className={`text-sm truncate ${chat.unreadCount > 0 ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-800 dark:text-slate-200'}`}>
@@ -1451,7 +1448,7 @@ const WhatsAppInbox = () => {
                                     selectedChat.assignedTo !== user?.realId ? (
                                     <div
                                         onClick={() => setShowAccessDeniedModal(true)}
-                                        className="flex items-center justify-center gap-2 py-3 text-xs text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-white/5 rounded-xl cursor-help hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                                        className="flex items-center justify-center gap-2 py-3 text-xs text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-white/5 rounded-xl cursor-help hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
                                     >
                                         <Lock className="w-4 h-4" />
                                         <span>You can only reply to conversations assigned to you</span>
@@ -1503,7 +1500,7 @@ const WhatsAppInbox = () => {
                                         )}
                                         {/* Emoji Picker */}
                                         {showEmojiPicker && (
-                                            <div onClick={e => e.stopPropagation()}>
+                                            <div onClick={e => e.stopPropagation()} className="cursor-pointer">
                                                 <EmojiPicker
                                                     onSelect={(emoji) => { setInputText(p => p + emoji); inputRef.current?.focus(); }}
                                                     onClose={() => setShowEmojiPicker(false)}
@@ -1624,7 +1621,7 @@ const WhatsAppInbox = () => {
                 </div>
             ) : (
                 /* Empty state */
-                <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[#f0f2f5] dark:bg-[#111b21] relative">
+                (<div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[#f0f2f5] dark:bg-[#111b21] relative">
                     <div className="absolute inset-0 opacity-30 dark:opacity-5 pointer-events-none"
                         style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")' }} />
                     <div className="relative z-10 flex flex-col items-center text-center p-4 md:p-8">
@@ -1673,7 +1670,7 @@ const WhatsAppInbox = () => {
                             </div>
                         )}
                     </div>
-                </div>
+                </div>)
             )}
 
             {/* â”€â”€â”€ Create Quick Reply Modal â”€â”€â”€ */}
@@ -1702,8 +1699,8 @@ const WhatsAppInbox = () => {
             )}
 
             {showCreateQuickReply && (
-                <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreateQuickReply(false)}>
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer" onClick={() => setShowCreateQuickReply(false)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 cursor-pointer" onClick={e => e.stopPropagation()}>
                         <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                             <h3 className="font-semibold text-slate-800 dark:text-white">Create Quick Reply</h3>
                             <button onClick={() => setShowCreateQuickReply(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -1978,11 +1975,11 @@ const TemplateModal = ({
 
     return (
         <div
-            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 cursor-pointer"
             onClick={onClose}
         >
             <div
-                className="bg-white dark:bg-[#1a2332] rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden border border-white/10 animate-in zoom-in-95 duration-200"
+                className="bg-white dark:bg-[#1a2332] rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden border border-white/10 animate-in zoom-in-95 duration-200 cursor-pointer"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Modal Header */}
@@ -2283,7 +2280,7 @@ const TemplateModal = ({
                                     </>
                                 ) : (
                                     /* === STANDARD configure === */
-                                    <>
+                                    (<>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Variables</p>
                                         {mainVars.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -2304,7 +2301,7 @@ const TemplateModal = ({
                                                 ))}
                                             </div>
                                         )}
-                                    </>
+                                    </>)
                                 )}
                             </div>
                         </div>
@@ -2328,7 +2325,7 @@ const TemplateModal = ({
                             >
                                 {isCarousel ? (
                                     /* Carousel message bubble */
-                                    <div className="w-full max-w-[92%] self-end">
+                                    (<div className="w-full max-w-[92%] self-end">
                                         {/* Message bubble wrapper */}
                                         <div className="rounded-2xl rounded-br-sm overflow-hidden shadow-md" style={{ background: '#dcf8c6' }}>
 
@@ -2426,10 +2423,10 @@ const TemplateModal = ({
                                             </div>
                                         </div>
                                         <p className="text-[10px] text-center text-white/50 mt-2">← Swipe cards →</p>
-                                    </div>
+                                    </div>)
                                 ) : (
                                     /* Standard preview */
-                                    <div className="self-end max-w-[90%]">
+                                    (<div className="self-end max-w-[90%]">
                                         <div
                                             className="rounded-2xl rounded-br-sm px-3.5 py-2.5 shadow-md"
                                             style={{ background: '#dcf8c6' }}
@@ -2447,7 +2444,7 @@ const TemplateModal = ({
                                                 <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M11.071 0L5 6.071l-2.071-2.07L1.5 5.43l3.5 3.5 7.5-7.5-1.429-1.43z" fill="#53bdeb" /><path d="M15.071 0L9 6.071 7.5 4.571 6.071 6l2.929 2.929 7.5-7.5-1.429-1.43z" fill="#53bdeb" /></svg>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div>)
                                 )}
                             </div>
                         </div>

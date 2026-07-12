@@ -168,7 +168,6 @@ export default function VcardBuilder() {
 
     return (
         <div className="flex h-[calc(100vh-6rem)] bg-slate-50 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm animate-in fade-in">
-
             {/* Left Side: Configuration Panel */}
             <div className="w-full lg:w-[72%] xl:w-[76%] flex flex-col border-r border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark h-full">
                 {/* Header */}
@@ -396,7 +395,7 @@ export default function VcardBuilder() {
                                             <div
                                                 key={t.id}
                                                 onClick={() => setVcard(prev => ({ ...prev, themeId: t.id, primaryColor: prev.primaryColor || t.accent }))}
-                                                className={`relative rounded-xl border-2 cursor-pointer transition-all overflow-hidden ${vcard.themeId === t.id ? 'border-indigo-500 shadow-lg shadow-indigo-500/20' : 'border-slate-200 dark:border-white/10 hover:border-indigo-300'}`}
+                                                className={`relative rounded-xl border-2 cursor-pointer transition-all overflow-hidden ${vcard.themeId === t.id ? 'border-indigo-500 shadow-lg shadow-indigo-500/20' : 'border-slate-200 dark:border-white/10 hover:border-indigo-300'} cursor-pointer`}
                                             >
                                                 {/* Mini preview bg */}
                                                 <div style={{ background: t.bg, height: 72, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -631,7 +630,7 @@ export default function VcardBuilder() {
                                             { type: 'video', icon: <Film className="w-6 h-6 mb-2" />, label: 'Dynamic Video', desc: 'Auto-playing looping video' }
                                         ].map(t => (
                                             <div key={t.type} onClick={() => setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, type: t.type } }))}
-                                                className={`cursor-pointer rounded-2xl border-2 p-4 flex flex-col items-center text-center transition-all ${vcard.heroMedia?.type === t.type ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 shadow-md shadow-indigo-500/10' : 'border-slate-200 dark:border-white/10 hover:border-indigo-300 text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                                                className={`cursor-pointer rounded-2xl border-2 p-4 flex flex-col items-center text-center transition-all ${vcard.heroMedia?.type === t.type ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 shadow-md shadow-indigo-500/10' : 'border-slate-200 dark:border-white/10 hover:border-indigo-300 text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5'} cursor-pointer`}>
                                                 {t.icon}
                                                 <span className="font-bold text-sm">{t.label}</span>
                                                 <span className="text-[10px] mt-1 opacity-70">{t.desc}</span>
@@ -1338,7 +1337,6 @@ export default function VcardBuilder() {
                     </div>
                 </div>{/* end body flex */}
             </div>
-
             {/* Right Side: Live Mobile Preview */}
             <div className="hidden lg:flex lg:w-[28%] xl:w-[24%] bg-slate-100 dark:bg-black/40 items-start justify-center p-4 pt-6 relative isolate overflow-hidden">
                 {/* Decorative blobs */}
@@ -1396,7 +1394,6 @@ export default function VcardBuilder() {
                     </div>
                 </div>
             </div>
-
             {/* ── Media Picker Modal ─────────────────────────────────────────────── */}
             <MediaPickerModal
                 isOpen={pickerOpen}
@@ -1408,7 +1405,6 @@ export default function VcardBuilder() {
                 title={pickerConfig.title || 'Select Media'}
                 mimeConstraints={pickerConfig.mimeConstraints || null}
             />
-
         </div>
     );
 }
