@@ -218,6 +218,142 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
 });
 
 // REGISTER
+// ─────────────────────────────────────────────────────────────────────────────
+// FORGOT PASSWORD SEND OTP  —  POST /api/auth/forgot-password-otp
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/forgot-password-otp', authLimiter, async (req, res) => {
+    try {
+        const { phone } = req.body;
+        if (!phone) {
+            return res.status(400).json({ error: 'Phone number is required.' });
+        }
+
+        const otpConfig = await getOtpConfig();
+        if (!otpConfig.enabled) {
+            return res.status(400).json({ error: 'WhatsApp OTP is not enabled.' });
+        }
+
+        const normalized = otpStore.normalizePhone(phone);
+        if (normalized.length < 7) {
+            return res.status(400).json({ error: 'Invalid phone number.' });
+        }
+
+        // Check if user exists before sending OTP for password reset
+        let user = await User.findOne({ where: { phone: normalized } });
+        if (!user) {
+            // Also check raw phone if stored without normalization
+            user = await User.findOne({ where: { phone } });
+        }
+        
+        if (!user) {
+            return res.status(404).json({ error: 'No account found with this phone number.' });
+        }
+
+        const limitCheck = otpStore.checkSendLimits(normalized, otpConfig);
+        if (!limitCheck.allowed) {
+            return res.status(429).json({ error: limitCheck.reason, retryAfterSec: limitCheck.retryAfterSec });
+        }
+
+        const otp = otpStore.createOtp(normalized, otpConfig);
+        const sysConfig = await SystemConfig.getCachedConfig();
+        const appName = sysConfig?.settings?.appName || 'Bluetick';
+        const minutes = Math.ceil(otpConfig.otpExpirySec / 60);
+
+        let result;
+
+        if (otpConfig.templateName) {
+            const varIndex = (otpConfig.otpVariableIndex || 1) - 1;
+            const bodyParams = [];
+            for (let i = 0; i < varIndex; i++) bodyParams.push({ type: 'text', text: '' });
+            bodyParams.push({ type: 'text', text: otp });
+
+            let templatePayload = {
+                templateName: otpConfig.templateName,
+                languageCode: otpConfig.templateLanguage || 'en',
+                components: [ { type: 'body', parameters: bodyParams } ]
+            };
+
+            result = await sendSystemMessage(phone, 'template', templatePayload);
+
+            if (!result.success && result.error?.error?.code === 131008) {
+                templatePayload.components.push({
+                    type: 'button', sub_type: 'url', index: '0',
+                    parameters: [ { type: 'text', text: otp } ]
+                });
+                result = await sendSystemMessage(phone, 'template', templatePayload);
+            }
+        } else {
+            const messageBody = otpConfig.messageTemplate
+                .replace('{{otp}}', otp)
+                .replace('{{appName}}', appName)
+                .replace('{{minutes}}', minutes);
+            result = await sendSystemMessage(phone, 'text', { body: messageBody });
+        }
+
+        if (!result.success) {
+            console.error('[OTP] WhatsApp send failed:', result.error);
+            return res.status(503).json({ error: 'Failed to send verification code.' });
+        }
+
+        return res.json({
+            success: true,
+            expiresIn: otpConfig.otpExpirySec,
+            cooldownSec: otpConfig.resendCooldownSec,
+            message: `Verification code sent to ${phone.slice(0, -4).replace(/./g, '•')}${phone.slice(-4)}`
+        });
+    } catch (err) {
+        console.error('[FORGOT PWD OTP] Error:', err);
+        res.status(500).json({ error: 'Server error. Please try again.' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESET PASSWORD OTP  —  POST /api/auth/reset-password-otp
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/reset-password-otp', authLimiter, async (req, res) => {
+    try {
+        const { phone, otp, newPassword } = req.body;
+        if (!phone || !otp || !newPassword) {
+            return res.status(400).json({ error: 'Phone, OTP, and new password are required.' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+        }
+
+        const otpConfig = await getOtpConfig();
+        if (!otpConfig.enabled) {
+            return res.status(400).json({ error: 'WhatsApp OTP is not enabled.' });
+        }
+
+        const normalized = otpStore.normalizePhone(phone);
+        const result = otpStore.verifyOtp(normalized, otp, otpConfig);
+
+        if (!result.valid) {
+            return res.status(400).json({ error: result.reason });
+        }
+
+        let user = await User.findOne({ where: { phone: normalized } });
+        if (!user) {
+            user = await User.findOne({ where: { phone } });
+        }
+
+        if (!user) {
+            return res.status(404).json({ error: 'No account found with this phone number.' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        return res.json({ success: true, message: 'Password reset successfully. You can now login.' });
+    } catch (err) {
+        console.error('[RESET PWD OTP] Error:', err);
+        res.status(500).json({ error: 'Server error. Please try again.' });
+    }
+});
+
+// REGISTER
 router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
     try {
         const { name, email, password, selectedPlan, startTrial, ref, partnerCode, phone } = req.body;

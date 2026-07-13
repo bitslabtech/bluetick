@@ -66,6 +66,7 @@ const Settings = () => {
     const [fbLoading, setFbLoading] = useState(false);
     const [logoUploading, setLogoUploading] = useState(false);
     const [webhookVerifyToken, setWebhookVerifyToken] = useState('Loading...');
+    const [showWebhookVerifyToken, setShowWebhookVerifyToken] = useState(false);
     const logoInputRef = useRef(null);
 
     const handleLogoUpload = async (e) => {
@@ -1969,14 +1970,22 @@ const Settings = () => {
                                                     </div>
                                                     <div>
                                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Verify Token</label>
-                                                        <div className="flex gap-2">
+                                                        <div className="relative">
                                                             <input
-                                                                type="text"
+                                                                type={showWebhookVerifyToken ? "text" : "password"}
                                                                 readOnly
                                                                 value={webhookVerifyToken}
-                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy cursor-pointer"
+                                                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 pr-12 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy cursor-pointer"
                                                                 onClick={(e) => { e.target.select(); navigator.clipboard.writeText(e.target.value); showToast({ type: 'success', title: 'Copied', message: 'Token copied to clipboard.' }); }}
                                                             />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowWebhookVerifyToken(v => !v)}
+                                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                                                title={showWebhookVerifyToken ? "Hide token" : "Show token"}
+                                                            >
+                                                                {showWebhookVerifyToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                            </button>
                                                         </div>
                                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                                                             This token is automatically configured when you connect via Embedded Signup. No manual setup is needed — your webhook is already linked to your account.
@@ -2060,14 +2069,22 @@ const Settings = () => {
                                                     </div>
                                                     <div>
                                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Verify Token</label>
-                                                        <div className="flex gap-2">
+                                                        <div className="relative">
                                                             <input
-                                                                type="text"
+                                                                type={showWebhookVerifyToken ? "text" : "password"}
                                                                 readOnly
                                                                 value={webhookVerifyToken}
-                                                                className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy cursor-pointer"
+                                                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 pr-12 text-slate-500 dark:text-slate-400 font-mono text-sm focus:outline-none cursor-copy cursor-pointer"
                                                                 onClick={(e) => { e.target.select(); navigator.clipboard.writeText(e.target.value); showToast({ type: 'success', title: 'Copied', message: 'Token copied to clipboard.' }); }}
                                                             />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowWebhookVerifyToken(v => !v)}
+                                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                                                title={showWebhookVerifyToken ? "Hide token" : "Show token"}
+                                                            >
+                                                                {showWebhookVerifyToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                            </button>
                                                         </div>
                                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                                                             <strong>How to use:</strong> Open your Meta App's dashboard at <strong>developers.facebook.com</strong>, navigate to <strong>WhatsApp → Configuration</strong>, click <strong>Edit</strong> next to the Webhook section, and paste this token into the <strong>"Verify Token"</strong> field. This lets Meta confirm that the Callback URL above belongs to your account.

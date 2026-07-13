@@ -34,6 +34,107 @@ const InputGroup = ({ label, value, onChange, placeholder, type = "text" }) => (
     </div>
 );
 
+const MultiSelectDropdown = ({ options, value, onChange, placeholder, allowCreate = false }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const filteredOptions = options.filter(opt => opt.label.toLowerCase().includes(search.toLowerCase()));
+    const exactMatch = options.find(o => o.label.toLowerCase() === search.toLowerCase());
+    const showCreate = allowCreate && search.trim() !== '' && !exactMatch;
+
+    const handleSelect = (val) => {
+        if (value.includes(val)) {
+            onChange(value.filter(v => v !== val));
+        } else {
+            onChange([...value, val]);
+        }
+    };
+
+    const handleCreate = () => {
+        const newVal = search.trim();
+        if (!value.includes(newVal)) {
+            onChange([...value, newVal]);
+        }
+        setSearch('');
+    };
+
+    const removeValue = (val, e) => {
+        e.stopPropagation();
+        onChange(value.filter(v => v !== val));
+    };
+
+    return (
+        <div className="relative w-full" ref={dropdownRef}>
+            <div
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full min-h-[46px] bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 flex flex-wrap gap-1 items-center cursor-pointer transition-all focus-within:ring-2 focus-within:ring-indigo-500"
+            >
+                {value.length === 0 && <span className="text-slate-400 text-sm px-1">{placeholder}</span>}
+                {value.map(val => {
+                    const opt = options.find(o => o.value === val);
+                    return (
+                        <span key={val} className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1">
+                            {opt?.label || val}
+                            <X className="w-3 h-3 hover:text-red-500 cursor-pointer" onClick={(e) => removeValue(val, e)} />
+                        </span>
+                    );
+                })}
+            </div>
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl shadow-lg max-h-60 flex flex-col overflow-hidden">
+                    <div className="sticky top-0 bg-white dark:bg-surface-dark p-2 border-b border-slate-200 dark:border-white/10 z-10">
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-black/20 text-slate-700 dark:text-white text-sm px-3 py-2 rounded-lg outline-none"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                    <div className="p-1 overflow-y-auto">
+                        {showCreate && (
+                            <div
+                                onClick={handleCreate}
+                                className="px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 cursor-pointer rounded-lg flex items-center gap-2 font-medium"
+                            >
+                                <Plus className="w-4 h-4" /> Create "{search}"
+                            </div>
+                        )}
+                        {!showCreate && filteredOptions.length === 0 && (
+                            <div className="p-2 text-sm text-slate-500 text-center">No results found</div>
+                        )}
+                        {filteredOptions.map(opt => (
+                            <div
+                                key={opt.value}
+                                onClick={() => handleSelect(opt.value)}
+                                className="px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer rounded-lg flex items-center gap-2"
+                            >
+                                <input type="checkbox" checked={value.includes(opt.value)} readOnly className="rounded border-slate-300 text-indigo-600 focus:ring-0" />
+                                <div className="flex items-center gap-2">
+                                    {opt.color && <div className="w-3 h-3 rounded-full" style={{ backgroundColor: opt.color }}></div>}
+                                    {opt.label}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const AdminLandingPage = () => {
     const { user } = useAuth();
     const { showModal, showToast } = useUI();
@@ -158,6 +259,7 @@ const AdminLandingPage = () => {
     const [teamMembers, setTeamMembers] = useState([]);
     const [templates, setTemplates] = useState([]);
     const [crmTagsList, setCrmTagsList] = useState([]);
+    const [crmGroupsList, setCrmGroupsList] = useState([]);
     const [crmLinkedUser, setCrmLinkedUser] = useState(null);
 
     useEffect(() => {
@@ -176,6 +278,7 @@ const AdminLandingPage = () => {
             setTeamMembers(res.data.teamMembers || []);
             setTemplates(res.data.templates || []);
             setCrmTagsList(res.data.crmTags || []);
+            setCrmGroupsList(res.data.crmGroups || []);
         } catch (err) {
             console.error("Failed to fetch CRM data for chatbot config", err);
         }
@@ -1533,15 +1636,25 @@ const AdminLandingPage = () => {
                                                         </div>
 
                                                         <div className="space-y-2">
-                                                            <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">CRM Tags (Comma Separated)</label>
-                                                            <input type="text" list="crm-tags-list" value={config.aiChatbot?.crmTags || ''} onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, crmTags: e.target.value } })}
-                                                                placeholder="chatbot-lead, organic"
-                                                                className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white" />
-                                                            <datalist id="crm-tags-list">
-                                                                {crmTagsList.map(tag => (
-                                                                    <option key={tag} value={tag} />
-                                                                ))}
-                                                            </datalist>
+                                                            <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">CRM Tags</label>
+                                                            <MultiSelectDropdown
+                                                                options={crmTagsList.map(t => ({ value: t, label: t }))}
+                                                                value={typeof config.aiChatbot?.crmTags === 'string' ? config.aiChatbot?.crmTags.split(',').map(t => t.trim()).filter(Boolean) : (config.aiChatbot?.crmTags || [])}
+                                                                onChange={val => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, crmTags: val } })}
+                                                                placeholder="Select or create tags..."
+                                                                allowCreate={true}
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">CRM Groups</label>
+                                                            <MultiSelectDropdown
+                                                                options={crmGroupsList.map(g => ({ value: g.name, label: g.name, color: g.color }))}
+                                                                value={typeof config.aiChatbot?.crmGroups === 'string' ? config.aiChatbot?.crmGroups.split(',').map(t => t.trim()).filter(Boolean) : (config.aiChatbot?.crmGroups || [])}
+                                                                onChange={val => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, crmGroups: val } })}
+                                                                placeholder="Select groups..."
+                                                                allowCreate={false}
+                                                            />
                                                         </div>
 
                                                         <div className="space-y-2">

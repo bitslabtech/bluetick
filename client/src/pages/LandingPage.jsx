@@ -1915,8 +1915,8 @@ export default function LandingPage() {
                             {config.hero.layout === 'type2' ? (
                                 <div className="flex flex-col items-center justify-center text-center">
                                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
-                                        <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2">
-                                            <Star className="w-3.5 h-3.5" />  Next-Gen AI  Powered Platform
+                                        <span className="inline-flex py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 items-center gap-2 whitespace-nowrap">
+                                            <Star className="w-3.5 h-3.5 shrink-0" /> Next-Gen AI Powered Platform
                                         </span>
                                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
                                             {config.hero.title}
@@ -1947,8 +1947,8 @@ export default function LandingPage() {
                                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
                                     {/* Left Content */}
                                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center lg:text-left z-10 lg:col-span-6">
-                                        <span className="inline-block py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 flex items-center gap-2 max-w-fit mx-auto lg:mx-0">
-                                            <Star className="w-3.5 h-3.5" /> Next-Gen AI    Powered Platform
+                                        <span className="inline-flex py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 items-center gap-2 max-w-fit mx-auto lg:mx-0 whitespace-nowrap">
+                                            <Star className="w-3.5 h-3.5 shrink-0" /> Next-Gen AI Powered Platform
                                         </span>
                                         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
                                             {config.hero.title}

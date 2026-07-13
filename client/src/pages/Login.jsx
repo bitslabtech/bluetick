@@ -101,6 +101,11 @@ const Login = () => {
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                         </div>
+                        <div className="flex justify-end mt-1">
+                            <Link to="/forgot-password" className="text-xs text-primary hover:underline font-medium">
+                                Forgot Password?
+                            </Link>
+                        </div>
                     </div>
 
                     {TURNSTILE_SITE_KEY && (

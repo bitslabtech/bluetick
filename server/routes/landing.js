@@ -191,19 +191,31 @@ You are also acting as a Sales Development Representative. Your goal is to under
                     const Template = require('../models/Template');
                     const ChatMessage = require('../models/ChatMessage');
 
+                    // Helper to parse arrays or comma-separated strings
+                    const parseTags = (input) => {
+                        if (!input) return [];
+                        if (Array.isArray(input)) return input.map(t => typeof t === 'object' ? (t.value || t.name) : t.toString());
+                        if (typeof input === 'string') return input.split(',').map(t => t.trim()).filter(Boolean);
+                        return [];
+                    };
+                    
+                    const tagsToAdd = [
+                        ...parseTags(aiConfig.crmTags),
+                        ...parseTags(aiConfig.crmGroups)
+                    ];
+
                     // 1. Create or Update Contact
                     const [contact, created] = await Contact.findOrCreate({
                         where: { userId: primaryOwnerId, phone: phone },
                         defaults: {
                             name: name,
-                            tags: aiConfig.crmTags ? aiConfig.crmTags.split(',').map(t => t.trim()) : [],
+                            tags: tagsToAdd,
                             createdById: primaryOwnerId
                         }
                     });
 
-                    if (!created && aiConfig.crmTags) {
-                        const newTags = aiConfig.crmTags.split(',').map(t => t.trim());
-                        contact.tags = [...new Set([...(contact.tags || []), ...newTags])];
+                    if (!created && tagsToAdd.length > 0) {
+                        contact.tags = [...new Set([...(contact.tags || []), ...tagsToAdd])];
                         if (name !== 'AI Chatbot Lead') contact.name = name; // Update name if provided
                         await contact.save();
                     }

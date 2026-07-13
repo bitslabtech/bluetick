@@ -28,6 +28,7 @@ const WhatsAppInbox = React.lazy(() => import('./pages/WhatsAppInbox'));
 const WhatsAppSettings = React.lazy(() => import('./pages/WhatsAppSettings'));
 const PublicForm = React.lazy(() => import('./pages/PublicForm'));
 const Login = React.lazy(() => import('./pages/Login'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
 const Register = React.lazy(() => import('./pages/Register'));
 const SuperAdminDashboard = React.lazy(() => import('./pages/SuperAdminDashboard'));
 const AdminUsers = React.lazy(() => import('./pages/AdminUsers'));
@@ -306,6 +307,7 @@ function App() {
                                         <Route path="/store/:slug/category/:categoryName" element={<PublicWaStoreCategory />} /> {/* NEW: Category Page */}
                                         <Route element={<GuestRoute />}>
                                             <Route path="/login" element={<Login />} />
+                                            <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/register" element={<Register />} />
                                         </Route>
                                         <Route path="/privacy" element={<PrivacyPolicy />} />

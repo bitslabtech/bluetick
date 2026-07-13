@@ -178,6 +178,7 @@ router.get('/crm-data', superAdmin, async (req, res) => {
         const User = require('../models/User');
         const Template = require('../models/Template');
         const Contact = require('../models/Contact');
+        const Group = require('../models/Group');
         const { Op } = require('sequelize');
 
         // Fetch team members
@@ -221,11 +222,18 @@ router.get('/crm-data', superAdmin, async (req, res) => {
             }
         });
 
+        const crmGroups = await Group.findAll({
+            where: { userId: linkedAdminUserId },
+            attributes: ['id', 'name', 'color'],
+            order: [['name', 'ASC']]
+        });
+
         res.json({
             linkedUserId: linkedAdminUserId,
             teamMembers: teamWithStatus,
             templates: templates,
-            crmTags: Array.from(uniqueTags)
+            crmTags: Array.from(uniqueTags),
+            crmGroups: crmGroups
         });
     } catch (err) {
         console.error('CRM Data Fetch Error:', err);
