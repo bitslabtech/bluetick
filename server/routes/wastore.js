@@ -85,7 +85,7 @@ const fireCAPIPurchase = async (store, order) => {
 // Get Public Store by slug
 router.get('/public/:slug', async (req, res) => {
     try {
-        const { slug } = req.params;
+        const slug = req.params.slug.toLowerCase();
         
         // Prevent browser caching so theme and layout changes reflect immediately
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -139,7 +139,7 @@ router.get('/public/:slug', async (req, res) => {
 // POST /api/wastore/public/:slug/view  — Dedicated view counter (called once per session from frontend)
 router.post('/public/:slug/view', async (req, res) => {
     try {
-        const store = await WaStore.findOne({ where: { slug: req.params.slug, isActive: true } });
+        const store = await WaStore.findOne({ where: { slug: req.params.slug.toLowerCase(), isActive: true } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
         await store.increment('views');
         res.json({ ok: true });
@@ -543,7 +543,7 @@ router.post('/:storeId/orders/pos', auth, async (req, res) => {
 router.post('/public/:slug/verify-payment', async (req, res) => {
     try {
         const { orderNumber, paymentData, provider } = req.body;
-        const store = await WaStore.findOne({ where: { slug: req.params.slug, isActive: true } });
+        const store = await WaStore.findOne({ where: { slug: req.params.slug.toLowerCase(), isActive: true } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
         const order = await WaOrder.findOne({ where: { orderNumber, storeId: store.id } });
@@ -1418,7 +1418,7 @@ router.delete('/:storeId/coupons/:couponId', async (req, res) => {
 router.post('/public/:slug/validate-coupon', async (req, res) => {
     try {
         const { code, cartTotal } = req.body;
-        const store = await WaStore.findOne({ where: { slug: req.params.slug, isActive: true } });
+        const store = await WaStore.findOne({ where: { slug: req.params.slug.toLowerCase(), isActive: true } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
         const WaStoreCoupon = require('../models/WaStoreCoupon');

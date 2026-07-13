@@ -26,6 +26,14 @@ const AdminSystemControls = () => {
     const [logs, setLogs] = useState('');
     const [saving, setSaving] = useState(false);
 
+    const [logLinesCount, setLogLinesCount] = useState(50);
+    const logLinesCountRef = React.useRef(logLinesCount);
+    const [isLogMaximized, setIsLogMaximized] = useState(false);
+
+    useEffect(() => {
+        logLinesCountRef.current = logLinesCount;
+    }, [logLinesCount]);
+
     // Config Form States
     const [ipBlacklistInput, setIpBlacklistInput] = useState('');
 
@@ -123,7 +131,7 @@ const AdminSystemControls = () => {
             setLoading(true);
             const [configRes, diagRes] = await Promise.all([
                 axios.get(`${import.meta.env.VITE_API_URL}/api/system`),
-                axios.get(`${import.meta.env.VITE_API_URL}/api/system/diagnostics`)
+                axios.get(`${import.meta.env.VITE_API_URL}/api/system/diagnostics?lines=${logLinesCountRef.current}`)
             ]);
             setConfig(configRes.data);
             setDiagnostics(diagRes.data);
@@ -139,11 +147,16 @@ const AdminSystemControls = () => {
 
     const fetchDiagnostics = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/system/diagnostics`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/system/diagnostics?lines=${logLinesCountRef.current}`);
             setDiagnostics(res.data);
             setLogs(res.data.logs);
         } catch (err) { console.error(err); }
     };
+
+    // Immediately fetch when logLinesCount changes
+    useEffect(() => {
+        if (!loading) fetchDiagnostics();
+    }, [logLinesCount]);
 
     useEffect(() => {
         fetchData();
@@ -841,15 +854,25 @@ const AdminSystemControls = () => {
                     <div className="space-y-8">
 
                         {/* CONSOLE */}
-                        <div className="bg-slate-900 rounded-2xl p-4 md:p-6 shadow-lg text-slate-300 font-mono text-sm h-[500px] flex flex-col">
-                            <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-4">
+                        <div className={`bg-slate-900 rounded-2xl p-4 md:p-6 shadow-2xl text-slate-300 font-mono text-sm flex flex-col transition-all ${isLogMaximized ? 'fixed inset-4 z-[100] h-[calc(100vh-2rem)] w-[calc(100vw-2rem)]' : 'h-[500px]'}`}>
+                            <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-4 shrink-0">
                                 <h3 className="font-bold text-white flex items-center gap-2">
                                     <Terminal className="w-4 h-4" /> System Logs (Tail)
+                                    <select 
+                                        className="ml-2 bg-slate-800 text-xs border border-slate-700 rounded px-2 py-1 outline-none focus:border-slate-500 cursor-pointer"
+                                        value={logLinesCount}
+                                        onChange={(e) => setLogLinesCount(Number(e.target.value))}
+                                    >
+                                        <option value={50}>50 lines</option>
+                                        <option value={100}>100 lines</option>
+                                        <option value={200}>200 lines</option>
+                                        <option value={500}>500 lines</option>
+                                    </select>
                                 </h3>
                                 <div className="flex gap-2">
-                                    <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                                    <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-                                    <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                                    <button title="Close" onClick={() => setIsLogMaximized(false)} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 transition-colors flex items-center justify-center cursor-pointer"></button>
+                                    <button title="Minimize" onClick={() => setIsLogMaximized(false)} className="w-3 h-3 rounded-full bg-amber-500 hover:bg-amber-400 transition-colors flex items-center justify-center cursor-pointer"></button>
+                                    <button title="Maximize" onClick={() => setIsLogMaximized(!isLogMaximized)} className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400 transition-colors flex items-center justify-center cursor-pointer"></button>
                                 </div>
                             </div>
                             <div className="flex-1 overflow-auto whitespace-pre-wrap break-all text-xs opacity-90 leading-relaxed scrollbar-thin scrollbar-thumb-white/20">

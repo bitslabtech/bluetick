@@ -179,6 +179,7 @@ router.get('/crm-data', superAdmin, async (req, res) => {
         const Template = require('../models/Template');
         const Contact = require('../models/Contact');
         const Group = require('../models/Group');
+        const Label = require('../models/Label');
         const { Op } = require('sequelize');
 
         // Fetch team members
@@ -206,21 +207,13 @@ router.get('/crm-data', superAdmin, async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
-        // Fetch unique tags from contacts
-        const contactsWithTags = await Contact.findAll({
-            where: { 
-                userId: linkedAdminUserId,
-                tags: { [Op.not]: null }
-            },
-            attributes: ['tags']
+        // Fetch unique tags from Label model
+        const crmTagsModels = await Label.findAll({
+            where: { userId: linkedAdminUserId },
+            attributes: ['name'],
+            order: [['name', 'ASC']]
         });
-
-        const uniqueTags = new Set();
-        contactsWithTags.forEach(c => {
-            if (Array.isArray(c.tags)) {
-                c.tags.forEach(tag => uniqueTags.add(tag));
-            }
-        });
+        const uniqueTags = crmTagsModels.map(t => t.name);
 
         const crmGroups = await Group.findAll({
             where: { userId: linkedAdminUserId },
@@ -232,7 +225,7 @@ router.get('/crm-data', superAdmin, async (req, res) => {
             linkedUserId: linkedAdminUserId,
             teamMembers: teamWithStatus,
             templates: templates,
-            crmTags: Array.from(uniqueTags),
+            crmTags: uniqueTags,
             crmGroups: crmGroups
         });
     } catch (err) {
@@ -258,13 +251,14 @@ router.get('/diagnostics', superAdmin, async (req, res) => {
             dbStatus = 'error';
         }
 
-        // 3. Logs (Read last 50 lines of server log if exists)
+        // 3. Logs (Read last X lines of server log if exists)
         let logs = 'No log file found.';
+        const logLinesCount = parseInt(req.query.lines) || 50;
         const logPath = path.join(__dirname, '../logs/server.log');
         if (fs.existsSync(logPath)) {
             const data = fs.readFileSync(logPath, 'utf8');
             const lines = data.split('\n');
-            logs = lines.slice(-50).join('\n');
+            logs = lines.slice(-logLinesCount).join('\n');
         } else {
             // Fallback attempt to read from a generic log file
             try {

@@ -140,12 +140,13 @@ You are also acting as a Sales Development Representative. Your goal is to under
             parts: [{ text: msg.content || '' }]
         }));
 
-        // Fallback chain: if configured model hits quota/overload, try cheaper ones automatically
+        // Fallback chain: if configured model hits quota/overload, try it again before falling back to cheaper ones
         const modelFallbackChain = [
             aiModelName,
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-lite',
-        ].filter((m, i, arr) => arr.indexOf(m) === i); // deduplicate
+            aiModelName, // 2nd attempt (Retry)
+            'gemini-2.5-flash',
+            'gemini-1.5-flash',
+        ];
 
         let responseText = null;
         let lastError = null;
@@ -162,7 +163,7 @@ You are also acting as a Sales Development Representative. Your goal is to under
                 break; // success — stop trying
             } catch (err) {
                 const msg = err?.message || '';
-                const isRetryable = msg.includes('503') || msg.includes('429') || msg.includes('quota') || msg.includes('Unavailable');
+                const isRetryable = msg.includes('503') || msg.includes('429') || msg.includes('quota') || msg.includes('Unavailable') || msg.includes('404') || msg.includes('Not Found');
                 lastError = err;
                 if (!isRetryable) throw err; // non-recoverable error — don't retry
                 console.warn(`[Chat] Model ${modelName} failed (retryable): ${msg.slice(0, 120)}`);
@@ -250,6 +251,21 @@ You are also acting as a Sales Development Representative. Your goal is to under
                                     language: { code: template.language }
                                 }
                             };
+
+                            // Check for variables in the template body (e.g. {{1}})
+                            if (template.content && template.content.includes('{{1}}')) {
+                                payload.template.components = [
+                                    {
+                                        type: "body",
+                                        parameters: [
+                                            {
+                                                type: "text",
+                                                text: name || "there" // fallback if name is not properly captured
+                                            }
+                                        ]
+                                    }
+                                ];
+                            }
                             
                             // Fire and forget fetch to Meta API
                             fetch(`https://graph.facebook.com/v21.0/${ownerSettings.metaPhoneNumberId}/messages`, {

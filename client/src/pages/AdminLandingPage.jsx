@@ -1666,13 +1666,18 @@ const AdminLandingPage = () => {
                                                                 </label>
                                                             </label>
                                                             {config.aiChatbot?.autoTriggerTemplate && (
-                                                                <select value={config.aiChatbot?.templateName || ''} onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, templateName: e.target.value } })}
-                                                                    className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white">
-                                                                    <option value="">Select a template...</option>
-                                                                    {templates.map(tpl => (
-                                                                        <option key={tpl.id} value={tpl.name}>{tpl.name} ({tpl.language})</option>
-                                                                    ))}
-                                                                </select>
+                                                                <div className="space-y-2">
+                                                                    <select value={config.aiChatbot?.templateName || ''} onChange={e => setConfig({ ...config, aiChatbot: { ...config.aiChatbot, templateName: e.target.value } })}
+                                                                        className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white">
+                                                                        <option value="">Select a template...</option>
+                                                                        {templates.map(tpl => (
+                                                                            <option key={tpl.id} value={tpl.name}>{tpl.name} ({tpl.language})</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight bg-slate-50 dark:bg-white/5 p-2 rounded-lg">
+                                                                        <span className="font-semibold text-indigo-500">Note:</span> If your selected template contains variables, <code className="px-1 bg-slate-200 dark:bg-black/40 rounded text-slate-700 dark:text-slate-300">{"{{1}}"}</code> will be automatically replaced with the captured Lead's Name. Do not use templates with multiple variables for auto-triggers.
+                                                                    </p>
+                                                                </div>
                                                             )}
                                                         </div>
 
