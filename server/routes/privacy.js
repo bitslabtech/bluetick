@@ -6,7 +6,10 @@ const router = express.Router();
 // Facebook checks: http://bluetick.cloud/2muwahn7wkgkewohqatb3havodf0bz.html
 router.get('/2muwahn7wkgkewohqatb3havodf0bz.html', (req, res) => {
     res.setHeader('Content-Type', 'text/html');
-    res.send('2muwahn7wkgkewohqatb3havodf0bz');
+    res.send(`<html>
+<head><meta charset="utf-8"></head>
+<body>2muwahn7wkgkewohqatb3havodf0bz</body>
+</html>`);
 });
 
 // Public Privacy Policy page — required for Meta App Live Mode
