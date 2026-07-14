@@ -46,23 +46,23 @@ const AdminSystemControls = () => {
     const [versionSaving, setVersionSaving] = useState(false);
 
     // AI Model State
-    const [aiModel, setAiModel] = useState('gemini-2.0-flash');
+    const [aiModel, setAiModel] = useState('gemini-2.5-flash');
     const [savingAiModel, setSavingAiModel] = useState(false);
 
     // Token Price Calculator State
     const [calcTokens, setCalcTokens] = useState(1000);
     const [calcCurrency, setCalcCurrency] = useState('INR');
-    const [calcModel, setCalcModel] = useState('gemini-2.0-flash'); // independent — does NOT change app-wide model
+    const [calcModel, setCalcModel] = useState('gemini-2.5-flash'); // independent — does NOT change app-wide model
     const [calcResult, setCalcResult] = useState(null);
     const [calcLoading, setCalcLoading] = useState(false);
     const [calcRateDate, setCalcRateDate] = useState(null);
 
     // Gemini official pricing per 1M tokens (USD) — input / output
+    // Updated July 2026: gemini-2.0-flash & gemini-2.0-flash-lite were deprecated and shut down on June 1, 2026.
     const GEMINI_PRICING = {
-        'gemini-2.0-flash-lite': { input: 0.075,  output: 0.30,  label: 'Gemini 2.0 Flash Lite' },
-        'gemini-2.0-flash':      { input: 0.10,   output: 0.40,  label: 'Gemini 2.0 Flash' },
-        'gemini-2.5-flash':      { input: 0.15,   output: 0.60,  label: 'Gemini 2.5 Flash' },
-        'gemini-2.5-pro':        { input: 1.25,   output: 10.00, label: 'Gemini 2.5 Pro' },
+        'gemini-2.5-flash-lite': { input: 0.10,  output: 0.40,  label: 'Gemini 2.5 Flash Lite' },
+        'gemini-2.5-flash':      { input: 0.30,  output: 2.50,  label: 'Gemini 2.5 Flash' },
+        'gemini-2.5-pro':        { input: 1.25,  output: 10.00, label: 'Gemini 2.5 Pro' },
     };
 
     const TOP_CURRENCIES = [
@@ -551,10 +551,9 @@ const AdminSystemControls = () => {
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                                 {[
-                                    { model: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite', desc: 'Cheapest & fastest. Great for free-tier API keys.', color: 'text-emerald-500', border: 'border-emerald-400' },
-                                    { model: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash',      desc: 'Best speed/quality balance. Recommended.',      color: 'text-blue-500',    border: 'border-blue-400' },
-                                    { model: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      desc: 'Latest generation. Smarter responses.',          color: 'text-violet-500',  border: 'border-violet-400' },
-                                    { model: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        desc: 'Most powerful. Best for complex tasks.',         color: 'text-amber-500',   border: 'border-amber-400' },
+                                    { model: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', desc: 'Cheapest & fastest. Great for free-tier API keys.', color: 'text-emerald-500', border: 'border-emerald-400' },
+                                    { model: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      desc: 'Best speed/quality balance. Recommended.',        color: 'text-blue-500',    border: 'border-blue-400' },
+                                    { model: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        desc: 'Most powerful. Best for complex tasks.',          color: 'text-amber-500',   border: 'border-amber-400' },
                                 ].map(m => (
                                     <button
                                         key={m.model}

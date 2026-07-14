@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
 
+// ── Facebook Domain Verification ──────────────────────────────────────────────
+// Required for Meta Business Manager domain verification.
+// Facebook checks: http://bluetick.cloud/2muwahn7wkgkewohqatb3havodf0bz.html
+router.get('/2muwahn7wkgkewohqatb3havodf0bz.html', (req, res) => {
+    res.setHeader('Content-Type', 'text/html');
+    res.send('2muwahn7wkgkewohqatb3havodf0bz');
+});
+
 // Public Privacy Policy page — required for Meta App Live Mode
 router.get('/privacy-policy', (req, res) => {
     res.setHeader('Content-Type', 'text/html');
