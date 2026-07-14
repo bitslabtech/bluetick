@@ -14,7 +14,8 @@ const intervalLabel = (i) => i === 'year' ? 'per year' : i === 'lifetime' ? 'one
 const Checkout = () => {
     const [plan, setPlan] = useState(null);
     const [upgradeData, setUpgradeData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);       // initial page load only
+    const [recalculating, setRecalculating] = useState(false); // interval/plan switch (no full-page hide)
     const { initiatePayment, isProcessing } = usePayment();
     const [processing, setProcessing] = useState(false);
 
@@ -52,14 +53,16 @@ const Checkout = () => {
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Effect 2: Recalculate upgrade credit whenever the selected plan or interval changes
+    // Effect 2: Recalculate upgrade credit whenever the selected plan or interval changes.
+    // Uses `recalculating` (not `loading`) so the full page is NOT hidden on interval switches.
     useEffect(() => {
         if (!plan) return; // wait until plan is set by Effect 1
-        setLoading(true);
+        setRecalculating(true);
+        setLoading(false); // ensure initial spinner is gone once plan is known
         axios.get(`${API}/api/billing/calculate-upgrade/${plan.name}?interval=${plan.interval || 'month'}`)
             .then(res => { setUpgradeData(res.data); })
             .catch(err => { console.error('Failed to calculate upgrade', err); })
-            .finally(() => { setLoading(false); });
+            .finally(() => { setRecalculating(false); });
     }, [plan?.name, plan?.interval]); // recalculate on name or interval change
 
     const handleApplyCoupon = async () => {
@@ -199,13 +202,22 @@ const Checkout = () => {
                                         <Tag className="w-3 h-3" /> {plan.name} Plan
                                     </div>
                                     <div className="flex items-end gap-2">
-                                        <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-                                            {sym}{upgradeData ? (appliedCoupon ? upgradeData.finalPayableAmount.toLocaleString() : upgradeData.targetPlanPrice.toLocaleString()) : actualPrice.toLocaleString()}
-                                        </h3>
-                                        {originalPrice > actualPrice && (
-                                            <span className="text-lg text-slate-400 dark:text-slate-500 line-through mb-0.5">
-                                                {sym}{originalPrice.toLocaleString()}
-                                            </span>
+                                        {recalculating ? (
+                                            <div className="flex items-center gap-2 h-9">
+                                                <Loader className="w-5 h-5 animate-spin text-indigo-500" />
+                                                <span className="text-slate-400 dark:text-slate-500 text-sm">Calculating...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                                                    {sym}{upgradeData ? (appliedCoupon ? upgradeData.finalPayableAmount.toLocaleString() : upgradeData.targetPlanPrice.toLocaleString()) : actualPrice.toLocaleString()}
+                                                </h3>
+                                                {originalPrice > actualPrice && (
+                                                    <span className="text-lg text-slate-400 dark:text-slate-500 line-through mb-0.5">
+                                                        {sym}{originalPrice.toLocaleString()}
+                                                    </span>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">{intLabel}</p>
@@ -372,18 +384,20 @@ const Checkout = () => {
                             {/* Razorpay CTA */}
                             <button
                                 onClick={handlePayment}
-                                disabled={processing || isProcessing}
+                                disabled={processing || isProcessing || recalculating}
                                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                {(processing || isProcessing) ? (
+                                {recalculating ? (
+                                    <><Loader className="w-5 h-5 animate-spin" /> Recalculating price...</>
+                                ) : (processing || isProcessing) ? (
                                     <><Loader className="w-5 h-5 animate-spin" /> Opening Payment...</>
                                 ) : (
                                     <><Shield className="w-5 h-5" /> Pay {sym}{appliedCoupon ? appliedCoupon.finalPrice.toLocaleString() : (upgradeData ? upgradeData.finalPayableAmount.toLocaleString() : parseFloat(plan.price).toLocaleString())}</>
                                 )}
                             </button>
 
-                            {/* Trial CTA — only shown when plan has trial days AND user hasn't used their trial yet AND upgradeData has loaded (prevents flashing while API is in-flight) */}
-                            {!loading && plan.trialDays > 0 && upgradeData && !upgradeData.hasUsedTrial && !upgradeData.isCurrentPlanPaid && (
+                            {/* Trial CTA — only shown when upgradeData is loaded and user hasn't used their trial */}
+                            {!loading && !recalculating && plan.trialDays > 0 && upgradeData && !upgradeData.hasUsedTrial && !upgradeData.isCurrentPlanPaid && (
                                 <button
                                     onClick={async () => {
                                         setProcessing(true);
