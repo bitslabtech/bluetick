@@ -554,17 +554,19 @@ const Dashboard = () => {
                             <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">This Month's Usage</p>
                             <div className="flex items-end gap-1">
                                 <p className="text-slate-900 dark:text-white text-2xl font-bold">{stats.monthlyUsageCount.toLocaleString()}</p>
-                                <span className="text-slate-400 dark:text-text-secondary text-sm mb-1 pb-0.5">/ {stats.monthlyLimit?.toLocaleString() || 30}</span>
+                                <span className="text-slate-400 dark:text-text-secondary text-sm mb-1 pb-0.5">/ {stats.monthlyLimit === -1 ? 'Unlimited' : stats.monthlyLimit?.toLocaleString() || 30}</span>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-background-dark h-1.5 rounded-full mt-3 overflow-hidden">
                                 <div
-                                    className={`h-full rounded-full transition-colors ${((stats.monthlyUsageCount / (stats.monthlyLimit || 30)) * 100) < 60
+                                    className={`h-full rounded-full transition-colors ${stats.monthlyLimit === -1
                                         ? 'bg-green-500 dark:bg-green-400'
-                                        : ((stats.monthlyUsageCount / (stats.monthlyLimit || 30)) * 100) < 85
-                                            ? 'bg-orange-500 dark:bg-orange-400'
-                                            : 'bg-red-500 dark:bg-red-400'
+                                        : ((stats.monthlyUsageCount / (stats.monthlyLimit || 30)) * 100) < 60
+                                            ? 'bg-green-500 dark:bg-green-400'
+                                            : ((stats.monthlyUsageCount / (stats.monthlyLimit || 30)) * 100) < 85
+                                                ? 'bg-orange-500 dark:bg-orange-400'
+                                                : 'bg-red-500 dark:bg-red-400'
                                         }`}
-                                    style={{ width: `${Math.min((stats.monthlyUsageCount / (stats.monthlyLimit || 30)) * 100, 100)}%` }}
+                                    style={{ width: stats.monthlyLimit === -1 ? '0%' : `${Math.min((stats.monthlyUsageCount / (stats.monthlyLimit || 30)) * 100, 100)}%` }}
                                 ></div>
                             </div>
                         </div>
@@ -611,17 +613,19 @@ const Dashboard = () => {
                             <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">Total Contacts</p>
                             <div className="flex items-end gap-1">
                                 <p className="text-slate-900 dark:text-white text-2xl font-bold">{stats.contactsCount.toLocaleString()}</p>
-                                <span className="text-slate-400 dark:text-text-secondary text-sm mb-1 pb-0.5">/ {stats.contactLimit?.toLocaleString() || 10}</span>
+                                <span className="text-slate-400 dark:text-text-secondary text-sm mb-1 pb-0.5">/ {stats.contactLimit === -1 ? 'Unlimited' : stats.contactLimit?.toLocaleString() || 10}</span>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-background-dark h-1.5 rounded-full mt-3 overflow-hidden">
                                 <div
-                                    className={`h-full rounded-full transition-colors ${((stats.contactsCount / (stats.contactLimit || 10)) * 100) < 60
+                                    className={`h-full rounded-full transition-colors ${stats.contactLimit === -1
                                         ? 'bg-green-500 dark:bg-green-400'
-                                        : ((stats.contactsCount / (stats.contactLimit || 10)) * 100) < 85
-                                            ? 'bg-orange-500 dark:bg-orange-400'
-                                            : 'bg-red-500 dark:bg-red-400'
+                                        : ((stats.contactsCount / (stats.contactLimit || 10)) * 100) < 60
+                                            ? 'bg-green-500 dark:bg-green-400'
+                                            : ((stats.contactsCount / (stats.contactLimit || 10)) * 100) < 85
+                                                ? 'bg-orange-500 dark:bg-orange-400'
+                                                : 'bg-red-500 dark:bg-red-400'
                                         }`}
-                                    style={{ width: `${Math.min((stats.contactsCount / (stats.contactLimit || 10)) * 100, 100)}%` }}
+                                    style={{ width: stats.contactLimit === -1 ? '0%' : `${Math.min((stats.contactsCount / (stats.contactLimit || 10)) * 100, 100)}%` }}
                                 ></div>
                             </div>
                         </div>
@@ -637,17 +641,19 @@ const Dashboard = () => {
                             <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">Templates</p>
                             <div className="flex items-end gap-1">
                                 <p className="text-slate-900 dark:text-white text-2xl font-bold">{stats.templatesCount.toLocaleString()}</p>
-                                <span className="text-slate-400 dark:text-text-secondary text-sm mb-1 pb-0.5">/ {stats.templateLimit?.toLocaleString() || 2}</span>
+                                <span className="text-slate-400 dark:text-text-secondary text-sm mb-1 pb-0.5">/ {stats.templateLimit === -1 ? 'Unlimited' : stats.templateLimit?.toLocaleString() || 2}</span>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-background-dark h-1.5 rounded-full mt-3 overflow-hidden">
                                 <div
-                                    className={`h-full rounded-full transition-colors ${((stats.templatesCount / (stats.templateLimit || 2)) * 100) < 60
+                                    className={`h-full rounded-full transition-colors ${stats.templateLimit === -1
                                         ? 'bg-green-500 dark:bg-green-400'
-                                        : ((stats.templatesCount / (stats.templateLimit || 2)) * 100) < 85
-                                            ? 'bg-orange-500 dark:bg-orange-400'
-                                            : 'bg-red-500 dark:bg-red-400'
+                                        : ((stats.templatesCount / (stats.templateLimit || 2)) * 100) < 60
+                                            ? 'bg-green-500 dark:bg-green-400'
+                                            : ((stats.templatesCount / (stats.templateLimit || 2)) * 100) < 85
+                                                ? 'bg-orange-500 dark:bg-orange-400'
+                                                : 'bg-red-500 dark:bg-red-400'
                                         }`}
-                                    style={{ width: `${Math.min((stats.templatesCount / (stats.templateLimit || 2)) * 100, 100)}%` }}
+                                    style={{ width: stats.templateLimit === -1 ? '0%' : `${Math.min((stats.templatesCount / (stats.templateLimit || 2)) * 100, 100)}%` }}
                                 ></div>
                             </div>
                         </div>

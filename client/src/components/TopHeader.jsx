@@ -2,10 +2,15 @@ import React from 'react';
 import ThemeToggle from './ThemeToggle';
 import NotificationBell from './NotificationBell';
 import UserDropdown from './UserDropdown';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { Zap } from 'lucide-react';
 
 export default function TopHeader({ leftContent, title, subtitle, rightContent }) {
     // If no custom content, hide the entire TopHeader on mobile to save space
     const headerDisplayClass = (!leftContent && !rightContent) ? 'hidden md:flex' : 'flex';
+    const { user } = useAuth();
+    const navigate = useNavigate();
 
     return (
         <header className={`${headerDisplayClass} flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300 sticky top-0 z-50 w-full shadow-sm`}>
@@ -17,10 +22,13 @@ export default function TopHeader({ leftContent, title, subtitle, rightContent }
                     </div>
                 )}
             </div>
+
+
             
             <div className="flex items-center justify-between md:justify-end gap-4 shrink-0 w-full md:w-auto mt-2 md:mt-0">
+
                 {rightContent && (
-                    <div className="flex items-center gap-3 w-full md:w-auto border-t md:border-t-0 md:border-r pt-3 md:pt-0 border-slate-200 dark:border-white/10">
+                    <div className="flex items-center gap-3 w-full md:w-auto border-t md:border-t-0 md:border-r pt-3 md:pt-0 border-slate-200 dark:border-white/10 pr-4">
                         {rightContent}
                     </div>
                 )}

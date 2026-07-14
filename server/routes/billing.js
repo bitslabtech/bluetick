@@ -589,7 +589,8 @@ router.post('/create-order', async (req, res) => {
             else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
             if (interval) targetPlan.interval = interval;
 
-            const isMidSubscription = (user.planStatus === 'Active' || user.planStatus === 'Trial') && user.plan !== 'Free' && (!user.planExpiry || new Date(user.planExpiry) > new Date());
+            // Trial is NOT a paid subscription — trial users can freely pick any plan
+            const isMidSubscription = user.planStatus === 'Active' && user.plan !== 'Free' && (!user.planExpiry || new Date(user.planExpiry) > new Date());
 
             // Use actual paid amount from last transaction for accurate downgrade comparison
             const lastTxn = await Transaction.findOne({
@@ -939,7 +940,8 @@ router.post('/upgrade', async (req, res) => {
         else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
         if (interval) targetPlan.interval = interval;
 
-        const isMidSubscription = (user.planStatus === 'Active' || user.planStatus === 'Trial') && user.plan !== 'Free' && (!user.planExpiry || new Date(user.planExpiry) > new Date());
+        // Trial is NOT a paid subscription — trial users can freely pick any plan
+        const isMidSubscription = user.planStatus === 'Active' && user.plan !== 'Free' && (!user.planExpiry || new Date(user.planExpiry) > new Date());
 
         // Use actual paid amount from last transaction for accurate downgrade comparison
         const lastTxn = await Transaction.findOne({

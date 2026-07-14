@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
     Sparkles, Zap, Check, X, MessageSquare, Users, Layout,
     Clock, TrendingUp, Shield, ChevronRight, RefreshCw, Menu, Info,
-    MousePointerClick, Megaphone
+    MousePointerClick, Megaphone, CreditCard, ShoppingCart, Bot
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
@@ -13,47 +13,67 @@ import UserDropdown from '../components/UserDropdown';
 
 const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
-// Color themes for plan cards — must match the color options in AdminPlans
-const PLAN_THEMES = {
+// Color themes matching the landing page
+const THEME_COLORS = {
     blue: {
-        gradient: 'from-blue-500 via-indigo-600 to-violet-700',
-        badge: 'bg-blue-100 text-blue-700',
-        btn: 'bg-white text-indigo-900 hover:bg-indigo-50',
-        glow: 'shadow-indigo-500/30',
-        accent: 'text-indigo-300',
-        ring: 'ring-indigo-500/40'
+        bgPop: 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 shadow-xl shadow-blue-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+        bgReg: 'bg-blue-50/10 dark:bg-blue-950/5 border-blue-200/90 dark:border-blue-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-blue-500/40',
+        badgePop: 'bg-blue-500 text-white',
+        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+        checkPop: 'bg-emerald-500 text-white',
+        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+        btnSubtlePop: 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
+        btnSubtleReg: 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50',
+        btnPrimary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25'
     },
     green: {
-        gradient: 'from-green-400 via-green-500 to-teal-600',
-        badge: 'bg-green-100 text-green-700',
-        btn: 'bg-white text-green-900 hover:bg-green-50',
-        glow: 'shadow-green-500/30',
-        accent: 'text-green-200',
-        ring: 'ring-green-500/40'
+        bgPop: 'bg-green-50 dark:bg-green-900/20 border-green-400 shadow-xl shadow-green-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+        bgReg: 'bg-green-50/10 dark:bg-green-950/5 border-green-200/90 dark:border-green-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-green-500/40',
+        badgePop: 'bg-green-500 text-white',
+        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+        checkPop: 'bg-emerald-500 text-white',
+        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+        btnSubtlePop: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800',
+        btnSubtleReg: 'bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800/50',
+        btnPrimary: 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/25'
     },
     emerald: {
-        gradient: 'from-emerald-400 via-emerald-500 to-green-700',
-        badge: 'bg-emerald-100 text-emerald-700',
-        btn: 'bg-white text-emerald-900 hover:bg-emerald-50',
-        glow: 'shadow-emerald-500/30',
-        accent: 'text-emerald-200',
-        ring: 'ring-emerald-500/40'
+        bgPop: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-400 shadow-xl shadow-emerald-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+        bgReg: 'bg-emerald-50/10 dark:bg-emerald-950/5 border-emerald-200/90 dark:border-emerald-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-emerald-500/40',
+        badgePop: 'bg-emerald-500 text-white',
+        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+        checkPop: 'bg-emerald-500 text-white',
+        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+        btnSubtlePop: 'bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800',
+        btnSubtleReg: 'bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50',
+        btnPrimary: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/25'
     },
     amber: {
-        gradient: 'from-amber-400 via-orange-500 to-red-600',
-        badge: 'bg-amber-100 text-amber-700',
-        btn: 'bg-white text-orange-900 hover:bg-orange-50',
-        glow: 'shadow-orange-500/30',
-        accent: 'text-orange-200',
-        ring: 'ring-orange-400/40'
+        bgPop: 'bg-amber-50 dark:bg-amber-900/20 border-amber-400 shadow-xl shadow-amber-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+        bgReg: 'bg-amber-50/10 dark:bg-amber-950/5 border-amber-200/90 dark:border-amber-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-amber-500/40',
+        badgePop: 'bg-amber-500 text-white',
+        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+        checkPop: 'bg-emerald-500 text-white',
+        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+        btnSubtlePop: 'bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800',
+        btnSubtleReg: 'bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50',
+        btnPrimary: 'bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/25'
     },
     purple: {
-        gradient: 'from-violet-500 via-purple-600 to-fuchsia-700',
-        badge: 'bg-purple-100 text-purple-700',
-        btn: 'bg-white text-purple-900 hover:bg-purple-50',
-        glow: 'shadow-purple-500/30',
-        accent: 'text-purple-300',
-        ring: 'ring-purple-500/40'
+        bgPop: 'bg-purple-50 dark:bg-purple-900/20 border-purple-400 shadow-xl shadow-purple-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+        bgReg: 'bg-purple-50/10 dark:bg-purple-950/5 border-purple-200/90 dark:border-purple-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-purple-500/40',
+        badgePop: 'bg-purple-500 text-white',
+        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+        checkPop: 'bg-emerald-500 text-white',
+        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+        btnSubtlePop: 'bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800',
+        btnSubtleReg: 'bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50',
+        btnPrimary: 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/25'
     }
 };
 
@@ -96,14 +116,17 @@ const UsageBar = ({ label, icon, used, limit, color }) => {
 
 const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgrade }) => {
     const currentPlanName = currentPlan?.name || 'Free';
-    const isCurrent = plan.name === currentPlanName;
+    const isOnTrial = currentPlan?.status === 'Trial';
+    
+    // Trial users should NOT see their trial plan as "Active" — they haven't paid for it
+    const isCurrent = !isOnTrial && plan.name === currentPlanName;
     
     // A plan is a downgrade if its base price is strictly less than the user's current plan base price
     const isDowngrade = parseFloat(plan.price || 0) < parseFloat(currentPlan?.price || 0);
 
-    // Check if user is currently active mid-subscription
+    // Check if user is currently active mid-subscription (Trial is NOT a paid subscription)
     const isExpired = currentPlan?.expiry ? new Date(currentPlan.expiry) < new Date() : false;
-    const isMidSubscription = (currentPlan?.status === 'Active' || currentPlan?.status === 'Trial') && !isExpired && currentPlanName !== 'Free';
+    const isMidSubscription = currentPlan?.status === 'Active' && !isExpired && currentPlanName !== 'Free';
 
     // Disallow downgrade if mid subscription
     const downgradeBlocked = isDowngrade && isMidSubscription;
@@ -130,67 +153,80 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
     const isIntervalDowngrade = targetIntervalWeight < currentIntervalWeight;
     const intervalDowngradeBlocked = isIntervalDowngrade && isMidSubscription;
 
-    const theme = PLAN_THEMES[plan.color] || PLAN_THEMES.blue;
+    const theme = THEME_COLORS[plan.color] || THEME_COLORS.blue;
     const currencyMap = { USD: '$', INR: '₹', EUR: '€', GBP: '£', AUD: 'A$', SGD: 'S$' };
     const currency = currencyMap[plan.currency] || plan.currency || '₹';
+    const isPopular = plan.isPopular;
 
-
-
-    // Detect which limits this plan would fix
-    const fixesMessages = usage && plan.messageLimit !== -1 && plan.messageLimit > usage.monthlyLimit;
-    const fixesTemplates = usage && plan.templateLimit !== -1 && plan.templateLimit > usage.templateLimit;
-    const fixesContacts = usage && plan.contactLimit !== -1 && plan.contactLimit > usage.contactLimit;
-    const fixesSomething = fixesMessages || fixesTemplates || fixesContacts;
+    const renderCTA = () => (
+        <div className="flex flex-col gap-2">
+            {isCurrent ? (
+                <div className="w-full py-4 rounded-xl text-sm font-bold text-center bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 cursor-default shadow-sm border border-slate-200 dark:border-white/10">
+                    ✓ Active Plan
+                </div>
+            ) : downgradeBlocked ? (
+                <div className="w-full py-4 rounded-xl text-sm font-medium text-center text-slate-400 bg-slate-50 dark:bg-white/5 cursor-not-allowed border border-slate-100 dark:border-white/5" title="Downgrades are only allowed after your current subscription expires.">
+                    Unavailable (Mid-Subscription)
+                </div>
+            ) : intervalDowngradeBlocked ? (
+                <div className="w-full py-4 rounded-xl text-sm font-medium text-center text-slate-400 bg-slate-50 dark:bg-white/5 cursor-not-allowed border border-slate-100 dark:border-white/5" title="Downgrading cycle duration is not allowed mid-subscription.">
+                    Requires {currentPlan?.interval === 'year' ? 'Annual' : 'Half-Yearly'} Billing
+                </div>
+            ) : isDowngrade ? (
+                <button
+                    onClick={() => onUpgrade(plan, intervalCode)}
+                    className={`w-full py-4 rounded-xl font-bold text-center transition-all text-sm ${theme.btnSubtleReg}`}
+                >
+                    Downgrade to {plan.name}
+                </button>
+            ) : (
+                <button
+                    onClick={() => onUpgrade(plan, intervalCode)}
+                    className="w-full py-4 rounded-xl font-bold text-center transition-all text-sm bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                >
+                    Upgrade to {plan.name}
+                </button>
+            )}
+        </div>
+    );
 
     return (
-        <div className={`relative flex flex-col overflow-hidden rounded-3xl transition-all duration-300 ${isCurrent
-            ? `ring-2 ${theme.ring} shadow-2xl ${theme.glow} scale-[1.02]`
-            : 'hover:scale-[1.01] hover:shadow-xl ring-1 ring-slate-200 dark:ring-white/10'
-            }`}>
-
-            {/* Popular badge */}
-            {plan.isPopular && !isCurrent && (
-                <div className="absolute top-4 right-4 z-10">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-400 text-amber-900 text-xs font-bold shadow-lg">
-                        <Sparkles className="w-3 h-3" /> Most Popular
-                    </span>
-                </div>
-            )}
+        <div className={`relative flex flex-col h-full rounded-[2rem] border p-5 lg:p-6 transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}>
+            
+            {/* Badges */}
             {isCurrent && (
-                <div className="absolute top-4 right-4 z-10">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/20 backdrop-blur text-white text-xs font-bold border border-white/30">
-                        <Check className="w-3 h-3" /> Current Plan
-                    </span>
+                <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-emerald-500/10 border-b border-x border-emerald-400/30 whitespace-nowrap z-10 flex items-center gap-1.5">
+                    <Check className="w-2.5 h-2.5" /> CURRENT PLAN
+                </div>
+            )}
+            {isPopular && !isCurrent && (
+                <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-indigo-500/10 border-b border-x border-indigo-400/30 whitespace-nowrap z-10">
+                    MOST POPULAR
                 </div>
             )}
 
-            {/* Header Gradient */}
-            <div className={`relative p-5 pb-6 bg-gradient-to-br ${theme.gradient} text-white`}>
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10" />
-                <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-                <div className="relative z-10">
-                    <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
-                    {plan.description && (
-                        <p className={`text-xs mb-3 ${theme.accent}`}>{plan.description}</p>
+            <h3 className="text-xl font-bold mb-2 pt-2">{plan.name}</h3>
+            <p className="text-xs mb-6 font-medium text-slate-500 dark:text-slate-400">{plan.description || 'Perfect for growing businesses.'}</p>
+
+            <div className="flex flex-col gap-1 mb-6 pb-10 border-b border-indigo-500/20 dark:border-white/10">
+                <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-extrabold">{currency}{displayPrice.toLocaleString()}</span>
+                    {intervalLbl && (
+                        <span className="font-bold text-slate-500 dark:text-slate-400">
+                            {intervalLbl}
+                            {plan.taxEnabled && <span className="text-[10px] ml-1 font-semibold opacity-70">({plan.taxText})</span>}
+                        </span>
                     )}
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black tracking-tight">{currency}{displayPrice.toLocaleString()}</span>
-                        {intervalLbl && (
-                            <span className="text-white/60 text-sm font-medium">
-                                {intervalLbl}
-                                {plan.taxEnabled && <span className="text-[10px] ml-1 opacity-80">({plan.taxText})</span>}
-                            </span>
-                        )}
-                    </div>
                 </div>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 flex flex-col bg-white dark:bg-surface-dark p-4 md:p-5 gap-4">
+            <div className="space-y-5 mb-8 flex-1">
+                {/* Top CTA */}
+                {renderCTA()}
+
                 {/* Meta Message Pricing Box */}
                 {metaRates && (
-                    <div className="relative rounded-xl bg-gradient-to-br from-emerald-50/10 to-green-50/5 dark:from-emerald-950/5 dark:to-green-950/5 border border-emerald-200/60 dark:border-emerald-900/40 shadow-sm">
-                        {/* Decorative subtle glows in a clipped wrapper */}
+                    <div className="mb-6 relative rounded-xl bg-gradient-to-br from-emerald-50/10 to-green-50/5 dark:from-emerald-950/5 dark:to-green-950/5 border border-emerald-200/60 dark:border-emerald-900/40 shadow-sm">
                         <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
                             <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
@@ -233,137 +269,155 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
                     </div>
                 )}
 
-                {/* Limits */}
-                <div className="space-y-3">
-                    <LimitRow icon={MessageSquare} label="Messages / month" value={plan.messageLimit} />
-                    <LimitRow icon={Layout} label="Templates" value={plan.templateLimit} />
-                    <LimitRow icon={Users} label="Contacts" value={plan.contactLimit} />
-                    <LimitRow icon={MousePointerClick} label="Click to WhatsApp Ads" value={plan.allowCtwaAnalytics ? 'Included' : 'Not Included'} />
-                    <LimitRow icon={Megaphone} label="Meta Ads Marketing" value={plan.allowMetaAds ? 'Included' : 'Not Included'} />
+                {/* Core Limits */}
+                <div>
+                    <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Core</div>
+                    <ul className="space-y-3">
+                        <li className="flex items-center gap-3 text-sm font-semibold">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                            <span>{plan.messageLimit === -1 ? 'Unlimited' : plan.messageLimit.toLocaleString()} Messages/mo</span>
+                        </li>
+                        <li className="flex items-center gap-3 text-sm font-semibold">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                            <span>{plan.contactLimit === -1 ? 'Unlimited' : plan.contactLimit.toLocaleString()} Contacts</span>
+                        </li>
+                        {(plan.templateLimit > 0 || plan.templateLimit === -1) && (
+                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                <span>{plan.templateLimit === -1 ? 'Unlimited' : plan.templateLimit} Message Templates</span>
+                            </li>
+                        )}
+                        {(plan.teamMemberLimit > 0 || plan.teamMemberLimit === -1) && (
+                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                <span>{plan.teamMemberLimit === -1 ? 'Unlimited' : plan.teamMemberLimit} Team Members</span>
+                            </li>
+                        )}
+                        {plan.vcardLimit > 0 || plan.vcardLimit === -1 ? (
+                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                <span>{plan.vcardLimit === -1 ? 'Unlimited' : plan.vcardLimit} VeCards</span>
+                            </li>
+                        ) : (
+                            <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
+                                <span className="text-slate-900 dark:text-white">VeCards</span>
+                            </li>
+                        )}
+                        {plan.waStoreLimit > 0 || plan.waStoreLimit === -1 ? (
+                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Stores</span>
+                            </li>
+                        ) : (
+                            <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
+                                <span className="text-slate-900 dark:text-white">Online Stores</span>
+                            </li>
+                        )}
+                        <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-70' : ''}`}>
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
+                                {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            </div>
+                            <span className={!plan.flowBotEnabled ? "text-slate-900 dark:text-white" : ""}>
+                                {plan.flowBotEnabled && plan.flowLimit !== undefined
+                                    ? `${plan.flowLimit === -1 ? 'Unlimited' : plan.flowLimit} AI FlowBots`
+                                    : 'AI FlowBot Builder'}
+                            </span>
+                        </li>
+                        <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-70' : ''}`}>
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
+                                {plan.allowCtwaAnalytics ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            </div>
+                            <span className={!plan.allowCtwaAnalytics ? "text-slate-900 dark:text-white" : ""}>Click to WhatsApp Ads</span>
+                        </li>
+                        <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-70' : ''}`}>
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
+                                {plan.allowMetaAds ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            </div>
+                            <span className={!plan.allowMetaAds ? "text-slate-900 dark:text-white" : ""}>Meta Ads Marketing</span>
+                        </li>
+                    </ul>
                 </div>
 
-                {/* Features */}
-                {plan.features?.length > 0 && (
-                    <div className="border-t border-slate-100 dark:border-white/5 pt-4 space-y-3">
-                        {plan.features.map((f, i) => (
-                            <div key={i} className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-                                    <Check className="w-3 h-3" />
-                                </div>
-                                <span>{f}</span>
-                            </div>
+                {/* Capabilities / Add-ons */}
+                {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
+                    <div>
+                        <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Add-ons</div>
+                        <ul className="space-y-3">
+                            {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1) && (
+                                <li className="flex items-center gap-3 text-sm font-semibold">
+                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                    <span>{plan.aiTokensAllowance === -1 ? 'Unlimited' : plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
+                                </li>
+                            )}
+                            {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
+                                <li className="flex items-start gap-3 text-sm font-semibold">
+                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                    <div className="flex flex-col">
+                                        <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
+                                        <ul className="mt-2 space-y-1.5">
+                                            {plan.includedAddons.map(addonKey => (
+                                                <li key={addonKey} className="text-xs font-semibold flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
+                                                    {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </li>
+                            )}
+                        </ul>
+                    </div>
+                )}
+
+                {/* Custom Features */}
+                <div>
+                    <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Features</div>
+                    <ul className="space-y-3">
+                        {(plan.quickReplyLimit > 0 || plan.quickReplyLimit === -1) && (
+                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                <span>{plan.quickReplyLimit === -1 ? 'Unlimited' : plan.quickReplyLimit} Quick Replies</span>
+                            </li>
+                        )}
+                        {(plan.tagLimit > 0 || plan.tagLimit === -1) && (
+                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                <span>{plan.tagLimit === -1 ? 'Unlimited' : plan.tagLimit} Contact Tags</span>
+                            </li>
+                        )}
+                        {(plan.groupLimit > 0 || plan.groupLimit === -1) && (
+                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                <span>{plan.groupLimit === -1 ? 'Unlimited' : plan.groupLimit} Contact Groups</span>
+                            </li>
+                        )}
+                        {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
+                            <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                <span className="leading-tight">{feat}</span>
+                            </li>
                         ))}
-                        {plan.coreFeatures?.map((feat, fi) => {
-                            const isAvailable = feat.qty && feat.qty !== '0';
-                            return (
-                                <div key={`core-${fi}`} className={`flex items-center gap-3 text-sm ${!isAvailable ? 'text-slate-400 dark:text-slate-500 opacity-70' : 'text-slate-600 dark:text-slate-300'}`}>
-                                    {isAvailable ? (
-                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-                                            <Check className="w-3 h-3" />
-                                        </div>
-                                    ) : (
-                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
-                                            <X className="w-3 h-3" />
-                                        </div>
-                                    )}
-                                    <span>
-                                        {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
-                                        {feat.name}
-                                    </span>
+                        {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => (
+                            <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50 grayscale' : ''}`}>
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
+                                    {(!feat.qty || feat.qty === '0') ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
                                 </div>
-                            );
-                        })}
-                        {plan.allowWaStore ? (
-                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-                                    <Check className="w-3 h-3" />
-                                </div>
-                                <span>Online Store Builder (Limit: {plan.waStoreLimit})</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3 text-sm text-slate-400 dark:text-slate-500 opacity-70">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
-                                    <X className="w-3 h-3" />
-                                </div>
-                                <span>Online Store Builder</span>
-                            </div>
-                        )}
-                        {plan.allowVcard ? (
-                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-                                    <Check className="w-3 h-3" />
-                                </div>
-                                <span>Digital VeCards (Limit: {plan.vcardLimit})</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3 text-sm text-slate-400 dark:text-slate-500 opacity-70">
-                                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400">
-                                    <X className="w-3 h-3" />
-                                </div>
-                                <span>Digital VeCards</span>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* "Fixes" banner */}
-                {!isCurrent && fixesSomething && (
-                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-4 py-2.5 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                            Resolves your current limit{fixesMessages && fixesTemplates ? 's' : ''}
-                        </p>
-                    </div>
-                )}
-
-                {/* CTA */}
-                <div className="mt-auto pt-2">
-                    {isCurrent ? (
-                        <div className="w-full py-3 rounded-xl text-sm font-bold text-center bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 cursor-default">
-                            ✓ Active Plan
-                        </div>
-                    ) : downgradeBlocked ? (
-                        <div className="w-full py-3 rounded-xl text-sm font-medium text-center text-slate-400 bg-slate-50 dark:bg-white/5 cursor-not-allowed border border-slate-100 dark:border-white/5" title="Downgrades are only allowed after your current subscription expires.">
-                            Unavailable (Mid-Subscription)
-                        </div>
-                    ) : intervalDowngradeBlocked ? (
-                        <div className="w-full py-3 rounded-xl text-sm font-medium text-center text-slate-400 bg-slate-50 dark:bg-white/5 cursor-not-allowed border border-slate-100 dark:border-white/5" title="Downgrading billing cycle duration is not allowed mid-subscription.">
-                            Requires {currentPlan?.interval === 'year' ? 'Annual' : 'Half-Yearly'} Billing
-                        </div>
-                    ) : isDowngrade ? (
-                        <button
-                            onClick={() => onUpgrade(plan, intervalCode)}
-                            className="w-full py-3 rounded-xl text-sm font-bold text-center text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all shadow-sm active:scale-95"
-                        >
-                            Downgrade to {plan.name}
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => onUpgrade(plan, intervalCode)}
-                            className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl active:scale-95 bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 text-white hover:opacity-90`}
-                        >
-                            <Zap className="w-4 h-4" />
-                            Upgrade to {plan.name}
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    )}
+                                <span className="leading-tight">
+                                    {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                    {feat.name}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
-        </div>
-    );
-};
 
-const LimitRow = ({ icon, label, value }) => {
-    const DynIcon = icon;
-    return (
-        <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                <DynIcon className="w-3.5 h-3.5" />
-                <span>{label}</span>
+            {/* CTA section */}
+            <div className="mt-auto pt-6 flex flex-col gap-2">
+                {renderCTA()}
             </div>
-            <span className="font-bold text-slate-900 dark:text-white">
-                {value === -1 ? '∞ Unlimited' : value?.toLocaleString()}
-            </span>
         </div>
     );
 };
@@ -602,7 +656,7 @@ const Billing = () => {
                                         <div key={p.id} className="w-full sm:w-[calc(50%-1.5rem)] lg:w-[calc(33.333%-1.5rem)] xl:w-[calc(25%-1.5rem)] max-w-[300px] flex flex-col">
                                             <PlanCard
                                                 plan={p}
-                                                currentPlan={billingInfo?.currentPlan}
+                                                currentPlan={billingInfo?.plan}
                                                 billingInterval={billingInterval}
                                                 usage={billingInfo?.usage}
                                                 metaRates={metaRates}

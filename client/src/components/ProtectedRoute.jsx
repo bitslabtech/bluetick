@@ -22,16 +22,19 @@ const ProtectedRoute = () => {
             localStorage.removeItem('pendingPlan');
         } else {
             let pendingPlan = localStorage.getItem('pendingPlan');
-            
+
             // Check if user has an active, valid plan or trial (not Free and not expired)
             const hasActiveValidPlan = user.plan !== 'Free' && user.planExpiry && new Date(user.planExpiry) >= new Date();
 
-            // If the admin granted a trial/plan, clear out any stale pending checkouts silently
-            if (hasActiveValidPlan && pendingPlan) {
+
+            // Clear out any stale pending checkouts silently, 
+            // EXCEPT when the user is actively navigating to checkout to upgrade
+            // OR when they are on the billing page (about to select a plan).
+            if (hasActiveValidPlan && pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
                 localStorage.removeItem('pendingPlan');
                 pendingPlan = null;
             }
-            
+
             // 1. If they have a pending checkout from registration, lock them to /checkout or /billing
             if (pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
                 return <Navigate to="/checkout" replace />;
@@ -53,12 +56,12 @@ const ProtectedRoute = () => {
                 if (expiryDate < new Date() && location.pathname !== '/checkout' && location.pathname !== '/billing') {
                     // Give them a pending plan based on their current plan so they can renew
                     if (!pendingPlan) {
-                         if (user.planDetails) {
+                        if (user.planDetails) {
                             localStorage.setItem('pendingPlan', JSON.stringify(user.planDetails));
-                         } else {
-                             // Failsafe: if the plan doesn't exist anymore
-                             localStorage.setItem('pendingPlan', JSON.stringify({ name: 'Default', price: 0 }));
-                         }
+                        } else {
+                            // Failsafe: if the plan doesn't exist anymore
+                            localStorage.setItem('pendingPlan', JSON.stringify({ name: 'Default', price: 0 }));
+                        }
                     }
                     return <Navigate to="/checkout" replace />;
                 }

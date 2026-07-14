@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
-import { LogOut, Info, AlertTriangle, AlertOctagon, Menu, X } from 'lucide-react';
+import { LogOut, Info, AlertTriangle, AlertOctagon, Menu, X, Zap } from 'lucide-react';
 import axios from 'axios';
 
 import NotificationBell from './NotificationBell';
@@ -15,6 +15,7 @@ export default function Layout() {
     const [systemStatus, setSystemStatus] = useState(null);
     const [isMaintenance, setIsMaintenance] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchSystemConfig = async () => {
@@ -130,6 +131,30 @@ export default function Layout() {
                 )}
 
 
+
+                {/* Global Trial Banner overlay (Centered at Top) */}
+                {user?.planStatus === 'Trial' && (
+                    <div className="absolute left-1/2 -translate-x-1/2 top-4 hidden md:flex items-center gap-3 bg-amber-50/90 dark:bg-amber-900/40 border border-amber-200/50 dark:border-amber-500/30 px-3 py-1.5 rounded-full backdrop-blur-md transition-all hover:border-amber-300 dark:hover:border-amber-500/50 shadow-sm z-[60]">
+                        <div className="flex items-center gap-2">
+                            <Zap className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                            <div className="flex flex-col justify-center">
+                                <span className="text-[11px] font-bold text-slate-700 dark:text-amber-100/90 leading-none mb-0.5">Trial Plan Active</span>
+                                <span className="text-[9px] font-semibold text-amber-600/80 dark:text-amber-400/80 leading-none">
+                                    {user?.planExpiry ? `${Math.max(0, Math.ceil((new Date(user.planExpiry) - new Date()) / 86400000))} Days Left` : 'Explore Features'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="h-5 w-px bg-amber-200 dark:bg-amber-500/20 mx-1"></div>
+                        <button
+                            onClick={() => navigate('/billing')}
+                            className="group relative px-3 py-1 font-bold text-[11px] rounded-full overflow-hidden active:scale-95 transition-all bg-amber-500 hover:bg-amber-600 text-white shadow-sm hover:shadow"
+                        >
+                            <span className="relative flex items-center">
+                                Upgrade Now
+                            </span>
+                        </button>
+                    </div>
+                )}
 
                 {/* Main Content */}
                 <main className={`flex-1 overflow-auto bg-background-light dark:bg-background-dark relative transition-colors duration-300 p-4 md:p-6 pb-7 sm:pb-20`}>
