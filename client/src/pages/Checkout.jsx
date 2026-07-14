@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X } from 'lucide-react';
 import { useUI } from '../context/UIContext';
@@ -25,28 +25,42 @@ const Checkout = () => {
 
     const { showToast } = useUI();
     const navigate = useNavigate();
+    const location = useLocation();
 
+    // Effect 1: On mount only — initialise plan from router state (preferred) or localStorage fallback
+    // Using router state avoids localStorage race conditions when navigating from /billing
     useEffect(() => {
+        // Priority 1: plan passed directly via navigate('/checkout', { state: { plan } })
+        const routerPlan = location.state?.plan;
+        if (routerPlan) {
+            setPlan(routerPlan);
+            // Sync to localStorage so page-refresh still works
+            localStorage.setItem('pendingPlan', JSON.stringify(routerPlan));
+            return;
+        }
+        // Priority 2: fallback to localStorage (page refresh or direct URL access)
         const pendingPlanStr = localStorage.getItem('pendingPlan');
-        if (!pendingPlanStr) { navigate('/dashboard'); return; }
+        if (!pendingPlanStr) {
+            navigate('/billing');
+            return;
+        }
         try {
             const parsedPlan = JSON.parse(pendingPlanStr);
             setPlan(parsedPlan);
-
-            // Calculate Upgrade Math whenever interval changes
-            axios.get(`${API}/api/billing/calculate-upgrade/${parsedPlan.name}?interval=${parsedPlan.interval || 'month'}`).then(res => {
-                setUpgradeData(res.data);
-            }).catch(err => {
-                console.error('Failed to calculate upgrade', err);
-            }).finally(() => {
-                setLoading(false);
-            });
-
         } catch {
-            navigate('/dashboard');
-            setLoading(false);
+            navigate('/billing');
         }
-    }, [navigate, plan?.interval]);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Effect 2: Recalculate upgrade credit whenever the selected plan or interval changes
+    useEffect(() => {
+        if (!plan) return; // wait until plan is set by Effect 1
+        setLoading(true);
+        axios.get(`${API}/api/billing/calculate-upgrade/${plan.name}?interval=${plan.interval || 'month'}`)
+            .then(res => { setUpgradeData(res.data); })
+            .catch(err => { console.error('Failed to calculate upgrade', err); })
+            .finally(() => { setLoading(false); });
+    }, [plan?.name, plan?.interval]); // recalculate on name or interval change
 
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) return;
@@ -171,7 +185,6 @@ const Checkout = () => {
                                             const newPlan = { ...plan, interval: int };
                                             setPlan(newPlan);
                                             localStorage.setItem('pendingPlan', JSON.stringify(newPlan));
-                                            setLoading(true);
                                         }}
                                         className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${plan.interval === int ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                                     >
@@ -369,7 +382,8 @@ const Checkout = () => {
                                 )}
                             </button>
 
-                            {plan.trialDays > 0 && (!upgradeData || (!upgradeData.hasUsedTrial && !upgradeData.isCurrentPlanPaid)) && (
+                            {/* Trial CTA — only shown when plan has trial days AND user hasn't used their trial yet AND upgradeData has loaded (prevents flashing while API is in-flight) */}
+                            {!loading && plan.trialDays > 0 && upgradeData && !upgradeData.hasUsedTrial && !upgradeData.isCurrentPlanPaid && (
                                 <button
                                     onClick={async () => {
                                         setProcessing(true);

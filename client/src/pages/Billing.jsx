@@ -455,8 +455,10 @@ const Billing = () => {
 
     const handleUpgrade = (plan, intervalCode = 'month') => {
         const planWithInterval = { ...plan, interval: intervalCode };
+        // Write to localStorage as a fallback for page refreshes
         localStorage.setItem('pendingPlan', JSON.stringify(planWithInterval));
-        navigate('/checkout');
+        // Pass plan directly via router state — guaranteed to be available on Checkout mount
+        navigate('/checkout', { state: { plan: planWithInterval } });
     };
 
     // Determine available intervals across all plans

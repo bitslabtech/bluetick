@@ -23,14 +23,17 @@ const ProtectedRoute = () => {
         } else {
             let pendingPlan = localStorage.getItem('pendingPlan');
 
-            // Check if user has an active, valid plan or trial (not Free and not expired)
-            const hasActiveValidPlan = user.plan !== 'Free' && user.planExpiry && new Date(user.planExpiry) >= new Date();
+            // Check if user has an active PAID plan (Trial does NOT count — trial users
+            // can freely navigate between /billing and /checkout without losing their pendingPlan)
+            const hasActivePaidPlan = user.plan !== 'Free'
+                && user.planExpiry
+                && new Date(user.planExpiry) >= new Date()
+                && user.planStatus === 'Active'; // <-- Trial excluded intentionally
 
-
-            // Clear out any stale pending checkouts silently, 
-            // EXCEPT when the user is actively navigating to checkout to upgrade
-            // OR when they are on the billing page (about to select a plan).
-            if (hasActiveValidPlan && pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
+            // Clear out stale pending checkouts ONLY for active paid users who navigate
+            // away from both /billing and /checkout (e.g., went back to /dashboard by accident).
+            // Trial users are NEVER subject to this cleanup.
+            if (hasActivePaidPlan && pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
                 localStorage.removeItem('pendingPlan');
                 pendingPlan = null;
             }

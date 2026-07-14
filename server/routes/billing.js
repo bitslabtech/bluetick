@@ -89,10 +89,12 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
         }
     }
 
+    const newExpiry = computePlanExpiry(targetPlan.interval, user.planExpiry, isRenewal);
+
     await user.update({
         plan: targetPlan.name,
         planStatus: 'Active',
-        planExpiry: computePlanExpiry(targetPlan.interval, user.planExpiry, isRenewal),
+        planExpiry: newExpiry,
         aiTokenBalance: newAiTokens
     });
 
@@ -311,10 +313,11 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
     } catch (err) {
         console.error('[B2B TECH PARTNER PAYOUT ERROR]', err);
     }
+    return { newExpiry };
 };
 
-
 // ─── Helper: calculate upgrade discount ─────────────────────────────────────
+
 const calculateUpgradeDiscount = async (user, targetPlan) => {
     // If no active paid plan or no expiry date, no credit
     if (!user.planExpiry || user.plan === 'Free' || user.planStatus !== 'Active') {
@@ -854,7 +857,8 @@ router.post('/verify-payment', async (req, res) => {
                 }
             }
 
-            await applyUpgrade(req.user.id, targetPlan, {
+            const upgradeResult = await applyUpgrade(req.user.id, targetPlan, {
+
                 paymentGateway: gateway,
                 transactionReference: transactionReference,
                 couponCode: couponCode || null,
@@ -877,12 +881,14 @@ router.post('/verify-payment', async (req, res) => {
 
                     if (planPurchaseTpl && planPurchaseTpl.enabled && req.user.phone) {
                         const userPhone = req.user.phone.replace(/\D/g, '');
+                        const newExpiry = upgradeResult?.newExpiry;
                         const contextMap = {
                             '{name}': req.user.name || 'User',
                             '{plan_name}': targetPlan.name || 'Plan',
                             '{amount}': `${parseFloat(targetPlan.price)}`,
                             '{transaction_id}': transactionReference || 'N/A',
-                            '{expiry_date}': new Date(req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+                            // Use newly computed expiry (not old JWT session expiry)
+                            '{expiry_date}': new Date(newExpiry || req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
                         };
 
                         let parameters = [];
@@ -897,7 +903,7 @@ router.post('/verify-payment', async (req, res) => {
                                 { type: 'text', text: targetPlan.name || 'Plan' },
                                 { type: 'text', text: `${parseFloat(targetPlan.price)}` },
                                 { type: 'text', text: transactionReference || 'N/A' },
-                                { type: 'text', text: new Date(req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() }
+                                { type: 'text', text: new Date(newExpiry || req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() }
                             ];
                         }
 
