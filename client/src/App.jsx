@@ -259,7 +259,6 @@ class ErrorBoundary extends React.Component {
                                 Go to Dashboard
                             </button>
                         </div>
-                        </div>
                     </div>
                 </div>
             );
