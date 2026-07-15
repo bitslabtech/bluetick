@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import TrialBanner from '../components/TrialBanner';
 import {
-    Activity, Shield, Bell, CheckCircle2, UserPlus, CreditCard, Ticket, Trash2, Check, X, AlertTriangle
+    Activity, Shield, Bell, CheckCircle2, UserPlus, CreditCard, Ticket, Trash2, Check, X, AlertTriangle, ChevronDown
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import AdminHeader from '../components/AdminHeader';
@@ -82,8 +82,8 @@ const AdminAlerts = () => {
     };
 
     const filtered = notifications.filter(n =>
-        n.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.type.toLowerCase().includes(searchTerm.toLowerCase())
+        (n.message || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (n.type || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -131,7 +131,7 @@ const AdminAlerts = () => {
                             {filtered.map(n => (
                                 <div
                                     key={n.id}
-                                    className={`p-5 flex items-start gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 ${!n.isRead ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}`}
+                                    className={`p-5 flex items-start gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 border-l-4 ${!n.isRead ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500' : 'border-transparent'}`}
                                 >
                                     <div className="p-3 bg-slate-100 dark:bg-white/5 rounded-full shrink-0">
                                         {getIcon(n.type)}

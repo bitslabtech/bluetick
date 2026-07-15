@@ -70,6 +70,11 @@ const Transaction = sequelize.define('Transaction', {
         type: DataTypes.STRING,
         allowNull: true,
         comment: 'User phone at the time of purchase — frozen for audit trail'
+    },
+    isRead: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Whether the superadmin has seen this transaction'
     }
 }, {
     timestamps: true

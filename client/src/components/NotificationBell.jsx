@@ -143,10 +143,7 @@ const NotificationBell = () => {
     };
 
     const getBgColor = (type, isRead) => {
-        if (isAdmin) {
-            return !isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-white/5';
-        }
-        return 'hover:bg-slate-50 dark:hover:bg-white/5';
+        return !isRead ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500' : 'hover:bg-slate-50 dark:hover:bg-white/5 border-l-4 border-transparent';
     };
 
     return (

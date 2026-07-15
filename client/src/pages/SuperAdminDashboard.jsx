@@ -150,21 +150,40 @@ const SuperAdminDashboard = () => {
         ];
     }
 
-    console.log("Plan Distribution Raw:", data?.planDistribution);
-    console.log("Pie Chart Data:", pieData);
-
-    if (loading || !data) {
+    if (!data) {
         return (
-            <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-background-dark">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-y-auto w-full">
+                <AdminHeader>
+                    <div className="w-48 h-8 bg-slate-200 dark:bg-white/10 rounded-lg animate-pulse"></div>
+                </AdminHeader>
+                <div className="px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 max-w-7xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-pulse">
+                    <div>
+                        <div className="h-8 w-48 bg-slate-200 dark:bg-white/10 rounded-lg mb-2"></div>
+                        <div className="h-4 w-64 bg-slate-200 dark:bg-white/10 rounded-lg"></div>
+                    </div>
+                    <div className="h-10 w-64 bg-slate-200 dark:bg-white/10 rounded-lg"></div>
+                </div>
+                <main className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 lg:gap-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20 animate-pulse">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                        {[1,2,3,4,5,6].map(i => (
+                            <div key={i} className="bg-white/50 dark:bg-[#111827]/50 h-32 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white/50 dark:bg-[#111827]/50 h-80 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                        <div className="bg-white/50 dark:bg-[#111827]/50 h-80 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 bg-white/50 dark:bg-[#111827]/50 h-96 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                        <div className="bg-white/50 dark:bg-[#111827]/50 h-96 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                    </div>
+                </main>
             </div>
         );
     }
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-y-auto fade-in transition-colors duration-300">
-            {/* Header */}
-            {/* Header */}
             {/* Header */}
             <AdminHeader>
                 <TrialBanner />
@@ -174,8 +193,11 @@ const SuperAdminDashboard = () => {
             {/* Title Section (Moved to Main) */}
             <div className="px-4 sm:px-6 lg:px-8 pt-6 lg:pt-8 max-w-7xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Superadmin Overview</h1>
-                    <p className="text-sm text-slate-500 dark:text-text-secondary">Platform performance and revenue metrics</p>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Superadmin Overview</h1>
+                    <p className="text-sm text-slate-500 dark:text-text-secondary flex items-center gap-2">
+                        Platform performance and revenue metrics
+                        {loading && data && <span className="flex h-3 w-3 relative ml-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span></span>}
+                    </p>
                 </div>
 
                 {/* Date Filter Pills */}
@@ -185,8 +207,8 @@ const SuperAdminDashboard = () => {
                             key={preset}
                             onClick={() => handlePresetChange(preset)}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${activeFilter === preset
-                                ? 'bg-blue-500 text-white shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-105'
+                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white'
                                 }`}
                         >
                             {preset.toUpperCase()}
@@ -196,8 +218,8 @@ const SuperAdminDashboard = () => {
                         <button
                             onClick={() => handlePresetChange('custom')}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1 ${activeFilter === 'custom'
-                                ? 'bg-blue-500 text-white shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-105'
+                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white'
                                 }`}
                         >
                             Custom
@@ -226,11 +248,25 @@ const SuperAdminDashboard = () => {
             <main className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 lg:gap-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
 
                 {loading ? (
-                    <div className="text-center py-20 text-slate-500">Loading admin analytics...</div>
+                    <div className="animate-pulse flex flex-col gap-6 lg:gap-8 w-full">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                            {[1,2,3,4,5,6].map(i => (
+                                <div key={i} className="bg-white/50 dark:bg-[#111827]/50 h-32 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white/50 dark:bg-[#111827]/50 h-80 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                            <div className="bg-white/50 dark:bg-[#111827]/50 h-80 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2 bg-white/50 dark:bg-[#111827]/50 h-96 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                            <div className="bg-white/50 dark:bg-[#111827]/50 h-96 rounded-3xl border border-slate-200/50 dark:border-white/5"></div>
+                        </div>
+                    </div>
                 ) : (
                     <>
                         {/* 1. KPI CARDS (6 Grid) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                             {/* Users */}
                             <KpiCard icon={Users} label="Total Users" value={data.kpi.totalUsers} color="blue" />
                             {/* Active Plans */}
@@ -248,7 +284,7 @@ const SuperAdminDashboard = () => {
                         {/* 2. GRAPHS ROW */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Message Volume */}
-                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                            <div className="bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl p-5 md:p-7 rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl transition-all duration-300">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Message Volume</h3>
                                 <div className="h-64">
                                     {messageChartData.length === 0 ? (
@@ -273,13 +309,17 @@ const SuperAdminDashboard = () => {
                                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
                                                 <Tooltip
                                                     contentStyle={{
-                                                        borderRadius: '8px',
+                                                        borderRadius: '16px',
                                                         border: '1px solid rgba(255,255,255,0.1)',
-                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                                        boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                                                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                                        backdropFilter: 'blur(12px)',
+                                                        padding: '16px',
                                                     }}
-                                                    itemStyle={{ color: '#8884d8' }}
-                                                    labelStyle={{ color: '#64748b' }} // slate-500
-                                                    wrapperClassName="dark:!bg-[#1e293b] !bg-white dark:!text-white"
+                                                    itemStyle={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}
+                                                    labelStyle={{ color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}
+                                                    wrapperClassName="border-none !outline-none"
+                                                    formatter={(value) => [new Intl.NumberFormat().format(value), '']}
                                                 />
                                                 <Area type="monotone" dataKey="count" stroke="#8884d8" fillOpacity={1} fill="url(#colorMsg)" />
                                             </AreaChart>
@@ -289,7 +329,7 @@ const SuperAdminDashboard = () => {
                             </div>
 
                             {/* Revenue Growth */}
-                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                            <div className="bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl p-5 md:p-7 rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl transition-all duration-300">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Revenue Growth</h3>
                                 <div className="h-64">
                                     {revenueChartData.length === 0 ? (
@@ -313,13 +353,17 @@ const SuperAdminDashboard = () => {
                                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
                                                 <Tooltip
                                                     contentStyle={{
-                                                        borderRadius: '8px',
+                                                        borderRadius: '16px',
                                                         border: '1px solid rgba(255,255,255,0.1)',
-                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                                        boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                                                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                                        backdropFilter: 'blur(12px)',
+                                                        padding: '16px',
                                                     }}
-                                                    itemStyle={{ color: '#10b981' }}
-                                                    labelStyle={{ color: '#64748b' }}
-                                                    wrapperClassName="dark:!bg-[#1e293b] !bg-white dark:!text-white"
+                                                    itemStyle={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}
+                                                    labelStyle={{ color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}
+                                                    wrapperClassName="border-none !outline-none"
+                                                    formatter={(value) => [new Intl.NumberFormat().format(value), '']}
                                                 />
                                                 <Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
                                             </AreaChart>
@@ -332,14 +376,14 @@ const SuperAdminDashboard = () => {
                         {/* 3. RECENT PURCHASES & PIE CHART */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Purchases List */}
-                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
+                            <div className="lg:col-span-2 bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col">
                                 <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Purchases</h3>
                                     <Link to="/superadmin/purchases" className="text-primary text-sm font-medium hover:underline">View All</Link>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm">
-                                        <thead className="bg-slate-50 dark:bg-white/5 text-slate-500 uppercase text-xs">
+                                        <thead className="bg-slate-50/50 dark:bg-white/[0.02] text-slate-400 uppercase text-[10px] tracking-wider font-bold">
                                             <tr>
                                                 <th className="px-4 md:px-6 py-3">User</th>
                                                 <th className="px-4 md:px-6 py-3">Plan</th>
@@ -349,9 +393,9 @@ const SuperAdminDashboard = () => {
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                             {data.recentPurchases.map((tx, i) => (
-                                                <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                                <tr key={i} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.04] transition-all duration-200 group cursor-default">
                                                     <td className="px-4 md:px-6 py-4">
-                                                        <div className="font-medium text-slate-900 dark:text-white">{tx.userName}</div>
+                                                        <div className="font-bold text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors">{tx.userName}</div>
                                                         <div className="text-xs text-slate-500">{tx.userEmail}</div>
                                                     </td>
                                                     <td className="px-4 md:px-6 py-4">
@@ -376,7 +420,7 @@ const SuperAdminDashboard = () => {
                             </div>
 
                             {/* Plan Distribution Pie */}
-                            <div className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm flex flex-col">
+                            <div className="bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl p-5 md:p-7 rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl transition-all duration-300 flex flex-col">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Plan Distribution</h3>
                                 <div className="flex-1 min-h-[250px] relative">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -395,14 +439,19 @@ const SuperAdminDashboard = () => {
                                                 ))}
                                             </Pie>
                                             <Tooltip
-                                                contentStyle={{
-                                                    borderRadius: '8px',
-                                                    border: '1px solid rgba(255,255,255,0.1)',
-                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                                                }}
-                                                itemStyle={{ color: '#64748b' }}
-                                                wrapperClassName="dark:!bg-[#1e293b] !bg-white dark:!text-white"
-                                            />
+                                                    contentStyle={{
+                                                        borderRadius: '16px',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                                                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                                        backdropFilter: 'blur(12px)',
+                                                        padding: '16px',
+                                                    }}
+                                                    itemStyle={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}
+                                                    labelStyle={{ color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}
+                                                    wrapperClassName="border-none !outline-none"
+                                                    formatter={(value) => [new Intl.NumberFormat().format(value), '']}
+                                                />
                                             <Legend verticalAlign="bottom" height={36} />
                                         </PieChart>
                                     </ResponsiveContainer>
@@ -420,7 +469,7 @@ const SuperAdminDashboard = () => {
                         {/* 3.5 AI TOKEN USAGE & TOP USERS */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* AI Token Graph */}
-                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                            <div className="lg:col-span-2 bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl p-5 md:p-7 rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl transition-all duration-300">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                     <Sparkles className="w-5 h-5 text-purple-500" />
                                     AI Token Consumption
@@ -447,13 +496,17 @@ const SuperAdminDashboard = () => {
                                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
                                                 <Tooltip
                                                     contentStyle={{
-                                                        borderRadius: '8px',
+                                                        borderRadius: '16px',
                                                         border: '1px solid rgba(255,255,255,0.1)',
-                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                                        boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                                                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                                        backdropFilter: 'blur(12px)',
+                                                        padding: '16px',
                                                     }}
-                                                    itemStyle={{ color: '#a855f7' }}
-                                                    wrapperClassName="dark:!bg-[#1e293b] !bg-white dark:!text-white"
-                                                    formatter={(value) => [new Intl.NumberFormat().format(value), 'Tokens']}
+                                                    itemStyle={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}
+                                                    labelStyle={{ color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}
+                                                    wrapperClassName="border-none !outline-none"
+                                                    formatter={(value) => [new Intl.NumberFormat().format(value), '']}
                                                 />
                                                 <Area type="monotone" dataKey="count" stroke="#a855f7" strokeWidth={3} fillOpacity={1} fill="url(#colorTokens)" activeDot={{ r: 6, fill: '#a855f7' }} />
                                             </AreaChart>
@@ -463,7 +516,7 @@ const SuperAdminDashboard = () => {
                             </div>
 
                             {/* Top AI Token Users */}
-                            <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
+                            <div className="bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col">
                                 <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white pb-1">Top Consumers</h3>
                                     <Link to="/superadmin/ai-tokens" className="text-primary text-sm font-medium hover:underline">View All</Link>
@@ -496,7 +549,7 @@ const SuperAdminDashboard = () => {
                         </div>
 
                         {/* 4. ACTIVITY LOGS */}
-                        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm p-4 md:p-6">
+                        <div className="bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl transition-all duration-300 p-5 md:p-7">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Platform Activity Logs</h3>
                                 <Link to="/superadmin/activity-logs" className="text-primary text-sm font-medium hover:underline">View All</Link>

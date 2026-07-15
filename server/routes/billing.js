@@ -135,7 +135,12 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
 
     // --- Dynamic Referral System Processing ---
     try {
-        if (user.referredBy && parseFloat(targetPlan.price) > 0) {
+        // BUG #2 FIX: Use the actual amount paid (after coupon) not the list price.
+        // If a 100% coupon was used, amountPaid = 0 and no reward should be given.
+        const _referralAmountPaid = (extraTxnFields?.amountPaid !== undefined && extraTxnFields?.amountPaid !== null)
+            ? parseFloat(extraTxnFields.amountPaid)
+            : parseFloat(targetPlan.price);
+        if (user.referredBy && _referralAmountPaid > 0) {
             const config = await SystemConfig.getCachedConfig();
             
             // Check if this is their first paid plan transaction
@@ -184,9 +189,10 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
                             // Process Referee (Current User) Rewards
                             for (const reward of (rules.refereeRewards || [])) {
                                 if (reward.type === 'validity_months') {
-                                    const d = new Date(user.planExpiry);
-                                    d.setMonth(d.getMonth() + reward.value);
-                                    user.planExpiry = d;
+                                    // BUG #4 FIX: If planExpiry is null (lifetime plan), use current date as base
+                                    const base = user.planExpiry ? new Date(user.planExpiry) : new Date();
+                                    base.setMonth(base.getMonth() + reward.value);
+                                    user.planExpiry = base;
                                 } else if (reward.type === 'ai_tokens') {
                                     user.aiTokenBalance = (user.aiTokenBalance || 0) + reward.value;
                                 } else if (reward.type === 'extra_messages') {
@@ -214,7 +220,10 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
                         const tpConfig = config.settings?.techPartnerProgram || {};
                         if (tpConfig.enabled !== false) {
                             const commissionRate = tpConfig.commissionRate || 20;
-                            let commissionAmount = Math.round((parseFloat(targetPlan.price) * commissionRate / 100) * 100) / 100;
+                            // BUG #3 FIX: Use actual paid amount as commission base, not list price.
+                            // This prevents over-paying commission when a global coupon reduces revenue.
+                            const _tpActualPaid = _referralAmountPaid > 0 ? _referralAmountPaid : parseFloat(targetPlan.price);
+                            let commissionAmount = Math.round((_tpActualPaid * commissionRate / 100) * 100) / 100;
 
                             // --- NEW: Subsidize custom tech partner coupon ---
                             if (extraTxnFields && extraTxnFields.couponCode) {
@@ -262,7 +271,11 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
     // Independent of the user referral system above.
     // Triggered on EVERY purchase for recurring commissions.
     try {
-        if (user.techPartnerId && parseFloat(targetPlan.price) > 0) {
+        // BUG #3 FIX (B2B path): Also use actual paid amount for B2B payout commission base.
+        const _b2bActualPaid = (extraTxnFields?.amountPaid !== undefined && extraTxnFields?.amountPaid !== null)
+            ? parseFloat(extraTxnFields.amountPaid)
+            : parseFloat(targetPlan.price);
+        if (user.techPartnerId && _b2bActualPaid > 0) {
             const config = await SystemConfig.getCachedConfig();
             const tpProgramConfig = config.settings?.techPartnerProgram || {};
 
@@ -275,11 +288,12 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
                     let commissionAmount = 0;
 
                     if (partner.commissionType === 'percentage') {
-                        commissionAmount = Math.round((planPrice * partner.commissionValue / 100) * 100) / 100;
+                        // Use actual paid amount as the base to avoid over-paying on discounted sales
+                        commissionAmount = Math.round((_b2bActualPaid * partner.commissionValue / 100) * 100) / 100;
                     } else if (partner.commissionType === 'flat') {
                         commissionAmount = partner.commissionValue;
                     } else if (partner.commissionType === 'validity_months') {
-                        commissionAmount = partner.commissionValue; // #months
+                        commissionAmount = partner.commissionValue; // #months — not monetary, not affected by discounts
                     }
 
                     // --- NEW: Subsidize custom tech partner coupon ---
@@ -490,6 +504,17 @@ router.get('/', async (req, res) => {
             if (diffDays > 300) actualInterval = 'year';
             else if (diffDays > 150) actualInterval = 'half-year';
             else actualInterval = 'month';
+        }
+
+        // Adjust planPrice based on actualInterval if we have a valid plan
+        if (planDetails) {
+            if (actualInterval === 'year' && parseFloat(planDetails.yearlyPrice) > 0) {
+                planPrice = parseFloat(planDetails.yearlyPrice);
+            } else if (actualInterval === 'half-year' && parseFloat(planDetails.halfYearlyPrice) > 0) {
+                planPrice = parseFloat(planDetails.halfYearlyPrice);
+            } else if (actualInterval === 'month' && parseFloat(planDetails.monthlyPrice) > 0) {
+                planPrice = parseFloat(planDetails.monthlyPrice);
+            }
         }
 
         res.json({

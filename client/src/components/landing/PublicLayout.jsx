@@ -62,7 +62,7 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                         const hasRealContent = content && typeof content === 'string' && content.replace(/<[^>]*>?/gm, '').trim().length > 0;
                         
                         if (hasRealContent) {
-                            return <div className="max-w-full overflow-x-auto" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />;
+                            return <div className="max-w-full overflow-x-auto" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content, { ADD_ATTR: ['class', 'style', 'target', 'allow', 'allowfullscreen', 'frameborder', 'scrolling', 'href', 'src', 'alt', 'title'], ADD_TAGS: ['iframe', 'style', 'script'] }) }} />;
                         }
                         return children;
                     })()}

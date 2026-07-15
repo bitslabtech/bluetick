@@ -9,6 +9,19 @@ const admin = require('../middleware/admin');
 // Protect all routes
 router.use(auth, admin);
 
+// GET Unread Purchases Count
+router.get('/unread-count', async (req, res) => {
+    try {
+        const count = await Transaction.count({
+            where: { isRead: false, status: 'COMPLETED' }
+        });
+        res.json({ count });
+    } catch (err) {
+        console.error("Fetch Unread Purchases Error:", err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // GET All Purchases (with Filters & Pagination)
 router.get('/', async (req, res) => {
     try {
@@ -39,7 +52,7 @@ router.get('/', async (req, res) => {
         const userIds = [...new Set(transactions.map(t => t.userId))];
         const users = await User.findAll({
             where: { id: userIds },
-            attributes: ['id', 'name', 'email']
+            attributes: ['id', 'name', 'email', 'phone', 'company', 'createdAt']
         });
 
         const enrichedTransactions = transactions.map(t => {
@@ -47,7 +60,13 @@ router.get('/', async (req, res) => {
             // Search Filter (applied in memory for simplicity over hydrated data)
             return {
                 ...t.toJSON(),
-                user: user ? { name: user.name, email: user.email } : { name: 'Unknown User', email: 'N/A' }
+                user: user ? { 
+                    name: user.name, 
+                    email: user.email,
+                    phone: user.phone,
+                    company: user.company,
+                    createdAt: user.createdAt 
+                } : { name: 'Unknown User', email: 'N/A' }
             };
         });
 
@@ -64,6 +83,12 @@ router.get('/', async (req, res) => {
         }
 
         res.json(finalData);
+
+        // Mark fetched transactions as read asynchronously
+        const unreadIds = transactions.filter(t => !t.isRead).map(t => t.id);
+        if (unreadIds.length > 0) {
+            Transaction.update({ isRead: true }, { where: { id: unreadIds } }).catch(err => console.error("Failed to mark transactions as read:", err));
+        }
 
     } catch (err) {
         console.error("Fetch Purchases Error:", err);

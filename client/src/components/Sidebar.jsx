@@ -247,6 +247,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     const [unreadContactMsgs, setUnreadContactMsgs] = useState(0);
     const [unreadSupportTickets, setUnreadSupportTickets] = useState(0);
     const [unreadWhatsAppMsgs, setUnreadWhatsAppMsgs] = useState(0);
+    const [unreadPurchases, setUnreadPurchases] = useState(0);
 
     // Fetch latest version on mount
     useEffect(() => {
@@ -288,13 +289,17 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     // Fetch unread count for admins
     useEffect(() => {
         if (user?.isAdmin) {
-            const fetchContactCount = () => {
+            const fetchAdminCounts = () => {
                 axios.get(`${import.meta.env.VITE_API_URL}/api/contact/unread-count`)
                     .then(res => setUnreadContactMsgs(res.data.count))
                     .catch(err => console.error(err));
+                
+                axios.get(`${import.meta.env.VITE_API_URL}/api/purchases/unread-count`)
+                    .then(res => setUnreadPurchases(res.data.count))
+                    .catch(err => console.error(err));
             };
-            fetchContactCount();
-            const interval = setInterval(fetchContactCount, 60000); // 1 min poll
+            fetchAdminCounts();
+            const interval = setInterval(fetchAdminCounts, 60000); // 1 min poll
             return () => clearInterval(interval);
         }
     }, [user]);
@@ -465,9 +470,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                                             ? unreadWhatsAppMsgs
                                             : clonedItem.path === '/superadmin/messages'
                                                 ? unreadContactMsgs
-                                                : (clonedItem.path === '/support' || clonedItem.path === '/superadmin/support')
-                                                    ? unreadSupportTickets
-                                                    : null
+                                                : clonedItem.path === '/superadmin/purchases'
+                                                    ? unreadPurchases
+                                                    : (clonedItem.path === '/support' || clonedItem.path === '/superadmin/support')
+                                                        ? unreadSupportTickets
+                                                        : null
                                     }
                                 />
                             );
