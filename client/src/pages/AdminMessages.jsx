@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { Mail, MessageSquare, CheckCircle, Clock, Trash2, Search, ArrowLeft, Reply, Phone, Calendar, User, MailOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -82,7 +83,8 @@ const AdminMessages = () => {
     if (loading) {
         return (
             <div className="-m-4 md:-m-6 -mb-7 sm:-mb-20 h-[calc(100vh-60px)] md:h-screen flex flex-col bg-slate-50 dark:bg-background-dark font-display">
-                <AdminHeader><ThemeToggle /></AdminHeader>
+                <AdminHeader><TrialBanner />
+                    <ThemeToggle /></AdminHeader>
                 <main className="flex-1 flex items-center justify-center">
                     <div className="animate-spin text-indigo-500"><MessageSquare className="w-8 h-8" /></div>
                 </main>
@@ -92,7 +94,8 @@ const AdminMessages = () => {
 
     return (
         <div className="-m-4 md:-m-6 -mb-7 sm:-mb-20 h-[calc(100vh-60px)] md:h-[calc(100vh-0px)] flex flex-col bg-slate-50 dark:bg-background-dark font-display overflow-hidden relative z-10">
-            <AdminHeader><ThemeToggle /></AdminHeader>
+            <AdminHeader><TrialBanner />
+                    <ThemeToggle /></AdminHeader>
             
             <div className="flex-1 flex overflow-hidden">
                     {/* Left Pane: Message List */}

@@ -7,6 +7,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 
+
 const UserDropdown = () => {
     const { user, logout, isImpersonating, exitImpersonation } = useAuth();
     const { unreadCount, isAdmin } = useNotifications();

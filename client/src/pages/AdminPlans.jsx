@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { CreditCard, Plus, Check, X, Edit, Trash2, ShieldCheck, Users, Store, Zap, MessageSquare, FileText, Sparkles, Save, Loader2, Settings, DollarSign, Activity, Layers, List, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -184,7 +185,8 @@ const AdminPlans = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
             <AdminHeader searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)}>
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
 
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">

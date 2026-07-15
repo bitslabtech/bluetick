@@ -179,6 +179,44 @@ router.get('/conversations/:id/contact', async (req, res) => {
     }
 });
 
+// DELETE /conversations/:id - Permanently delete a conversation and its messages
+router.delete('/conversations/:id', async (req, res) => {
+    try {
+        const ownerId = req.user.parentUserId || req.user.id;
+        const isSubMember = !!req.user.parentUserId;
+
+        // Verify permissions
+        if (isSubMember) {
+            const canDelete = req.user.teamPolicy?.canDeleteChats;
+            if (!canDelete) {
+                return res.status(403).json({ error: 'You do not have permission to delete chats. Contact your team admin.' });
+            }
+        }
+
+        const conversation = await Conversation.findOne({
+            where: { id: req.params.id, userId: ownerId }
+        });
+
+        if (!conversation) {
+            return res.status(404).json({ error: 'Conversation not found' });
+        }
+
+        // Delete all chat messages first (assuming no automatic cascade set up)
+        await ChatMessage.destroy({
+            where: { conversationId: conversation.id }
+        });
+
+        // Delete the conversation
+        await conversation.destroy();
+
+        // Emit an event to update clients if needed, though mostly the UI will handle it locally
+        res.json({ success: true, message: 'Conversation deleted successfully' });
+    } catch (err) {
+        console.error('[CHAT DELETE ERROR]', err);
+        res.status(500).json({ error: 'Failed to delete conversation' });
+    }
+});
+
 // POST /send/text - Send text message (Enforces 24h Rule)
 router.post('/send/text', async (req, res) => {
     try {

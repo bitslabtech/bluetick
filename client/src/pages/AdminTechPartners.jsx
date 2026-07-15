@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { Briefcase, DollarSign, Users, RefreshCw, X, Check, ChevronDown, ChevronUp, Copy, Plus, Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { useUI } from '../context/UIContext';
@@ -298,7 +299,8 @@ const AdminTechPartners = () => {
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
-            <AdminHeader><ThemeToggle /></AdminHeader>
+            <AdminHeader><TrialBanner />
+                    <ThemeToggle /></AdminHeader>
 
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-32">
                 {/* Header */}

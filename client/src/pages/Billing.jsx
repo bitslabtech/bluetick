@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -493,6 +494,7 @@ const Billing = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
+                    <TrialBanner />
                     <ThemeToggle />
                     <NotificationBell />
                     <UserDropdown />

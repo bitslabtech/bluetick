@@ -56,18 +56,28 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
     // Identify if this is a time-extension renewal
     const isRenewal = (user.plan === targetPlan.name && user.planStatus === 'Active');
 
-    await Transaction.create({
+    const txnData = {
         userId,
         amount: amountPaid,
         currency: targetPlan.currency || 'INR',
         planName: targetPlan.name,
         status: 'COMPLETED',
-        // Snapshot real identity at purchase time — preserved for audit/legal even if account is later deleted
         userName: user.name || null,
         userEmail: user.email || null,
         userPhone: user.phone || null,
         ...extraTxnFields
-    });
+    };
+
+    if (extraTxnFields.transactionReference) {
+        const existingTxn = await Transaction.findOne({ where: { transactionReference: extraTxnFields.transactionReference } });
+        if (existingTxn) {
+            await existingTxn.update(txnData);
+        } else {
+            await Transaction.create(txnData);
+        }
+    } else {
+        await Transaction.create(txnData);
+    }
 
     // Grant AI Tokens
     let newAiTokens = user.aiTokenBalance || 0;
@@ -755,6 +765,28 @@ router.post('/create-order', async (req, res) => {
             cancelUrl: cancelUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/checkout`
         });
 
+        // --- NEW: Log as FAILED (abandoned checkout attempt) initially ---
+        // If the user completes checkout, /verify-payment will update this same transaction to COMPLETED.
+        try {
+            await Transaction.create({
+                userId: user.id,
+                amount: finalPriceToCharge,
+                currency: targetCurrency,
+                planName: planName || (orderNotes.itemName ? `Store: ${orderNotes.itemName}` : 'Unknown'),
+                status: 'FAILED',
+                paymentGateway: paymentIntent.gateway || 'razorpay',
+                transactionReference: paymentIntent.orderId || paymentIntent.id || `attempt_${Date.now()}`,
+                userName: user.name || null,
+                userEmail: user.email || null,
+                userPhone: user.phone || null,
+                couponCode: couponCode || null,
+                discountApplied: appliedDiscount || 0,
+                amountPaid: 0 // Not paid yet
+            });
+        } catch (txnErr) {
+            console.error('Failed to log checkout attempt transaction:', txnErr.message);
+        }
+
         res.json({
             ...paymentIntent,
             planName,
@@ -799,7 +831,7 @@ router.post('/verify-payment', async (req, res) => {
             const discountAppliedStore = parseFloat(discountApplied) || 0;
             const actualAmountPaid = Math.max(0, parseFloat(targetItem.price) - discountAppliedStore);
 
-            await Transaction.create({
+            const txnData = {
                 userId: user.id,
                 amount: actualAmountPaid,
                 currency: targetItem.currency || 'USD',
@@ -807,8 +839,17 @@ router.post('/verify-payment', async (req, res) => {
                 status: 'COMPLETED',
                 paymentGateway: gateway,
                 transactionReference: transactionReference,
+                razorpayOrderId: payload.razorpay_order_id || null,
+                razorpayPaymentId: payload.razorpay_payment_id || null,
                 ...(discountAppliedStore > 0 ? { discountApplied: discountAppliedStore, couponCode: couponCode || null } : {})
-            });
+            };
+
+            const existingTxn = await Transaction.findOne({ where: { transactionReference } });
+            if (existingTxn) {
+                await existingTxn.update(txnData);
+            } else {
+                await Transaction.create(txnData);
+            }
 
             // Grant Resource
             if (targetItem.itemType === 'ai_tokens') {
@@ -861,6 +902,8 @@ router.post('/verify-payment', async (req, res) => {
 
                 paymentGateway: gateway,
                 transactionReference: transactionReference,
+                razorpayOrderId: payload.razorpay_order_id || null,
+                razorpayPaymentId: payload.razorpay_payment_id || null,
                 couponCode: couponCode || null,
                 discountApplied: discountApplied || 0,
                 amountPaid: Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0))

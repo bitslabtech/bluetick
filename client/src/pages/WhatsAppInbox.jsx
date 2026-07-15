@@ -7,7 +7,7 @@ import { useUI } from '../context/UIContext';
 import {
     Search, MoreVertical, Paperclip, Smile, Send, Mic, Check, CheckCheck, Clock,
     MessageSquare, X, ChevronDown, Image as ImageIcon, FileText, Info, Bell, BellOff,
-    Tag, Users, UserCheck, Lock, Layout, ChevronRight, Eye, AlertCircle, Zap, Sparkles, Wand2, Hand, Bot, ChevronLeft
+    Tag, Users, UserCheck, Lock, Layout, ChevronRight, Eye, AlertCircle, Zap, Sparkles, Wand2, Hand, Bot, ChevronLeft, Trash2
 } from 'lucide-react';
 import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
 import { io } from 'socket.io-client';
@@ -65,6 +65,7 @@ const WhatsAppInbox = () => {
 
     const isSubMember = !!user?.parentUserId;
     const teamPolicy = user?.teamPolicy || { inboxVisibility: 'see_all', phonePrivacy: 'visible' };
+    const canDeleteChats = !isSubMember || !!teamPolicy.canDeleteChats;
 
     const renderName = (name, phone) => {
         const isActuallyPhone = !name || name === phone || /^\d+$/.test(name.replace(/\D/g, ''));
@@ -98,6 +99,10 @@ const WhatsAppInbox = () => {
         return saved !== null ? JSON.parse(saved) : true; // Defaulting to true as per standard expectation, but user said "default set to silent", I will check if they want silent by default. User said "is default set to silent... fix this". Usually users WANT it to be on by default but the current code might be bugged. Actually, let's set it to true if not found, or false if that's what "default set to silent" implies they want to change. Wait, "fix this" usually means they want it to WORK and not be silent. I'll default to true.
     });
     const notificationsRef = useRef(notificationsEnabled);
+
+    // Modal states
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Keep refs in sync with state
     useEffect(() => {
@@ -155,7 +160,27 @@ const WhatsAppInbox = () => {
     const prevChatIdRef = useRef(null);
     const isInitialChatLoad = useRef(false);
 
-    // â”€â”€â”€ Init: Fetch conversations + socket + quick replies + notification permission
+    // ── DELETE CHAT ─────────────────────────────────────────────────────────
+    const handleDeleteChat = async () => {
+        if (!selectedChat) return;
+        setIsDeleting(true);
+        try {
+            await axios.delete(`${API_BASE}/api/whatsapp/chat/conversations/${selectedChat.id}`);
+            
+            // Remove from local state
+            setConversations(prev => prev.filter(c => c.id !== selectedChat.id));
+            setSelectedChat(null);
+            setMessages([]);
+            setShowDeleteModal(false);
+        } catch (err) {
+            console.error('Failed to delete chat:', err);
+            setSendError('Failed to delete conversation. Please try again.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    // ── Init: Fetch conversations + socket + quick replies + notification permission ──────────────────────────
     useEffect(() => {
         fetchConversations();
         fetchQuickReplies();
@@ -405,7 +430,7 @@ const WhatsAppInbox = () => {
         messagesEndRef.current?.scrollIntoView({ behavior });
     };
 
-    // â”€â”€â”€ API calls
+    // ── API calls ──────────────────────────────────────────────────────────
     const fetchConversations = async (searchStr = searchQuery, filterStr = activeFilter) => {
         try {
             const res = await axios.get(`${API_BASE}/api/whatsapp/chat/conversations`, {
@@ -704,7 +729,7 @@ const WhatsAppInbox = () => {
         }
     };
 
-    // â”€â”€â”€ Sending
+    // ── Sending ──────────────────────────────────────────────────────────
     const handleSend = async (e) => {
         e?.preventDefault();
         const text = inputText.trim();
@@ -739,7 +764,7 @@ const WhatsAppInbox = () => {
         } finally { setSending(false); }
     };
 
-    // â”€â”€â”€ Input handling (/ for quick replies, emoji)
+    // ── Input handling (/ for quick replies, emoji) ──────────────────────────────────────────────────────────
     const handleInputChange = (e) => {
         const val = e.target.value;
         setInputText(val);
@@ -823,7 +848,7 @@ const WhatsAppInbox = () => {
         }
     };
 
-    // â”€â”€â”€ Helpers
+    // ── Helpers ──────────────────────────────────────────────────────────
     const isWindowOpen = (chat) => {
         if (!chat?.lastInboundMessageAt) return false;
         const lastInbound = new Date(chat.lastInboundMessageAt).getTime();
@@ -840,11 +865,10 @@ const WhatsAppInbox = () => {
         return format(d, 'dd/MM/yy');
     };
 
-    // â”€â”€â”€ Filtered conversation list
-    // We now filter on the backend via the debounced search useEffect
+    // ── Filtered conversation list ──────────────────────────────────────────────────────────
     const filteredConversations = conversations;
 
-    // â”€â”€â”€ Message date grouping
+    // ── Message date grouping ──────────────────────────────────────────────────────────
     const getDateLabel = (dateStr) => {
         const d = new Date(dateStr);
         if (isToday(d)) return 'Today';
@@ -861,7 +885,7 @@ const WhatsAppInbox = () => {
         return acc;
     }, []);
 
-    // â”€â”€â”€ Status tick
+    // ── Status tick ──────────────────────────────────────────────────────────
     const StatusTick = ({ status }) => {
         if (status === 'read') return <CheckCheck className="w-3.5 h-3.5 text-blue-400" />;
         if (status === 'delivered') return <CheckCheck className="w-3.5 h-3.5 text-slate-400" />;
@@ -869,7 +893,7 @@ const WhatsAppInbox = () => {
         return <Clock className="w-3 h-3 text-slate-400" />;
     };
 
-    // â”€â”€â”€ Quick Reply Creation
+    // ── Quick Reply Creation ──────────────────────────────────────────────────────────
     const handleCreateQuickReply = async (e) => {
         e.preventDefault();
         if (!newQuickReply.shortcut || !newQuickReply.message) return;
@@ -889,7 +913,7 @@ const WhatsAppInbox = () => {
         }
     };
 
-    // ——— Total unread ———
+    // ── Total unread ──────────────────────────────────────────────────────────
     const totalUnread = conversations.reduce((s, c) => s + (c.unreadCount || 0), 0);
 
     return (
@@ -1175,6 +1199,16 @@ const WhatsAppInbox = () => {
                                 >
                                     <Info className="w-5 h-5" />
                                 </button>
+
+                                {canDeleteChats && (
+                                    <button
+                                        onClick={() => setShowDeleteModal(true)}
+                                        className="p-2 rounded-full transition-colors text-slate-500 dark:text-slate-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
+                                        title="Delete Conversation"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -1601,7 +1635,7 @@ const WhatsAppInbox = () => {
                         </div>
                     </div>
 
-                    {/* â”€â”€â”€ Contact Info Panel â”€â”€â”€ */}
+                    {/* ── Contact Info Panel ── */}
                     {showContactPanel && (
                         <ContactInfoPanel
                             conversation={selectedChat}
@@ -1673,7 +1707,7 @@ const WhatsAppInbox = () => {
                 </div>)
             )}
 
-            {/* â”€â”€â”€ Create Quick Reply Modal â”€â”€â”€ */}
+            {/* ── Create Quick Reply Modal ── */}
             {/* Send Template Modal */}
             {showTemplateModal && (
                 <TemplateModal
@@ -1888,6 +1922,43 @@ const WhatsAppInbox = () => {
                 />
             )}
             </div>
+
+            {/* Delete Chat Confirmation Modal */}
+            {showDeleteModal && selectedChat && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isDeleting && setShowDeleteModal(false)} />
+                    <div className="bg-white dark:bg-[#1a2332] border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mb-6">
+                            <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Delete Conversation?</h3>
+                        <p className="text-slate-500 dark:text-slate-400 mb-8">
+                            Are you sure you want to delete this chat with <strong className="text-slate-700 dark:text-slate-300">{renderName(selectedChat.contactName, selectedChat.phoneNumber)}</strong>? This will permanently remove all messages from your inbox. This action cannot be undone.
+                        </p>
+                        
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowDeleteModal(false)}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-all disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteChat}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {isDeleting ? (
+                                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Deleting...</>
+                                ) : (
+                                    <>Yes, Delete</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import TrialBanner from '../components/TrialBanner';
 import {
-    Activity, Shield, Bell, CheckCircle2, UserPlus, CreditCard, Ticket, Trash2, Check, X
+    Activity, Shield, Bell, CheckCircle2, UserPlus, CreditCard, Ticket, Trash2, Check, X, AlertTriangle
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import AdminHeader from '../components/AdminHeader';
@@ -75,6 +76,7 @@ const AdminAlerts = () => {
             case 'USER_REGISTER': return <UserPlus className="w-5 h-5 text-blue-500" />;
             case 'PLAN_CHANGE': return <CreditCard className="w-5 h-5 text-green-500" />;
             case 'SUPPORT_TICKET': return <Ticket className="w-5 h-5 text-amber-500" />;
+            case 'SYSTEM_ERROR': return <AlertTriangle className="w-5 h-5 text-red-500" />;
             default: return <Bell className="w-5 h-5 text-slate-500" />;
         }
     };
@@ -87,6 +89,7 @@ const AdminAlerts = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-hidden">
             <AdminHeader searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)}>
+                <TrialBanner />
                 <ThemeToggle />
             </AdminHeader>
 
@@ -137,6 +140,11 @@ const AdminAlerts = () => {
                                         <div className="flex justify-between items-start mb-1">
                                             <p className={`text-sm font-medium ${!n.isRead ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300'}`}>
                                                 {n.message}
+                                                {n.data?.occurrences > 1 && (
+                                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                                        {n.data.occurrences}x
+                                                    </span>
+                                                )}
                                             </p>
                                             <div className="flex flex-col items-end whitespace-nowrap ml-2">
                                                 <span className="text-xs font-medium text-slate-400">
@@ -160,6 +168,38 @@ const AdminAlerts = () => {
                                                 </button>
                                             )}
                                         </div>
+                                        
+                                        {/* Extra Details for System Errors */}
+                                        {n.type === 'SYSTEM_ERROR' && n.data && (
+                                            <details className="mt-3 border-t border-slate-100 dark:border-white/5 pt-3 group">
+                                                <summary className="text-xs font-semibold text-slate-500 cursor-pointer hover:text-indigo-500 list-none flex items-center gap-1">
+                                                    <ChevronDown className="w-4 h-4 transition-transform group-open:-rotate-180" />
+                                                    View Error Details
+                                                </summary>
+                                                <div className="mt-2 text-xs bg-slate-50 dark:bg-black/20 p-3 rounded-lg overflow-x-auto">
+                                                    {n.data.url && (
+                                                        <div className="mb-2 pb-2 border-b border-slate-200 dark:border-white/10">
+                                                            <strong className="text-slate-600 dark:text-slate-400">URL: </strong>
+                                                            <span className="text-blue-500 break-all">{n.data.url}</span>
+                                                        </div>
+                                                    )}
+                                                    {n.data.userId && (
+                                                        <div className="mb-2 pb-2 border-b border-slate-200 dark:border-white/10">
+                                                            <strong className="text-slate-600 dark:text-slate-400">User ID: </strong>
+                                                            <span className="text-slate-800 dark:text-slate-200">{n.data.userId}</span>
+                                                        </div>
+                                                    )}
+                                                    {n.data.stack && (
+                                                        <div>
+                                                            <strong className="text-slate-600 dark:text-slate-400">Stack Trace:</strong>
+                                                            <pre className="mt-1 text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap">
+                                                                {n.data.stack}
+                                                            </pre>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </details>
+                                        )}
                                     </div>
                                     <button
                                         onClick={() => handleDelete(n.id)}

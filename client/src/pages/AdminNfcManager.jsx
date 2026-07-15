@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
@@ -217,7 +218,8 @@ export default function AdminNfcManager() {
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
-            <AdminHeader><ThemeToggle /></AdminHeader>
+            <AdminHeader><TrialBanner />
+                    <ThemeToggle /></AdminHeader>
 
             <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
                 {/* Header */}

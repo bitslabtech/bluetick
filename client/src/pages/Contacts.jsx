@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Papa from 'papaparse';
@@ -765,6 +766,7 @@ const Contacts = () => {
                 </div>
                 <div className="flex items-center gap-4">
 
+                    <TrialBanner />
                     <ThemeToggle />
                     <NotificationBell />
                     <UserDropdown />

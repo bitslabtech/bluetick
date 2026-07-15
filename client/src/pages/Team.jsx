@@ -25,13 +25,14 @@ export default function Team() {
     // State for View Management
     const [currentView, setCurrentView] = useState('list'); // 'list' | 'invite' | 'edit'
 
-    // Form state (Shared for Invite & Edit)
+    // Form State (New member or editing)
     const [formRole, setFormRole] = useState('custom');
-    const [formPermissions, setFormPermissions] = useState(['menu_dashboard', 'menu_whatsapp_inbox', 'menu_campaigns', 'menu_contacts', 'menu_reports']);
+    const [formPermissions, setFormPermissions] = useState([]);
     const [formInboxVisibility, setFormInboxVisibility] = useState('see_all');
     const [formPhonePrivacy, setFormPhonePrivacy] = useState('visible');
+    const [formCanDeleteChats, setFormCanDeleteChats] = useState(false);
 
-    // Edit specific state
+    // Limit state
     const [editingMember, setEditingMember] = useState(null);
 
     // Available modular permissions (Grouped for UI)
@@ -161,6 +162,7 @@ export default function Team() {
         setFormPermissions(['menu_dashboard', 'menu_whatsapp_inbox', 'menu_campaigns', 'menu_contacts', 'menu_reports']);
         setFormInboxVisibility('see_all');
         setFormPhonePrivacy('visible');
+        setFormCanDeleteChats(false);
         setInviteLink('');
         setCurrentView('invite');
     };
@@ -176,6 +178,7 @@ export default function Team() {
         setFormPermissions(member.teamPermissions || []);
         setFormInboxVisibility(member.teamPolicy?.inboxVisibility || 'see_all');
         setFormPhonePrivacy(member.teamPolicy?.phonePrivacy || 'visible');
+        setFormCanDeleteChats(!!member.teamPolicy?.canDeleteChats);
         setCurrentView('edit');
     };
 
@@ -193,7 +196,8 @@ export default function Team() {
                 permissions: formPermissions,
                 teamPolicy: {
                     inboxVisibility: formInboxVisibility,
-                    phonePrivacy: formPhonePrivacy
+                    phonePrivacy: formPhonePrivacy,
+                    canDeleteChats: formCanDeleteChats
                 }
             }, {
                 headers: {}
@@ -216,7 +220,8 @@ export default function Team() {
                 permissions: formPermissions,
                 teamPolicy: {
                     inboxVisibility: formInboxVisibility,
-                    phonePrivacy: formPhonePrivacy
+                    phonePrivacy: formPhonePrivacy,
+                    canDeleteChats: formCanDeleteChats
                 }
             }, {
                 headers: {}
@@ -456,6 +461,26 @@ export default function Team() {
                                 <p className="text-xs text-slate-500 mt-3 flex items-center gap-1.5 px-1">
                                     <AlertCircle className="w-3.5 h-3.5" /> Affects display of raw phone numbers.
                                 </p>
+                            </div>
+
+                            {/* Deletion Control */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Conversation Management</label>
+                                <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                                    <div>
+                                        <div className="text-sm font-bold text-slate-700 dark:text-slate-300">Allow Conversation Deletion</div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Allows the user to permanently delete chats and messages.</div>
+                                    </div>
+                                    <div className="relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none shrink-0" style={{ backgroundColor: formCanDeleteChats ? '#10b981' : '#cbd5e1' }}>
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={formCanDeleteChats}
+                                            onChange={(e) => setFormCanDeleteChats(e.target.checked)}
+                                        />
+                                        <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${formCanDeleteChats ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </div>
+                                </label>
                             </div>
                         </div>
                     </div>

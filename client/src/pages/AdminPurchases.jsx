@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { ShoppingBag, Filter, ArrowUpRight, ArrowDownRight, CheckCircle, XCircle } from 'lucide-react';
 import AdminHeader from '../components/AdminHeader';
@@ -55,7 +56,8 @@ const AdminPurchases = () => {
                 searchTerm={searchTerm}
                 onSearchChange={(e) => setSearchTerm(e.target.value)}
             >
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
 
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
@@ -162,7 +164,9 @@ const AdminPurchases = () => {
                                                         {t.razorpayPaymentId.substring(0, 16)}...
                                                     </span>
                                                 ) : (
-                                                    <span className="text-xs text-slate-400 italic">— (manual)</span>
+                                                    <span className="text-xs text-slate-400 italic">
+                                                        {t.status === 'FAILED' ? '— (abandoned/failed)' : '— (manual)'}
+                                                    </span>
                                                 )}
                                             </td>
                                             <td className="px-4 md:px-6 py-4">

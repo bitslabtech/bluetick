@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import {
     Bell, CheckCircle2, AlertTriangle, XCircle, Info,
@@ -73,6 +74,7 @@ const UserNotifications = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
+                    <TrialBanner />
                     <ThemeToggle />
                     <div className="size-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30">
                         {user?.name?.[0]}

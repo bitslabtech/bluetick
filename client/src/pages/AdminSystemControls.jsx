@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import {
     Activity, Shield, Server, Zap, Terminal,
@@ -376,7 +377,8 @@ const AdminSystemControls = () => {
             {/* Top Bar */}
             {/* Top Bar */}
             <AdminHeader>
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
 
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-32">

@@ -550,13 +550,15 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
 
             if (linkedAdminId && user.id !== linkedAdminId) {
                 const Contact = require('../models/Contact');
+                // Normalize phone to digits-only for consistent storage and lookup
+                const normalizedUserPhone = String(user.phone || '').replace(/\D/g, '');
                 // Ensure duplicate contacts aren't created for same phone under the linked account
-                const existingContact = await Contact.findOne({ where: { userId: linkedAdminId, phone: user.phone } });
+                const existingContact = await Contact.findOne({ where: { userId: linkedAdminId, phone: normalizedUserPhone } });
                 if (!existingContact) {
                     await Contact.create({
                         userId: linkedAdminId,
                         name: user.name,
-                        phone: user.phone,
+                        phone: normalizedUserPhone,  // always store as digits-only
                         email: user.email,
                         tags: ['App User', planStatus === 'Trial' ? `Plan: ${user.plan} (Trial)` : `Plan: ${user.plan}`]
                     });

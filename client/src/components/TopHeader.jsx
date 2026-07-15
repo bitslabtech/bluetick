@@ -1,5 +1,6 @@
 import React from 'react';
 import ThemeToggle from './ThemeToggle';
+import TrialBanner from './TrialBanner';
 import NotificationBell from './NotificationBell';
 import UserDropdown from './UserDropdown';
 import { useAuth } from '../context/AuthContext';
@@ -33,6 +34,7 @@ export default function TopHeader({ leftContent, title, subtitle, rightContent }
                     </div>
                 )}
                 <div className="hidden md:flex items-center gap-4">
+                    <TrialBanner />
                     <ThemeToggle />
                     <NotificationBell />
                     <UserDropdown />

@@ -21,6 +21,10 @@ const sendSystemMessage = async (to, type, payload) => {
             return { success: false, error: 'No linked account' };
         }
 
+        // Normalize phone: strip all non-digits so '+919952084440' and '919952084440'
+        // always resolve to the same conversation ('919952084440').
+        const normalizedTo = String(to).replace(/\D/g, '');
+
         // Fetch the linked admin user to get their Meta credentials
         const adminUser = await User.findByPk(linkedAdminId);
         if (!adminUser) {
@@ -41,7 +45,7 @@ const sendSystemMessage = async (to, type, payload) => {
         let data = {
             messaging_product: "whatsapp",
             recipient_type: "individual",
-            to: to,
+            to: normalizedTo,  // always digits-only to Meta API
             type: type
         };
 
@@ -73,19 +77,35 @@ const sendSystemMessage = async (to, type, payload) => {
         try {
             const Conversation = require('../models/Conversation');
             const ChatMessage = require('../models/ChatMessage');
+            const Contact = require('../models/Contact');
 
-            // Find or Create Conversation
+            // Find or Create Conversation — always use normalizedTo for consistency
             let conversation = await Conversation.findOne({
-                where: { userId: linkedAdminId, phoneNumber: to }
+                where: { userId: linkedAdminId, phoneNumber: normalizedTo }
             });
 
             if (!conversation) {
+                // Try to get the contact name from the Contacts table
+                const contact = await Contact.findOne({
+                    where: { userId: linkedAdminId, phone: normalizedTo }
+                });
+                const contactName = contact?.name || normalizedTo;
+
                 conversation = await Conversation.create({
                     userId: linkedAdminId,
-                    phoneNumber: to,
-                    contactName: to, // It will be updated by webhook if they reply, or we sync contacts
+                    phoneNumber: normalizedTo,
+                    contactName: contactName,
                     unreadCount: 0
                 });
+            } else if (conversation.contactName === conversation.phoneNumber || conversation.contactName === normalizedTo) {
+                // Conversation exists but name is still just the phone number — try to update it
+                const contact = await Contact.findOne({
+                    where: { userId: linkedAdminId, phone: normalizedTo }
+                });
+                if (contact?.name) {
+                    conversation.contactName = contact.name;
+                    await conversation.save();
+                }
             }
 
             let msgBody = '';

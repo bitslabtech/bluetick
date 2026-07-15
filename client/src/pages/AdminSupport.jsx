@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Bell, LifeBuoy, Ticket, Book, Map, Plus, Trash2, Send, CheckCircle2, MoreHorizontal, MessageSquare, CornerDownRight, ThumbsUp as ThumbsUpIcon, Filter, X, ExternalLink, Calendar, Clock, AlertCircle, User, Search } from 'lucide-react';
@@ -84,7 +85,8 @@ const AdminSupport = () => {
             {/* Top Bar */}
             {/* Top Bar */}
             <AdminHeader>
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
 
             <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8 max-w-[1920px] max-w-full mx-auto w-full flex flex-col relative">

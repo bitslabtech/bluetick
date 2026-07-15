@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -134,7 +135,8 @@ const AiTokenHistory = () => {
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-0 border-slate-100 dark:border-white/5 pt-3 md:pt-0">
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <ThemeToggle />
+                        <TrialBanner />
+                    <ThemeToggle />
                         <button
                             onClick={fetchHistory}
                             disabled={loading}

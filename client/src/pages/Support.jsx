@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Ticket, Book, Map, Plus, Send, Search, ChevronRight, ThumbsUp, Paperclip, X, CreditCard, Laptop, HelpCircle, User, Menu, Coffee, Sparkles } from 'lucide-react';
@@ -151,6 +152,7 @@ const Support = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <TrialBanner />
                     <ThemeToggle />
                     <NotificationBell />
                     <UserDropdown />

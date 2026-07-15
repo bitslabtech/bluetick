@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useRef } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import {
@@ -1069,6 +1070,7 @@ const Settings = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <TrialBanner />
                     <ThemeToggle />
                     <NotificationBell />
                     <UserDropdown />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import {
     CheckCircle2, AlertTriangle, XCircle, Info,
@@ -136,7 +137,8 @@ const AdminNotifications = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-hidden">
             <AdminHeader searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)}>
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
             <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-[1600px] max-w-full mx-auto w-full pb-7 sm:pb-20">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">

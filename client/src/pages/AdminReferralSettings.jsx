@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { Users, Plus, X, Check } from 'lucide-react';
 import { useUI } from '../context/UIContext';
@@ -182,7 +183,8 @@ const AdminReferralSettings = () => {
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
-            <AdminHeader><ThemeToggle /></AdminHeader>
+            <AdminHeader><TrialBanner />
+                    <ThemeToggle /></AdminHeader>
 
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-32">
                 <div className="flex justify-between items-center mb-8">

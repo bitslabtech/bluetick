@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import {
     Users, MessageSquare, DollarSign, Activity, AlertCircle, CheckCircle2,
@@ -166,7 +167,8 @@ const SuperAdminDashboard = () => {
             {/* Header */}
             {/* Header */}
             <AdminHeader>
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
 
             {/* Title Section (Moved to Main) */}

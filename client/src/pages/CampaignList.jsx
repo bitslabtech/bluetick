@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import { Link } from 'react-router-dom';
 import {
     Plus, Search, Filter, MoreVertical, Calendar,
@@ -132,6 +133,7 @@ export default function CampaignList() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <TrialBanner />
                     <ThemeToggle />
                     <NotificationBell />
                     <UserDropdown />

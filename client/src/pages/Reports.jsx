@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
@@ -720,6 +721,7 @@ const Reports = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-4 flex-shrink-0">
+                    <TrialBanner />
                     <ThemeToggle /><NotificationBell /><UserDropdown />
                 </div>
             </header>

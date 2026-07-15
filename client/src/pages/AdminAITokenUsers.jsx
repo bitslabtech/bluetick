@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { Search, Sparkles, AlertCircle, ChevronLeft, ChevronRight, User, Settings, Zap, MessageSquare, Loader2, X, Save } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -91,7 +92,8 @@ const AdminAITokenUsers = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-y-auto fade-in transition-colors duration-300 font-sans">
             <AdminHeader>
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
 
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">

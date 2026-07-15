@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { Trash2, MoreVertical, History, Edit, Eye, Clock, ShieldCheck, User, ChevronDown, ChevronUp, Settings, Plus, CreditCard, Activity, Server, DollarSign, Calendar, MapPin, Hash, Share2, Package, Layers, Zap, ExternalLink, Users, Store } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -255,7 +256,8 @@ const AdminUsers = () => {
                 searchTerm={searchTerm}
                 onSearchChange={(e) => setSearchTerm(e.target.value)}
             >
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
 

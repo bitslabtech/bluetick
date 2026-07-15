@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 
 import { Save, RefreshCw, LayoutTemplate, MessageSquare, BarChart, Users, Type, Image as ImageIcon, Plus, Trash2, CheckCircle, Smartphone, Globe, Monitor, Target, Zap, Tag, DollarSign, Percent, Calendar, FileText, Palette, Key, Server, Edit, X, Phone, Upload, ChevronUp, ChevronDown } from 'lucide-react';
@@ -504,7 +505,8 @@ const AdminLandingPage = () => {
             {/* Top Bar */}
             {/* Top Bar */}
             <AdminHeader>
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
             <main className="w-full p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-8 pb-32">
                 {/* Page Header */}

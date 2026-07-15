@@ -104,7 +104,8 @@ const User = sequelize.define('User', {
         type: DataTypes.JSON,
         defaultValue: {
             inboxVisibility: 'see_all', 
-            phonePrivacy: 'visible'
+            phonePrivacy: 'visible',
+            canDeleteChats: false
         }
     },
     // Referral System

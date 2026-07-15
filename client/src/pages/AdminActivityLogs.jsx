@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { Activity, Filter, Monitor, User, Shield, AlertCircle, CheckCircle, Clock, BookOpen, MessageSquare, Settings, Send, Trash2, Edit, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -77,7 +78,8 @@ const AdminActivityLogs = () => {
                 searchTerm={searchTerm}
                 onSearchChange={(e) => setSearchTerm(e.target.value)}
             >
-                <ThemeToggle />
+                <TrialBanner />
+                    <ThemeToggle />
             </AdminHeader>
 
             <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">

@@ -13,13 +13,16 @@ const FloatingChatbot = ({ config }) => {
     const aiConfig = config?.aiChatbot;
     const hasAutoOpened = useRef(false);
 
-    // Auto-open logic
+    // Auto-open logic (only once per session)
     useEffect(() => {
-        if (aiConfig?.enabled && aiConfig?.autoOpen && !hasAutoOpened.current) {
+        const sessionOpened = sessionStorage.getItem('chatbot_auto_opened');
+        
+        if (aiConfig?.enabled && aiConfig?.autoOpen && !hasAutoOpened.current && !sessionOpened) {
             const delayMs = (aiConfig.autoOpenDelay || 0) * 1000;
             const timer = setTimeout(() => {
                 setIsOpen(true);
                 hasAutoOpened.current = true;
+                sessionStorage.setItem('chatbot_auto_opened', 'true');
             }, delayMs);
             return () => clearTimeout(timer);
         }

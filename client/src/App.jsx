@@ -207,6 +207,18 @@ class ErrorBoundary extends React.Component {
         
         console.error("Uncaught error:", error, errorInfo);
         this.setState({ errorInfo });
+
+        // Report crash to backend silently
+        try {
+            axios.post(`${import.meta.env.VITE_API_URL}/api/admin-notifications/public/crash-report`, {
+                message: error.toString(),
+                stack: errorInfo.componentStack,
+                url: window.location.href,
+                userId: localStorage.getItem('user_id') || 'unknown' // optional tracking
+            }).catch(e => console.error("Failed to report crash:", e));
+        } catch (e) {
+            // Ignore reporting errors to avoid infinite loops
+        }
     }
 
     render() {
@@ -222,13 +234,33 @@ class ErrorBoundary extends React.Component {
                 );
             }
             return (
-                <div className="p-8 bg-red-50 text-red-900 h-screen overflow-auto">
-                    <h1 className="text-2xl font-bold mb-4">Something went wrong.</h1>
-                    <details className="whitespace-pre-wrap">
-                        {this.state.error && this.state.error.toString()}
-                        <br />
-                        {this.state.errorInfo && this.state.errorInfo.componentStack}
-                    </details>
+                <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-background-dark p-4">
+                    <div className="bg-white dark:bg-surface-dark p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-200 dark:border-white/5">
+                        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Oops! Something went wrong.</h1>
+                        <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                            We've been notified about this issue and our team is looking into it. Please try reloading the page or return to your dashboard.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
+                            >
+                                Reload Page
+                            </button>
+                            <button
+                                onClick={() => window.location.href = '/dashboard'}
+                                className="px-5 py-2.5 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl font-medium transition-colors"
+                            >
+                                Go to Dashboard
+                            </button>
+                        </div>
+                        </div>
+                    </div>
                 </div>
             );
         }

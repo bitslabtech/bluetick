@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -118,6 +119,7 @@ const Campaigns = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <TrialBanner />
                     <ThemeToggle />
                     <NotificationBell />
                     <UserDropdown />
