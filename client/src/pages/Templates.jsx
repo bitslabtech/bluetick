@@ -170,9 +170,10 @@ const Templates = () => {
     };
 
     const filteredTemplates = templates.filter(t => {
-        const matchesStatus = filter === 'All' || t.status?.toLowerCase() === filter.toLowerCase();
-        const matchesSearch = t.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            t.category?.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus = filter === 'All' || (t.status || '').toLowerCase() === filter.toLowerCase();
+        const searchLower = (searchQuery || '').toLowerCase();
+        const matchesSearch = (t.name || '').toLowerCase().includes(searchLower) ||
+            (t.category || '').toLowerCase().includes(searchLower);
         return matchesStatus && matchesSearch;
     });
 
