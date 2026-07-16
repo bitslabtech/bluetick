@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { sequelize } = require('../config/database');
 
+const axios = require('axios');
 const logActivity = require('../utils/logger'); // Import Logger
 
 // Middleware: Ensure Super Admin (skipped for now, using standard admin)
@@ -562,6 +563,249 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                     console.error("Test R2 Error:", r2Err);
                     return res.status(400).json({ msg: 'Failed to connect to R2: ' + r2Err.message });
                 }
+
+            case 'auto-create-admin-templates': {
+                // Auto-create WhatsApp templates for all admin notification events using Gemini AI
+                const config = await SystemConfig.getConfig();
+                const linkedAdminId = config?.settings?.linkedAdminUserId;
+                if (!linkedAdminId) {
+                    return res.status(400).json({ error: 'No linked CRM account configured. Please link a CRM account first in the System Control Center.' });
+                }
+
+                const SettingsM = require('../models/Settings');
+                const Template = require('../models/Template');
+                const linkedSettings = await SettingsM.findOne({ where: { userId: linkedAdminId } });
+                if (!linkedSettings || !linkedSettings.metaPhoneNumberId || !linkedSettings.metaAccessToken) {
+                    return res.status(400).json({ error: 'Linked CRM account does not have WhatsApp credentials configured.' });
+                }
+
+                const { GoogleGenerativeAI } = require('@google/generative-ai');
+                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                const aiModel = config?.settings?.aiModel || 'gemini-2.0-flash';
+                const model = genAI.getGenerativeModel({ model: aiModel });
+
+                // Template definitions: event → { name, description, variables }
+                const TEMPLATES_TO_CREATE = [
+                    {
+                        eventKey: 'user_registered',
+                        name: 'admin_alert_user_registered',
+                        description: 'Alert when a new user registers',
+                        variables: ['name', 'email', 'plan'],
+                        variableDesc: ['User full name', 'User email address', 'Subscribed plan name']
+                    },
+                    {
+                        eventKey: 'purchase_made',
+                        name: 'admin_alert_purchase_made',
+                        description: 'Alert when a purchase is completed',
+                        variables: ['name', 'plan', 'amount'],
+                        variableDesc: ['User full name', 'Plan purchased', 'Amount paid']
+                    },
+                    {
+                        eventKey: 'payment_failed',
+                        name: 'admin_alert_payment_failed',
+                        description: 'Alert when a payment fails',
+                        variables: ['name', 'plan'],
+                        variableDesc: ['User full name', 'Plan attempted']
+                    },
+                    {
+                        eventKey: 'support_ticket_raised',
+                        name: 'admin_alert_ticket_raised',
+                        description: 'Alert when a new support ticket is raised',
+                        variables: ['name', 'subject'],
+                        variableDesc: ['User full name', 'Ticket subject']
+                    },
+                    {
+                        eventKey: 'support_ticket_replied',
+                        name: 'admin_alert_ticket_replied',
+                        description: 'Alert when a user replies to a support ticket',
+                        variables: ['name', 'subject'],
+                        variableDesc: ['User full name', 'Ticket subject']
+                    },
+                    {
+                        eventKey: 'feature_suggestion',
+                        name: 'admin_alert_feature_suggestion',
+                        description: 'Alert when a user submits a feature suggestion',
+                        variables: ['name', 'suggestion'],
+                        variableDesc: ['User full name', 'Feature suggestion text']
+                    },
+                    {
+                        eventKey: 'tech_partner_request',
+                        name: 'admin_alert_tech_partner',
+                        description: 'Alert when a tech partner application is submitted',
+                        variables: ['name', 'company'],
+                        variableDesc: ['Applicant full name', 'Company name']
+                    },
+                    {
+                        eventKey: 'contact_inquiry',
+                        name: 'admin_alert_contact_inquiry',
+                        description: 'Alert when a contact form inquiry is received',
+                        variables: ['name', 'message'],
+                        variableDesc: ['Sender full name', 'Inquiry message']
+                    },
+                    {
+                        eventKey: 'system_error',
+                        name: 'admin_alert_system_error',
+                        description: 'Alert when a system error occurs',
+                        variables: ['error'],
+                        variableDesc: ['Error message summary']
+                    },
+                    {
+                        eventKey: 'trial_expiring',
+                        name: 'admin_alert_trial_expiring',
+                        description: 'Alert when a user trial is expiring soon',
+                        variables: ['name', 'days'],
+                        variableDesc: ['User full name', 'Days remaining in trial']
+                    },
+                    {
+                        eventKey: 'nfc_order',
+                        name: 'admin_alert_nfc_order',
+                        description: 'Alert when a new NFC card order is placed',
+                        variables: ['name', 'orderId'],
+                        variableDesc: ['Customer full name', 'Order ID']
+                    },
+                    {
+                        eventKey: 'payout_request',
+                        name: 'admin_alert_payout_request',
+                        description: 'Alert when a tech partner requests a payout',
+                        variables: ['name', 'amount'],
+                        variableDesc: ['Partner full name', 'Payout amount requested']
+                    },
+                    {
+                        eventKey: 'ai_tokens_depleted',
+                        name: 'admin_alert_ai_depleted',
+                        description: 'Alert when a user runs out of AI tokens',
+                        variables: ['name'],
+                        variableDesc: ['User full name']
+                    },
+                    {
+                        eventKey: 'addon_installed',
+                        name: 'admin_alert_addon_installed',
+                        description: 'Alert when a user installs an add-on',
+                        variables: ['name', 'addonName'],
+                        variableDesc: ['User full name', 'Add-on name installed']
+                    }
+                ];
+
+                const created = [];
+                const skipped = [];
+                const failed = [];
+
+                for (const tpl of TEMPLATES_TO_CREATE) {
+                    try {
+                        // Check if template already exists locally for this user
+                        const existing = await Template.findOne({
+                            where: { userId: linkedAdminId, name: tpl.name }
+                        });
+                        if (existing) {
+                            skipped.push(tpl.name);
+                            continue;
+                        }
+
+                        // Build variable description for AI prompt
+                        const varList = tpl.variables.map((v, i) =>
+                            `{{${i + 1}}} = ${tpl.variableDesc[i]}`
+                        ).join(', ');
+
+                        // Ask AI to write a concise professional WhatsApp template body
+                        const prompt =
+                            `You are writing a WhatsApp Business message template body for an admin notification system. ` +
+                            `Event: "${tpl.description}". ` +
+                            `Variables available (use these exact placeholders): ${varList}. ` +
+                            `Rules: ` +
+                            `1. Write ONLY the message body text (no header, no footer, no buttons). ` +
+                            `2. Keep it under 160 characters. ` +
+                            `3. Use an appropriate emoji at the start. ` +
+                            `4. Use ALL the provided variable placeholders ({{1}}, {{2}}, etc.) in order. ` +
+                            `5. Be concise and professional. ` +
+                            `6. Do NOT include any explanation or code — just the template body text.`;
+
+                        const aiResult = await model.generateContent(prompt);
+                        const templateBody = aiResult.response.text().trim();
+
+                        // Save to local DB
+                        const newTemplate = await Template.create({
+                            userId: linkedAdminId,
+                            name: tpl.name,
+                            content: templateBody,
+                            category: 'UTILITY',
+                            language: 'en',
+                            status: 'PENDING'
+                        });
+
+                        // Attempt Meta API submission for the linked account
+                        try {
+                            const token = linkedSettings.metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
+                            const wabaId = linkedSettings.wabaId || linkedSettings.metaBusinessId;
+                            if (wabaId) {
+                                // Build component parameters for Meta submission
+                                const exampleParams = tpl.variables.map(v => `[${v}]`);
+                                const metaRes = await axios.post(
+                                    `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
+                                    {
+                                        name: tpl.name,
+                                        language: 'en',
+                                        category: 'UTILITY',
+                                        components: [
+                                            {
+                                                type: 'BODY',
+                                                text: templateBody,
+                                                example: {
+                                                    body_text: [exampleParams]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`,
+                                            'Content-Type': 'application/json'
+                                        }
+                                    }
+                                );
+                                if (metaRes.data?.id) {
+                                    await newTemplate.update({
+                                        metaTemplateId: metaRes.data.id,
+                                        status: 'PENDING'
+                                    });
+                                }
+                            }
+                        } catch (metaErr) {
+                            // Meta submission failure is non-fatal — template is still saved locally
+                            console.warn(`[AutoCreateTemplates] Meta submission failed for ${tpl.name}:`, metaErr.response?.data?.error?.message || metaErr.message);
+                        }
+
+                        created.push(tpl.name);
+                    } catch (tplErr) {
+                        console.error(`[AutoCreateTemplates] Failed for ${tpl.name}:`, tplErr.message);
+                        failed.push(tpl.name);
+                    }
+                }
+
+                // Update the adminNotificationEvents config to map each event to its template name
+                if (created.length > 0) {
+                    const updatedEvents = { ...(config.settings?.adminNotificationEvents || {}) };
+                    for (const tpl of TEMPLATES_TO_CREATE) {
+                        if (created.includes(tpl.name)) {
+                            updatedEvents[tpl.eventKey] = {
+                                ...(updatedEvents[tpl.eventKey] || {}),
+                                templateName: tpl.name,
+                                enabled: updatedEvents[tpl.eventKey]?.enabled ?? true
+                            };
+                        }
+                    }
+                    config.settings = { ...config.settings, adminNotificationEvents: updatedEvents };
+                    config.changed('settings', true);
+                    await config.save();
+                }
+
+                return res.json({
+                    success: true,
+                    message: `Templates processed: ${created.length} created, ${skipped.length} already existed, ${failed.length} failed.`,
+                    created,
+                    skipped,
+                    failed
+                });
+            }
 
             default:
                 return res.status(400).json({ msg: 'Invalid action' });

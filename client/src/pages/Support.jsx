@@ -70,6 +70,8 @@ const Support = () => {
     const [kbArticles, setKbArticles] = useState([]);
     const [roadmap, setRoadmap] = useState([]);
     const [tickets, setTickets] = useState([]);
+    const [unreadTicketsCount, setUnreadTicketsCount] = useState(0);
+    const [unreadRoadmapCount, setUnreadRoadmapCount] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
     const [categories, setCategories] = useState([]);
     const [selectedArticle, setSelectedArticle] = useState(null);
@@ -93,6 +95,31 @@ const Support = () => {
             setLoading(false);
         });
     }, []);
+
+    // Fetch unread counts
+    useEffect(() => {
+        if (!user) return;
+        const fetchSupportUnread = () => {
+            axios.get(`${import.meta.env.VITE_API_URL}/api/support/tickets/unread-count`)
+                .then(res => {
+                    setUnreadTicketsCount(res.data.count || 0);
+                    setUnreadRoadmapCount(res.data.roadmapCount || 0);
+                })
+                .catch(() => {});
+        };
+        fetchSupportUnread();
+        const interval = setInterval(fetchSupportUnread, 60000); // 1 min poll
+        return () => clearInterval(interval);
+    }, [user]);
+
+    // Mark roadmap as seen when tab is active
+    useEffect(() => {
+        if (activeTab === 'roadmap' && user?.isAdmin && unreadRoadmapCount > 0) {
+            axios.post(`${import.meta.env.VITE_API_URL}/api/support/roadmap/mark-seen`)
+                .then(() => setUnreadRoadmapCount(0))
+                .catch(() => {});
+        }
+    }, [activeTab, user, unreadRoadmapCount]);
 
     const filteredArticles = kbArticles.filter(a =>
         a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -175,16 +202,28 @@ const Support = () => {
                         </button>
 
                         <button onClick={() => setActiveTab('tickets')} className={`p-2 md:p-6 rounded-xl md:rounded-2xl border transition-all flex flex-col md:items-start items-center text-center md:text-left group ${activeTab === 'tickets' ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/5 hover:border-indigo-500/50'}`}>
-                            <div className={`p-2 md:p-3 rounded-lg md:rounded-xl w-fit mb-1 md:mb-4 ${activeTab === 'tickets' ? 'bg-white/20' : 'bg-emerald-50 dark:bg-white/5 text-emerald-600 dark:text-emerald-400'}`}>
+                            <div className={`p-2 md:p-3 rounded-lg md:rounded-xl w-fit mb-1 md:mb-4 relative ${activeTab === 'tickets' ? 'bg-white/20' : 'bg-emerald-50 dark:bg-white/5 text-emerald-600 dark:text-emerald-400'}`}>
                                 <Ticket className="w-4 h-4 md:w-6 md:h-6" />
+                                {unreadTicketsCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white dark:border-surface-dark"></span>
+                                    </span>
+                                )}
                             </div>
                             <h3 className={`text-[10px] sm:text-xs md:text-lg font-bold md:mb-1 leading-tight ${activeTab === 'tickets' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>My Tickets</h3>
                             <p className={`hidden md:block text-sm ${activeTab === 'tickets' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>Track your support requests</p>
                         </button>
 
                         <button onClick={() => setActiveTab('roadmap')} className={`p-2 md:p-6 rounded-xl md:rounded-2xl border transition-all flex flex-col md:items-start items-center text-center md:text-left group ${activeTab === 'roadmap' ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' : 'bg-white dark:bg-surface-dark border-slate-200 dark:border-white/5 hover:border-indigo-500/50'}`}>
-                            <div className={`p-2 md:p-3 rounded-lg md:rounded-xl w-fit mb-1 md:mb-4 ${activeTab === 'roadmap' ? 'bg-white/20' : 'bg-amber-50 dark:bg-white/5 text-amber-600 dark:text-amber-400'}`}>
+                            <div className={`p-2 md:p-3 rounded-lg md:rounded-xl w-fit mb-1 md:mb-4 relative ${activeTab === 'roadmap' ? 'bg-white/20' : 'bg-amber-50 dark:bg-white/5 text-amber-600 dark:text-amber-400'}`}>
                                 <Map className="w-4 h-4 md:w-6 md:h-6" />
+                                {unreadRoadmapCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white dark:border-surface-dark"></span>
+                                    </span>
+                                )}
                             </div>
                             <h3 className={`text-[10px] sm:text-xs md:text-lg font-bold md:mb-1 leading-tight ${activeTab === 'roadmap' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Product Roadmap</h3>
                             <p className={`hidden md:block text-sm ${activeTab === 'roadmap' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>Vote on new features</p>

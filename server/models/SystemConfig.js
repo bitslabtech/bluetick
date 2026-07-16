@@ -120,7 +120,25 @@ const SystemConfig = sequelize.define('SystemConfig', {
                 commissionRate: 20,          // % of plan price
                 minPayoutBalance: 10000,      // minimum balance before payout can be requested
                 requiresYearlyPlan: true      // must have purchased a 1-year plan to be eligible to apply
-            }
+            },
+            adminNotificationEvents: {
+                templateModeEnabled: false,
+                user_registered: { enabled: true, templateName: "admin_alert_user_registered" },
+                purchase_made: { enabled: true, templateName: "admin_alert_purchase_made" },
+                payment_failed: { enabled: true, templateName: "admin_alert_payment_failed" },
+                support_ticket_raised: { enabled: true, templateName: "admin_alert_ticket_raised" },
+                support_ticket_replied: { enabled: true, templateName: "admin_alert_ticket_replied" },
+                feature_suggestion: { enabled: true, templateName: "admin_alert_feature_suggestion" },
+                tech_partner_request: { enabled: true, templateName: "admin_alert_tech_partner" },
+                contact_inquiry: { enabled: true, templateName: "admin_alert_contact_inquiry" },
+                system_error: { enabled: true, templateName: "admin_alert_system_error" },
+                trial_expiring: { enabled: true, templateName: "admin_alert_trial_expiring" },
+                nfc_order: { enabled: true, templateName: "admin_alert_nfc_order" },
+                payout_request: { enabled: true, templateName: "admin_alert_payout_request" },
+                ai_tokens_depleted: { enabled: true, templateName: "admin_alert_ai_depleted" },
+                addon_installed: { enabled: true, templateName: "admin_alert_addon_installed" }
+            },
+            adminNotificationNumbers: []
         }
     },
     lastSessionKill: {
