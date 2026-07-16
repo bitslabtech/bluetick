@@ -4,13 +4,28 @@ const User = require('../models/User');
 const Settings = require('../models/Settings');
 
 /**
- * Dispatches a WhatsApp message using the Linked Platform Communications Account.
- * 
- * @param {string} to - The recipient's phone number (with country code, no +)
- * @param {string} type - Message type: 'text' or 'template'
- * @param {Object} payload - The message payload (text body, or template name/components)
- * @returns {Promise<Object>} The API response
+ * Variable map: each event's ordered variable keys that get injected into
+ * WhatsApp template parameters as {{1}}, {{2}}, {{3}} etc.
+ * Must match the template body placeholders exactly.
  */
+const EVENT_VARIABLE_MAP = {
+    user_registered:        ['name', 'email', 'plan'],
+    purchase_made:          ['name', 'plan', 'amount'],
+    payment_failed:         ['name', 'plan'],
+    support_ticket_raised:  ['name', 'subject'],
+    support_ticket_replied: ['name', 'subject'],
+    feature_suggestion:     ['name', 'suggestion'],
+    tech_partner_request:   ['name', 'company'],
+    contact_inquiry:        ['name', 'message'],
+    system_error:           ['error'],
+    trial_expiring:         ['name', 'days'],
+    nfc_order:              ['name', 'orderId'],
+    payout_request:         ['name', 'amount'],
+    ai_tokens_depleted:     ['name'],
+    addon_installed:        ['name', 'addonName'],
+};
+
+
 const sendSystemMessage = async (to, type, payload) => {
     try {
         const config = await SystemConfig.getCachedConfig();
@@ -179,6 +194,87 @@ const sendSystemMessage = async (to, type, payload) => {
     }
 };
 
+/**
+ * Sends an admin alert to all configured admin phone numbers for a given event.
+ *
+ * Supports two modes:
+ *  - Template mode (templateModeEnabled = true): Sends an approved Meta WhatsApp
+ *    template with variables substituted into {{1}}, {{2}} etc.
+ *  - Text mode (fallback): Sends a plain text message (works only within 24h session window).
+ *
+ * @param {string} eventName  - The event key (e.g. 'user_registered')
+ * @param {string} messageText - The fallback text message
+ * @param {object} [variables] - Key→value map of variables for template substitution
+ *                               e.g. { name: 'John', email: 'john@x.com', plan: 'Pro' }
+ */
+const sendAdminAlert = async (eventName, messageText, variables = {}) => {
+    try {
+        const config = await SystemConfig.getCachedConfig();
+        const settings = config?.settings || {};
+
+        // Check global event config
+        const eventsConfig = settings.adminNotificationEvents || {};
+        const eventConfig = eventsConfig[eventName];
+
+        // If event key doesn't exist or is explicitly disabled, bail out
+        if (!eventConfig || eventConfig.enabled === false) return false;
+
+        // Get the list of admin phone numbers
+        const numbers = settings.adminNotificationNumbers || [];
+        if (!Array.isArray(numbers) || numbers.length === 0) return false;
+
+        const templateModeEnabled = eventsConfig.templateModeEnabled === true;
+
+        let successCount = 0;
+        for (const phone of numbers) {
+            const toPhone = String(phone).replace(/\D/g, '');
+            if (!toPhone) continue;
+
+            if (templateModeEnabled && eventConfig.templateName) {
+                // ── Template Mode ────────────────────────────────────────────────────
+                const templateName = eventConfig.templateName;
+                const varKeys = EVENT_VARIABLE_MAP[eventName] || [];
+
+                // Build parameters in declaration order
+                const parameters = varKeys
+                    .map(key => ({ type: 'text', text: String(variables[key] || 'N/A') }));
+
+                // Variable count validation
+                if (varKeys.length > 0 && parameters.length !== varKeys.length) {
+                    console.warn(
+                        `[SystemMessenger] Variable mismatch for event "${eventName}": ` +
+                        `expected ${varKeys.length} (${varKeys.join(', ')}), got ${parameters.length} from payload.`
+                    );
+                }
+
+                const components = parameters.length > 0
+                    ? [{ type: 'body', parameters }]
+                    : [];
+
+                const result = await sendSystemMessage(toPhone, 'template', {
+                    templateName,
+                    languageCode: eventConfig.languageCode || 'en',
+                    components
+                });
+                if (result?.success) successCount++;
+            } else {
+                // ── Text Mode ─────────────────────────────────────────────────────────
+                const result = await sendSystemMessage(toPhone, 'text', {
+                    body: `🚨 *Admin Alert*\n\n${messageText}`
+                });
+                if (result?.success) successCount++;
+            }
+        }
+
+        return successCount > 0;
+    } catch (err) {
+        console.error('[SystemMessenger] Error sending admin alert:', err.message);
+        return false;
+    }
+};
+
 module.exports = {
-    sendSystemMessage
+    sendSystemMessage,
+    sendAdminAlert,
+    EVENT_VARIABLE_MAP
 };

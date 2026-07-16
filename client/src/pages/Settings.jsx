@@ -8,11 +8,12 @@ import {
     Layout, Type, Palette, Image as ImageIcon, Check, RefreshCw,
     Bell, Mail, MessageCircle, UserPlus, CreditCard, AlertTriangle, BarChart, Zap,
     Server, Smartphone, Send, Terminal, Shield, Key, Search, User, Sparkles,
-    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2, ArrowRight, ListOrdered
+    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2, ArrowRight, ListOrdered, ShieldAlert
 } from 'lucide-react';
 import BillingTab from '../components/BillingTab';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
+import WhatsAppAdminNotifPanel from '../components/WhatsAppAdminNotifPanel';
 import NotificationBell from '../components/NotificationBell';
 import ThemeToggle from '../components/ThemeToggle';
 import CRMLinkingPanel from '../components/CRMLinkingPanel';
@@ -1502,6 +1503,17 @@ const Settings = () => {
                                         >
                                             <MessageCircle className="w-4 h-4" /> WhatsApp Templates
                                         </button>
+                                        {user?.isAdmin && (
+                                            <button
+                                                onClick={() => setActiveSubTab('wa_admin')}
+                                                className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeSubTab === 'wa_admin'
+                                                    ? 'bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 border-b-2 border-red-600'
+                                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white'
+                                                    } `}
+                                            >
+                                                <ShieldAlert className="w-4 h-4" /> WA Admin Notifications
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div className="p-4 md:p-6 space-y-8">
@@ -1712,7 +1724,25 @@ const Settings = () => {
                                                 </div>
                                             </div>
                                         ))}
+                                        
+                                        {activeSubTab === 'wa_admin' && user?.isAdmin && (
+                                            <WhatsAppAdminNotifPanel />
+                                        )}
                                     </div>
+                                    
+                                    {/* Action Footer for normal templates */}
+                                    {activeSubTab !== 'wa_admin' && (
+                                        <div className="bg-slate-50 dark:bg-white/5 border-t border-slate-200 dark:border-white/5 p-4 md:p-6 flex justify-end">
+                                            <button
+                                                onClick={saveSettingsData}
+                                                disabled={saving}
+                                                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/30 disabled:opacity-50"
+                                            >
+                                                {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
+                                                Save Templates
+                                            </button>
+                                        </div>
+                                    )}
                                 </section>
                             )}
 
