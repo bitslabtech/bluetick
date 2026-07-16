@@ -49,14 +49,33 @@ const ConfettiExplosion = ({ trigger }) => {
 
 const AdminSupport = () => {
     const { showModal, showToast } = useUI();
+    const { user, fetchUser } = useAuth();
+    // Expose fetchUser to window for easy access inside useEffect
+    useEffect(() => { window.fetchAuthUser = fetchUser; }, [fetchUser]);
+
     const [activeTab, setActiveTab] = useState('tickets'); // tickets | kb | roadmap
     const [tickets, setTickets] = useState([]);
     const [kbArticles, setKbArticles] = useState([]);
     const [roadmap, setRoadmap] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const unreadRoadmapCount = roadmap.filter(item => {
+        if (!user?.lastSeenRoadmapAt) return true;
+        return new Date(item.createdAt) > new Date(user.lastSeenRoadmapAt);
+    }).length;
+
     useEffect(() => {
         fetchData();
+        if (activeTab === 'roadmap' && user?.isAdmin) {
+            axios.post(`${import.meta.env.VITE_API_URL}/api/support/roadmap/mark-seen`)
+                .then(() => {
+                    // Refetch user to get the updated lastSeenRoadmapAt
+                    if (window.fetchAuthUser) {
+                        window.fetchAuthUser();
+                    }
+                })
+                .catch(() => {});
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
 
@@ -117,9 +136,15 @@ const AdminSupport = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('roadmap')}
-                            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'roadmap' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 relative ${activeTab === 'roadmap' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
                         >
                             <Map className="w-4 h-4" /> Roadmap
+                            {unreadRoadmapCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                                </span>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -134,7 +159,7 @@ const AdminSupport = () => {
                         <>
                             {activeTab === 'tickets' && <TicketManager tickets={tickets} refresh={fetchData} showToast={showToast} showModal={showModal} />}
                             {activeTab === 'kb' && <KBManager articles={kbArticles} refresh={fetchData} showToast={showToast} showModal={showModal} />}
-                            {activeTab === 'roadmap' && <RoadmapManager items={roadmap} refresh={fetchData} showToast={showToast} showModal={showModal} />}
+                            {activeTab === 'roadmap' && <RoadmapManager items={roadmap} refresh={fetchData} showToast={showToast} showModal={showModal} user={user} />}
                         </>
                     )}
                 </div>
@@ -865,6 +890,7 @@ const RoadmapManager = ({ items, refresh }) => {
                                         })
                                         .map(item => {
                                             const hasVoted = item.voters?.includes(user?.id);
+                                            const isNew = user?.isAdmin && (!user?.lastSeenRoadmapAt || new Date(item.createdAt) > new Date(user.lastSeenRoadmapAt));
                                             return (
                                                 <MotionDiv
                                                     layout
@@ -873,9 +899,12 @@ const RoadmapManager = ({ items, refresh }) => {
                                                     exit={{ opacity: 0, scale: 0.9 }}
                                                     transition={{ duration: 0.3 }}
                                                     key={item.id}
-                                                    className="bg-white dark:bg-surface-dark p-3 rounded-lg shadow-sm border border-slate-200 dark:border-white/5 hover:shadow-md group shrink-0"
+                                                    className="bg-white dark:bg-surface-dark p-3 rounded-lg shadow-sm border border-slate-200 dark:border-white/5 hover:shadow-md group shrink-0 relative overflow-hidden"
                                                 >
-                                                    <div className="font-bold text-slate-800 dark:text-white mb-0.5 text-sm">{item.title}</div>
+                                                    {isNew && (
+                                                        <span className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded-bl-lg shadow-sm z-10 tracking-widest">NEW</span>
+                                                    )}
+                                                    <div className="font-bold text-slate-800 dark:text-white mb-0.5 text-sm pr-6">{item.title}</div>
                                                     <div className="text-[10px] text-indigo-500 font-medium mb-2 opacity-80">
                                                         👤 {item.suggesterName || 'System / Anonymous'}
                                                     </div>

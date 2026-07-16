@@ -6,6 +6,7 @@ const Ticket = require('../models/Ticket');
 const Article = require('../models/Article');
 const RoadmapItem = require('../models/RoadmapItem');
 const User = require('../models/User');
+const SystemNotification = require('../models/SystemNotification');
 const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const KBCategory = require('../models/KBCategory');
@@ -33,8 +34,18 @@ router.get('/tickets/unread-count', async (req, res) => {
             where.hasUnreadAdminReply = true;
         }
 
+        let roadmapCount = 0;
+        if (isAdmin) {
+            // Count unseen roadmap items for admin
+            const roadmapWhere = {};
+            if (req.user.lastSeenRoadmapAt) {
+                roadmapWhere.createdAt = { [Op.gt]: req.user.lastSeenRoadmapAt };
+            }
+            roadmapCount = await RoadmapItem.count({ where: roadmapWhere });
+        }
+
         const count = await Ticket.count({ where });
-        res.json({ count });
+        res.json({ count, roadmapCount });
     } catch (err) {
         console.error('Ticket Unread Count Error:', err);
         res.status(500).json({ error: 'Server Error' });
@@ -333,9 +344,43 @@ router.put('/roadmap/:id', async (req, res) => {
         const item = await RoadmapItem.findByPk(req.params.id);
         if (!item) return res.status(404).json({ error: 'Item not found' });
 
+        const previousStatus = item.status;
         item.status = status;
         await item.save();
+
+        // Notify suggesting user if status changed to something positive
+        if (status !== previousStatus && ['Approved', 'In Progress', 'Live'].includes(status) && item.suggesterId) {
+            const suggester = await User.findByPk(item.suggesterId);
+            if (suggester) {
+                await SystemNotification.create({
+                    title: 'Feature Suggestion Update',
+                    message: `Great news! Your suggestion "${item.title}" is now ${status}.`,
+                    type: 'Success',
+                    recipient: suggester.email,
+                    target: `User: ${suggester.name} (${suggester.email})`,
+                    buttonName: 'View Roadmap',
+                    buttonUrl: '/support',
+                    status: 'Sent'
+                });
+            }
+        }
+
         res.json(item);
+    } catch (err) {
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// POST Mark roadmap as seen (Admin Only)
+router.post('/roadmap/mark-seen', async (req, res) => {
+    if (!req.user.isAdmin) return res.status(403).json({ error: 'Admin only' });
+    try {
+        const user = await User.findByPk(req.user.id);
+        if (user) {
+            user.lastSeenRoadmapAt = new Date();
+            await user.save();
+        }
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });
     }

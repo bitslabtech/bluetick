@@ -231,6 +231,12 @@ const User = sequelize.define('User', {
         allowNull: true,
         comment: 'Stores CAPI config: { pixelId, accessToken, testEventCode }'
     },
+    // Feature Notifications
+    lastSeenRoadmapAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Timestamp when the user last viewed the Product Roadmap'
+    },
     // ── Account Lifecycle ──────────────────────────────────────────────────────
     // Name and email are intentionally kept on soft-deleted accounts so that
     // admin dashboard JOINs (Top Token Consumers, Activity Logs, Recent Purchases)

@@ -309,7 +309,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         if (!user) return;
         const fetchSupportUnread = () => {
             axios.get(`${import.meta.env.VITE_API_URL}/api/support/tickets/unread-count`)
-                .then(res => setUnreadSupportTickets(res.data.count || 0))
+                .then(res => setUnreadSupportTickets((res.data.count || 0) + (res.data.roadmapCount || 0)))
                 .catch(() => {}); // silently fail
         };
         fetchSupportUnread();
