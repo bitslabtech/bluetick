@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { AnimatePresence, motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns'; // We need date-fns, if not available I will use native logic or check package.json
+import EmbeddedSignupChecklist from '../components/EmbeddedSignupChecklist';
 
 const Dashboard = () => {
     const { user, isImpersonating, fetchUser } = useAuth();
@@ -53,6 +54,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [chartLoading, setChartLoading] = useState(true); // Separate loading for chart
     const [fbLoading, setFbLoading] = useState(false);
+    const [showChecklistModal, setShowChecklistModal] = useState(false);
 
     // Filter State
     const [dateRange, setDateRange] = useState('7d'); // 1d, 7d, 1m, 3m, custom
@@ -506,7 +508,7 @@ const Dashboard = () => {
                                             </button>
                                         )}
                                         <button
-                                            onClick={handleFacebookLogin}
+                                            onClick={() => setShowChecklistModal(true)}
                                             disabled={fbLoading}
                                             className="w-full md:w-auto shrink-0 px-4 py-2 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-75 disabled:cursor-not-allowed"
                                         >
@@ -1036,6 +1038,16 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
+            <EmbeddedSignupChecklist 
+                isOpen={showChecklistModal} 
+                onClose={() => setShowChecklistModal(false)}
+                onProceed={() => {
+                    setShowChecklistModal(false);
+                    handleFacebookLogin();
+                }}
+                fbLoading={fbLoading}
+            />
+
         </div>
     );
 };

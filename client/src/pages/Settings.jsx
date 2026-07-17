@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
@@ -19,6 +18,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import CRMLinkingPanel from '../components/CRMLinkingPanel';
 import UserDropdown from '../components/UserDropdown';
 import GlobalSearch from '../components/GlobalSearch';
+import EmbeddedSignupChecklist from '../components/EmbeddedSignupChecklist';
 
 const Settings = () => {
     const { user, logout, fetchUser } = useAuth();
@@ -66,6 +66,7 @@ const Settings = () => {
 
     // Facebook Login State
     const [fbLoading, setFbLoading] = useState(false);
+    const [showChecklistModal, setShowChecklistModal] = useState(false);
     const [logoUploading, setLogoUploading] = useState(false);
     const [webhookVerifyToken, setWebhookVerifyToken] = useState('Loading...');
     const [showWebhookVerifyToken, setShowWebhookVerifyToken] = useState(false);
@@ -982,6 +983,17 @@ const Settings = () => {
                     </div>
                 </div>
             </main>
+
+            <EmbeddedSignupChecklist 
+                isOpen={showChecklistModal} 
+                onClose={() => setShowChecklistModal(false)}
+                onProceed={() => {
+                    setShowChecklistModal(false);
+                    handleFacebookLogin();
+                }}
+                fbLoading={fbLoading}
+            />
+
         </div>
     );
 
@@ -1918,7 +1930,7 @@ const Settings = () => {
                                                                     </button>
                                                                 )}
                                                                 <button
-                                                                    onClick={handleFacebookLogin}
+                                                                    onClick={() => setShowChecklistModal(true)}
                                                                     disabled={fbLoading}
                                                                     className="px-4 md:px-8 py-4 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 w-full md:w-auto text-lg disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-1 order-1 sm:order-2"
                                                                 >
