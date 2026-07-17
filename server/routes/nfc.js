@@ -16,6 +16,7 @@ const Transaction = require('../models/Transaction');
 const SystemNotification = require('../models/SystemNotification');
 const AdminNotification = require('../models/AdminNotification');
 const PaymentService = require('../services/PaymentService');
+const { sendAdminAlert } = require('../services/systemMessenger');
 
 // @route   POST /api/nfc/order
 // @desc    Submit a purchase order for NFC products and initialize checkout
@@ -114,6 +115,15 @@ router.post('/verify-payment', async (req, res) => {
             message: `A new NFC order for ${order.productType} has been placed and paid successfully.`,
             type: 'info'
         });
+
+        // 🚨 WA ADMIN NOTIFICATION - NFC ORDER
+        try {
+            const buyer = await User.findByPk(order.userId);
+            await sendAdminAlert('nfc_order', `New NFC order placed by ${buyer?.name || 'a user'}`, {
+                name: buyer?.name || 'Customer',
+                orderId: order.id.split('-')[0].toUpperCase()
+            });
+        } catch (waErr) { console.error('[WA ALERT] nfc_order failed:', waErr.message); }
         
         return res.json({ success: true });
     } catch (err) {

@@ -490,10 +490,7 @@ router.post('/generate-ai', auth, async (req, res) => {
             return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
-
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
+        const { runAi } = require('../utils/aiRunner');
 
         const systemInstruction = `You are an expert web form builder. The user will ask for a type of form.
 You MUST reply with ONLY a raw JSON object (no markdown, no backticks).
@@ -522,16 +519,9 @@ CRITICAL RULES:
 1. If the user mentions any payment, fee, pricing, or checkout amount (e.g., "$50 fee" or "650rs registration"), DO NOT create a standard field for it. Instead, enable the "checkout" object as shown above, converting their stated price into the "amount". If no price is mentioned, omit the checkout object or set requirePayment to false.
 2. Do not include markdown \`\`\`json wrappers in your output. Just output the raw JSON object string.`;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
-        const payload = {
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-        };
-
-        const aiRes = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
-        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        replyText = replyText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+        const { text: formsRaw, modelUsed: formsModel } = await runAi(sysConfig, systemInstruction, prompt, { temperature: 0.7, maxOutputTokens: 2048 });
+        console.log(`[Forms AI] used model: ${formsModel}`);
+        let replyText = formsRaw.replace(/```json/gi, '').replace(/```/gi, '').trim();
 
         let generatedForm;
         try {

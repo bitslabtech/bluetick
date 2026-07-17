@@ -464,20 +464,18 @@ class FlowRunner {
 
                 // If not handed off, proceed to generate AI response using Gemini
                 try {
-                    const { GoogleGenerativeAI } = require('@google/generative-ai');
+                    const { runAi, SUPPORTED_MODELS, DEFAULT_PRIMARY } = require('../utils/aiRunner');
                     const SystemConfig = require('../models/SystemConfig');
                     const sysConfig = await SystemConfig.getConfig();
-                    const aiModelName = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
+                    const settings = sysConfig?.settings || {};
+                    const axios = require('axios');
+                    const apiKey = process.env.GEMINI_API_KEY;
 
-                    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                    const model = genAI.getGenerativeModel({ 
-                        model: aiModelName,
-                        systemInstruction: systemPrompt
-                    });
+                    const primaryModel = SUPPORTED_MODELS.includes(settings.aiModel) ? settings.aiModel : DEFAULT_PRIMARY;
+                    const fallbackModel = SUPPORTED_MODELS.includes(settings.aiFallbackModel) ? settings.aiFallbackModel : null;
+                    const maxRetries = Math.min(Math.max(parseInt(settings.aiRetryAttempts) || 3, 1), 5);
 
-                    // Format conversation history for Gemini
-                    // IMPORTANT: Exclude the latest user message from history because
-                    // we send it separately via chat.sendMessage() below
+                    // Format conversation history for Gemini REST API
                     let history = [];
                     if (conversation) {
                         const allMsgs = await ChatMessage.findAll({
@@ -485,8 +483,6 @@ class FlowRunner {
                             order: [['createdAt', 'ASC']]
                         });
                         
-                        // Map to Gemini roles ('user' or 'model')
-                        // Only include messages with actual content
                         const mapped = allMsgs
                             .filter(m => m.body && m.body.trim())
                             .map(m => ({
@@ -494,24 +490,22 @@ class FlowRunner {
                                 parts: [{ text: m.body }]
                             }));
 
-                        // Remove the last user message (it will be sent via sendMessage)
+                        // Remove the last user message (it will be sent as the current user turn)
                         if (mapped.length > 0 && mapped[mapped.length - 1].role === 'user') {
                             mapped.pop();
                         }
 
-                        // Gemini requires history to start with 'user' role
-                        // Also requires alternating user/model turns — merge consecutive same-role messages
+                        // Merge consecutive same-role messages (Gemini requires alternating)
                         const merged = [];
                         for (const entry of mapped) {
                             if (merged.length > 0 && merged[merged.length - 1].role === entry.role) {
-                                // Merge text into previous entry of same role
                                 merged[merged.length - 1].parts[0].text += '\n' + entry.parts[0].text;
                             } else {
                                 merged.push({ ...entry });
                             }
                         }
 
-                        // If history starts with 'model', remove it (Gemini requires 'user' first)
+                        // Gemini requires history to start with 'user'
                         if (merged.length > 0 && merged[0].role === 'model') {
                             merged.shift();
                         }
@@ -521,18 +515,54 @@ class FlowRunner {
 
                     console.log(`[FLOW RUNNER] AI History: ${history.length} turns. Latest message: "${latestUserMessage}"`);
 
-                    // Initialize chat with history
-                    const chat = model.startChat({ history });
+                    // Build REST payload with conversation history
+                    const contents = [
+                        ...history,
+                        { role: 'user', parts: [{ text: latestUserMessage || 'Hello' }] }
+                    ];
 
-                    // Send the latest user message to trigger generation
-                    const promptText = latestUserMessage || 'Hello';
-                    
-                    const result = await chat.sendMessage(promptText);
-                    const aiResponse = result.response.text();
+                    const payload = {
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        contents,
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+                    };
 
-                    console.log(`[FLOW RUNNER] AI Response: "${aiResponse.substring(0, 100)}..."`);
+                    // Try primary model with retries, then fallback
+                    let aiResponse = null;
+                    let modelUsed = primaryModel;
+                    try {
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`;
+                        let lastErr;
+                        for (let attempt = 0; attempt < maxRetries; attempt++) {
+                            try {
+                                const res = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
+                                aiResponse = res.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                break;
+                            } catch (e) {
+                                lastErr = e;
+                                if ((e.response?.status === 429 || e.response?.status === 503) && attempt < maxRetries - 1) {
+                                    await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1200));
+                                } else { throw e; }
+                            }
+                        }
+                        if (aiResponse === null) throw lastErr;
+                    } catch (primaryErr) {
+                        if (fallbackModel && fallbackModel !== primaryModel) {
+                            console.warn(`[FLOW RUNNER] Primary model ${primaryModel} failed, using fallback ${fallbackModel}`);
+                            const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModel}:generateContent?key=${apiKey}`;
+                            const fbRes = await axios.post(fbUrl, payload, { headers: { 'Content-Type': 'application/json' } });
+                            aiResponse = fbRes.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                            modelUsed = fallbackModel;
+                        } else {
+                            throw primaryErr;
+                        }
+                    }
+
+                    console.log(`[FLOW RUNNER] AI Response (model: ${modelUsed}): "${(aiResponse || '').substring(0, 100)}..."`);
                     
-                    await this.sendWhatsAppText(aiResponse);
+                    const aiResult = aiResponse || 'I am having trouble processing your request. Please try again.';
+                    await this.sendWhatsAppText(aiResult);
+
                     
                     // Pause the flow and wait for the user's next message
                     pauseHere = true;

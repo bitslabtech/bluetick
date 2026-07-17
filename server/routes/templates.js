@@ -952,14 +952,15 @@ router.post('/enhance-ai', async (req, res) => {
         const finalCost = Math.ceil(BASE_COST * multiplier);
 
         if (user.aiTokenBalance < finalCost) {
+            // 🚨 WA ADMIN NOTIFICATION - AI TOKENS DEPLETED
+            try {
+                const { sendAdminAlert } = require('../services/systemMessenger');
+                await sendAdminAlert('ai_tokens_depleted', `${user.name} ran out of AI tokens`, { name: user.name });
+            } catch (waErr) { console.error('[WA ALERT] ai_tokens_depleted failed:', waErr.message); }
             return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
-
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
-        const axios = require('axios');
+        const { runAi } = require('../utils/aiRunner');
 
         const systemInstruction = `You are an expert copywriter specializing in high-converting WhatsApp marketing messages.
 Your goal is to enhance, proofread, and optimize the user's text for WhatsApp. 
@@ -967,16 +968,9 @@ Fix grammar, make it punchy, engaging, and professional but concise.
 If there are any variables like {{1}}, {{2}} etc., keep them EXACTLY as they are. DO NOT change, remove, or re-order variables unless absolutely necessary for flow, but you must retain the exact variable placeholders.
 Output ONLY the final enhanced message text. Do not include introductory notes, quotes, or markdown wrappers.`;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
-        const payload = {
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: text }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-        };
-
-        const aiRes = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
-        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        replyText = replyText.replace(/```(whatsapp|text|markdown)?/gi, '').replace(/```/gi, '').trim();
+        const { text: replyRaw, modelUsed } = await runAi(sysConfig, systemInstruction, text, { temperature: 0.7, maxOutputTokens: 2048 });
+        console.log(`[Templates AI] Enhancer used model: ${modelUsed}`);
+        let replyText = replyRaw.replace(/```(whatsapp|text|markdown)?/gi, '').replace(/```/gi, '').trim();
 
         await user.decrement('aiTokenBalance', { by: finalCost });
         const newBal = (user.aiTokenBalance - finalCost);
@@ -1039,19 +1033,18 @@ router.post('/draft-ai', async (req, res) => {
         const finalCost = Math.ceil(BASE_COST * multiplier);
 
         if (user.aiTokenBalance < finalCost) {
+            // 🚨 WA ADMIN NOTIFICATION - AI TOKENS DEPLETED
+            try {
+                const { sendAdminAlert } = require('../services/systemMessenger');
+                await sendAdminAlert('ai_tokens_depleted', `${user.name} ran out of AI tokens`, { name: user.name });
+            } catch (waErr) { console.error('[WA ALERT] ai_tokens_depleted failed:', waErr.message); }
             return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
-
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
-        const axios = require('axios');
+        const { runAi } = require('../utils/aiRunner');
 
         const systemInstruction = `You are an expert WhatsApp Business template architect. The user will describe a WhatsApp message template they want to build.
 Your task is to generate a perfectly structured, Meta-compliant JSON configuration based EXACTLY on their requirements.
-
-OUTPUT STRICTLY VALID JSON. NO MARKDOWN WRAPPERS (\`\`\`json). NO COMMENTS. JUST RAW JSON.
 
 === BUTTON TYPES — READ THIS CAREFULLY ===
 There are 4 button types. Choose the CORRECT one based on strict intent matching:
@@ -1110,16 +1103,9 @@ There are 4 button types. Choose the CORRECT one based on strict intent matching
 - NEVER use QUICK_REPLY for coupon/promo codes — always use COPY_CODE.
 `;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
-        const payload = {
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.6, maxOutputTokens: 2048 }
-        };
-
-        const aiRes = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
-        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        replyText = replyText.replace(/```(whatsapp|text|markdown|json)?/gi, '').replace(/```/gi, '').trim();
+        const { text: draftRaw, modelUsed: draftModel } = await runAi(sysConfig, systemInstruction, prompt, { temperature: 0.6, maxOutputTokens: 2048 });
+        console.log(`[Templates AI] Draft used model: ${draftModel}`);
+        const replyText = draftRaw.replace(/```(whatsapp|text|markdown|json)?/gi, '').replace(/```/gi, '').trim();
 
         let generatedDraft;
         try {

@@ -462,6 +462,53 @@ function initScheduler() {
             console.error('Scheduler Expiry & Quota check error:', err);
         }
     }, 10 * 60 * 1000); // Check every 10 mins
+
+    // ==========================================
+    // 🚨 TRIAL EXPIRY ADMIN NOTIFICATIONS (Runs every 12 hours)
+    // Fires a WA admin alert for users whose trial expires in 1 or 3 days
+    // ==========================================
+    setInterval(async () => {
+        try {
+            const { sendAdminAlert } = require('./systemMessenger');
+            const User = require('../models/User');
+            const { Op } = require('sequelize');
+            const now = new Date();
+
+            // Check for trials expiring in exactly 3 days and 1 day (with a 13-hour window to match 12h cron)
+            const checkWindows = [
+                { days: 3, label: '3' },
+                { days: 1, label: '1' }
+            ];
+
+            for (const window of checkWindows) {
+                const windowStart = new Date(now.getTime() + (window.days * 24 * 60 * 60 * 1000) - (13 * 60 * 60 * 1000));
+                const windowEnd   = new Date(now.getTime() + (window.days * 24 * 60 * 60 * 1000));
+
+                const expiringUsers = await User.findAll({
+                    where: {
+                        planStatus: 'Trial',
+                        planExpiry: { [Op.between]: [windowStart, windowEnd] },
+                        plan: { [Op.ne]: 'Free' }
+                    },
+                    attributes: ['id', 'name', 'email', 'planExpiry']
+                });
+
+                for (const user of expiringUsers) {
+                    try {
+                        await sendAdminAlert('trial_expiring', `Trial expiring in ${window.label} day(s) for ${user.name}`, {
+                            name: user.name,
+                            days: window.label
+                        });
+                        console.log(`[TRIAL EXPIRY] WA alert sent for ${user.email} (expires in ${window.label} day(s))`);
+                    } catch (alertErr) {
+                        console.error(`[TRIAL EXPIRY] WA alert failed for ${user.email}:`, alertErr.message);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('[TRIAL EXPIRY] Scheduler error:', err.message);
+        }
+    }, 12 * 60 * 60 * 1000); // Check every 12 hours
 }
 
 module.exports = { initScheduler };

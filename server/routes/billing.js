@@ -853,6 +853,10 @@ router.post('/verify-payment', async (req, res) => {
                     name: user?.name || 'Unknown',
                     plan: failedPlanName
                 });
+                // 🚨 WA ADMIN NOTIFICATION - SYSTEM ERROR (payment verification failure)
+                await sendAdminAlert('system_error', `Payment verification error for user ${user?.name || req.user.id}`, {
+                    error: `Payment verification failed: ${e.message.substring(0, 150)}`
+                });
             } catch (err) { console.error('Admin alert failed:', err); }
 
             return res.status(400).json({ error: e.message || 'Payment verification failed.' });

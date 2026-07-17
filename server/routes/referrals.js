@@ -4,6 +4,7 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const ReferralReward = require('../models/ReferralReward');
 const SystemConfig = require('../models/SystemConfig');
+const { sendAdminAlert } = require('../services/systemMessenger');
 
 // GET /api/referrals/stats
 router.get('/stats', auth, async (req, res) => {
@@ -126,6 +127,14 @@ router.post('/apply-partner', auth, async (req, res) => {
 
         user.techPartnerStatus = 'pending';
         await user.save();
+
+        // 🚨 WA ADMIN NOTIFICATION - TECH PARTNER APPLICATION
+        try {
+            await sendAdminAlert('tech_partner_request', `New Tech Partner application from ${user.name}`, {
+                name: user.name,
+                company: user.company || user.name
+            });
+        } catch (waErr) { console.error('[WA ALERT] tech_partner_request failed:', waErr.message); }
 
         res.json({ success: true, message: 'Your Tech Partner application has been submitted. We will review it shortly.' });
     } catch (error) {
@@ -279,6 +288,47 @@ router.delete('/tech-partner/coupons/:id', auth, async (req, res) => {
         res.json({ success: true, message: 'Coupon deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete coupon' });
+    }
+});
+
+// POST /api/referrals/tech-partner/request-payout
+// Allows an approved tech partner to request a manual payout
+router.post('/tech-partner/request-payout', auth, async (req, res) => {
+    try {
+        const userId = req.user.realId || req.user.id;
+        const user = await User.findByPk(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        if (user.techPartnerStatus !== 'approved') {
+            return res.status(403).json({ error: 'You must be an approved Tech Partner to request a payout.' });
+        }
+
+        const balance = parseFloat(user.techPartnerBalance || 0);
+        const config = await SystemConfig.getCachedConfig();
+        const minPayout = config.settings?.techPartnerProgram?.minPayoutBalance || 10000;
+
+        if (balance < minPayout) {
+            return res.status(400).json({
+                error: `Minimum payout balance is ₹${minPayout}. Your current balance is ₹${balance.toFixed(2)}.`
+            });
+        }
+
+        // 🚨 WA ADMIN NOTIFICATION - PAYOUT REQUESTED
+        try {
+            await sendAdminAlert('payout_request', `Tech Partner ${user.name} requested a payout of ₹${balance}`, {
+                name: user.name,
+                amount: `₹${balance.toFixed(2)}`
+            });
+        } catch (waErr) { console.error('[WA ALERT] payout_request failed:', waErr.message); }
+
+        res.json({
+            success: true,
+            message: `Payout request for ₹${balance.toFixed(2)} submitted. Our team will process it within 3-5 business days.`,
+            requestedAmount: balance
+        });
+    } catch (error) {
+        console.error('[PAYOUT REQUEST]', error);
+        res.status(500).json({ error: 'Failed to submit payout request.' });
     }
 });
 

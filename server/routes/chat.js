@@ -776,10 +776,7 @@ router.post('/ai-draft', async (req, res) => {
             return `${sender}: ${m.body || '[Media/Template]'}`;
         }).join('\n');
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
-        const axios = require('axios');
+        const { runAi } = require('../utils/aiRunner');
 
         const systemInstruction = `You are a professional customer service agent responding on behalf of the business.
 Read the chat history carefully and write a complete, ready-to-send reply to the customer's latest message.
@@ -789,16 +786,9 @@ Rules:
 - Keep it under 4 sentences. Be warm, professional, and concise.
 - Do not apologize for technical issues unless the customer explicitly complained about one.`;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
-        const payload = {
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: `Chat History:\n${chatHistory}\n\nDraft our reply:` }] }],
-            generationConfig: { temperature: 0.6, maxOutputTokens: 1024 }
-        };
-
-        const aiRes = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
-        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        replyText = replyText.replace(/```(whatsapp|text|markdown)?/gi, '').replace(/```/gi, '').trim();
+        const { text: aiReply, modelUsed: chatModel } = await runAi(sysConfig, systemInstruction, `Chat History:\n${chatHistory}\n\nDraft our reply:`, { temperature: 0.6, maxOutputTokens: 1024 });
+        console.log(`[Chat AI] draft used model: ${chatModel}`);
+        let replyText = aiReply.replace(/```(whatsapp|text|markdown)?/gi, '').replace(/```/gi, '').trim();
 
         await user.decrement('aiTokenBalance', { by: finalCost });
         const newBal = (user.aiTokenBalance - finalCost);
@@ -837,26 +827,16 @@ router.post('/ai-enhance', async (req, res) => {
             return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
-        const axios = require('axios');
+        const { runAi } = require('../utils/aiRunner');
 
         const systemInstruction = `You are a professional customer support agent.
 Enhance and proofread the user's chat message to make it sound highly professional, polite, and clear.
 Fix any grammar mistakes. Keep the overall meaning and core exact information identical. Do not add assumptions.
 Output ONLY the final enhanced message text.`;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
-        const payload = {
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: text }] }],
-            generationConfig: { temperature: 0.5, maxOutputTokens: 256 }
-        };
-
-        const aiRes = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
-        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        replyText = replyText.replace(/```(whatsapp|text|markdown)?/gi, '').replace(/```/gi, '').trim();
+        const { text: aiEnhanced, modelUsed: enhModel } = await runAi(sysConfig, systemInstruction, text, { temperature: 0.5, maxOutputTokens: 256 });
+        console.log(`[Chat AI] enhance used model: ${enhModel}`);
+        let replyText = aiEnhanced.replace(/```(whatsapp|text|markdown)?/gi, '').replace(/```/gi, '').trim();
 
         await user.decrement('aiTokenBalance', { by: finalCost });
         const newBal = (user.aiTokenBalance - finalCost);

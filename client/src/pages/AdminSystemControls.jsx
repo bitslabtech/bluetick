@@ -48,7 +48,9 @@ const AdminSystemControls = () => {
     const [versionSaving, setVersionSaving] = useState(false);
 
     // AI Model State
-    const [aiModel, setAiModel] = useState('gemini-2.5-flash');
+    const [aiModel, setAiModel] = useState('gemini-3.5-flash');
+    const [aiFallbackModel, setAiFallbackModel] = useState('gemini-3.5-flash-lite');
+    const [aiRetryAttempts, setAiRetryAttempts] = useState(3);
     const [savingAiModel, setSavingAiModel] = useState(false);
 
     // Token Price Calculator State
@@ -135,8 +137,10 @@ const AdminSystemControls = () => {
             setConfig(configRes.data);
             setDiagnostics(diagRes.data);
             setLogs(diagRes.data.logs);
-            // Load AI model from system config
-            setAiModel(configRes.data?.settings?.aiModel || 'gemini-2.0-flash');
+            // Load AI model settings from system config
+            setAiModel(configRes.data?.settings?.aiModel || 'gemini-3.5-flash');
+            setAiFallbackModel(configRes.data?.settings?.aiFallbackModel || 'gemini-3.5-flash-lite');
+            setAiRetryAttempts(configRes.data?.settings?.aiRetryAttempts || 3);
             setLoading(false);
         } catch (err) {
             console.error(err);
@@ -291,15 +295,59 @@ const AdminSystemControls = () => {
         }
     };
 
+    const AI_MODELS = [
+        { model: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash Lite', desc: 'Fastest & cheapest. Best for high-volume calls.', color: 'text-emerald-500', border: 'border-emerald-400' },
+        { model: 'gemini-3.5-flash',      label: 'Gemini 3.5 Flash',      desc: 'Best speed/quality balance. Recommended.',    color: 'text-blue-500',    border: 'border-blue-400' },
+        { model: 'gemini-3.1-pro',        label: 'Gemini 3.1 Pro',        desc: 'Most powerful. Best for complex tasks.',      color: 'text-amber-500',   border: 'border-amber-400' },
+    ];
+
     const saveAiModel = async (model) => {
         setSavingAiModel(true);
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, { settings: { ...config?.settings, aiModel: model } });
+            const newSettings = { ...config?.settings, aiModel: model };
+            // Ensure fallback is not the same as new primary
+            if (newSettings.aiFallbackModel === model) {
+                const others = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-pro'].filter(m => m !== model);
+                newSettings.aiFallbackModel = others[0];
+                setAiFallbackModel(others[0]);
+            }
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, { settings: newSettings });
             setAiModel(model);
-            setConfig(prev => ({ ...prev, settings: { ...prev?.settings, aiModel: model } }));
-            showToast({ type: 'success', title: 'AI Model Updated', message: `Now using ${model} across the platform.` });
+            setConfig(prev => ({ ...prev, settings: newSettings }));
+            showToast({ type: 'success', title: 'AI Model Updated', message: `Primary model set to ${model}.` });
         } catch (err) {
             showToast({ type: 'error', title: 'Error', message: 'Failed to save AI model.' });
+        } finally {
+            setSavingAiModel(false);
+        }
+    };
+
+    const saveAiFallback = async (fallback) => {
+        if (fallback === aiModel) return; // guard: cannot match primary
+        setSavingAiModel(true);
+        try {
+            const newSettings = { ...config?.settings, aiFallbackModel: fallback };
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, { settings: newSettings });
+            setAiFallbackModel(fallback);
+            setConfig(prev => ({ ...prev, settings: newSettings }));
+            showToast({ type: 'success', title: 'Fallback Updated', message: `Fallback model set to ${fallback}.` });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Error', message: 'Failed to save fallback model.' });
+        } finally {
+            setSavingAiModel(false);
+        }
+    };
+
+    const saveAiRetryAttempts = async (attempts) => {
+        setSavingAiModel(true);
+        try {
+            const newSettings = { ...config?.settings, aiRetryAttempts: attempts };
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, { settings: newSettings });
+            setAiRetryAttempts(attempts);
+            setConfig(prev => ({ ...prev, settings: newSettings }));
+            showToast({ type: 'success', title: 'Retry Attempts Updated', message: `AI will retry ${attempts} time(s) before switching to fallback.` });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Error', message: 'Failed to save retry attempts.' });
         } finally {
             setSavingAiModel(false);
         }
@@ -543,18 +591,17 @@ const AdminSystemControls = () => {
 
                         {/* AI MODEL CONFIGURATION */}
                         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">
-                            <h3 className="font-bold text-lg mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
+                            <h3 className="font-bold text-lg mb-1 flex items-center gap-2 text-slate-900 dark:text-white">
                                 <Sparkles className="w-5 h-5 text-violet-500" /> AI Model Configuration
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
                                 Select the Gemini model used globally across the platform — AI Auto-Responder, FlowBot AI Node, Template AI, AI Draft, and the public AI Chatbot all use this setting.
                             </p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                                {[
-                                    { model: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', desc: 'Cheapest & fastest. Great for free-tier API keys.', color: 'text-emerald-500', border: 'border-emerald-400' },
-                                    { model: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      desc: 'Best speed/quality balance. Recommended.',        color: 'text-blue-500',    border: 'border-blue-400' },
-                                    { model: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        desc: 'Most powerful. Best for complex tasks.',          color: 'text-amber-500',   border: 'border-amber-400' },
-                                ].map(m => (
+
+                            {/* Primary Model */}
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Primary Model</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+                                {AI_MODELS.map(m => (
                                     <button
                                         key={m.model}
                                         type="button"
@@ -574,8 +621,44 @@ const AdminSystemControls = () => {
                                     </button>
                                 ))}
                             </div>
+
+                            {/* Retry Attempts */}
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Retry Attempts Before Fallback</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">How many times to retry the primary model before switching to the fallback.</p>
+                            <div className="flex gap-2 mb-5">
+                                {[1, 2, 3, 4, 5].map(n => (
+                                    <button
+                                        key={n}
+                                        type="button"
+                                        onClick={() => saveAiRetryAttempts(n)}
+                                        disabled={savingAiModel}
+                                        className={`w-10 h-10 rounded-xl border-2 text-sm font-bold transition-all disabled:opacity-60 ${
+                                            aiRetryAttempts === n
+                                                ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                                                : 'border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-400 dark:hover:border-white/30'
+                                        }`}
+                                    >{n}</button>
+                                ))}
+                            </div>
+
+                            {/* Fallback Model */}
+                            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Fallback Model</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Used automatically if the primary model fails all retry attempts. Cannot be the same as the primary model.</p>
+                            <select
+                                value={aiFallbackModel}
+                                onChange={e => saveAiFallback(e.target.value)}
+                                disabled={savingAiModel}
+                                className="w-full md:w-auto px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 mb-5"
+                            >
+                                {AI_MODELS.filter(m => m.model !== aiModel).map(m => (
+                                    <option key={m.model} value={m.model}>{m.label} — {m.desc}</option>
+                                ))}
+                            </select>
+
                             <div className="text-xs text-slate-400 p-3 bg-slate-50 dark:bg-white/5 rounded-xl">
-                                Currently active: <span className="font-mono font-bold text-violet-500">{aiModel}</span>
+                                <span className="mr-3">Primary: <span className="font-mono font-bold text-violet-500">{aiModel}</span></span>
+                                <span className="mr-3">Fallback: <span className="font-mono font-bold text-amber-500">{aiFallbackModel}</span></span>
+                                <span>Retries: <span className="font-mono font-bold text-indigo-400">{aiRetryAttempts}</span></span>
                                 {savingAiModel && <span className="ml-2 text-indigo-400 animate-pulse">Saving...</span>}
                             </div>
 

@@ -675,11 +675,17 @@ router.post('/ai-description', async (req, res) => {
         const tokensNeeded = 100; // Arbitrary cost for product description
 
         if (user.aiTokenBalance < tokensNeeded) {
+            // 🚨 WA ADMIN NOTIFICATION - AI TOKENS DEPLETED
+            try {
+                const { sendAdminAlert } = require('../services/systemMessenger');
+                await sendAdminAlert('ai_tokens_depleted', `${user.name} ran out of AI tokens`, { name: user.name });
+            } catch (waErr) { console.error('[WA ALERT] ai_tokens_depleted failed:', waErr.message); }
             return res.status(403).json({ error: 'Insufficient AI tokens. Please upgrade or top up.' });
         }
 
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const { runAi } = require('../utils/aiRunner');
+        const SystemConfig = require('../models/SystemConfig');
+        const sysConfigForAi = await SystemConfig.getCachedConfig();
 
         let prompt = `Write an engaging, SEO-friendly product description for an online store product named "${productName}".\n`;
         if (keywords) {
@@ -687,8 +693,10 @@ router.post('/ai-description', async (req, res) => {
         }
         prompt += `Keep it professional, compelling, and around 2-3 paragraphs. Emphasize benefits. Don't add markdown formatting like asterisks.`;
 
-        const result = await model.generateContent(prompt);
-        const description = result.response.text().trim();
+        const systemInstruction = `You are an expert e-commerce copywriter. Write a compelling product description without markdown.`;
+        const { text: aiText, modelUsed: aiModel1 } = await runAi(sysConfigForAi, systemInstruction, prompt, { temperature: 0.7, maxOutputTokens: 600 });
+        console.log(`[WaStore AI] description used model: ${aiModel1}`);
+        const description = aiText.trim();
 
         // Deduct Tokens
         user.aiTokenBalance -= tokensNeeded;
@@ -1076,28 +1084,18 @@ router.post('/ai-description', async (req, res) => {
             return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured.' });
+        const { runAi } = require('../utils/aiRunner');
 
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
-
-        const systemInstruction = `You are an expert e-commerce copywriter. 
+        const systemInstruction1 = `You are an expert e-commerce copywriter. 
 The user is providing a product name and some optional keywords.
 Your job is to generate a highly converting, SEO-optimized, and persuasive product description.
 Do not use markdown formatting like ** or #. Just return pure text formatted nicely with line breaks if needed.
 Be concise but extremely compelling. Max 2 short paragraphs.`;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
-        const prompt = `Product Name: ${productName}\nKeywords: ${keywords || 'None'}`;
-        
-        const payload = {
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 300 }
-        };
-
-        const aiRes = await axios.post(url, payload);
-        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const prompt1 = `Product Name: ${productName}\nKeywords: ${keywords || 'None'}`;
+        const { text: replyText1, modelUsed: model1 } = await runAi(sysConfig, systemInstruction1, prompt1, { temperature: 0.7, maxOutputTokens: 300 });
+        console.log(`[WaStore AI] ai-description2 used model: ${model1}`);
+        const replyText = replyText1;
         
         await user.decrement('aiTokenBalance', { by: finalCost });
         const newBal = (user.aiTokenBalance - finalCost);
@@ -1137,12 +1135,9 @@ router.post('/ai-seo', async (req, res) => {
             return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured.' });
+        const { runAi } = require('../utils/aiRunner');
 
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
-
-        const systemInstruction = `You are an expert e-commerce SEO specialist. 
+        const systemInstructionSeo = `You are an expert e-commerce SEO specialist. 
 The user provides product details (name, description, category, price).
 Your job is to generate a JSON object with:
 1. "metaTitle": A catchy, SEO-friendly meta title (50-60 characters).
@@ -1156,20 +1151,10 @@ Return ONLY valid JSON. No markdown wrappers. Example:
   "slug": "premium-blue-cotton-tshirt"
 }`;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
-        const prompt = `Product Name: ${productName}\nDescription: ${description || 'None'}\nCategory: ${category || 'None'}\nPrice: ${price || 'None'}`;
-        
-        const payload = {
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 300 }
-        };
-
-        const aiRes = await axios.post(url, payload);
-        let replyText = aiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        
-        // Clean up markdown if any
-        replyText = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const promptSeo = `Product Name: ${productName}\nDescription: ${description || 'None'}\nCategory: ${category || 'None'}\nPrice: ${price || 'None'}`;
+        const { text: seoRaw, modelUsed: seoModel } = await runAi(sysConfig, systemInstructionSeo, promptSeo, { temperature: 0.7, maxOutputTokens: 300 });
+        console.log(`[WaStore AI] SEO used model: ${seoModel}`);
+        let replyText = seoRaw.replace(/```json/g, '').replace(/```/g, '').trim();
         
         const seoData = JSON.parse(replyText);
 

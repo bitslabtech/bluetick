@@ -146,10 +146,14 @@ const processMessage = async (messageBody, userId, conversationId, config, allSe
         // Length control is handled gracefully via the system prompt instruction above.
         const maxOutputTokens = 1024;
 
-        // Determine AI model from SystemConfig (Superadmin setting)
+        // Determine AI model from SystemConfig (Superadmin setting) via aiRunner
+        const { SUPPORTED_MODELS, DEFAULT_PRIMARY, DEFAULT_FALLBACK } = require(path.join(__dirname, '../../../server/utils/aiRunner'));
         const SystemConfig = require(path.join(__dirname, '../../../server/models/SystemConfig'));
         const sysConfig = await SystemConfig.getConfig();
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
+        const settings = sysConfig?.settings || {};
+        const aiModel = SUPPORTED_MODELS.includes(settings.aiModel) ? settings.aiModel : DEFAULT_PRIMARY;
+        const fallbackModel = SUPPORTED_MODELS.includes(settings.aiFallbackModel) ? settings.aiFallbackModel : DEFAULT_FALLBACK;
+        const maxRetries = Math.min(Math.max(parseInt(settings.aiRetryAttempts) || 3, 1), 5);
 
         console.log(`[AI BOT] Processing incoming message for User ${userId} | model=${aiModel} temp=${temperature} maxTokens=${maxOutputTokens} tone=${config.tone || 'default'}`);
 
@@ -192,23 +196,42 @@ const processMessage = async (messageBody, userId, conversationId, config, allSe
         }
 
         // Use Gemini REST API with systemInstruction (separate from contents)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
-        const payload = {
-            systemInstruction: {
-                parts: [{ text: systemPrompt }]
-            },
-            contents: historyContents,
-            generationConfig: {
-                maxOutputTokens: maxOutputTokens,
-                temperature: temperature,
-            }
+        // Retry + fallback logic mirrors aiRunner behaviour
+        const tryModel = async (modelId) => {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+            const payload = {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: historyContents,
+                generationConfig: { maxOutputTokens, temperature }
+            };
+            const res = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
+            return res.data.candidates?.[0]?.content?.parts?.[0]?.text;
         };
 
-        const response = await axios.post(url, payload, {
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        const replyText = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
+        let replyText = null;
+        let modelUsed = aiModel;
+        let lastErr;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                replyText = await tryModel(aiModel);
+                break;
+            } catch (e) {
+                lastErr = e;
+                if ((e.response?.status === 429 || e.response?.status === 503) && attempt < maxRetries - 1) {
+                    await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1200 + Math.random() * 500));
+                } else { break; }
+            }
+        }
+        if (replyText === null && fallbackModel && fallbackModel !== aiModel) {
+            console.warn(`[AI BOT] Primary model ${aiModel} failed, using fallback ${fallbackModel}. Error: ${lastErr?.message}`);
+            try {
+                replyText = await tryModel(fallbackModel);
+                modelUsed = fallbackModel;
+            } catch (fbErr) {
+                console.error(`[AI BOT] Fallback model ${fallbackModel} also failed:`, fbErr.message);
+            }
+        }
+        console.log(`[AI BOT] Response generated using model: ${modelUsed}`);
 
         if (replyText) {
             // Deduct Tokens

@@ -10,6 +10,7 @@ const SystemNotification = require('../models/SystemNotification');
 const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const KBCategory = require('../models/KBCategory');
+const { sendAdminAlert } = require('../services/systemMessenger');
 // Multer Setup for KB Images replaced by storageProvider
 
 // Middleware: Verify Auth
@@ -150,6 +151,14 @@ router.post('/tickets', async (req, res) => {
             data: { ticketId: ticket.id, userId: req.user.id }
         });
 
+        // 🚨 WA ADMIN NOTIFICATION - TICKET RAISED
+        try {
+            await sendAdminAlert('support_ticket_raised', `New support ticket from ${req.user.name}`, {
+                name: req.user.name,
+                subject: subject.substring(0, 100)
+            });
+        } catch (waErr) { console.error('[WA ALERT] support_ticket_raised failed:', waErr.message); }
+
         res.json(ticket);
     } catch (err) {
         console.error("Create Ticket Error:", err);
@@ -215,6 +224,14 @@ router.post('/tickets/:id/reply', async (req, res) => {
                 message: notifyMsg,
                 data: { ticketId: ticket.id, userId: req.user.id }
             });
+
+            // 🚨 WA ADMIN NOTIFICATION - TICKET REPLIED
+            try {
+                await sendAdminAlert('support_ticket_replied', `User replied to ticket: ${ticket.subject}`, {
+                    name: req.user.name,
+                    subject: ticket.subject.substring(0, 100)
+                });
+            } catch (waErr) { console.error('[WA ALERT] support_ticket_replied failed:', waErr.message); }
         }
 
         res.json(ticket);
@@ -330,6 +347,15 @@ router.post('/roadmap', async (req, res) => {
             suggesterId: req.user.id,
             suggesterName: req.user.name
         });
+
+        // 🚨 WA ADMIN NOTIFICATION - FEATURE SUGGESTION
+        try {
+            await sendAdminAlert('feature_suggestion', `New feature suggestion from ${req.user.name}`, {
+                name: req.user.name,
+                suggestion: (item.title || req.body.title || 'New suggestion').substring(0, 150)
+            });
+        } catch (waErr) { console.error('[WA ALERT] feature_suggestion failed:', waErr.message); }
+
         res.json(item);
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });

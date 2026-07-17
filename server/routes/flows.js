@@ -171,13 +171,8 @@ router.post('/generate-ai', auth, async (req, res) => {
 
         const sysConfig = await SystemConfig.getConfig();
         const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_flowbot_builder ?? 5;
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured.' });
-
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: aiModel });
+        const { runAi } = require('../utils/aiRunner');
 
         const systemInstruction = `You are an expert conversational AI designer. Your task is to generate a fully connected WhatsApp chatbot flow (nodes and edges) based on the user's prompt.
 The output MUST be valid JSON strictly matching this schema:
@@ -210,14 +205,8 @@ Rules:
 - Ensure every edge has a valid "sourceHandle" if required by the node type (e.g., buttons, list, condition).
 - Be creative. Invent logical custom fields and variables if the prompt implies saving user data or branching.`;
 
-        const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            generationConfig: { responseMimeType: "application/json", temperature: 0.7 }
-        });
-
-        const replyRaw = result.response.text();
-        const usage = result.response.usageMetadata;
+        const { text: replyRaw, modelUsed: flowModel } = await runAi(sysConfig, systemInstruction, prompt, { temperature: 0.7, maxOutputTokens: 4096, responseMimeType: 'application/json' });
+        console.log(`[Flows AI] build used model: ${flowModel}`);
         
         let flowData;
         try {
@@ -227,8 +216,8 @@ Rules:
             return res.status(500).json({ error: 'AI generated invalid structure.' });
         }
 
-        // Calculate Cost (e.g., 1 token per 100 usage tokens * multiplier)
-        const actualTokens = usage?.totalTokenCount || 1000;
+        // Calculate Cost (fixed estimate since we use REST API, not SDK token counter)
+        const actualTokens = 1000; // conservative estimate for flow generation
         const finalCost = Math.max(1, Math.ceil((actualTokens / 100) * multiplier));
 
         // Deduct and Log

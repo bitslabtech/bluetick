@@ -92,7 +92,9 @@ const SystemConfig = sequelize.define('SystemConfig', {
                 ai_meta_ads_builder: 5,
                 ai_media_generator: 5
             },
-            aiModel: 'gemini-2.0-flash',
+            aiModel: 'gemini-3.5-flash',          // Primary model
+            aiFallbackModel: 'gemini-3.5-flash-lite', // Fallback if primary fails all retries
+            aiRetryAttempts: 3,                    // Retries (1-5) before switching to fallback
             showLockedMenus: true, // Upsell mode by default
             storage: {
                 type: 'local', // 'local' | 's3'

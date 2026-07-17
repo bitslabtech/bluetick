@@ -98,12 +98,13 @@ router.post('/chat', async (req, res) => {
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-        // Use the same model as the rest of the app (from SystemConfig, fallback to gemini-2.0-flash)
-        let aiModelName = 'gemini-2.0-flash';
+        // Use the same model as the rest of the app (from SystemConfig via aiRunner, fallback to gemini-3.5-flash)
+        const { SUPPORTED_MODELS, DEFAULT_PRIMARY, DEFAULT_FALLBACK } = require('../utils/aiRunner');
+        let aiModelName = DEFAULT_PRIMARY;
         try {
             const SystemConfig = require('../models/SystemConfig');
             const sysConfig = await SystemConfig.getConfig();
-            aiModelName = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
+            aiModelName = SUPPORTED_MODELS.includes(sysConfig?.settings?.aiModel) ? sysConfig.settings.aiModel : DEFAULT_PRIMARY;
         } catch (e) { /* use default if SystemConfig not available */ }
 
         let systemInstruction = `You are a helpful and polite customer support AI assistant for this platform.
@@ -140,12 +141,18 @@ You are also acting as a Sales Development Representative. Your goal is to under
             parts: [{ text: msg.content || '' }]
         }));
 
-        // Fallback chain: if configured model hits quota/overload, try it again before falling back to cheaper ones
+        // Fallback chain: if configured model hits quota/overload, try fallback model
+        const { SUPPORTED_MODELS: SM, DEFAULT_FALLBACK: DF } = require('../utils/aiRunner');
+        let fallbackModelName = DEFAULT_FALLBACK;
+        try {
+            const SystemConfig = require('../models/SystemConfig');
+            const sysConfig = await SystemConfig.getConfig();
+            fallbackModelName = SM.includes(sysConfig?.settings?.aiFallbackModel) ? sysConfig.settings.aiFallbackModel : DF;
+        } catch (e) {}
         const modelFallbackChain = [
             aiModelName,
             aiModelName, // 2nd attempt (Retry)
-            'gemini-2.5-flash',
-            'gemini-1.5-flash',
+            fallbackModelName,
         ];
 
         let responseText = null;

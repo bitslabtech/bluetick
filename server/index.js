@@ -224,6 +224,33 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ── Global Express Error Handler ─────────────────────────────────────────────
+// Catches any unhandled errors thrown by route handlers and fires a WA admin alert.
+// Rate-limited to 1 alert per error message per 5 minutes to prevent spam.
+const _sysErrCooldown = new Map();
+app.use(async (err, req, res, next) => {
+    console.error('[GLOBAL ERROR HANDLER]', err.message, err.stack);
+    
+    // Fire WA admin alert (rate-limited per error message, 5 min cooldown)
+    try {
+        const errKey = err.message?.substring(0, 80) || 'unknown';
+        const lastFired = _sysErrCooldown.get(errKey);
+        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+        if (!lastFired || lastFired < fiveMinutesAgo) {
+            _sysErrCooldown.set(errKey, Date.now());
+            const { sendAdminAlert } = require('./services/systemMessenger');
+            await sendAdminAlert('system_error', `Server error on ${req.method} ${req.path}`, {
+                error: `${err.message?.substring(0, 200) || 'Unknown error'}`
+            });
+        }
+    } catch (alertErr) {
+        console.error('[GLOBAL ERROR HANDLER] Failed to send WA alert:', alertErr.message);
+    }
+
+    if (res.headersSent) return next(err);
+    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+});
+
 app.get('/', (req, res) => {
     res.send('Bluetick Backend Running (PostgreSQL)');
 });

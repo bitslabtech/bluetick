@@ -68,13 +68,13 @@ router.post('/ai-research', async (req, res) => {
         const finalCost = Math.ceil(BASE_COST * multiplier);
 
         if (user.aiTokenBalance < finalCost) {
+            // 🚨 WA ADMIN NOTIFICATION - AI TOKENS DEPLETED
+            try {
+                const { sendAdminAlert } = require('../services/systemMessenger');
+                await sendAdminAlert('ai_tokens_depleted', `${user.name} ran out of AI tokens`, { name: user.name });
+            } catch (waErr) { console.error('[WA ALERT] ai_tokens_depleted failed:', waErr.message); }
             return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
         }
-
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured.' });
-
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
 
         // Build location instruction — user-specified locations are a hard rule, not a suggestion
         const locationInstruction = targetLocations && targetLocations.length > 0
@@ -99,18 +99,11 @@ Schema:
   "ai_strategy_note": "string"
 }`;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`;
-        const payload = {
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: businessDescription }] }],
-            generationConfig: { 
-                temperature: 0.5, 
-                maxOutputTokens: 2048,
-                responseMimeType: "application/json"
-            }
-        };
+        const { runAi } = require('../utils/aiRunner');
 
-        const aiRes = await axiosPostWithRetry(url, payload);
+        const { text: rawResearch, modelUsed: researchModel } = await runAi(sysConfig, systemInstruction, businessDescription, { temperature: 0.5, maxOutputTokens: 2048, responseMimeType: 'application/json' });
+        console.log(`[Meta Ads AI] research used model: ${researchModel}`);
+        const aiRes = { data: { candidates: [{ content: { parts: [{ text: rawResearch }] } }] } };
         const candidate = aiRes.data.candidates?.[0];
         let replyText = candidate?.content?.parts?.[0]?.text || '';
         
@@ -175,7 +168,6 @@ router.post('/ai-copy', async (req, res) => {
         }
 
         const apiKey = process.env.GEMINI_API_KEY;
-        const aiModel = sysConfig?.settings?.aiModel || 'gemini-2.0-flash';
 
         // Language-specific instructions for Indian market
         const langMap = {
@@ -214,27 +206,11 @@ Schema:
 }`;
 
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-        const payload = {
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ role: 'user', parts: [{ text: businessDescription }] }],
-            generationConfig: { 
-                temperature: 0.8, 
-                maxOutputTokens: 2048,
-                responseMimeType: "application/json"
-            }
-        };
+        const { runAi } = require('../utils/aiRunner');
 
-        const aiRes = await axiosPostWithRetry(url, payload);
-        const candidate = aiRes.data.candidates?.[0];
-        let replyText = candidate?.content?.parts?.[0]?.text || '';
-
-        if (!replyText) {
-            console.error('Empty response from AI. Candidate:', JSON.stringify(candidate));
-            return res.status(500).json({ error: 'AI returned an empty response. It might have been blocked by safety filters.', details: candidate });
-        }
-
-        replyText = replyText.replace(/```(json)?/gi, '').replace(/```/gi, '').trim();
+        const { text: rawCopy, modelUsed: copyModel } = await runAi(sysConfig, systemInstruction, businessDescription, { temperature: 0.8, maxOutputTokens: 2048, responseMimeType: 'application/json' });
+        console.log(`[Meta Ads AI] copy used model: ${copyModel}`);
+        let replyText = (rawCopy || '').replace(/```(json)?/gi, '').replace(/```/gi, '').trim();
         
         // Try to extract JSON if there's surrounding text
         const jsonMatch = replyText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);

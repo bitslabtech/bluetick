@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const AdminNotification = require('../models/AdminNotification');
 const verifyTurnstile = require('../middleware/turnstile');
+const { sendAdminAlert } = require('../services/systemMessenger');
 
 // POST /api/contact - Public endpoint to submit a message
 router.post('/', verifyTurnstile, async (req, res) => {
@@ -29,6 +30,14 @@ router.post('/', verifyTurnstile, async (req, res) => {
             message: `New message from ${name} (${email})`,
             data: { contactId: newMsg.id }
         });
+
+        // 🚨 WA ADMIN NOTIFICATION - CONTACT INQUIRY
+        try {
+            await sendAdminAlert('contact_inquiry', `New contact inquiry from ${name}`, {
+                name,
+                message: message.substring(0, 200) // Truncate for template safety
+            });
+        } catch (waErr) { console.error('[WA ALERT] contact_inquiry failed:', waErr.message); }
 
         res.status(201).json({ success: true, message: 'Message sent successfully!' });
     } catch (err) {

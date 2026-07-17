@@ -585,10 +585,7 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                 }
                 // ------------------------------------------------
                 
-                const { GoogleGenerativeAI } = require('@google/generative-ai');
-                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                const aiModel = config?.settings?.aiModel || 'gemini-2.0-flash';
-                const model = genAI.getGenerativeModel({ model: aiModel });
+                const { runAi } = require('../utils/aiRunner');
 
                 const varList = variables.map((v, i) =>
                     `{{${i + 1}}} = ${variableDesc[i]}`
@@ -606,27 +603,10 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                     `5. Be concise and professional. ` +
                     `6. Do NOT include any explanation or code — just the template body text.`;
 
-                let aiResult;
-                let retries = 3;
-                while (retries > 0) {
-                    try {
-                        aiResult = await model.generateContent(prompt);
-                        break;
-                    } catch (err) {
-                        if (err.message && err.message.includes('429')) {
-                            console.log(`[GenerateTemplate] Rate limited. Waiting 12s... (${retries} retries left)`);
-                            await new Promise(r => setTimeout(r, 12500));
-                            retries--;
-                        } else {
-                            throw err;
-                        }
-                    }
-                }
-                if (!aiResult) {
-                    return res.status(429).json({ error: 'Rate limit exceeded. Try again later.' });
-                }
+                const { text: aiText, modelUsed: aiModelUsed } = await runAi(config, null, prompt, { temperature: 0.7, maxOutputTokens: 256 });
+                console.log(`[GenerateTemplate] Used model: ${aiModelUsed}`);
                 
-                return res.json({ success: true, text: aiResult.response.text().trim() });
+                return res.json({ success: true, text: aiText.trim() });
             }
 
             case 'submit-admin-template': {

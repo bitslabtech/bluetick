@@ -9,6 +9,7 @@ const logActivity = require('../utils/logger');
 const crypto = require('crypto');
 
 const PaymentService = require('../services/PaymentService');
+const { sendAdminAlert } = require('../services/systemMessenger');
 
 // Protect all addon routes
 router.use(auth);
@@ -155,6 +156,16 @@ router.post('/:id/create-order', async (req, res) => {
                 });
             }
             await logActivity(req, 'Addon Activated', `User activated free add-on: ${addon.name}`);
+
+            // 🚨 WA ADMIN NOTIFICATION - ADDON INSTALLED (free)
+            try {
+                const user = await User.findByPk(req.user.id);
+                await sendAdminAlert('addon_installed', `${user?.name || req.user.email} installed ${addon.name}`, {
+                    name: user?.name || req.user.email,
+                    addonName: addon.name
+                });
+            } catch (waErr) { console.error('[WA ALERT] addon_installed failed:', waErr.message); }
+
             return res.json({ instant: true, message: 'Free add-on activated instantly.' });
         }
 
@@ -237,6 +248,15 @@ router.post('/:id/verify-payment', async (req, res) => {
         }
 
         await logActivity(req, 'Addon Purchased', `User securely purchased add-on: ${addon.name} via Razorpay`);
+
+        // 🚨 WA ADMIN NOTIFICATION - ADDON INSTALLED (paid)
+        try {
+            const buyer = await User.findByPk(req.user.id);
+            await sendAdminAlert('addon_installed', `${buyer?.name || req.user.email} installed ${addon.name}`, {
+                name: buyer?.name || req.user.email,
+                addonName: addon.name
+            });
+        } catch (waErr) { console.error('[WA ALERT] addon_installed failed:', waErr.message); }
 
         // Return success
         res.json({ success: true, message: 'Payment verified and add-on activated!' });
