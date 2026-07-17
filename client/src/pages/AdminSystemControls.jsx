@@ -54,23 +54,6 @@ const AdminSystemControls = () => {
     const [savingAiModel, setSavingAiModel] = useState(false);
     const [dynamicAiModels, setDynamicAiModels] = useState([]);
 
-
-    // Token Price Calculator State
-    const [calcTokens, setCalcTokens] = useState(1000);
-    const [calcCurrency, setCalcCurrency] = useState('INR');
-    const [calcModel, setCalcModel] = useState('gemini-2.5-flash'); // independent — does NOT change app-wide model
-    const [calcResult, setCalcResult] = useState(null);
-    const [calcLoading, setCalcLoading] = useState(false);
-    const [calcRateDate, setCalcRateDate] = useState(null);
-
-    // Gemini official pricing per 1M tokens (USD) — input / output
-    const GEMINI_PRICING = {
-        'gemini-2.5-flash-lite': { input: 0.075, output: 0.30, label: 'Gemini 2.5 Flash Lite' },
-        'gemini-2.5-flash':      { input: 0.15,  output: 0.60, label: 'Gemini 2.5 Flash' },
-        'gemini-2.5-pro':        { input: 1.25,  output: 5.00, label: 'Gemini 2.5 Pro' },
-    };
-
-
     const TOP_CURRENCIES = [
         { code: 'INR', name: 'Indian Rupee',     symbol: '₹' },
         { code: 'USD', name: 'US Dollar',         symbol: '$' },
@@ -83,74 +66,6 @@ const AdminSystemControls = () => {
         { code: 'SGD', name: 'Singapore Dollar',  symbol: 'S$' },
         { code: 'AED', name: 'UAE Dirham',        symbol: 'AED' },
     ];
-
-    const calculateTokenPrice = async () => {
-        setCalcLoading(true);
-        setCalcResult(null);
-        try {
-            const pricing = GEMINI_PRICING[calcModel];
-            if (!pricing) throw new Error('Unknown model');
-
-            // Use open.er-api.com — free, no key, CORS-enabled, updated every 24h
-            let rate = 1;
-            let rateDate = new Date().toISOString().split('T')[0];
-            if (calcCurrency !== 'USD') {
-                const cacheKey = `exchange_rate_${calcCurrency}`;
-                const cached = localStorage.getItem(cacheKey);
-                let useCache = false;
-
-                if (cached) {
-                    try {
-                        const parsed = JSON.parse(cached);
-                        // Check if cache is less than 24 hours old
-                        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
-                            rate = parsed.rate;
-                            rateDate = parsed.rateDate;
-                            useCache = true;
-                        }
-                    } catch (e) {
-                        // ignore parse error
-                    }
-                }
-
-                if (!useCache) {
-                    const res = await fetch(`https://open.er-api.com/v6/latest/USD`);
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const data = await res.json();
-                    rate = data.rates[calcCurrency];
-                    rateDate = data.time_last_update_utc
-                        ? new Date(data.time_last_update_utc).toISOString().split('T')[0]
-                        : rateDate;
-                    if (!rate) throw new Error(`No rate for ${calcCurrency}`);
-
-                    // Save to cache with timestamp
-                    localStorage.setItem(cacheKey, JSON.stringify({ rate, rateDate, timestamp: Date.now() }));
-                }
-            }
-            setCalcRateDate(rateDate);
-
-            const tokens = parseInt(calcTokens) || 0;
-            const inputCostUSD  = (tokens / 1_000_000) * pricing.input;
-            const outputCostUSD = (tokens / 1_000_000) * pricing.output;
-            const totalUSD      = inputCostUSD + outputCostUSD;
-
-            const currencyInfo = TOP_CURRENCIES.find(c => c.code === calcCurrency);
-            setCalcResult({
-                inputCost:  (inputCostUSD  * rate).toFixed(6),
-                outputCost: (outputCostUSD * rate).toFixed(6),
-                totalCost:  (totalUSD      * rate).toFixed(6),
-                symbol:     currencyInfo?.symbol || calcCurrency,
-                currency:   calcCurrency,
-                tokens,
-                model:      pricing.label,
-            });
-        } catch (err) {
-            console.error('Price calc error:', err);
-            showToast({ type: 'error', title: 'Rate Fetch Failed', message: `Could not get exchange rates: ${err.message}` });
-        } finally {
-            setCalcLoading(false);
-        }
-    };
 
     const fetchData = async () => {
         try {
@@ -697,97 +612,7 @@ const AdminSystemControls = () => {
                                 {savingAiModel && <span className="ml-2 text-indigo-400 animate-pulse">Saving...</span>}
                             </div>
 
-                            {/* ── DIVIDER ── */}
-                            <div className="my-6 border-t border-slate-100 dark:border-white/5" />
 
-                            {/* TOKEN PRICE CALCULATOR (inside same card) */}
-                            <div className="flex items-center gap-2 mb-4">
-                                <Zap className="w-4 h-4 text-amber-500" />
-                                <h4 className="font-bold text-slate-800 dark:text-white text-sm">Token Price Calculator</h4>
-                                <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">live rates · 24h</span>
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                                Estimate API costs for any model — selecting a model here does <span className="font-bold">not</span> change the active app-wide model.
-                            </p>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                                <div className="col-span-2 sm:col-span-1">
-                                    <label className="text-xs font-bold uppercase text-slate-400 block mb-1.5">Model</label>
-                                    <select
-                                        value={calcModel}
-                                        onChange={e => { setCalcModel(e.target.value); setCalcResult(null); }}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                                    >
-                                        {Object.entries(GEMINI_PRICING).map(([key, val]) => (
-                                            <option key={key} value={key}>{val.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold uppercase text-slate-400 block mb-1.5">Tokens</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={calcTokens}
-                                        onChange={e => { setCalcTokens(e.target.value); setCalcResult(null); }}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold uppercase text-slate-400 block mb-1.5">Currency</label>
-                                    <select
-                                        value={calcCurrency}
-                                        onChange={e => { setCalcCurrency(e.target.value); setCalcResult(null); }}
-                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                                    >
-                                        {TOP_CURRENCIES.map(c => (
-                                            <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="flex items-end">
-                                    <button
-                                        onClick={calculateTokenPrice}
-                                        disabled={calcLoading || !calcTokens}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-60"
-                                    >
-                                        {calcLoading
-                                            ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Fetching...</>
-                                            : <><Sparkles className="w-3.5 h-3.5" /> Calculate</>}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {calcResult && (
-                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-xs font-bold text-amber-700 dark:text-amber-400">{calcResult.model} · {calcResult.tokens.toLocaleString()} tokens</span>
-                                        {calcRateDate && (
-                                            <span className="text-[10px] text-slate-400 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-100 dark:border-white/10">
-                                                Rates: {calcRateDate}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                                        <div className="bg-white dark:bg-black/20 rounded-xl p-3 text-center border border-slate-100 dark:border-white/5">
-                                            <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">Input</div>
-                                            <div className="text-sm font-bold text-slate-800 dark:text-white font-mono">{calcResult.symbol}{calcResult.inputCost}</div>
-                                            <div className="text-[10px] text-slate-400">{calcResult.currency}</div>
-                                        </div>
-                                        <div className="bg-white dark:bg-black/20 rounded-xl p-3 text-center border border-slate-100 dark:border-white/5">
-                                            <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">Output</div>
-                                            <div className="text-sm font-bold text-slate-800 dark:text-white font-mono">{calcResult.symbol}{calcResult.outputCost}</div>
-                                            <div className="text-[10px] text-slate-400">{calcResult.currency}</div>
-                                        </div>
-                                        <div className="bg-amber-500 rounded-xl p-3 text-center shadow-md">
-                                            <div className="text-[10px] font-bold uppercase text-amber-100 mb-1">Total</div>
-                                            <div className="text-sm font-bold text-white font-mono">{calcResult.symbol}{calcResult.totalCost}</div>
-                                            <div className="text-[10px] text-amber-200">{calcResult.currency}</div>
-                                        </div>
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 mt-2 text-center">Official Gemini pricing · Input + Output · open.er-api.com</p>
-                                </div>
-                            )}
                         </div>
 
                         {/* 2. SECURITY PANEL */}
