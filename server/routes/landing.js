@@ -142,12 +142,12 @@ You are also acting as a Sales Development Representative. Your goal is to under
         }));
 
         // Fallback chain: if configured model hits quota/overload, try fallback model
-        const { SUPPORTED_MODELS: SM, DEFAULT_FALLBACK: DF } = require('../utils/aiRunner');
-        let fallbackModelName = DEFAULT_FALLBACK;
+        const { runAi, DEFAULT_PRIMARY: DP, DEFAULT_FALLBACK: DF } = require('../utils/aiRunner');
+        let fallbackModelName = DF;
         try {
             const SystemConfig = require('../models/SystemConfig');
             const sysConfig = await SystemConfig.getConfig();
-            fallbackModelName = SM.includes(sysConfig?.settings?.aiFallbackModel) ? sysConfig.settings.aiFallbackModel : DF;
+            fallbackModelName = sysConfig?.settings?.aiFallbackModel || DF;
         } catch (e) {}
         const modelFallbackChain = [
             aiModelName,

@@ -147,12 +147,12 @@ const processMessage = async (messageBody, userId, conversationId, config, allSe
         const maxOutputTokens = 1024;
 
         // Determine AI model from SystemConfig (Superadmin setting) via aiRunner
-        const { SUPPORTED_MODELS, DEFAULT_PRIMARY, DEFAULT_FALLBACK } = require(path.join(__dirname, '../../../server/utils/aiRunner'));
+        const { DEFAULT_PRIMARY, DEFAULT_FALLBACK } = require(path.join(__dirname, '../../../server/utils/aiRunner'));
         const SystemConfig = require(path.join(__dirname, '../../../server/models/SystemConfig'));
         const sysConfig = await SystemConfig.getConfig();
         const settings = sysConfig?.settings || {};
-        const aiModel = SUPPORTED_MODELS.includes(settings.aiModel) ? settings.aiModel : DEFAULT_PRIMARY;
-        const fallbackModel = SUPPORTED_MODELS.includes(settings.aiFallbackModel) ? settings.aiFallbackModel : DEFAULT_FALLBACK;
+        const aiModel = settings.aiModel || DEFAULT_PRIMARY;
+        const fallbackModel = settings.aiFallbackModel || DEFAULT_FALLBACK;
         const maxRetries = Math.min(Math.max(parseInt(settings.aiRetryAttempts) || 3, 1), 5);
 
         console.log(`[AI BOT] Processing incoming message for User ${userId} | model=${aiModel} temp=${temperature} maxTokens=${maxOutputTokens} tone=${config.tone || 'default'}`);

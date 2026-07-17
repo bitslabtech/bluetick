@@ -146,6 +146,41 @@ router.put('/settings', superAdmin, async (req, res) => {
     }
 });
 
+let cachedAiModels = null;
+let lastAiModelFetch = 0;
+
+// @route   GET /api/system/ai-models
+// @desc    Get live list of Gemini models directly from Google API
+router.get('/ai-models', superAdmin, async (req, res) => {
+    try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return res.json({ error: 'No API Key configured', models: [] });
+
+        // Cache for 1 hour
+        if (cachedAiModels && (Date.now() - lastAiModelFetch < 3600000)) {
+            return res.json({ models: cachedAiModels });
+        }
+
+        const response = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        
+        const models = (response.data.models || [])
+            .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+            .map(m => m.name.replace('models/', ''));
+
+        cachedAiModels = models;
+        lastAiModelFetch = Date.now();
+
+        res.json({ models });
+    } catch (err) {
+        console.error('Error fetching AI models:', err.response?.data || err.message);
+        // Fallback to static list if API fetch fails
+        res.status(500).json({ 
+            error: 'Failed to fetch models', 
+            models: ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-pro'] 
+        });
+    }
+});
+
 
 
 // @route   GET /api/system/status

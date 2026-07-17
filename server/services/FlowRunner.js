@@ -464,7 +464,7 @@ class FlowRunner {
 
                 // If not handed off, proceed to generate AI response using Gemini
                 try {
-                    const { runAi, SUPPORTED_MODELS, DEFAULT_PRIMARY } = require('../utils/aiRunner');
+                    const { runAi, DEFAULT_PRIMARY, DEFAULT_FALLBACK, DEFAULT_RETRIES } = require('../utils/aiRunner');
                     const SystemConfig = require('../models/SystemConfig');
                     const sysConfig = await SystemConfig.getConfig();
                     const settings = sysConfig?.settings || {};

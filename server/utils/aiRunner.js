@@ -14,15 +14,11 @@
 
 const axios = require('axios');
 
-// Canonical list of supported models — all old models are removed
-const SUPPORTED_MODELS = [
-    'gemini-3.5-flash-lite',
-    'gemini-3.5-flash',
-    'gemini-3.1-pro'
-];
+// Since the frontend dynamically fetches models from the Google API,
+// we no longer hardcode SUPPORTED_MODELS here. We trust the sysConfig value.
 
-const DEFAULT_PRIMARY  = 'gemini-3.5-flash';
-const DEFAULT_FALLBACK = 'gemini-3.5-flash-lite';
+const DEFAULT_PRIMARY  = 'gemini-2.5-flash';
+const DEFAULT_FALLBACK = 'gemini-2.5-flash-lite';
 const DEFAULT_RETRIES  = 3;
 
 /**
@@ -93,8 +89,8 @@ async function runAi(sysConfig, systemInstruction, userPrompt, generationConfig 
     if (!apiKey) throw new Error('GEMINI_API_KEY is not configured on the server.');
 
     const settings    = sysConfig?.settings || {};
-    const primary     = SUPPORTED_MODELS.includes(settings.aiModel)    ? settings.aiModel    : DEFAULT_PRIMARY;
-    const fallback    = SUPPORTED_MODELS.includes(settings.aiFallbackModel) ? settings.aiFallbackModel : DEFAULT_FALLBACK;
+    const primary     = settings.aiModel || DEFAULT_PRIMARY;
+    const fallback    = settings.aiFallbackModel || DEFAULT_FALLBACK;
     const maxRetries  = Math.min(Math.max(parseInt(settings.aiRetryAttempts) || DEFAULT_RETRIES, 1), 5);
 
     const payload = {
@@ -137,4 +133,9 @@ async function runAi(sysConfig, systemInstruction, userPrompt, generationConfig 
     return { text, modelUsed, usedFallback };
 }
 
-module.exports = { runAi, SUPPORTED_MODELS, DEFAULT_PRIMARY, DEFAULT_FALLBACK, DEFAULT_RETRIES };
+module.exports = {
+    runAi,
+    DEFAULT_PRIMARY,
+    DEFAULT_FALLBACK,
+    DEFAULT_RETRIES
+};

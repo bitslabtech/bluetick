@@ -48,24 +48,26 @@ const AdminSystemControls = () => {
     const [versionSaving, setVersionSaving] = useState(false);
 
     // AI Model State
-    const [aiModel, setAiModel] = useState('gemini-3.5-flash');
-    const [aiFallbackModel, setAiFallbackModel] = useState('gemini-3.5-flash-lite');
+    const [aiModel, setAiModel] = useState('gemini-2.5-flash');
+    const [aiFallbackModel, setAiFallbackModel] = useState('gemini-2.5-flash-lite');
     const [aiRetryAttempts, setAiRetryAttempts] = useState(3);
     const [savingAiModel, setSavingAiModel] = useState(false);
+    const [dynamicAiModels, setDynamicAiModels] = useState([]);
+
 
     // Token Price Calculator State
     const [calcTokens, setCalcTokens] = useState(1000);
     const [calcCurrency, setCalcCurrency] = useState('INR');
-    const [calcModel, setCalcModel] = useState('gemini-3.5-flash'); // independent — does NOT change app-wide model
+    const [calcModel, setCalcModel] = useState('gemini-2.5-flash'); // independent — does NOT change app-wide model
     const [calcResult, setCalcResult] = useState(null);
     const [calcLoading, setCalcLoading] = useState(false);
     const [calcRateDate, setCalcRateDate] = useState(null);
 
     // Gemini official pricing per 1M tokens (USD) — input / output
     const GEMINI_PRICING = {
-        'gemini-3.5-flash-lite': { input: 0.075, output: 0.30, label: 'Gemini 3.5 Flash Lite' },
-        'gemini-3.5-flash':      { input: 0.15,  output: 0.60, label: 'Gemini 3.5 Flash' },
-        'gemini-3.1-pro':        { input: 1.25,  output: 5.00, label: 'Gemini 3.1 Pro' },
+        'gemini-2.5-flash-lite': { input: 0.075, output: 0.30, label: 'Gemini 2.5 Flash Lite' },
+        'gemini-2.5-flash':      { input: 0.15,  output: 0.60, label: 'Gemini 2.5 Flash' },
+        'gemini-2.5-pro':        { input: 1.25,  output: 5.00, label: 'Gemini 2.5 Pro' },
     };
 
 
@@ -153,16 +155,18 @@ const AdminSystemControls = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [configRes, diagRes] = await Promise.all([
+            const [configRes, diagRes, modelsRes] = await Promise.all([
                 axios.get(`${import.meta.env.VITE_API_URL}/api/system`),
-                axios.get(`${import.meta.env.VITE_API_URL}/api/system/diagnostics?lines=${logLinesCountRef.current}`)
+                axios.get(`${import.meta.env.VITE_API_URL}/api/system/diagnostics?lines=${logLinesCountRef.current}`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/system/ai-models`).catch(() => ({ data: { models: [] } }))
             ]);
             setConfig(configRes.data);
             setDiagnostics(diagRes.data);
             setLogs(diagRes.data.logs);
+            setDynamicAiModels(modelsRes.data.models || []);
             // Load AI model settings from system config
-            setAiModel(configRes.data?.settings?.aiModel || 'gemini-3.5-flash');
-            setAiFallbackModel(configRes.data?.settings?.aiFallbackModel || 'gemini-3.5-flash-lite');
+            setAiModel(configRes.data?.settings?.aiModel || 'gemini-2.5-flash');
+            setAiFallbackModel(configRes.data?.settings?.aiFallbackModel || 'gemini-2.5-flash-lite');
             setAiRetryAttempts(configRes.data?.settings?.aiRetryAttempts || 3);
             setLoading(false);
         } catch (err) {
@@ -318,10 +322,18 @@ const AdminSystemControls = () => {
         }
     };
 
-    const AI_MODELS = [
-        { model: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash Lite', desc: 'Fastest & cheapest. Best for high-volume calls.', color: 'text-emerald-500', border: 'border-emerald-400' },
-        { model: 'gemini-3.5-flash',      label: 'Gemini 3.5 Flash',      desc: 'Best speed/quality balance. Recommended.',    color: 'text-blue-500',    border: 'border-blue-400' },
-        { model: 'gemini-3.1-pro',        label: 'Gemini 3.1 Pro',        desc: 'Most powerful. Best for complex tasks.',      color: 'text-amber-500',   border: 'border-amber-400' },
+    const AI_MODELS = dynamicAiModels.length > 0 ? dynamicAiModels.map(m => {
+        let label = m.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        let color = 'text-blue-500';
+        let border = 'border-blue-400';
+        let desc = 'Google Gemini API Model';
+        if (m.includes('lite')) { color = 'text-emerald-500'; border = 'border-emerald-400'; desc = 'Fastest & cheapest.'; }
+        else if (m.includes('pro')) { color = 'text-amber-500'; border = 'border-amber-400'; desc = 'Most powerful. Best for complex tasks.'; }
+        else { desc = 'Best speed/quality balance. Recommended.'; }
+        return { model: m, label, desc, color, border };
+    }) : [
+        { model: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', desc: 'Loading/Fallback...', color: 'text-emerald-500', border: 'border-emerald-400' },
+        { model: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      desc: 'Loading/Fallback...', color: 'text-blue-500',    border: 'border-blue-400' }
     ];
 
     const saveAiModel = async (model) => {
@@ -330,9 +342,9 @@ const AdminSystemControls = () => {
             const newSettings = { ...config?.settings, aiModel: model };
             // Ensure fallback is not the same as new primary
             if (newSettings.aiFallbackModel === model) {
-                const others = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-pro'].filter(m => m !== model);
-                newSettings.aiFallbackModel = others[0];
-                setAiFallbackModel(others[0]);
+                const others = (dynamicAiModels.length > 0 ? dynamicAiModels : ['gemini-2.5-flash-lite', 'gemini-2.5-flash']).filter(m => m !== model);
+                newSettings.aiFallbackModel = others[0] || model;
+                setAiFallbackModel(newSettings.aiFallbackModel);
             }
             await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, { settings: newSettings });
             setAiModel(model);
