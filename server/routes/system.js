@@ -571,6 +571,20 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                 }
                 
                 const config = await SystemConfig.getConfig();
+                
+                // --- Pre-flight validation to save AI tokens ---
+                const linkedAdminId = config?.settings?.linkedAdminUserId;
+                if (!linkedAdminId) {
+                    return res.status(400).json({ error: 'No linked CRM account configured. Please configure your WhatsApp Settings first.' });
+                }
+
+                const SettingsM = require('../models/Settings');
+                const linkedSettings = await SettingsM.findOne({ where: { userId: linkedAdminId } });
+                if (!linkedSettings || !linkedSettings.metaAccessToken || !linkedSettings.metaBusinessAccountId) {
+                    return res.status(400).json({ error: 'The linked CRM account does not have valid Meta WhatsApp credentials. Please connect your Meta account first to avoid wasting AI tokens.' });
+                }
+                // ------------------------------------------------
+                
                 const { GoogleGenerativeAI } = require('@google/generative-ai');
                 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
                 const aiModel = config?.settings?.aiModel || 'gemini-2.0-flash';
@@ -636,7 +650,7 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
 
                 let metaTemplateId = null;
                 const token = linkedSettings.metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
-                const wabaId = linkedSettings.wabaId || linkedSettings.metaBusinessId;
+                const wabaId = linkedSettings.metaBusinessAccountId;
                 
                 if (wabaId) {
                     const exampleParams = variables.map((v, i) => `Example_${i+1}`);
@@ -713,9 +727,9 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                 
                 // First try to delete from Meta
                 const linkedSettings = await SettingsM.findOne({ where: { userId: linkedAdminId } });
-                if (linkedSettings && linkedSettings.metaAccessToken && (linkedSettings.wabaId || linkedSettings.metaBusinessId)) {
+                if (linkedSettings && linkedSettings.metaAccessToken && linkedSettings.metaBusinessAccountId) {
                     const token = linkedSettings.metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
-                    const wabaId = linkedSettings.wabaId || linkedSettings.metaBusinessId;
+                    const wabaId = linkedSettings.metaBusinessAccountId;
                     try {
                         const axios = require('axios');
                         await axios.delete(

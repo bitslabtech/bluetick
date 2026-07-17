@@ -11,7 +11,7 @@ const SystemConfig = require('../models/SystemConfig');
 const otpStore = require('../utils/otpStore');
 
 const logActivity = require('../utils/logger');
-const { sendSystemMessage } = require('../services/systemMessenger');
+const { sendSystemMessage, sendAdminAlert } = require('../services/systemMessenger');
 const { setAuthCookies, clearAuthCookies } = require('../utils/cookieHelper');
 
 // Generate Token Helper
@@ -636,12 +636,24 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
             if (partner) notifyMessage = `New User: ${name} joined via Partner (${partner.name}).`;
         }
 
+        const intendedPlan = requestedPlanObj ? requestedPlanObj.name : assignedPlan;
+
         // Notify Admin
         await AdminNotification.create({
             type: 'USER_REGISTER',
             message: notifyMessage,
-            data: { userId: user.id, email: user.email, plan: assignedPlan }
+            data: { userId: user.id, email: user.email, plan: intendedPlan }
         });
+
+        // 🚨 WHATSAPP ADMIN NOTIFICATION 🚨
+        try {
+            await sendAdminAlert('user_registered', notifyMessage, {
+                name: user.name || 'Unknown',
+                email: user.email || 'No Email'
+            });
+        } catch (err) {
+            console.error('[REGISTER] Admin WA alert failed:', err);
+        }
 
         // Set HttpOnly cookie and return user data (no token in response body)
         const token = generateToken(user);

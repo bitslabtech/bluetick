@@ -9,7 +9,7 @@ const Settings = require('../models/Settings');
  * Must match the template body placeholders exactly.
  */
 const EVENT_VARIABLE_MAP = {
-    user_registered:        ['name', 'email', 'plan'],
+    user_registered:        ['name', 'email'],
     purchase_made:          ['name', 'plan', 'amount'],
     payment_failed:         ['name', 'plan'],
     support_ticket_raised:  ['name', 'subject'],

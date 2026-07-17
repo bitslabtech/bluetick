@@ -13,7 +13,8 @@ const UserAddon = require('../models/UserAddon');
 const Addon = require('../models/Addon');
 const SystemConfig = require('../models/SystemConfig');
 const ReferralReward = require('../models/ReferralReward');
-
+const AdminNotification = require('../models/AdminNotification');
+const { sendAdminAlert } = require('../services/systemMessenger');
 router.use(auth);
 
 const PaymentService = require('../services/PaymentService');
@@ -838,6 +839,22 @@ router.post('/verify-payment', async (req, res) => {
             await PaymentService.verifyPayment({ gateway, payload });
         } catch (e) {
             console.error('Payment verification failed:', e);
+            
+            // 🚨 ADMIN NOTIFICATION - PAYMENT FAILED 🚨
+            const user = await User.findByPk(req.user.id);
+            const failedPlanName = planName || (itemId ? `Store Item ID: ${itemId}` : 'Unknown');
+            try {
+                await AdminNotification.create({
+                    type: 'SYSTEM_ERROR',
+                    message: `Payment Failed for user ${user?.name || req.user.id} trying to purchase ${failedPlanName}. Reason: ${e.message}`,
+                    data: { userId: req.user.id, plan: failedPlanName }
+                });
+                await sendAdminAlert('payment_failed', `Payment Failed for user ${user?.name || req.user.id}.`, {
+                    name: user?.name || 'Unknown',
+                    plan: failedPlanName
+                });
+            } catch (err) { console.error('Admin alert failed:', err); }
+
             return res.status(400).json({ error: e.message || 'Payment verification failed.' });
         }
 
@@ -900,6 +917,23 @@ router.post('/verify-payment', async (req, res) => {
             }
             
             await user.save();
+            
+            // 🚨 ADMIN NOTIFICATION - PURCHASE MADE 🚨
+            const discountAppliedStoreForAlert = parseFloat(discountApplied) || 0;
+            const amountPaidForStoreAlert = Math.max(0, parseFloat(targetItem.price) - discountAppliedStoreForAlert);
+            try {
+                await AdminNotification.create({
+                    type: 'PLAN_CHANGE',
+                    message: `Store Purchase: ${user.name} bought ${targetItem.name}`,
+                    data: { userId: user.id, plan: targetItem.name, amount: amountPaidForStoreAlert }
+                });
+                await sendAdminAlert('purchase_made', `User ${user.name} purchased ${targetItem.name}`, {
+                    name: user.name || 'Unknown',
+                    plan: targetItem.name,
+                    amount: amountPaidForStoreAlert.toString()
+                });
+            } catch (err) { console.error('Admin alert failed:', err); }
+
             return res.json({ success: true, message: `Successfully purchased ${targetItem.name}` });
             
         } else {
@@ -989,6 +1023,22 @@ router.post('/verify-payment', async (req, res) => {
             } catch (notifyErr) {
                 console.error('[PLAN PURCHASE NOTIFICATION ERROR]', notifyErr);
             }
+
+            // 🚨 ADMIN NOTIFICATION - PURCHASE MADE 🚨
+            const userForPlanAlert = await User.findByPk(req.user.id);
+            const amountPaidForPlanAlert = Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0));
+            try {
+                await AdminNotification.create({
+                    type: 'PLAN_CHANGE',
+                    message: `Plan Upgrade: ${userForPlanAlert.name} upgraded to ${planName}`,
+                    data: { userId: userForPlanAlert.id, plan: planName, amount: amountPaidForPlanAlert }
+                });
+                await sendAdminAlert('purchase_made', `User ${userForPlanAlert.name} purchased ${planName}`, {
+                    name: userForPlanAlert.name || 'Unknown',
+                    plan: planName,
+                    amount: amountPaidForPlanAlert.toString()
+                });
+            } catch (err) { console.error('Admin alert failed:', err); }
 
             return res.json({ success: true, message: `Successfully upgraded to ${planName}` });
         }

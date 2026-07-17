@@ -5,7 +5,7 @@ import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 
 const ADMIN_EVENTS = [
-    { key: 'user_registered',        label: 'User Registered',        desc: 'New user signs up',                           vars: ['name', 'email', 'plan'],      varDesc: ['User full name', 'User email address', 'Subscribed plan name'],      templateName: 'admin_alert_user_registered' },
+    { key: 'user_registered',        label: 'User Registered',        desc: 'New user signs up',                           vars: ['name', 'email'],              varDesc: ['User full name', 'User email address'],                              templateName: 'admin_alert_user_registered' },
     { key: 'purchase_made',          label: 'Purchase Made',          desc: 'User completes a payment',                    vars: ['name', 'plan', 'amount'],     varDesc: ['User full name', 'Plan purchased', 'Amount paid'],                   templateName: 'admin_alert_purchase_made' },
     { key: 'payment_failed',         label: 'Payment Failed',         desc: 'A payment attempt fails',                     vars: ['name', 'plan'],               varDesc: ['User full name', 'Plan attempted'],                                  templateName: 'admin_alert_payment_failed' },
     { key: 'support_ticket_raised',  label: 'Support Ticket Raised',  desc: 'User opens a new support ticket',             vars: ['name', 'subject'],            varDesc: ['User full name', 'Ticket subject'],                                  templateName: 'admin_alert_ticket_raised' },

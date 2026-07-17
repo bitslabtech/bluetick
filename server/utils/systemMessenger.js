@@ -7,7 +7,7 @@ const SystemConfig = require('../models/SystemConfig');
  * into the WhatsApp template as {{1}}, {{2}}, {{3}} etc.
  */
 const EVENT_VARIABLE_MAP = {
-    user_registered:        ['name', 'email', 'plan'],
+    user_registered:        ['name', 'email'],
     purchase_made:          ['name', 'plan', 'amount'],
     payment_failed:         ['name', 'plan'],
     support_ticket_raised:  ['name', 'subject'],
