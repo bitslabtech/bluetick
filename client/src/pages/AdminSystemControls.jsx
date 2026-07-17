@@ -56,18 +56,18 @@ const AdminSystemControls = () => {
     // Token Price Calculator State
     const [calcTokens, setCalcTokens] = useState(1000);
     const [calcCurrency, setCalcCurrency] = useState('INR');
-    const [calcModel, setCalcModel] = useState('gemini-2.5-flash'); // independent — does NOT change app-wide model
+    const [calcModel, setCalcModel] = useState('gemini-3.5-flash'); // independent — does NOT change app-wide model
     const [calcResult, setCalcResult] = useState(null);
     const [calcLoading, setCalcLoading] = useState(false);
     const [calcRateDate, setCalcRateDate] = useState(null);
 
     // Gemini official pricing per 1M tokens (USD) — input / output
-    // Updated July 2026: gemini-2.0-flash & gemini-2.0-flash-lite were deprecated and shut down on June 1, 2026.
     const GEMINI_PRICING = {
-        'gemini-2.5-flash-lite': { input: 0.10,  output: 0.40,  label: 'Gemini 2.5 Flash Lite' },
-        'gemini-2.5-flash':      { input: 0.30,  output: 2.50,  label: 'Gemini 2.5 Flash' },
-        'gemini-2.5-pro':        { input: 1.25,  output: 10.00, label: 'Gemini 2.5 Pro' },
+        'gemini-3.5-flash-lite': { input: 0.075, output: 0.30, label: 'Gemini 3.5 Flash Lite' },
+        'gemini-3.5-flash':      { input: 0.15,  output: 0.60, label: 'Gemini 3.5 Flash' },
+        'gemini-3.1-pro':        { input: 1.25,  output: 5.00, label: 'Gemini 3.1 Pro' },
     };
+
 
     const TOP_CURRENCIES = [
         { code: 'INR', name: 'Indian Rupee',     symbol: '₹' },
@@ -93,14 +93,37 @@ const AdminSystemControls = () => {
             let rate = 1;
             let rateDate = new Date().toISOString().split('T')[0];
             if (calcCurrency !== 'USD') {
-                const res = await fetch(`https://open.er-api.com/v6/latest/USD`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                rate = data.rates[calcCurrency];
-                rateDate = data.time_last_update_utc
-                    ? new Date(data.time_last_update_utc).toISOString().split('T')[0]
-                    : rateDate;
-                if (!rate) throw new Error(`No rate for ${calcCurrency}`);
+                const cacheKey = `exchange_rate_${calcCurrency}`;
+                const cached = localStorage.getItem(cacheKey);
+                let useCache = false;
+
+                if (cached) {
+                    try {
+                        const parsed = JSON.parse(cached);
+                        // Check if cache is less than 24 hours old
+                        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+                            rate = parsed.rate;
+                            rateDate = parsed.rateDate;
+                            useCache = true;
+                        }
+                    } catch (e) {
+                        // ignore parse error
+                    }
+                }
+
+                if (!useCache) {
+                    const res = await fetch(`https://open.er-api.com/v6/latest/USD`);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    rate = data.rates[calcCurrency];
+                    rateDate = data.time_last_update_utc
+                        ? new Date(data.time_last_update_utc).toISOString().split('T')[0]
+                        : rateDate;
+                    if (!rate) throw new Error(`No rate for ${calcCurrency}`);
+
+                    // Save to cache with timestamp
+                    localStorage.setItem(cacheKey, JSON.stringify({ rate, rateDate, timestamp: Date.now() }));
+                }
             }
             setCalcRateDate(rateDate);
 
