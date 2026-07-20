@@ -43,6 +43,15 @@ export default function WaStoreSettings() {
     const [invoiceConfig, setInvoiceConfig] = useState({ prefixOnline: 'ORD-', prefixPos: 'POS-', startingNumber: 1001 });
     const [savingInvoice, setSavingInvoice] = useState(false);
 
+    const [customerAuthConfig, setCustomerAuthConfig] = useState({
+        enabled: false,
+        methods: ['email_password'],
+        allowGuestCheckout: true,
+        requireLoginForCheckout: false,
+    });
+    const [savingAuth, setSavingAuth] = useState(false);
+    const [templates, setTemplates] = useState([]);
+
     useEffect(() => {
         const fetchStore = async () => {
             try {
@@ -61,13 +70,23 @@ export default function WaStoreSettings() {
                 if (myStore?.taxConfig) setTaxConfig(prev => ({ ...prev, ...myStore.taxConfig }));
                 if (myStore?.inventoryConfig) setInventoryConfig(prev => ({ ...prev, ...myStore.inventoryConfig }));
                 if (myStore?.invoiceConfig) setInvoiceConfig(prev => ({ ...prev, ...myStore.invoiceConfig }));
+                if (myStore?.customerAuthConfig) setCustomerAuthConfig(prev => ({ ...prev, ...myStore.customerAuthConfig }));
             } catch (error) {
                 toast.error('Failed to load store settings');
             } finally {
                 setLoading(false);
             }
         };
+        const fetchTemplates = async () => {
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/templates`);
+                setTemplates(res.data.filter(t => t.status === 'APPROVED' && t.category === 'AUTHENTICATION'));
+            } catch (error) {
+                console.error("Failed to load templates", error);
+            }
+        };
         fetchStore();
+        fetchTemplates();
     }, [storeId]);
 
     const handleDelete = async () => {
@@ -977,6 +996,139 @@ export default function WaStoreSettings() {
                         {deleting ? 'Deleting Store…' : 'Permanently Delete Store'}
                     </button>
                 </div>
+            </div>
+
+            {/* ─── CUSTOMER ACCOUNTS ─── */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-indigo-500" /> Customer Accounts
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+                    Allow your store customers to create accounts, track orders, and save addresses.
+                </p>
+
+                {/* Enable toggle */}
+                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 mb-4">
+                    <div>
+                        <p className="font-medium text-slate-800 dark:text-white text-sm">Enable Customer Accounts</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Shows Login/Register button on your store</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setCustomerAuthConfig(prev => ({ ...prev, enabled: !prev.enabled }))}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${customerAuthConfig.enabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                    >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${customerAuthConfig.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                </div>
+
+                {customerAuthConfig.enabled && (
+                    <div className="space-y-4">
+                        {/* Auth methods */}
+                        <div>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Login Methods</p>
+                            <div className="space-y-2">
+                                {[
+                                    { id: 'email_password', label: 'Email + Password', desc: 'Classic username/password login' },
+                                    { id: 'whatsapp_otp', label: 'WhatsApp OTP', desc: 'Login via WhatsApp one-time code (uses your WA credentials)' },
+                                ].map(method => {
+                                    const isActive = (customerAuthConfig.methods || []).includes(method.id);
+                                    return (
+                                        <label key={method.id} className="flex items-start gap-3 p-3 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900">
+                                            <input
+                                                type="checkbox"
+                                                checked={isActive}
+                                                onChange={() => {
+                                                    const methods = customerAuthConfig.methods || [];
+                                                    const updated = isActive
+                                                        ? methods.filter(m => m !== method.id)
+                                                        : [...methods, method.id];
+                                                    setCustomerAuthConfig(prev => ({ ...prev, methods: updated }));
+                                                }}
+                                                className="mt-0.5"
+                                            />
+                                            <div className="w-full">
+                                                <p className="text-sm font-medium text-slate-800 dark:text-white">{method.label}</p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{method.desc}</p>
+                                                {method.id === 'whatsapp_otp' && isActive && (
+                                                    <div className="mt-2" onClick={e => e.stopPropagation()}>
+                                                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                            Select OTP Template
+                                                        </label>
+                                                        <select
+                                                            value={customerAuthConfig.otpTemplateName || ''}
+                                                            onChange={e => {
+                                                                const templateName = e.target.value;
+                                                                const template = templates.find(t => t.name === templateName);
+                                                                setCustomerAuthConfig(prev => ({
+                                                                    ...prev,
+                                                                    otpTemplateName: templateName,
+                                                                    otpTemplateLanguage: template ? template.language : 'en'
+                                                                }));
+                                                            }}
+                                                            className="w-full sm:max-w-xs text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                        >
+                                                            <option value="">-- No template selected --</option>
+                                                            {templates.map(t => (
+                                                                <option key={t.id || t.name} value={t.name}>
+                                                                    {t.name} ({t.language})
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <p className="text-[10px] text-slate-500 mt-1">Required by Meta for new customers. Template must have 1 variable for the OTP.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Options */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-800 dark:text-white">Allow Guest Checkout</p>
+                                    <p className="text-xs text-slate-500">Customers can checkout without account</p>
+                                </div>
+                                <button type="button"
+                                    onClick={() => setCustomerAuthConfig(prev => ({ ...prev, allowGuestCheckout: !prev.allowGuestCheckout }))}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${customerAuthConfig.allowGuestCheckout ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${customerAuthConfig.allowGuestCheckout ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </label>
+                            <label className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-800 dark:text-white">Require Login to Checkout</p>
+                                    <p className="text-xs text-slate-500">Force login before placing orders</p>
+                                </div>
+                                <button type="button"
+                                    onClick={() => setCustomerAuthConfig(prev => ({ ...prev, requireLoginForCheckout: !prev.requireLoginForCheckout }))}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${customerAuthConfig.requireLoginForCheckout ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${customerAuthConfig.requireLoginForCheckout ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </label>
+                        </div>
+                    </div>
+                )}
+
+                <button
+                    type="button"
+                    disabled={savingAuth}
+                    onClick={async () => {
+                        setSavingAuth(true);
+                        try {
+                            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, { customerAuthConfig });
+                            toast.success('Customer account settings saved!');
+                        } catch {
+                            toast.error('Failed to save settings.');
+                        } finally { setSavingAuth(false); }
+                    }}
+                    className="mt-5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl text-sm font-semibold transition-colors"
+                >
+                    {savingAuth ? 'Saving…' : 'Save Account Settings'}
+                </button>
             </div>
         </div>
     );

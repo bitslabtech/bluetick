@@ -461,6 +461,33 @@ router.get('/status', auth, async (req, res) => {
             // Prefer new portfolio limit if available, otherwise fallback to legacy phone tier
             user.metaTier = portfolioLimit || phoneData.messaging_limit_tier || 'UNKNOWN';
 
+            // ── Fetch 24-hour Conversation Analytics from Meta ──────────────────
+            // This gives us the real count of unique business-initiated conversations opened
+            // in the last 24 hours, which is what the messaging limit tier actually governs.
+            try {
+                const nowTs = Math.floor(Date.now() / 1000);
+                const dayAgoTs = nowTs - (24 * 60 * 60);
+                const analyticsRes = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}`, {
+                    params: {
+                        fields: `conversation_analytics.start(${dayAgoTs}).end(${nowTs}).granularity(DAILY).conversation_types(["BUSINESS_INITIATED"]).dimensions(["conversation_type"])`,
+                        access_token: accessToken
+                    }
+                });
+                const analyticsData = analyticsRes.data?.conversation_analytics?.data || [];
+                let totalConversations = 0;
+                for (const entry of analyticsData) {
+                    for (const point of (entry.data_points || [])) {
+                        totalConversations += (point.conversation || 0);
+                    }
+                }
+                user.metaConversations24h = totalConversations;
+                user.metaConversationsFetchedAt = new Date();
+                console.log(`[WA STATUS] 24h conversation count fetched: ${totalConversations}`);
+            } catch (analyticsErr) {
+                console.warn('[WA STATUS] Could not fetch 24h conversation analytics:', analyticsErr.response?.data?.error?.message || analyticsErr.message);
+                // Don't block status refresh if analytics fails
+            }
+
             await user.save();
         }
 
@@ -473,7 +500,9 @@ router.get('/status', auth, async (req, res) => {
                 metaQualityRating: user.metaQualityRating,
                 metaTier: user.metaTier,
                 metaVerifiedName: user.metaVerifiedName,
-                metaNameStatus: user.metaNameStatus
+                metaNameStatus: user.metaNameStatus,
+                metaConversations24h: user.metaConversations24h,
+                metaConversationsFetchedAt: user.metaConversationsFetchedAt
             }
         });
     } catch (error) {

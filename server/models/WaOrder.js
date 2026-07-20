@@ -104,9 +104,22 @@ const WaOrder = sequelize.define('WaOrder', {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
         comment: 'Flag indicating if an abandoned checkout reminder was sent via WhatsApp'
+    },
+    storeCustomerId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'Set when a logged-in store customer places an order. NULL for guest checkouts.'
     }
 }, {
     timestamps: true
 });
+
+// Association — lazily required to avoid circular deps
+WaOrder.associate = () => {
+    const StoreCustomer = require('./StoreCustomer');
+    WaOrder.belongsTo(StoreCustomer, { foreignKey: 'storeCustomerId', as: 'storeCustomer' });
+    StoreCustomer.hasMany(WaOrder, { foreignKey: 'storeCustomerId', as: 'orders' });
+};
+
 
 module.exports = WaOrder;

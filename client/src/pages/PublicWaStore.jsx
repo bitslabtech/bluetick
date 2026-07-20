@@ -11,8 +11,54 @@ import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
 import { cdnImg, cdnSrcSet } from '../utils/cdnImage';
+import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
 
 // Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
+
+/**
+ * Thin wrapper: provides StoreCustomerContext to the store page so the header
+ * can read the logged-in customer without re-fetching store data.
+ */
+function StoreCustomerWrapper({ slug, store, children }) {
+    return (
+        <StoreCustomerProvider slug={slug}>
+            <StoreCustomerHeaderBridge store={store} slug={slug}>
+                {children}
+            </StoreCustomerHeaderBridge>
+        </StoreCustomerProvider>
+    );
+}
+
+// Inner bridge that reads the context and injects authEnabled/customer to the header child.
+// Children must render <WaStoreHeader> as a direct child to benefit from this.
+// Since we can't intercept children props easily, we just export a hook instead.
+function StoreCustomerHeaderBridge({ children }) {
+    return children;
+}
+
+/** Reads auth context and passes customer/authEnabled to WaStoreHeader + children */
+function StoreInnerWithAuth({ store, theme, slug, products, categories, cartCount, setIsCartOpen, children }) {
+    const { customer, authConfig } = useStoreCustomer();
+    const authEnabled = authConfig?.enabled || store?.customerAuthConfig?.enabled || false;
+    return (
+        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-20 md:pb-0`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
+            {/* ─── MODERN HEADER ─── */}
+            <WaStoreHeader
+                store={store}
+                theme={theme}
+                slug={slug}
+                products={products}
+                categories={categories}
+                cartCount={cartCount}
+                setIsCartOpen={setIsCartOpen}
+                authEnabled={authEnabled}
+                storeCustomer={customer}
+            />
+            {children}
+        </div>
+    );
+}
+
 const slugifyProduct = (name, id) => {
     const nameSlug = name
         .toLowerCase()
@@ -331,17 +377,11 @@ export default function PublicWaStore({ customSlug }) {
     if (!store) return <StoreNotFound slug={slug} />;
 
     return (
-        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-20 md:pb-0`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
-            {/* ─── MODERN HEADER ─── */}
-            <WaStoreHeader
-                store={store}
-                theme={theme}
-                slug={slug}
-                products={products}
-                categories={categories}
-                cartCount={cartCount}
-                setIsCartOpen={setIsCartOpen}
-            />
+        <StoreCustomerWrapper store={store} slug={slug}>
+        <StoreInnerWithAuth
+            store={store} theme={theme} slug={slug} products={products} categories={categories}
+            cartCount={cartCount} setIsCartOpen={setIsCartOpen}
+        >
             {/* ─── HERO SLIDER ─── */}
             {slides.length > 0 ? (
                 <div className="relative group w-full mb-6 md:mb-0" onMouseEnter={() => setSliderPaused(true)} onMouseLeave={() => setSliderPaused(false)}>
@@ -864,6 +904,7 @@ export default function PublicWaStore({ customSlug }) {
             )}
             {/* ─── MOBILE NAVIGATION DRAWER ─── */}
             <WaStoreFooter store={store} />
-        </div>
+        </StoreInnerWithAuth>
+        </StoreCustomerWrapper>
     );
 }

@@ -46,9 +46,10 @@ const Dashboard = () => {
         waAccountStatus: 'DISCONNECTED',
         waAccountQuality: 'UNKNOWN',
         waMessagingTier: 'N/A',
-        waMessagingProgress: 0,
+        waMessagingProgress: null,
         waMessagingThreshold: 0,
-        waBusinessVerified: false
+        waBusinessVerified: false,
+        waConversationsFetchedAt: null
     });
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -184,9 +185,10 @@ const Dashboard = () => {
                 waAccountStatus: res.data.waAccountStatus ?? 'DISCONNECTED',
                 waAccountQuality: res.data.waAccountQuality ?? 'UNKNOWN',
                 waMessagingTier: res.data.waMessagingTier ?? 'N/A',
-                waMessagingProgress: res.data.waMessagingProgress ?? 0,
+                waMessagingProgress: res.data.waMessagingProgress ?? null,
                 waMessagingThreshold: res.data.waMessagingThreshold ?? 0,
-                waBusinessVerified: res.data.waBusinessVerified ?? false
+                waBusinessVerified: res.data.waBusinessVerified ?? false,
+                waConversationsFetchedAt: res.data.waConversationsFetchedAt ?? null
             }));
         } catch (err) {
             console.error("Error fetching stats:", err);
@@ -888,26 +890,53 @@ const Dashboard = () => {
                                     {/* 4. Messaging Limit & Progress */}
                                     <div className="col-span-3 flex flex-col p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
                                         <div className="flex justify-between items-start mb-2">
-                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5 cursor-help" title={getUpgradeCriteria(stats.waMessagingThreshold, stats.waBusinessVerified)}>
+                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5" title="Number of unique business-initiated conversation windows opened in the last 24 hours. Meta limits this per tier.">
                                                 Meta Messaging Limit (in 24 hrs)
                                                 <Info className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
                                             </p>
                                             <span className="text-primary font-bold text-xs bg-primary/10 px-2 py-0.5 rounded-md">{stats.waMessagingTier}</span>
                                         </div>
-                                        <div className="flex items-end justify-between mt-1 mb-2">
-                                            <div className="text-[11px] text-slate-500 dark:text-text-secondary">
-                                                <span className="text-slate-900 dark:text-white font-bold text-sm mr-1">{stats.waMessagingProgress.toLocaleString()}</span>
-                                                {stats.waAccountStatus === 'CONNECTED' ? `/ ${stats.waMessagingThreshold.toLocaleString()} to upgrade` : 'messages sent'}
+                                        {stats.waMessagingProgress === null ? (
+                                            // Not yet synced from Meta
+                                            <div className="flex flex-col gap-1 mt-1">
+                                                <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
+                                                    24hr data not yet synced.
+                                                </p>
+                                                <button
+                                                    onClick={handleRefreshStatus}
+                                                    disabled={refreshingStatus}
+                                                    className="text-[10px] text-primary font-bold hover:underline text-left w-fit"
+                                                >
+                                                    {refreshingStatus ? 'Syncing...' : '↻ Click Refresh Status to fetch live data'}
+                                                </button>
                                             </div>
-                                        </div>
-                                        <div className="w-full bg-slate-200 dark:bg-[#2f455a] h-1.5 rounded-full overflow-hidden">
-                                            {stats.waAccountStatus === 'CONNECTED' && (
-                                                <div
-                                                    className="bg-primary h-full rounded-full transition-all duration-1000"
-                                                    style={{ width: `${Math.min((stats.waMessagingProgress / Math.max(stats.waMessagingThreshold, 1)) * 100, 100)}%` }}
-                                                ></div>
-                                            )}
-                                        </div>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-end justify-between mt-1 mb-2">
+                                                    <div className="text-[11px] text-slate-500 dark:text-text-secondary">
+                                                        <span className="text-slate-900 dark:text-white font-bold text-sm mr-1">{stats.waMessagingProgress.toLocaleString()}</span>
+                                                        / {stats.waMessagingThreshold === 9999999 ? '∞' : stats.waMessagingThreshold.toLocaleString()} conversations today
+                                                    </div>
+                                                    {stats.waConversationsFetchedAt && (
+                                                        <span className="text-[9px] text-slate-400 dark:text-slate-600">
+                                                            synced {new Date(stats.waConversationsFetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="w-full bg-slate-200 dark:bg-[#2f455a] h-1.5 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-1000 ${
+                                                            stats.waMessagingThreshold > 0 && (stats.waMessagingProgress / stats.waMessagingThreshold) >= 0.85
+                                                                ? 'bg-red-500'
+                                                                : stats.waMessagingThreshold > 0 && (stats.waMessagingProgress / stats.waMessagingThreshold) >= 0.6
+                                                                    ? 'bg-yellow-500'
+                                                                    : 'bg-primary'
+                                                        }`}
+                                                        style={{ width: `${stats.waMessagingThreshold > 0 ? Math.min((stats.waMessagingProgress / stats.waMessagingThreshold) * 100, 100) : 0}%` }}
+                                                    ></div>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
 
 

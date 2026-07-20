@@ -44,6 +44,7 @@ require('./models/VcardEnquiry');   // vCard Leads/Enquiries
 require('./models/WaStore');        // WhatsApp Store SaaS Module
 require('./models/WaProduct');      // WhatsApp Store Products
 require('./models/WaOrder');        // WhatsApp Store Orders
+require('./models/StoreCustomer');  // Store Customer Accounts (per-store end-customer auth)
 require('./models/NfcCard');        // Physical NFC Products
 require('./models/NfcOrder');       // Physical NFC Orders
 require('./models/FlowExecutionLog'); // FlowBot execution analytics
@@ -198,6 +199,7 @@ app.use('/api/admin/tech-partners', require('./routes/adminTechPartners')); // B
 app.use('/api/contact', require('./routes/contact')); // Public Contact Us form endpoints
 app.use('/api/ctwa', require('./routes/ctwa')); // CTWA Ads Analytics & OAuth
 app.use('/api/meta-ads', require('./routes/meta-ads')); // Meta Ads Maker
+app.use('/api/store-customer/:storeSlug', require('./routes/storeCustomerAuth')); // Store Customer Auth
 app.use('/api/vcards', require('./routes/vcards')); // Digital Business Card Config
 app.use('/api/wastore', require('./routes/wastore')); // WhatsApp Store Config
 app.use('/api/media', require('./routes/media')); // Media Gallery & Quota Management

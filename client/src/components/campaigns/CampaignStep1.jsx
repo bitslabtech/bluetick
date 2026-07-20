@@ -31,7 +31,9 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
     useEffect(() => {
         if (data.retargetLogIds) {
             // Subset selected
-            setRetargetCount(data.retargetLogIds.length);
+            const count = data.retargetLogIds.length;
+            setRetargetCount(count);
+            updateData({ retargetCount: count });
         } else if (data.retargetCampaignId && data.retargetStatus) {
             axios.get(`${import.meta.env.VITE_API_URL}/api/messages/${data.retargetCampaignId}`)
                 .then(res => {
@@ -43,6 +45,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                         count = logs.filter(l => (l.status || '').toUpperCase() === data.retargetStatus.toUpperCase()).length;
                     }
                     setRetargetCount(count);
+                    updateData({ retargetCount: count });
                 })
                 .catch(err => console.error("Error fetching retarget info", err));
         }

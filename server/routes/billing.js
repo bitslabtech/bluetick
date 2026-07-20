@@ -13,6 +13,7 @@ const UserAddon = require('../models/UserAddon');
 const Addon = require('../models/Addon');
 const SystemConfig = require('../models/SystemConfig');
 const ReferralReward = require('../models/ReferralReward');
+const { getMonthlyMessageCount } = require('../utils/planLimits');
 const AdminNotification = require('../models/AdminNotification');
 const { sendAdminAlert } = require('../services/systemMessenger');
 router.use(auth);
@@ -453,19 +454,10 @@ router.get('/', async (req, res) => {
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
         // Usage Stats
-        const messagesSent = await MessageLog.count({
-            where: {
-                createdAt: {
-                    [Op.between]: [startOfMonth, endOfMonth]
-                },
-                status: { [Op.ne]: 'FAILED' } // Consistent with Dashboard Logic
-            },
-            include: [{
-                model: require('../models/Message'),
-                where: { userId: req.user.id },
-                attributes: []
-            }]
-        });
+        // Using getMonthlyMessageCount (ChatMessage table, OUTBOUND direction) — same
+        // function used by plan enforcement in chat.js, webhook.js, campaignProcessor etc.
+        // This ensures the campaign panel "Past" usage matches the dashboard "This Month's Usage".
+        const messagesSent = await getMonthlyMessageCount(req.user.id);
 
         // Fetch Plan Details from DB
         const planName = user.plan || 'Free';

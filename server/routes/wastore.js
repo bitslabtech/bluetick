@@ -206,7 +206,7 @@ router.get('/public/domain/:domain', async (req, res) => {
 // POST /api/wastore/orders  — Public: record a new order (called from storefront before WhatsApp redirect)
 router.post('/orders', async (req, res) => {
     try {
-        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total } = req.body;
+        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, storeCustomerId } = req.body;
 
         if (!storeId || !items || !subtotal) {
             return res.status(400).json({ error: 'Missing required order fields' });
@@ -230,7 +230,9 @@ router.post('/orders', async (req, res) => {
             couponCode: couponCode || null,
             taxAmount: parseFloat(taxAmount) || 0,
             total: parseFloat(total) || subtotal,
-            status: 'pending'
+            status: 'pending',
+            // Link to logged-in store customer account (null for guest checkouts)
+            storeCustomerId: storeCustomerId || null,
         });
 
         // Deduct inventory

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, ChevronUp, FileText, Phone, Mail, MessageCircle } from 'lucide-react';
+import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, ChevronUp, FileText, Phone, Mail, MessageCircle, User } from 'lucide-react';
 
 import WaStoreMobileBottomMenu from './WaStoreMobileBottomMenu';
 import { cdnImg } from '../utils/cdnImage';
@@ -33,6 +33,8 @@ export default function WaStoreHeader({
     categories = [],
     cartCount = 0,
     setIsCartOpen,
+    storeCustomer = null,   // customer object if logged in
+    authEnabled = false,    // whether store has customer auth enabled
 }) {
     const navigate = useNavigate();
 
@@ -109,6 +111,40 @@ export default function WaStoreHeader({
 
     return (
         <>
+            {/* ── TOP ANNOUNCEMENT BAR ── */}
+            {store?.topBarConfig?.enabled && (() => {
+                const tb = store.topBarConfig;
+                const paddingMap = { sm: 'py-1.5', md: 'py-2.5', lg: 'py-3.5' };
+                const fontSizeMap = { sm: 'text-xs', md: 'text-sm', lg: 'text-base' };
+                const allText = (tb.messages || []).map(m => m.text).join('   •   ');
+                const dur = Math.max(8, Math.round(allText.length * 0.12));
+                return (
+                    <div
+                        className={`w-full overflow-hidden flex items-center justify-center z-[60] relative ${paddingMap[tb.padding] || 'py-1.5'}`}
+                        style={{ backgroundColor: tb.bgColor }}
+                    >
+                        {tb.marquee ? (
+                            <>
+                                <style>{`
+                                    @keyframes wastore-topbar { 0% { transform: translateX(100cqw); } 100% { transform: translateX(-100%); } }
+                                    .wastore-topbar-text { display: inline-block; white-space: nowrap; animation: wastore-topbar ${dur}s linear infinite; padding-left: 20px; }
+                                `}</style>
+                                <div className="w-full overflow-hidden" style={{ containerType: 'inline-size' }}>
+                                    <span className="wastore-topbar-text">
+                                        <span className={`font-medium ${fontSizeMap[tb.fontSize] || 'text-xs'}`} style={{ color: tb.textColor }}>
+                                            {allText}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </span>
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <span className={`font-medium text-center px-4 ${fontSizeMap[tb.fontSize] || 'text-xs'}`} style={{ color: tb.textColor }}>
+                                {tb.messages?.[0]?.text || ''}
+                            </span>
+                        )}
+                    </div>
+                );
+            })()}
             <header className={`sticky top-0 z-50 ${theme.header}`}>
                 {theme.id === 'vogue' ? (
                     /* ── VOGUE: Minimal 3-column ── Hamburger | Logo | Search+Cart */
@@ -165,7 +201,7 @@ export default function WaStoreHeader({
                                 <span className="text-xl tracking-[0.25em] uppercase text-black font-normal" style={{ fontFamily: theme.fontFamily }}>{store.name}</span>
                             )}
                         </div>
-                        {/* RIGHT – Search(mobile) and Cart */}
+                        {/* RIGHT – Search(mobile), Account and Cart */}
                         <div className="flex items-center justify-end gap-2">
                             <button 
                                 aria-label="Toggle search"
@@ -174,6 +210,19 @@ export default function WaStoreHeader({
                             >
                                 <Search className="w-5 h-5 stroke-[1.5]" />
                             </button>
+                            {/* Account button — only show if store owner enabled customer auth */}
+                            {authEnabled && (
+                                <button
+                                    aria-label="My Account"
+                                    onClick={() => navigate(`/store/${slug}/account${storeCustomer ? '' : '/login'}`)}
+                                    className="relative flex items-center justify-center p-2 text-black hover:bg-black/5 rounded-full transition-colors group"
+                                >
+                                    <User className="w-5 h-5 stroke-[1.5] group-hover:scale-105 transition-transform" />
+                                    {storeCustomer && (
+                                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border border-white" />
+                                    )}
+                                </button>
+                            )}
                             <button
                                 aria-label="View cart"
                                 onClick={() => setIsCartOpen(true)}

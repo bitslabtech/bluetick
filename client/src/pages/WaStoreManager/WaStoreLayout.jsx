@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image } from 'lucide-react';
+import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreLayout() {
@@ -83,6 +83,7 @@ export default function WaStoreLayout() {
         { path: `/online-store/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
         { path: `/online-store/${slug}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
         { path: `/online-store/${slug}/navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Navigation' },
+        { path: `/online-store/${slug}/topbar`, icon: <Megaphone className="w-5 h-5" />, label: 'Top Bar' },
         { path: `/online-store/${slug}/categories`, icon: <Tag className="w-5 h-5" />, label: 'Categories' },
         { path: `/online-store/${slug}/products`, icon: <Package className="w-5 h-5" />, label: 'Products' },
         { path: `/online-store/${slug}/inventory`, icon: <ClipboardList className="w-5 h-5" />, label: 'Inventory' },
@@ -260,7 +261,7 @@ export default function WaStoreLayout() {
             {/* Two Column Layout Below Header */}
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Sidebar */}
-                <div className="w-full md:w-64 flex-shrink-0">
+                <div className="w-full md:w-64 flex-shrink-0 self-start sticky top-6">
                     <button 
                         onClick={() => navigate('/online-store')}
                         className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white mb-6 transition-colors font-medium px-2"
@@ -299,7 +300,7 @@ export default function WaStoreLayout() {
                     </div>
 
                     {/* Desktop: Vertical Sidebar */}
-                    <div className="hidden md:block bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-3 sticky top-24 shadow-sm">
+                    <div className="hidden md:block bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-3 overflow-y-auto max-h-[calc(100vh-7rem)] shadow-sm">
                         <nav className="flex flex-col gap-1">
                             {navItems.map((item) => (
                                 <NavLink

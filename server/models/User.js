@@ -173,6 +173,19 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    // Cached 24-hour conversation count fetched live from Meta conversation_analytics API
+    metaConversations24h: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Number of unique business-initiated conversations opened in the last 24 hrs (from Meta analytics)'
+    },
+    metaConversationsFetchedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null,
+        comment: 'When metaConversations24h was last fetched from Meta'
+    },
     // Meta Ads Integration Fields (CTWA)
     metaAdsToken: {
         type: DataTypes.TEXT,

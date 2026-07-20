@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShoppingBag, ArrowRight, Tag, Loader2, Check } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useStoreCustomerOptional } from '../context/StoreCustomerContext';
 
 export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippingCost, cartTotal, onClose, onCheckoutSuccess }) {
+    // Returns null gracefully if not inside StoreCustomerProvider
+    const storeCustomerCtx = useStoreCustomerOptional();
+    const storeCustomer = storeCustomerCtx?.customer || null;
+
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
@@ -14,6 +19,23 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         pincode: '',
         notes: ''
     });
+
+    // Pre-fill form when logged-in customer is available
+    useEffect(() => {
+        if (storeCustomer) {
+            const defaultAddr = (storeCustomer.savedAddresses || []).find(a => a.isDefault) || storeCustomer.savedAddresses?.[0];
+            setFormData(prev => ({
+                ...prev,
+                name: storeCustomer.name || prev.name,
+                phone: storeCustomer.phone || prev.phone,
+                email: storeCustomer.email || prev.email,
+                address: defaultAddr?.address || prev.address,
+                city: defaultAddr?.city || prev.city,
+                state: defaultAddr?.state || prev.state,
+                pincode: defaultAddr?.pincode || prev.pincode,
+            }));
+        }
+    }, [storeCustomer]);
 
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -148,7 +170,9 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                 taxName: taxEnabled ? 'Tax' : null,
                 total: finalTotal + shippingCost, // finalTotal already includes tax
                 couponCode: appliedCoupon ? appliedCoupon.code : null,
-                currency: store.currency
+                currency: store.currency,
+                // Link to logged-in customer account if available
+                storeCustomerId: storeCustomer ? storeCustomer.id : null,
             });
 
             const { order, orderNumber, gatewayOptions } = res.data;

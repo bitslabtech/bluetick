@@ -239,6 +239,13 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         const calculateRecipients = async () => {
             setCalculatingCost(true);
             try {
+                // Retarget mode: the count comes from CampaignStep1's retargetCount which is passed via data.
+                // data.retargetCount is set by the parent Campaigns.jsx when in retarget mode.
+                if (data.retargetCampaignId) {
+                    setTotalRecipientsCount((data.retargetCount || 0) + manualCount);
+                    return;
+                }
+
                 let dbCount = 0;
                 if (data.recipients?.includes('all')) {
                     const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/contacts/campaign-summary`, {
@@ -266,7 +273,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
         };
 
         calculateRecipients();
-    }, [data.recipients, manualCount]);
+    }, [data.recipients, data.retargetCampaignId, data.retargetCount, manualCount]);
 
     // Determine Global Currency
     const currencyCode = publicSettings?.currency || settings?.currency || 'USD';
@@ -510,7 +517,9 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
             }
 
             const manualRecipients = data.manualRecipients || [];
-            if (contactIds.length === 0 && contactIds !== 'all' && targetGroups.length === 0 && manualRecipients.length === 0) {
+            // In retarget mode, recipients are resolved server-side from retargetCampaignId.
+            // Skip the empty-recipients guard only when retargeting.
+            if (!data.retargetCampaignId && contactIds.length === 0 && contactIds !== 'all' && targetGroups.length === 0 && manualRecipients.length === 0) {
                 throw new Error('Please select at least one recipient group or enter manual recipients.');
             }
 
@@ -546,7 +555,11 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                 campaignName: data.name,
                 description: data.description,
                 tag: data.tag,
-                scheduledFor: scheduleType === 'later' ? scheduledDate : null
+                scheduledFor: scheduleType === 'later' ? scheduledDate : null,
+                // Retarget fields — required by server/routes/messages.js to resolve contacts
+                retargetCampaignId: data.retargetCampaignId || null,
+                retargetStatus: data.retargetStatus || null,
+                retargetLogIds: data.retargetLogIds || null,
             };
             await onSubmit(payload);
         } catch (err) {

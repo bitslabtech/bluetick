@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const { sequelize } = require('../config/database');
 const User = require('../models/User');
 const MessageLog = require('../models/MessageLog');
+const ChatMessage = require('../models/ChatMessage');
 const Contact = require('../models/Contact');
 const Transaction = require('../models/Transaction');
 const ActivityLog = require('../models/ActivityLog');
@@ -143,10 +144,27 @@ router.get('/stats', async (req, res) => {
             User.count(),
             User.count({ where: { planStatus: 'Active' } }),
             Transaction.aggregate('amount', 'sum', { where: { status: 'COMPLETED', ...dateFilter } }),
-            MessageLog.count({ where: dateFilter }),
-            MessageLog.count({ where: { status: { [Op.in]: ['DELIVERED', 'READ'] }, ...dateFilter } }),
-            MessageLog.count({ where: { status: 'FAILED', ...dateFilter } }),
-            MessageLog.findAll({ attributes: ['createdAt'], where: dateFilter, order: [['createdAt', 'ASC']], raw: true }),
+            ChatMessage.count({ where: { direction: 'OUTBOUND', ...dateFilter } }),
+            ChatMessage.count({ 
+                where: { 
+                    direction: 'OUTBOUND', 
+                    [Op.or]: [
+                        Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'delivered'),
+                        Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'read')
+                    ], 
+                    ...dateFilter 
+                } 
+            }),
+            ChatMessage.count({ 
+                where: { 
+                    direction: 'OUTBOUND', 
+                    [Op.and]: [
+                        Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'failed')
+                    ],
+                    ...dateFilter 
+                } 
+            }),
+            ChatMessage.findAll({ attributes: ['createdAt'], where: { direction: 'OUTBOUND', ...dateFilter }, order: [['createdAt', 'ASC']], raw: true }),
             Transaction.findAll({ attributes: ['createdAt', 'amount'], where: { status: 'COMPLETED', ...dateFilter }, order: [['createdAt', 'ASC']], raw: true }),
             Transaction.findAll({ limit: 5, order: [['createdAt', 'DESC']], where: { status: 'COMPLETED', ...dateFilter } }),
             User.findAll({ attributes: ['plan', [sequelize.fn('count', sequelize.col('id')), 'count']], group: ['plan'], raw: true }),

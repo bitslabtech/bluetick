@@ -208,6 +208,29 @@ const WaStore = sequelize.define('WaStore', {
     views: {
         type: DataTypes.INTEGER,
         defaultValue: 0
+    },
+    customerAuthConfig: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            enabled: false,
+            methods: ['email_password'], // 'email_password' | 'whatsapp_otp' | both
+            allowGuestCheckout: true,
+            requireLoginForCheckout: false,
+        },
+        comment: 'Per-store customer account settings: enable/disable, auth methods, etc.'
+    },
+    topBarConfig: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            enabled: false,
+            messages: [{ id: '1', text: '🚀 Free shipping on orders above ₹999!' }],
+            bgColor: '#1e1b4b',
+            textColor: '#ffffff',
+            marquee: false,
+            fontSize: 'sm',
+            padding: 'sm',
+        },
+        comment: 'Announcement bar config: enabled, messages, colors, marquee, sizing'
     }
 }, {
     timestamps: true

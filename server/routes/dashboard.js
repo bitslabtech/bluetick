@@ -344,9 +344,12 @@ router.get('/stats', async (req, res) => {
             waAccountStatus: isWhatsappConfigured ? 'CONNECTED' : 'DISCONNECTED',
             waAccountQuality: isWhatsappConfigured ? waQuality : 'UNKNOWN',
             waMessagingTier: isWhatsappConfigured ? parsedTier : 'N/A',
-            waMessagingProgress: monthlyUsageCount,
+            // Real 24-hour business-initiated conversation count from Meta analytics API
+            // Fetched and cached during status refresh; null means not yet synced
+            waMessagingProgress: isWhatsappConfigured ? (user.metaConversations24h ?? null) : null,
             waMessagingThreshold: isWhatsappConfigured ? waMessagingThreshold : 0,
-            waBusinessVerified: isWhatsappConfigured ? waVerified : false
+            waBusinessVerified: isWhatsappConfigured ? waVerified : false,
+            waConversationsFetchedAt: user.metaConversationsFetchedAt || null
         });
     } catch (err) {
         console.error("Error fetching stats:", err);

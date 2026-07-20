@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import axios from 'axios';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -10,6 +10,7 @@ import { UIProvider } from './context/UIContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Layout from './components/Layout';
 import { PaymentRedirectHandler } from './components/PaymentRedirectHandler';
+import { StoreCustomerProvider } from './context/StoreCustomerContext';
 
 // ── Code-Split Pages (React.lazy) ──────────────────────────────────────────
 // Each page loads as a separate JS chunk (~20-150KB) only when navigated to.
@@ -88,6 +89,7 @@ const WaStoreCategories = React.lazy(() => import('./pages/WaStoreManager/WaStor
 const WaStoreCoupons = React.lazy(() => import('./pages/WaStoreManager/WaStoreCoupons'));
 const WaStoreSEO = React.lazy(() => import('./pages/WaStoreManager/WaStoreSEO'));
 const WaStoreNavigation = React.lazy(() => import('./pages/WaStoreManager/WaStoreNavigation'));
+const WaStoreTopBar = React.lazy(() => import('./pages/WaStoreManager/WaStoreTopBar'));
 const WaStorePolicies = React.lazy(() => import('./pages/WaStoreManager/WaStorePolicies'));
 const WaStoreAnalytics = React.lazy(() => import('./pages/WaStoreManager/WaStoreAnalytics'));
 const WaStoreNotifications = React.lazy(() => import('./pages/WaStoreManager/WaStoreNotifications'));
@@ -95,6 +97,11 @@ const PublicWaStore = React.lazy(() => import('./pages/PublicWaStore'));
 const PublicWaStoreCategory = React.lazy(() => import('./pages/PublicWaStoreCategory'));
 const PublicWaProduct = React.lazy(() => import('./pages/PublicWaProduct'));
 const PublicWaStoreVerify = React.lazy(() => import('./pages/PublicWaStoreVerify'));
+const StoreLoginPage = React.lazy(() => import('./pages/StoreCustomer/StoreLoginPage'));
+const StoreRegisterPage = React.lazy(() => import('./pages/StoreCustomer/StoreRegisterPage'));
+const StoreAccountPage = React.lazy(() => import('./pages/StoreCustomer/StoreAccountPage'));
+const StoreForgotPasswordPage = React.lazy(() => import('./pages/StoreCustomer/StoreForgotPasswordPage'));
+const StoreResetPasswordPage = React.lazy(() => import('./pages/StoreCustomer/StoreResetPasswordPage'));
 const VcardLayout = React.lazy(() => import('./pages/VcardManager/VcardLayout'));
 const VcardDashboard = React.lazy(() => import('./pages/VcardManager/VcardDashboard'));
 const VcardList = React.lazy(() => import('./pages/VcardManager/VcardList'));
@@ -268,6 +275,38 @@ class ErrorBoundary extends React.Component {
     }
 }
 
+
+/**
+ * StoreAuthRoute — wraps store customer account pages with StoreCustomerProvider.
+ * Also loads the store data so we can pass it (theme color, logo) to auth pages.
+ */
+function StoreAuthRoute({ page }) {
+    const { slug } = useParams();
+    const [store, setStore] = useState(null);
+
+    useEffect(() => {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}`)
+            .then(res => setStore(res.data.store))
+            .catch(() => {});
+    }, [slug]);
+
+    const pageMap = {
+        login:    <StoreLoginPage store={store} />,
+        register: <StoreRegisterPage store={store} />,
+        account:  <StoreAccountPage store={store} />,
+        forgot:   <StoreForgotPasswordPage store={store} />,
+        reset:    <StoreResetPasswordPage store={store} />,
+    };
+
+    return (
+        <StoreCustomerProvider slug={slug}>
+            <Suspense fallback={null}>
+                {pageMap[page]}
+            </Suspense>
+        </StoreCustomerProvider>
+    );
+}
+
 function CustomDomainRouter({ children }) {
     const [storeSlug, setStoreSlug] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -332,10 +371,16 @@ function App() {
                                         <Route path="/f/:id" element={<PublicForm />} /> {/* NEW: Public form viewer */}
                                         <Route path="/vcard/:slug" element={<PublicVcard />} /> {/* NEW: Public Digital Business Card */}
                                         <Route path="/nfc/setup/:shortCode" element={<NfcSetup />} /> {/* NEW: NFC Setup */}
-                                        <Route path="/store/:slug" element={<PublicWaStore />} /> {/* NEW: Public WhatsApp Store */}
+                                        <Route path="/store/:slug" element={<PublicWaStore />} /> {/* Public WhatsApp Store */}
                                         <Route path="/store/:slug/verify" element={<PublicWaStoreVerify />} />
-                                        <Route path="/store/:slug/product/:productId" element={<PublicWaProduct />} /> {/* NEW: Single Product */}
-                                        <Route path="/store/:slug/category/:categoryName" element={<PublicWaStoreCategory />} /> {/* NEW: Category Page */}
+                                        <Route path="/store/:slug/product/:productId" element={<PublicWaProduct />} /> {/* Single Product */}
+                                        <Route path="/store/:slug/category/:categoryName" element={<PublicWaStoreCategory />} /> {/* Category Page */}
+                                        {/* Store Customer Account Routes - wrapped with auth context */}
+                                        <Route path="/store/:slug/account/login" element={<StoreAuthRoute page="login" />} />
+                                        <Route path="/store/:slug/account/register" element={<StoreAuthRoute page="register" />} />
+                                        <Route path="/store/:slug/account" element={<StoreAuthRoute page="account" />} />
+                                        <Route path="/store/:slug/account/forgot-password" element={<StoreAuthRoute page="forgot" />} />
+                                        <Route path="/store/:slug/account/reset-password" element={<StoreAuthRoute page="reset" />} />
                                         <Route element={<GuestRoute />}>
                                             <Route path="/login" element={<Login />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -389,6 +434,7 @@ function App() {
                                                     <Route path="seo" element={<WaStoreSEO />} />
                                                     <Route path="themes" element={<WaStoreThemes />} />
                                                     <Route path="navigation" element={<WaStoreNavigation />} />
+                                                    <Route path="topbar" element={<WaStoreTopBar />} />
                                                     <Route path="policies" element={<WaStorePolicies />} />
                                                     <Route path="media" element={<MediaGallery accessMode="restricted" />} />
                                                     <Route path="settings" element={<WaStoreSettings />} />
