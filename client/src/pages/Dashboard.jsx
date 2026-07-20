@@ -903,7 +903,7 @@ const Dashboard = () => {
                                                     24hr data not yet synced.
                                                 </p>
                                                 <button
-                                                    onClick={handleRefreshStatus}
+                                                    onClick={handleRefreshWaStatus}
                                                     disabled={refreshingStatus}
                                                     className="text-[10px] text-primary font-bold hover:underline text-left w-fit"
                                                 >
