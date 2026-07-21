@@ -403,6 +403,8 @@ router.get('/status', auth, async (req, res) => {
                         user.metaTier                 = phoneData.messaging_limit_tier;
                         user.metaVerifiedName         = phoneData.verified_name;
                         user.metaNameStatus           = phoneData.name_status;
+                        user.metaConversations24h     = 0;
+                        user.metaConversationsFetchedAt = new Date();
                         await user.save();
                         return res.json({
                             message: 'Status refreshed successfully',
@@ -486,6 +488,10 @@ router.get('/status', auth, async (req, res) => {
             } catch (analyticsErr) {
                 console.warn('[WA STATUS] Could not fetch 24h conversation analytics:', analyticsErr.response?.data?.error?.message || analyticsErr.message);
                 // Don't block status refresh if analytics fails
+                if (user.metaConversations24h === null) {
+                    user.metaConversations24h = 0;
+                }
+                user.metaConversationsFetchedAt = new Date();
             }
 
             await user.save();

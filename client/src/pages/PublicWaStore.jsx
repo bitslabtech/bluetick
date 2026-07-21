@@ -816,10 +816,28 @@ export default function PublicWaStore({ customSlug }) {
                                     <div className="space-y-6">
                                         {cart.map(item => (
                                             <div key={item.cartItemId || item.id} className="flex gap-4 items-start">
-                                                <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
-                                                    {item.imageUrls && item.imageUrls[0] && (
-                                                        <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-contain" />
-                                                    )}
+                                                <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
+                                                    {(() => {
+                                                        let rawUrl = null;
+                                                        if (Array.isArray(item.imageUrls) && item.imageUrls.length > 0) rawUrl = item.imageUrls[0];
+                                                        else if (typeof item.imageUrls === 'string') {
+                                                            try { const p = JSON.parse(item.imageUrls); if (Array.isArray(p)) rawUrl = p[0]; }
+                                                            catch (e) { rawUrl = item.imageUrls; }
+                                                        }
+                                                        else if (item.imageUrl) rawUrl = item.imageUrl;
+
+                                                        if (!rawUrl) return <ShoppingBag className="w-6 h-6 text-gray-300" />;
+                                                        const cleanUrl = imgUrl(encodeURI(rawUrl.replace(/\\/g, '/')));
+                                                        return (
+                                                            <img 
+                                                                src={cleanUrl} 
+                                                                alt={item.name} 
+                                                                className="w-full h-full object-contain"
+                                                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                                                            />
+                                                        );
+                                                    })()}
+                                                    <ShoppingBag className="w-6 h-6 text-gray-300 hidden" />
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-1">
                                                     <h4 className={`font-semibold text-sm ${theme.text} truncate`}>{item.name}</h4>
