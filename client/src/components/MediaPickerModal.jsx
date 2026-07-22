@@ -175,6 +175,7 @@ export default function MediaPickerModal({
      * Example: ["image/jpeg", "image/png"] for WhatsApp templates.
      */
     mimeConstraints = null,
+    returnType = "url"
 }) {
     const { user } = useAuth();
     const { showToast } = useUI();
@@ -293,8 +294,13 @@ export default function MediaPickerModal({
     const handleConfirm = () => {
         if (selectedIds.length === 0) { showToast("Please select at least one file.", "error"); return; }
         const selectedFiles = files.filter(f => selectedIds.includes(f.id));
-        const urls = selectedFiles.map(f => f.url);
-        if (multiple) { onSelect(urls); } else { onSelect(urls[0]); }
+        
+        if (returnType === "object") {
+            if (multiple) { onSelect(selectedFiles); } else { onSelect(selectedFiles[0]); }
+        } else {
+            const urls = selectedFiles.map(f => f.url);
+            if (multiple) { onSelect(urls); } else { onSelect(urls[0]); }
+        }
         onClose();
     };
 

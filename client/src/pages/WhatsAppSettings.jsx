@@ -171,7 +171,6 @@ export default function WhatsAppSettings() {
 
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings/upload-whatsapp-profile-img`, formData, {
                 headers: {
-                    'x-auth-token': token,
                     'Content-Type': 'multipart/form-data'
                 }
             });

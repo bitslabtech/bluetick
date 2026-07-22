@@ -1919,6 +1919,7 @@ const WhatsAppInbox = () => {
                     allowedTypes="all"
                     mimeConstraints={MIME_PRESETS.whatsapp_media}
                     title="Select Attachment"
+                    returnType="object"
                 />
             )}
             </div>
