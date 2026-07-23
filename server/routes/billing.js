@@ -88,20 +88,32 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
     }
 
     // Grant Included Add-ons natively
+    // Compute the plan expiry first so we can stamp it onto included addons
+    const newExpiry = computePlanExpiry(targetPlan.interval, user.planExpiry, isRenewal);
+
     if (targetPlan.includedAddons && targetPlan.includedAddons.length > 0) {
         const addonsToInclude = await Addon.findAll({ where: { module_key: targetPlan.includedAddons } });
         for (const addon of addonsToInclude) {
             const existing = await UserAddon.findOne({ where: { userId: user.id, addonId: addon.id } });
             if (existing) {
                 existing.status = 'active';
+                // Stamp expiry to match plan expiry so scheduler can expire them correctly
+                if (newExpiry) {
+                    existing.currentPeriodStart = new Date();
+                    existing.currentPeriodEnd = newExpiry;
+                }
                 await existing.save();
             } else {
-                await UserAddon.create({ userId: user.id, addonId: addon.id, status: 'active' });
+                await UserAddon.create({
+                    userId: user.id,
+                    addonId: addon.id,
+                    status: 'active',
+                    currentPeriodStart: newExpiry ? new Date() : null,
+                    currentPeriodEnd: newExpiry || null
+                });
             }
         }
     }
-
-    const newExpiry = computePlanExpiry(targetPlan.interval, user.planExpiry, isRenewal);
 
     await user.update({
         plan: targetPlan.name,

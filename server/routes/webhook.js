@@ -131,16 +131,27 @@ router.post('/:userId', (req, res, next) => {
                 if (change.field === 'message_template_status_update') {
                     const statusUpdate = change.value;
                     const metaTemplateId = statusUpdate.message_template_id;
-                    const eventStatus = statusUpdate.event; // "APPROVED", "REJECTED", etc.
+                    const eventStatus = statusUpdate.event; // "APPROVED", "REJECTED", "FLAGGED", "PAUSED", etc.
                     const templateName = statusUpdate.message_template_name;
                     const rejectReason = statusUpdate.reason;
+                    // Meta sends new_category when it reclassifies a template (e.g. UTILITY → MARKETING)
+                    const newCategory = statusUpdate.new_category || null;
 
-                    console.log(`[WEBHOOK] Template Status Update: ${templateName} -> ${eventStatus}`);
+                    console.log(`[WEBHOOK] Template Status Update: ${templateName} -> ${eventStatus}${newCategory ? ` (category reclassified to ${newCategory})` : ''}`);
 
                     try {
                         const template = await Template.findOne({ where: { metaTemplateId, userId } });
                         if (template) {
+                            let categoryChanged = false;
                             template.status = eventStatus;
+
+                            // ── Sync category if Meta reclassified this template ──────────────────
+                            if (newCategory && template.category !== newCategory) {
+                                console.log(`[WEBHOOK] Template "${templateName}" category reclassified: ${template.category} → ${newCategory}`);
+                                template.category = newCategory;
+                                categoryChanged = true;
+                            }
+
                             await template.save();
 
                             const user = await User.findByPk(userId);
@@ -156,6 +167,18 @@ router.post('/:userId', (req, res, next) => {
                                     message = `Your template "${templateName}" was rejected by Meta. ${rejectReason ? 'Reason: ' + rejectReason : ''}`;
                                 }
 
+                                // Extra notification if Meta changed the category
+                                if (categoryChanged) {
+                                    await SystemNotification.create({
+                                        recipient: user.email,
+                                        type: 'Warning',
+                                        title: 'Template Category Changed by Meta',
+                                        message: `Meta reclassified your template "${templateName}" from its previous category to ${newCategory}. This may affect how it is billed and displayed.`,
+                                        target: `User: ${user.email}`,
+                                        status: 'Sent'
+                                    });
+                                }
+
                                 await SystemNotification.create({
                                     recipient: user.email,
                                     type: type,
@@ -168,7 +191,8 @@ router.post('/:userId', (req, res, next) => {
                                 getIo().to(userId).emit('notification_update');
                                 getIo().to(userId).emit('template_status_update', {
                                     id: template.id,
-                                    status: eventStatus
+                                    status: eventStatus,
+                                    ...(categoryChanged && { category: newCategory })
                                 });
                             }
                         } else {
@@ -176,6 +200,60 @@ router.post('/:userId', (req, res, next) => {
                         }
                     } catch (err) {
                         console.error('[WEBHOOK ERROR] Failed to update template status from webhook:', err.message);
+                    }
+                    continue;
+                }
+
+                // ─── 0b. HANDLE PHONE NUMBER QUALITY RATING UPDATES ─────────────────────
+                // Meta fires this when the quality rating changes (GREEN ↔ YELLOW ↔ RED)
+                // Webhook field: "phone_number_quality_update"
+                if (change.field === 'phone_number_quality_update') {
+                    const qUpdate = change.value;
+                    // e.g. { display_phone_number: "+1...", event: "QUALITY_RATING_CHANGED",
+                    //         current_limit: "TIER_50", previous_quality_rating: "GREEN", new_quality_rating: "YELLOW" }
+                    const newRating  = qUpdate.new_quality_rating || qUpdate.current_quality_rating || null;
+                    const prevRating = qUpdate.previous_quality_rating || null;
+                    console.log(`[WEBHOOK] Quality Rating Update: ${prevRating} → ${newRating}`);
+
+                    try {
+                        const user = await User.findByPk(userId);
+                        if (user && newRating) {
+                            user.metaQualityRating = newRating;
+                            await user.save();
+
+                            // Build notification based on direction of change
+                            let notifType    = 'Info';
+                            let notifTitle   = 'WhatsApp Quality Rating Changed';
+                            let notifMessage = `Your WhatsApp quality rating changed to ${newRating}.`;
+
+                            if (newRating === 'RED') {
+                                notifType    = 'Error';
+                                notifTitle   = '🚨 Quality Rating Dropped to RED';
+                                notifMessage = 'Your WhatsApp quality rating dropped to RED due to high block/report rates. Pause broadcast campaigns immediately and resume after 5–7 days of no bulk sends.';
+                            } else if (newRating === 'YELLOW') {
+                                notifType    = 'Warning';
+                                notifTitle   = '⚠️ Quality Rating Dropped to YELLOW';
+                                notifMessage = 'Your WhatsApp quality rating is now YELLOW. Reduce campaign volume and ensure all marketing templates include an opt-out button to prevent further drops.';
+                            } else if (newRating === 'GREEN' && prevRating && prevRating !== 'GREEN') {
+                                notifType    = 'Success';
+                                notifTitle   = '✅ Quality Rating Restored to GREEN';
+                                notifMessage = 'Great news! Your WhatsApp quality rating recovered to GREEN. You can safely resume normal campaign volume.';
+                            }
+
+                            await SystemNotification.create({
+                                recipient: user.email,
+                                type: notifType,
+                                title: notifTitle,
+                                message: notifMessage,
+                                target: `User: ${user.email}`,
+                                status: 'Sent'
+                            });
+
+                            getIo().to(userId).emit('notification_update');
+                            getIo().to(userId).emit('quality_rating_update', { newRating, prevRating });
+                        }
+                    } catch (err) {
+                        console.error('[WEBHOOK ERROR] Failed to handle quality rating update:', err.message);
                     }
                     continue;
                 }
@@ -404,14 +482,41 @@ router.post('/:userId', (req, res, next) => {
                             const optSettings = foundSettings || (await Settings.findOne({ where: { userId } }));
                             const optOutEnabled = optSettings?.whatsappAutomations?.optOutEnabled !== false; // default true
 
-                            if (optOutEnabled && (isOptOut || isOptIn)) {
+                            // ── Custom multilingual opt-out keywords (e.g. "रुको", "arret") ──────────
+                            // MUST be resolved BEFORE the main gate so they are first-class opt-outs
+                            const customOptOutKw = (optSettings?.whatsappAutomations?.customOptOutKeywords || [])
+                                .map(k => (k || '').trim().toLowerCase())
+                                .filter(Boolean);
+                            const isCustomOptOut = !isOptOut && !isOptIn && customOptOutKw.includes(normalizedBody);
+                            // ────────────────────────────────────────────────────────────────────────
+
+                            if (optOutEnabled && (isOptOut || isOptIn || isCustomOptOut)) {
                                 try {
                                     const contactToUpdate = await Contact.findOne({ where: { phone: contactWaId, userId } });
-                                    const newStatus = isOptOut ? 'Opted Out' : 'Active';
+                                    const effectiveIsOptOut = isOptOut || isCustomOptOut;
+                                    const newStatus = effectiveIsOptOut ? 'Opted Out' : 'Active';
 
                                     if (contactToUpdate) {
                                         await contactToUpdate.update({ status: newStatus });
-                                        console.log(`[WEBHOOK][OPT] Contact ${contactWaId} → '${newStatus}' (keyword: "${normalizedBody}")`);
+                                        console.log(`[WEBHOOK][OPT] Contact ${contactWaId} → '${newStatus}' (keyword: "${normalizedBody}"${isCustomOptOut ? ' [custom]' : ''})`);
+
+                                        // TRACK CAMPAIGN OPT-OUTS
+                                        if (effectiveIsOptOut) {
+                                            const outboundContextId = message.context?.id;
+                                            if (outboundContextId) {
+                                                try {
+                                                    const MessageLog = require('../models/MessageLog');
+                                                    const outboundLog = await MessageLog.findOne({ where: { messageId: outboundContextId } });
+                                                    if (outboundLog && outboundLog.campaignId) {
+                                                        const Message = require('../models/Message');
+                                                        await Message.increment('optOutCount', { by: 1, where: { id: outboundLog.campaignId } });
+                                                        console.log(`[WEBHOOK][OPT] Incremented optOutCount for campaign ${outboundLog.campaignId}`);
+                                                    }
+                                                } catch (trackErr) {
+                                                    console.error('[WEBHOOK][OPT] Failed to track campaign opt-out count:', trackErr.message);
+                                                }
+                                            }
+                                        }
                                     }
 
                                     // Send acknowledgement reply using the free 24h conversation window (no template credits used)
@@ -419,7 +524,7 @@ router.post('/:userId', (req, res, next) => {
                                         const automations = optSettings.whatsappAutomations || {};
                                         const defaultOptOutAck = "You've been unsubscribed from our messages. Reply START to re-subscribe at any time.";
                                         const defaultOptInAck  = "You've been re-subscribed! You'll receive our messages again. Reply STOP at any time to opt out.";
-                                        const ackText = isOptOut
+                                        const ackText = effectiveIsOptOut
                                             ? (automations.optOutAck || defaultOptOutAck)
                                             : (automations.optInAck  || defaultOptInAck);
 
@@ -435,14 +540,6 @@ router.post('/:userId', (req, res, next) => {
                                         );
                                         console.log(`[WEBHOOK][OPT] Ack sent to ${contactWaId}: "${ackText.substring(0, 60)}..."`);
                                     }
-
-                                    // Add custom keywords from settings (multilingual support)
-                                    const customOptOutKw = (optSettings?.whatsappAutomations?.customOptOutKeywords || []).map(k => (k || '').trim().toLowerCase());
-                                    if (!isOptIn && !isOptOut && customOptOutKw.includes(normalizedBody)) {
-                                        // Custom opt-out keyword matched — handle same as STOP
-                                        if (contactToUpdate) await contactToUpdate.update({ status: 'Opted Out' });
-                                        console.log(`[WEBHOOK][OPT] Custom opt-out keyword "${normalizedBody}" matched for ${contactWaId}`);
-                                    }
                                 } catch (optErr) {
                                     console.error('[WEBHOOK][OPT] Opt-out/in handling failed (non-fatal):', optErr.message);
                                 }
@@ -450,8 +547,6 @@ router.post('/:userId', (req, res, next) => {
                                 continue;
                             }
                         }
-                        // ─── END OPT-OUT DETECTION ───────────────────────────────────────────────
-
                         // --- TRACK CAMPAIGN BUTTON CLICKS ---
                         const outboundContextId = message.context?.id || null;
                         if (outboundContextId && (messageType === 'button' || messageType === 'interactive')) {
@@ -964,7 +1059,8 @@ router.post('/:userId', (req, res, next) => {
                                     const addon = await Addon.findOne({ where: { module_key: 'ai_bot', isActive: true } });
                                     if (addon) {
                                         const userAddon = await UserAddon.findOne({ where: { userId, addonId: addon.id, status: 'active' } });
-                                        if (userAddon) {
+                                        const isAddonExpired = userAddon?.currentPeriodEnd && new Date(userAddon.currentPeriodEnd) < new Date();
+                                        if (userAddon && !isAddonExpired) {
                                             const aiBotPluginPath = path.join(__dirname, '../plugins/addon_ai_bot/index.js');
                                             if (fs.existsSync(aiBotPluginPath)) {
                                                 const aiBot = require(aiBotPluginPath); // correct requiring

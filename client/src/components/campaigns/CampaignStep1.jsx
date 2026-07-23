@@ -26,6 +26,9 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
     const [retargetCount, setRetargetCount] = useState(0);
     // Exclusion counts for the exclusion info panel
     const [exclusionCounts, setExclusionCounts] = useState({ optedOut: 0, notOnWhatsApp: 0, total: 0 });
+    const [qualityRating, setQualityRating] = useState(null); // 'GREEN' | 'YELLOW' | 'RED'
+    const [qualityAlertDismissed, setQualityAlertDismissed] = useState(false);
+
 
     // Fetch retargeting stats if needed
     useEffect(() => {
@@ -50,6 +53,15 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                 .catch(err => console.error("Error fetching retarget info", err));
         }
     }, [data.retargetCampaignId, data.retargetStatus, data.retargetLogIds]);
+
+    // Fetch quality rating from settings
+    useEffect(() => {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/settings`)
+            .then(res => {
+                if (res.data?.metaQualityRating) setQualityRating(res.data.metaQualityRating);
+            })
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -442,43 +454,44 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                     </button>
                                 </div>
 
-                                {/* ── Exclusion Info Panel ─────────────────────────────── */}
+                                {/* ── Exclusion Warning Banner ─────────────────────────────── */}
                                 {!loadingStats && exclusionCounts.total > 0 && (
-                                    <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/[0.06] bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/40 dark:to-slate-900/60 p-4 shadow-sm">
-                                        {/* Decorative background glow */}
-                                        <div className="absolute -top-6 -right-6 w-24 h-24 bg-slate-400/10 rounded-full blur-2xl pointer-events-none" />
+                                    <div className="relative overflow-hidden rounded-2xl border border-amber-300 dark:border-amber-500/40 bg-gradient-to-br from-amber-50 to-orange-50/60 dark:from-amber-900/20 dark:to-orange-900/10 p-4 shadow-sm">
+                                        {/* Decorative pulse dot */}
+                                        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                                            <span className="relative flex h-2.5 w-2.5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                                            </span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Auto-Filtered</span>
+                                        </div>
 
-                                        <div className="flex items-start gap-3">
-                                            <div className="shrink-0 mt-0.5 p-2 rounded-xl bg-slate-200/80 dark:bg-white/10">
-                                                <ShieldCheck className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                                        <div className="flex items-start gap-3 pr-24">
+                                            <div className="shrink-0 mt-0.5 p-2 rounded-xl bg-amber-400/20">
+                                                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between gap-2 flex-wrap">
-                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                                                        {exclusionCounts.total.toLocaleString()} contacts will be auto-excluded
-                                                    </p>
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-300/50 dark:border-white/10">
-                                                        Protected
-                                                    </span>
-                                                </div>
-                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                                                    These contacts are silently skipped during sending — no message charges, no failed counts.
+                                                <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                                                    {exclusionCounts.total.toLocaleString()} contacts will be automatically excluded
+                                                </p>
+                                                <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 mt-0.5 leading-snug">
+                                                    These contacts are silently skipped — no message charges, no failed counts.
                                                 </p>
 
                                                 {/* Breakdown pills */}
                                                 <div className="flex flex-wrap gap-2 mt-3">
                                                     {exclusionCounts.optedOut > 0 && (
-                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 shadow-sm">
-                                                            <div className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                                                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                                                                <span className="line-through">{exclusionCounts.optedOut.toLocaleString()}</span> Opted Out
+                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/60 border border-amber-200 dark:border-amber-700/40 rounded-lg px-2.5 py-1.5 shadow-sm">
+                                                            <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                                                            <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                                                                {exclusionCounts.optedOut.toLocaleString()} Opted Out
                                                             </span>
                                                         </div>
                                                     )}
                                                     {exclusionCounts.notOnWhatsApp > 0 && (
-                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 shadow-sm">
+                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/60 border border-red-200 dark:border-red-700/40 rounded-lg px-2.5 py-1.5 shadow-sm">
                                                             <div className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
-                                                            <span className="text-[11px] font-semibold text-red-500 dark:text-red-400">
+                                                            <span className="text-[11px] font-bold text-red-500 dark:text-red-400">
                                                                 {exclusionCounts.notOnWhatsApp.toLocaleString()} Not on WhatsApp
                                                             </span>
                                                         </div>
@@ -488,7 +501,8 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                         </div>
                                     </div>
                                 )}
-                                {/* ── End Exclusion Info Panel ─────────────────────────── */}
+                                {/* ── End Exclusion Warning Banner ─────────────────────────── */}
+
                             </div>
                         </div>
                     )}
@@ -497,8 +511,46 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                 {/* Right Column: Actions & Preview */}
                 {/* Right Column: Actions */}
                 <div className="xl:col-span-1 space-y-6">
+                    {/* Quality Rating Alert — show if YELLOW or RED */}
+                    {qualityRating && (qualityRating === 'RED' || qualityRating === 'YELLOW') && !qualityAlertDismissed && (
+                        <div className={`rounded-2xl border-2 p-4 relative transition-all ${
+                            qualityRating === 'RED'
+                                ? 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-500/40'
+                                : 'bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-500/40'
+                        }`}>
+                            <button
+                                onClick={() => setQualityAlertDismissed(true)}
+                                className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                            <div className="flex items-start gap-3 pr-6">
+                                <div className={`shrink-0 p-2 rounded-xl ${
+                                    qualityRating === 'RED' ? 'bg-red-500/15 text-red-600 dark:text-red-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                }`}>
+                                    <AlertTriangle className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <p className={`text-sm font-bold ${
+                                        qualityRating === 'RED' ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'
+                                    }`}>
+                                        {qualityRating === 'RED' ? '🚨 Quality Rating: RED — Pause Campaigns' : '⚠️ Quality Rating: YELLOW — Reduce Volume'}
+                                    </p>
+                                    <p className={`text-xs mt-1 leading-relaxed ${
+                                        qualityRating === 'RED' ? 'text-red-600/80 dark:text-red-400/80' : 'text-amber-600/80 dark:text-amber-400/80'
+                                    }`}>
+                                        {qualityRating === 'RED'
+                                            ? 'Sending high-volume campaigns now risks your phone number being restricted by Meta. Wait 5–7 days before resuming broadcasts.'
+                                            : 'Your quality is degrading. Send to smaller, highly-engaged segments only, and ensure all marketing templates include a Stop Promotions button.'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Quick Tips */}
                     <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm transition-colors duration-300">
+
                         <div className="flex items-center gap-3 mb-4">
                             <div className="bg-yellow-500/10 p-2 rounded-lg text-yellow-500">
                                 <Lightbulb className="w-5 h-5" />

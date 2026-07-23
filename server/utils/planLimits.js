@@ -10,8 +10,13 @@ const Conversation = require('../models/Conversation');
  * Fetch the user's current plan limits from the DB dynamically.
  * Always reads from DB so plan upgrades/downgrades take effect immediately.
  *
+ * ⚠️  EXPIRY-AWARE: If the user's planExpiry is in the past, they are treated
+ * as a Free-tier user for ALL limit checks — regardless of what planStatus the
+ * scheduler has written yet. This prevents the 10-minute scheduler lag from
+ * granting expired users paid-tier write access.
+ *
  * Returns:
- *   { messageLimit, contactLimit, templateLimit, planName }
+ *   { messageLimit, contactLimit, templateLimit, planName, isExpiredDowngrade }
  *   -1 means unlimited for any field.
  */
 const getUserPlanLimits = async (userId) => {
@@ -27,21 +32,38 @@ const getUserPlanLimits = async (userId) => {
             templateLimit: -1,
             quickReplyLimit: -1,
             tagLimit: -1,
-            groupLimit: -1
+            groupLimit: -1,
+            isExpiredDowngrade: false
         };
     }
 
-    const planName = user.plan || 'Free';
+    // ── Expiry safety-net ─────────────────────────────────────────────────────
+    // If the plan has an expiry date in the past, enforce Free-tier limits
+    // immediately, even if the scheduler hasn't updated planStatus yet.
+    // True Free plans have planExpiry = null so they are never affected.
+    const isExpiredDowngrade = !!(
+        user.planExpiry &&
+        new Date(user.planExpiry) < new Date() &&
+        !user.isAdmin
+    );
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const planName = isExpiredDowngrade ? 'Free' : (user.plan || 'Free');
     const plan = await Plan.findOne({ where: { name: planName } });
+
+    // Add any purchased top-up bonuses to the base limits (only for non-expired users)
+    const topupMessages = isExpiredDowngrade ? 0 : (user.extraTopupMessages || 0);
+    const topupContacts = isExpiredDowngrade ? 0 : (user.extraTopupContacts || 0);
 
     return {
         planName,
-        messageLimit: plan?.messageLimit ?? 30,
-        contactLimit: plan?.contactLimit ?? 10,
-        templateLimit: plan?.templateLimit ?? 2,
+        isExpiredDowngrade,
+        messageLimit:    (plan?.messageLimit   ?? 30)  === -1 ? -1 : (plan?.messageLimit   ?? 30)  + topupMessages,
+        contactLimit:    (plan?.contactLimit   ?? 10)  === -1 ? -1 : (plan?.contactLimit   ?? 10)  + topupContacts,
+        templateLimit:   plan?.templateLimit   ?? 2,
         quickReplyLimit: plan?.quickReplyLimit ?? 10,
-        tagLimit: plan?.tagLimit ?? 10,
-        groupLimit: plan?.groupLimit ?? 5
+        tagLimit:        plan?.tagLimit        ?? 10,
+        groupLimit:      plan?.groupLimit      ?? 5
     };
 };
 
@@ -123,3 +145,4 @@ module.exports = {
     getTagCount,
     getGroupCount
 };
+

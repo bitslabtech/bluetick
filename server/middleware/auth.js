@@ -47,7 +47,7 @@ module.exports = async function (req, res, next) {
                         });
                     }
 
-                    // Block users whose plan has expired and planStatus is Expired
+                    // Block users whose plan has explicitly been set to Expired by scheduler
                     if (dbUser.planStatus === 'Expired') {
                         return res.status(403).json({
                             error: 'Your subscription has expired. Please renew your plan to continue.',
@@ -56,10 +56,10 @@ module.exports = async function (req, res, next) {
                         });
                     }
 
-                    // Safety net: if planExpiry is past and status is still Active/Trial (scheduler lag),
-                    // block the request and let the user know they need to renew.
-                    if (dbUser.planExpiry && new Date(dbUser.planExpiry) < new Date() &&
-                        ['Active', 'Trial'].includes(dbUser.planStatus) && dbUser.plan !== 'Free') {
+                    // Safety net: if planExpiry is past, block regardless of planStatus value.
+                    // This catches cases where the scheduler hasn't run yet (Trial/Active with elapsed date).
+                    // True free plans always have planExpiry = null so they are naturally excluded.
+                    if (dbUser.planExpiry && new Date(dbUser.planExpiry) < new Date()) {
                         return res.status(403).json({
                             error: 'Your subscription has expired. Please renew your plan to continue.',
                             code: 'PLAN_EXPIRED',

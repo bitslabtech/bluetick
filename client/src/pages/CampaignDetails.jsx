@@ -419,34 +419,51 @@ export default function CampaignDetails() {
                         </div>
 
                         {/* Health Diagnostics - Minified */}
-                        <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl px-4 md:px-6 py-4 shadow-sm flex items-center justify-between relative overflow-hidden group">
-                            {campaign.stats.failed > 0 ? (
-                                <>
-                                    <div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl px-4 py-4 shadow-sm flex flex-col justify-center relative overflow-hidden group">
+                                {campaign.stats.failed > 0 ? (
+                                    <>
                                         <div className="flex items-center gap-2 text-red-500 mb-1">
                                             <AlertCircle className="w-4 h-4" />
-                                            <h3 className="font-bold text-xs uppercase tracking-wider">Action Required</h3>
+                                            <h3 className="font-bold text-[10px] uppercase tracking-wider">Failures</h3>
                                         </div>
-                                        <h4 className="text-xl font-bold text-slate-900 dark:text-white">{campaign.stats.failed} <span className="text-sm font-normal text-slate-500">Failures</span></h4>
-                                    </div>
-                                    <div className="p-3 bg-red-50 dark:bg-red-500/10 rounded-full">
-                                        <X className="w-5 h-5 text-red-500" />
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div>
+                                        <h4 className="text-xl font-bold text-slate-900 dark:text-white">{campaign.stats.failed}</h4>
+                                    </>
+                                ) : (
+                                    <>
                                         <div className="flex items-center gap-2 text-green-500 mb-1">
                                             <CheckCircle2 className="w-4 h-4" />
-                                            <h3 className="font-bold text-xs uppercase tracking-wider">Perfect Health</h3>
+                                            <h3 className="font-bold text-[10px] uppercase tracking-wider">Failures</h3>
                                         </div>
-                                        <h4 className="text-xl font-bold text-slate-900 dark:text-white">0 <span className="text-sm font-normal text-slate-500">Failures</span></h4>
-                                    </div>
-                                    <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-full">
-                                        <Check className="w-5 h-5 text-green-500" />
-                                    </div>
-                                </>
-                            )}
+                                        <h4 className="text-xl font-bold text-slate-900 dark:text-white">0</h4>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl px-4 py-4 shadow-sm flex flex-col justify-center relative overflow-hidden group">
+                                {campaign.stats.optOuts > 0 ? (
+                                    <>
+                                        <div className="flex items-center gap-2 text-amber-500 mb-1">
+                                            <AlertCircle className="w-4 h-4" />
+                                            <h3 className="font-bold text-[10px] uppercase tracking-wider">Opt-Outs</h3>
+                                        </div>
+                                        <h4 className="text-xl font-bold text-slate-900 dark:text-white">
+                                            {campaign.stats.optOuts}
+                                            <span className="text-xs font-normal text-slate-500 ml-1">
+                                                ({((campaign.stats.optOuts / Math.max(campaign.stats.total, 1)) * 100).toFixed(1)}%)
+                                            </span>
+                                        </h4>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                            <h3 className="font-bold text-[10px] uppercase tracking-wider">Opt-Outs</h3>
+                                        </div>
+                                        <h4 className="text-xl font-bold text-slate-900 dark:text-white">0</h4>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -56,6 +56,10 @@ const Message = sequelize.define('Message', {
         type: DataTypes.INTEGER,
         defaultValue: 0
     },
+    optOutCount: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
     userId: {
         type: DataTypes.UUID,
         allowNull: false

@@ -12,6 +12,8 @@ import {
     Lock, Trash2, Zap, Sparkles, Send, ChevronDown
 } from 'lucide-react';
 import CreateTemplateModal from '../components/CreateTemplateModal';
+import { io } from 'socket.io-client';
+
 
 const Templates = () => {
     const location = useLocation();
@@ -86,6 +88,25 @@ const Templates = () => {
     useEffect(() => {
         handleSyncTemplates(true); // silent sync on page load
     }, []);
+
+    // ── Real-time template status / category updates via socket ──────────────────
+    useEffect(() => {
+        const API_BASE = import.meta.env.VITE_API_URL || '';
+        const socket = io(API_BASE, { withCredentials: true });
+
+        socket.on('template_status_update', ({ id, status, category }) => {
+            setTemplates(prev => prev.map(t => {
+                if (t.id !== id) return t;
+                const updated = { ...t, status };
+                // If Meta reclassified this template, update category too
+                if (category) updated.category = category;
+                return updated;
+            }));
+        });
+
+        return () => socket.disconnect();
+    }, []);
+    // ─────────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
         if (location.state?.openCreateTemplate) {

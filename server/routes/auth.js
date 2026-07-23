@@ -744,6 +744,7 @@ router.post('/login', authLimiter, verifyTurnstile, async (req, res) => {
                 company: user.company || '',
                 plan: user.plan,
                 planStatus: user.planStatus,
+                planExpiry: user.planExpiry,
                 planDetails: planDetails || null,
                 isAdmin: user.isAdmin,
                 createdAt: user.createdAt,

@@ -131,7 +131,6 @@ function initScheduler() {
                 const expiredUsers = await User.findAll({
                     where: {
                         planExpiry: { [Op.lt]: now_expire },
-                        plan: { [Op.ne]: 'Free' },
                         planStatus: { [Op.in]: ['Active', 'Trial', 'Pending'] }
                     }
                 });

@@ -1259,6 +1259,12 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                         >
                                                             Copy Code (Coupon)
                                                         </option>
+                                                        <option
+                                                            value="MARKETING_OPT_OUT"
+                                                            disabled={formData.buttons.length >= 10 || formData.buttons.some(b => b.type === 'MARKETING_OPT_OUT')}
+                                                        >
+                                                            Marketing Opt-Out (Stop)
+                                                        </option>
                                                     </optgroup>
                                                 </select>
                                             </div>
@@ -1281,11 +1287,13 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                             {btn.type === 'URL' && <Link className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                                                             {btn.type === 'PHONE_NUMBER' && <Phone className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                                                             {btn.type === 'COPY_CODE' && <Zap className="w-4 h-4 text-amber-500" />}
+                                                            {btn.type === 'MARKETING_OPT_OUT' && <ShieldCheck className="w-4 h-4 text-red-500" />}
                                                         </div>
                                                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                                                             {btn.type === 'QUICK_REPLY' ? 'Quick Reply Button'
                                                                 : btn.type === 'URL' ? 'Visit Website Button'
                                                                 : btn.type === 'COPY_CODE' ? '🎟 Copy Code Button'
+                                                                : btn.type === 'MARKETING_OPT_OUT' ? 'Opt-Out (Stop)'
                                                                 : 'Call Phone Button'}
                                                         </span>
                                                     </div>
@@ -1295,13 +1303,16 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                             <input
                                                                 type="text"
                                                                 required
-                                                                placeholder={btn.type === 'QUICK_REPLY' ? 'e.g. Yes, please!' : btn.type === 'URL' ? 'e.g. Visit Website' : btn.type === 'COPY_CODE' ? 'e.g. Copy Offer Code' : 'e.g. Call Us'}
-                                                                value={btn.text}
+                                                                placeholder={btn.type === 'QUICK_REPLY' ? 'e.g. Yes, please!' : btn.type === 'URL' ? 'e.g. Visit Website' : btn.type === 'COPY_CODE' ? 'e.g. Copy Offer Code' : btn.type === 'MARKETING_OPT_OUT' ? 'Stop promotions' : 'e.g. Call Us'}
+                                                                value={btn.type === 'MARKETING_OPT_OUT' && !btn.text ? 'Stop promotions' : btn.text}
                                                                 disabled={btn.type === 'COPY_CODE'}
                                                                 onChange={(e) => { handleButtonChange(idx, 'text', e.target.value); if (validationErrors.buttons) setValidationErrors(p => ({ ...p, buttons: undefined })); }}
                                                                 maxLength={25}
-                                                                className={`w-full bg-slate-50 dark:bg-background-dark border rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all ${btn.type === 'COPY_CODE' ? 'opacity-50 cursor-not-allowed' : ''} ${!btn.text.trim() && validationErrors.buttons ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-white/10'}`}
+                                                                className={`w-full bg-slate-50 dark:bg-background-dark border rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-primary transition-all ${btn.type === 'COPY_CODE' ? 'opacity-50 cursor-not-allowed' : ''} ${!btn.text.trim() && btn.type !== 'MARKETING_OPT_OUT' && validationErrors.buttons ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-white/10'}`}
                                                             />
+                                                            {btn.type === 'MARKETING_OPT_OUT' && (
+                                                                <p className="text-[10px] text-slate-500 mt-1">This button will act as an opt-out trigger.</p>
+                                                            )}
                                                         </div>
                                                         {btn.type === 'URL' && (
                                                             <div>

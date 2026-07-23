@@ -1087,9 +1087,44 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* ── Smart Send Time Guidance ────────────────────────────────── */}
+                            <div className="mt-6 rounded-2xl border border-amber-200/70 dark:border-amber-500/20 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 p-4 md:p-5">
+                                <div className="flex items-start gap-3">
+                                    <div className="shrink-0 p-2 rounded-xl bg-amber-400/15 text-amber-600 dark:text-amber-400">
+                                        <Clock className="w-4 h-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">⏰ Smart Send Times — Protect Your Quality Rating</p>
+                                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1 leading-relaxed">
+                                            Meta measures block &amp; report rates in real time. Sending during off-hours when people are asleep
+                                            significantly increases block rates and can downgrade your quality rating.
+                                        </p>
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            <div className="flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700/40 rounded-lg px-2.5 py-1">
+                                                <span className="w-2 h-2 rounded-full bg-green-500 inline-block shrink-0" />
+                                                <span className="text-[11px] font-bold">10:00–12:00</span>
+                                                <span className="text-[10px] opacity-70">Morning peak</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700/40 rounded-lg px-2.5 py-1">
+                                                <span className="w-2 h-2 rounded-full bg-green-500 inline-block shrink-0" />
+                                                <span className="text-[11px] font-bold">16:00–19:00</span>
+                                                <span className="text-[10px] opacity-70">Afternoon peak</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700/40 rounded-lg px-2.5 py-1">
+                                                <span className="w-2 h-2 rounded-full bg-red-500 inline-block shrink-0" />
+                                                <span className="text-[11px] font-bold">00:00–08:00</span>
+                                                <span className="text-[10px] opacity-70">Avoid — high block rate</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* ─────────────────────────────────────────────────────────────── */}
                         </div>
                     </div>
                 </div>
+
 
                 {/* Right Sidebar: Preview & Actions */}
                 <div className="xl:col-span-1 space-y-6">

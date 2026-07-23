@@ -14,6 +14,7 @@ const AddonDetail = () => {
     const { user } = useAuth();
     const [addon, setAddon] = useState(null);
     const [owned, setOwned] = useState(false);
+    const [isExpired, setIsExpired] = useState(false);
     const [loading, setLoading] = useState(true);
     const { initiatePayment, isProcessing: purchasing } = usePayment();
     const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -35,10 +36,18 @@ const AddonDetail = () => {
                 return;
             }
             setAddon(foundAddon);
-            const addonRecord = myAddonsRes.data.find(ma => ma.addonId === id && ma.status === 'active');
-            const isOwned = addonRecord !== undefined;
-            setOwned(isOwned);
-            setUserAddon(addonRecord || null);
+
+            // Find ANY record for this addon (active or expired)
+            const anyRecord = myAddonsRes.data.find(ma => ma.addonId === id || ma.Addon?.id === id || ma.Addon?.slug === id || ma.Addon?.module_key === id);
+            const activeRecord = myAddonsRes.data.find(ma => (ma.addonId === id || ma.Addon?.id === id) && ma.status === 'active');
+
+            // Safety-net: even if status is 'active', if period has ended the addon is effectively expired
+            const periodExpired = activeRecord?.currentPeriodEnd && new Date(activeRecord.currentPeriodEnd) < new Date();
+            const effectivelyActive = activeRecord && !periodExpired;
+
+            setOwned(!!effectivelyActive);
+            setIsExpired(!!(anyRecord && !effectivelyActive)); // Has a record but it's not active/valid
+            setUserAddon(activeRecord || anyRecord || null);
         } catch (error) {
             console.error(error);
             toast.error('Failed to load add-on details');
@@ -103,12 +112,20 @@ const AddonDetail = () => {
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
                         Back to Marketplace
                     </button>
-                    {owned && (
+                    {/* Header badges: Active / Expired */}
+                    {(owned || isExpired) && (
                         <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20 shadow-sm">
-                                <CheckCircle className="w-3.5 h-3.5" /> Installed & Active
-                            </span>
-                            {daysLeft !== null && (
+                            {owned && (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20 shadow-sm">
+                                    <CheckCircle className="w-3.5 h-3.5" /> Installed & Active
+                                </span>
+                            )}
+                            {isExpired && !owned && (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 shadow-sm">
+                                    <Clock className="w-3.5 h-3.5" /> Expired — Renew to restore access
+                                </span>
+                            )}
+                            {daysLeft !== null && owned && (
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-sm animate-pulse-slow">
                                     <Clock className="w-3.5 h-3.5" />
                                     {daysLeft <= 0 ? 'Expires Today' : `Expiring in ${daysLeft} Days`}
@@ -249,6 +266,7 @@ const AddonDetail = () => {
                                 ))}
                             </div>
 
+                            {/* CTA: Active / Expired Renew / New Purchase */}
                             <div className="pt-2 hidden md:block">
                                 {owned ? (
                                     <div className="space-y-4">
@@ -259,6 +277,30 @@ const AddonDetail = () => {
                                             <Settings className="w-5 h-5" /> Manage This Module
                                         </Link>
                                         <p className="text-center text-xs font-medium text-gray-500 dark:text-gray-400">Ready to configure in your workspace.</p>
+                                    </div>
+                                ) : isExpired ? (
+                                    /* Expired: show Renew CTA with warning */
+                                    <div className="space-y-4">
+                                        <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-center">
+                                            <p className="text-xs font-semibold text-red-700 dark:text-red-400">⚠️ Your access has expired</p>
+                                            {userAddon?.currentPeriodEnd && (
+                                                <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">Expired on {new Date(userAddon.currentPeriodEnd).toLocaleDateString()}</p>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={() => setShowPurchaseModal(true)}
+                                            disabled={purchasing}
+                                            className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-base font-bold rounded-xl flex justify-center items-center gap-2 transition-all shadow-[0_8px_30px_rgb(239,68,68,0.3)] hover:shadow-[0_8px_30px_rgb(239,68,68,0.5)] hover:-translate-y-1 transform disabled:opacity-70 disabled:transform-none relative overflow-hidden group"
+                                        >
+                                            <span className="relative flex items-center gap-2">
+                                                {purchasing ? (
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                ) : (
+                                                    <><Zap className="w-5 h-5" /> Renew Access{addon.price > 0 ? ` — ${getCurrencySymbol(addon.currency)}${Math.floor(Number(addon.price))}` : ' — Free'}</>
+                                                )}
+                                            </span>
+                                        </button>
+                                        <p className="text-center text-xs font-medium text-gray-500 dark:text-gray-400">Renew to instantly restore all features.</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
@@ -324,6 +366,16 @@ const AddonDetail = () => {
                         >
                             <Settings className="w-4 h-4" /> Manage Addon
                         </Link>
+                    ) : isExpired ? (
+                        <button
+                            onClick={() => setShowPurchaseModal(true)}
+                            disabled={purchasing}
+                            className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-sm font-bold rounded-xl flex justify-center items-center gap-1 shadow-lg shadow-red-500/25 transition-all disabled:opacity-70"
+                        >
+                            {purchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                                <><Zap className="w-4 h-4" /> Renew Access</>
+                            )}
+                        </button>
                     ) : (
                         <button
                             onClick={() => setShowPurchaseModal(true)}

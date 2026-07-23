@@ -53,8 +53,9 @@ const ProtectedRoute = () => {
                 }
             }
 
-            // 3. If planExpiry date is in the past on a non-Free paid plan, lock them
-            if (user.planExpiry && user.plan !== 'Free') {
+            // 3. If planExpiry date is in the past, lock them (covers Trial AND paid plans)
+            //    True Free plans have planExpiry = null so they are naturally excluded.
+            if (user.planExpiry) {
                 const expiryDate = new Date(user.planExpiry);
                 if (expiryDate < new Date() && location.pathname !== '/checkout' && location.pathname !== '/billing') {
                     // Give them a pending plan based on their current plan so they can renew

@@ -374,6 +374,7 @@ router.post('/', async (req, res) => {
                         if (btn.type === 'URL') return { type: 'URL', text: btn.text, url: btn.url };
                         if (btn.type === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: btn.text, phone_number: btn.phoneNumber };
                         if (btn.type === 'COPY_CODE') return { type: 'COPY_CODE', text: 'Copy offer code', example: [btn.couponCode || ''] };
+                        if (btn.type === 'MARKETING_OPT_OUT') return { type: 'QUICK_REPLY', text: btn.text || 'Stop promotions' };
                         return { type: 'QUICK_REPLY', text: btn.text };
                     });
                     cardComponents.push({
@@ -442,6 +443,7 @@ router.post('/', async (req, res) => {
                     if (btn.type === 'COPY_CODE') return { type: 'COPY_CODE', text: 'Copy offer code', example: [btn.couponCode || ''] };
                     // Authentication OTP button — Meta requires this exact structure
                     if (btn.type === 'OTP') return { type: 'OTP', otp_type: btn.otp_type || 'COPY_CODE', text: btn.text || 'Copy Code' };
+                    if (btn.type === 'MARKETING_OPT_OUT') return { type: 'QUICK_REPLY', text: btn.text || 'Stop promotions' };
                     return { type: 'QUICK_REPLY', text: btn.text };
                 });
                 components.push({ type: "BUTTONS", buttons: standardBtns });
@@ -580,6 +582,7 @@ router.put('/:id', async (req, res) => {
                         if (btn.type === 'URL') return { type: 'URL', text: btn.text, url: btn.url };
                         if (btn.type === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: btn.text, phone_number: btn.phoneNumber };
                         if (btn.type === 'COPY_CODE') return { type: 'COPY_CODE', text: 'Copy offer code', example: [btn.couponCode || ''] };
+                        if (btn.type === 'MARKETING_OPT_OUT') return { type: 'QUICK_REPLY', text: btn.text || 'Stop promotions' };
                         return { type: 'QUICK_REPLY', text: btn.text };
                     });
                     cardComponents.push({
@@ -647,6 +650,7 @@ router.put('/:id', async (req, res) => {
                     if (btn.type === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: btn.text, phone_number: btn.phoneNumber };
                     if (btn.type === 'COPY_CODE') return { type: 'COPY_CODE', text: 'Copy offer code', example: [btn.couponCode || ''] };
                     if (btn.type === 'OTP') return { type: 'OTP', otp_type: btn.otp_type || 'COPY_CODE', text: btn.text || 'Copy Code' };
+                    if (btn.type === 'MARKETING_OPT_OUT') return { type: 'QUICK_REPLY', text: btn.text || 'Stop promotions' };
                     return { type: 'QUICK_REPLY', text: btn.text };
                 });
                 components.push({ type: "BUTTONS", buttons: standardBtns });
@@ -867,6 +871,14 @@ router.post('/sync', async (req, res) => {
                 }
                 if (existing.metaTemplateId !== mt.id) {
                     existing.metaTemplateId = mt.id;
+                    updated = true;
+                }
+
+                // ── Category sync: Meta can reclassify templates (e.g. UTILITY → MARKETING)
+                // Always trust Meta's category as the source of truth.
+                if (existing.category !== mt.category) {
+                    console.log(`[SYNC] Template "${mt.name}" category changed: ${existing.category} → ${mt.category}`);
+                    existing.category = mt.category;
                     updated = true;
                 }
                 

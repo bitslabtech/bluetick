@@ -130,7 +130,8 @@ router.get('/stats', async (req, res) => {
                 const aiAddon = await Addon.findOne({ where: { module_key: 'ai_bot', isActive: true } });
                 if (aiAddon) {
                     const activeAi = await UserAddon.findOne({ where: { userId, addonId: aiAddon.id, status: 'active' } });
-                    if (activeAi) {
+                    const isAiExpired = activeAi?.currentPeriodEnd && new Date(activeAi.currentPeriodEnd) < new Date();
+                    if (activeAi && !isAiExpired) {
                         const config = activeAi.config || {};
                         const mode = config.operatingMode || 'always';
                         let isEffectivelyActive = true;

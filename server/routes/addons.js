@@ -49,7 +49,16 @@ router.get('/my/:module_key/config', async (req, res) => {
         if (!addon) return res.status(404).json({ error: 'Add-on not found' });
 
         const userAddon = await UserAddonModel.findOne({ where: { userId: req.user.id, addonId: addon.id } });
-        if (!userAddon || userAddon.status !== 'active') return res.status(403).json({ error: 'Not authorized' });
+
+        // Status must be active AND period must not be expired (safety-net for scheduler lag)
+        const isAddonExpired = userAddon?.currentPeriodEnd && new Date(userAddon.currentPeriodEnd) < new Date();
+        if (!userAddon || userAddon.status !== 'active' || isAddonExpired) {
+            return res.status(403).json({
+                error: 'Not authorized',
+                code: 'ADDON_EXPIRED',
+                expiredAt: userAddon?.currentPeriodEnd || null
+            });
+        }
 
         // Mask any sensitive fields before returning to browser
         const safeConfig = { ...(userAddon.config || {}) };
@@ -78,8 +87,13 @@ router.put('/my/:module_key/config', async (req, res) => {
             where: { userId: req.user.id, addonId: addon.id }
         });
 
-        if (!userAddon || userAddon.status !== 'active') {
-            return res.status(403).json({ error: 'You do not own this add-on or it is not active.' });
+        // Status must be active AND period must not be expired (safety-net for scheduler lag)
+        const isAddonExpiredW = userAddon?.currentPeriodEnd && new Date(userAddon.currentPeriodEnd) < new Date();
+        if (!userAddon || userAddon.status !== 'active' || isAddonExpiredW) {
+            return res.status(403).json({
+                error: 'Your add-on subscription has expired. Please renew to continue.',
+                code: 'ADDON_EXPIRED'
+            });
         }
 
         // Preserve existing apiKey if client sent back a masked value
@@ -121,9 +135,12 @@ router.post('/:id/create-order', async (req, res) => {
             }
         });
 
-        if (existing && existing.status === 'active') {
-            return res.status(400).json({ error: 'You already own this add-on' });
+        // Block purchase only if addon is currently active AND not expired
+        const isExistingExpired = existing?.currentPeriodEnd && new Date(existing.currentPeriodEnd) < new Date();
+        if (existing && existing.status === 'active' && !isExistingExpired) {
+            return res.status(400).json({ error: 'You already own this add-on and it is still active.' });
         }
+        // If expired or status is not active, allow re-purchase (fall through)
 
         const SystemConfig = require('../models/SystemConfig');
         const sysConfig = await SystemConfig.getConfig();
