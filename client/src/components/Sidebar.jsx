@@ -87,8 +87,7 @@ const adminNavItems = [
     { icon: Users, label: 'Users', path: '/superadmin/users' },
     { icon: Sparkles, label: 'AI Tokens', path: '/superadmin/ai-tokens' },
     { icon: CreditCard, label: 'Plans', path: '/superadmin/plans' },
-    { icon: ShoppingBag, label: 'Purchases', path: '/superadmin/purchases' },
-    { icon: FileText, label: 'Invoices', path: '/superadmin/invoices' },
+    { icon: ShoppingBag, label: 'Purchases & Invoices', path: '/superadmin/purchases-invoices' },
     { icon: Bell, label: 'Broadcast Manager', path: '/superadmin/notifications' },
     { icon: Activity, label: 'Activity Logs', path: '/superadmin/activity-logs' }, // Fixed path for logs too
     { icon: Layers, label: 'Add-ons Market', path: '/superadmin/addons' },
@@ -471,7 +470,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                                             ? unreadWhatsAppMsgs
                                             : clonedItem.path === '/superadmin/messages'
                                                 ? unreadContactMsgs
-                                                : clonedItem.path === '/superadmin/purchases'
+                                                : (clonedItem.path === '/superadmin/purchases-invoices' || clonedItem.path === '/superadmin/purchases')
                                                     ? unreadPurchases
                                                     : (clonedItem.path === '/support' || clonedItem.path === '/superadmin/support')
                                                         ? unreadSupportTickets

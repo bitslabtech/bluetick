@@ -4,14 +4,17 @@ import axios from 'axios';
 import { ShoppingBag, Filter, ArrowUpRight, ArrowDownRight, CheckCircle, XCircle, ChevronUp, ChevronDown, UserPlus, Building2, Phone, Mail, Hash, Activity, AlertTriangle } from 'lucide-react';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
+import { InvoiceDetailModal } from './AdminInvoices';
 
-const AdminPurchases = () => {
+const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
     const [transactions, setTransactions] = useState([]);
     const [stats, setStats] = useState({ todayRevenue: 0, totalRevenue: 0, failedTransactions: 0 });
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [localSearchTerm, setLocalSearchTerm] = useState('');
+    const searchTerm = parentSearchTerm !== undefined ? parentSearchTerm : localSearchTerm;
     const [statusFilter, setStatusFilter] = useState('All');
     const [expandedId, setExpandedId] = useState(null);
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
 
     useEffect(() => {
         fetchData();
@@ -50,18 +53,17 @@ const AdminPurchases = () => {
 
     const currencySymbol = (c) => ({ USD: '$', INR: '₹', EUR: '€', GBP: '£' }[c] || c || '₹');
 
-    return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
-            {/* Top Bar */}
-            <AdminHeader
-                searchTerm={searchTerm}
-                onSearchChange={(e) => setSearchTerm(e.target.value)}
-            >
-                <TrialBanner />
-                    <ThemeToggle />
-            </AdminHeader>
+    const handleViewInvoice = async (invoiceId) => {
+        try {
+            const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/invoices/${invoiceId}`);
+            setSelectedInvoice(data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
-            <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
+    const content = (
+        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
 
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -129,6 +131,7 @@ const AdminPurchases = () => {
                                     <th className="px-4 md:px-6 py-4">Amount</th>
                                     <th className="px-4 md:px-6 py-4">Razorpay Payment ID</th>
                                     <th className="px-4 md:px-6 py-4">Status</th>
+                                    <th className="px-4 md:px-6 py-4">Invoice</th>
                                     <th className="px-4 md:px-6 py-4">Date</th>
                                 </tr>
                             </thead>
@@ -190,13 +193,25 @@ const AdminPurchases = () => {
                                                         </span>
                                                     )}
                                                 </td>
+                                                <td className="px-4 md:px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                    {t.invoice ? (
+                                                        <button 
+                                                            onClick={() => handleViewInvoice(t.invoice.id)}
+                                                            className="px-3 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/40 rounded border border-indigo-100 dark:border-indigo-900/30 text-xs font-semibold transition-colors flex items-center gap-1"
+                                                        >
+                                                            👁 View
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-slate-400 text-xs">—</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-slate-400">
                                                     {new Date(t.createdAt).toLocaleString()}
                                                 </td>
                                             </tr>
                                             {expandedId === t.id && (
                                                 <tr className="bg-slate-50/50 dark:bg-white/[0.02] border-b border-slate-100 dark:border-white/5 shadow-inner">
-                                                    <td colSpan="7" className="p-0">
+                                                    <td colSpan="8" className="p-0">
                                                         <div className="p-4 md:p-6 lg:p-8 animate-in slide-in-from-top-2 duration-200">
                                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                                                                 
@@ -260,6 +275,17 @@ const AdminPurchases = () => {
                                                                             <span className="text-xs text-slate-500">Transaction ID</span>
                                                                             <span className="text-xs font-mono text-slate-400 truncate w-32 text-right" title={t.id}>{t.id}</span>
                                                                         </div>
+                                                                        {t.invoice && (
+                                                                            <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-white/5">
+                                                                                <span className="text-xs text-slate-500">Invoice</span>
+                                                                                <button 
+                                                                                    onClick={(e) => { e.stopPropagation(); handleViewInvoice(t.invoice.id); }}
+                                                                                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                                                                                >
+                                                                                    👁 View Invoice
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
 
@@ -316,7 +342,25 @@ const AdminPurchases = () => {
                     </div>
 
                 </div>
+
+                {selectedInvoice && (
+                    <InvoiceDetailModal
+                        invoice={selectedInvoice}
+                        onClose={() => setSelectedInvoice(null)}
+                    />
+                )}
             </main>
+    );
+
+    if (isComponent) return content;
+
+    return (
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
+            <AdminHeader searchTerm={localSearchTerm} onSearchChange={(e) => setLocalSearchTerm(e.target.value)}>
+                <TrialBanner />
+                <ThemeToggle />
+            </AdminHeader>
+            {content}
         </div>
     );
 };

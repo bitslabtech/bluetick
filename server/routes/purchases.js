@@ -3,6 +3,7 @@ const router = express.Router();
 const { Op } = require('sequelize');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
+const Invoice = require('../models/Invoice');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 
@@ -47,16 +48,22 @@ router.get('/', async (req, res) => {
             limit: 100 // Hard limit for now
         });
 
-        // 2. Hydrate User Details
-        // We do this manually to ensure it works regardless of Association config
+        // 2. Hydrate User Details and Invoices
         const userIds = [...new Set(transactions.map(t => t.userId))];
         const users = await User.findAll({
             where: { id: userIds },
             attributes: ['id', 'name', 'email', 'phone', 'company', 'createdAt']
         });
 
+        const transactionIds = transactions.map(t => t.id);
+        const invoices = await Invoice.findAll({
+            where: { transactionId: transactionIds },
+            attributes: ['id', 'transactionId', 'invoiceNumber']
+        });
+
         const enrichedTransactions = transactions.map(t => {
             const user = users.find(u => u.id === t.userId);
+            const invoice = invoices.find(i => i.transactionId === t.id);
             // Search Filter (applied in memory for simplicity over hydrated data)
             return {
                 ...t.toJSON(),
@@ -66,7 +73,8 @@ router.get('/', async (req, res) => {
                     phone: user.phone,
                     company: user.company,
                     createdAt: user.createdAt 
-                } : { name: 'Unknown User', email: 'N/A' }
+                } : { name: 'Unknown User', email: 'N/A' },
+                invoice: invoice ? { id: invoice.id, invoiceNumber: invoice.invoiceNumber } : null
             };
         });
 

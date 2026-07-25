@@ -1002,10 +1002,11 @@ router.post('/verify-payment', async (req, res) => {
                     if (planPurchaseTpl && planPurchaseTpl.enabled && req.user.phone) {
                         const userPhone = req.user.phone.replace(/\D/g, '');
                         const newExpiry = upgradeResult?.newExpiry;
+                        const actualAmountPaid = Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0));
                         const contextMap = {
                             '{name}': req.user.name || 'User',
                             '{plan_name}': targetPlan.name || 'Plan',
-                            '{amount}': `${parseFloat(targetPlan.price)}`,
+                            '{amount}': `${actualAmountPaid}`,  // ✅ Actual paid amount after coupon
                             '{transaction_id}': transactionReference || 'N/A',
                             // Use newly computed expiry (not old JWT session expiry)
                             '{expiry_date}': new Date(newExpiry || req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()

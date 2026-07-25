@@ -94,6 +94,15 @@ export default function BillingProfile({ compact = false, onSaved }) {
     };
 
     const handleSave = async () => {
+        const required = ['company', 'gstin', 'address', 'state', 'country', 'pincode'];
+        for (const reqField of required) {
+            if (!form[reqField] || !String(form[reqField]).trim()) {
+                const label = reqField === 'company' ? 'Business Name' : reqField === 'gstin' ? 'GSTIN' : reqField;
+                setError(`Please provide your ${label} to save billing details.`);
+                return;
+            }
+        }
+
         setSaving(true);
         setError('');
         try {
@@ -135,11 +144,11 @@ export default function BillingProfile({ compact = false, onSaved }) {
                     <div className="p-4 space-y-3 bg-white dark:bg-surface-dark">
                         <div className="grid grid-cols-2 gap-3">
                             <div className="col-span-2">
-                                <label className={labelCls}>Business Name</label>
+                                <label className={labelCls}>Business Name <span className="text-red-500">*</span></label>
                                 <input value={form.company} onChange={e => update('company', e.target.value)} className={inputCls} placeholder="Your Company Pvt. Ltd." />
                             </div>
                             <div>
-                                <label className={labelCls}>GSTIN (optional)</label>
+                                <label className={labelCls}>GSTIN <span className="text-red-500">*</span></label>
                                 <input value={form.gstin} onChange={e => update('gstin', e.target.value.toUpperCase())} className={inputCls} placeholder="22AABCC1234F1Z5" maxLength={15} />
                             </div>
                             <div>
@@ -147,18 +156,18 @@ export default function BillingProfile({ compact = false, onSaved }) {
                                 <input value={form.pan} onChange={e => update('pan', e.target.value.toUpperCase())} className={inputCls} placeholder="AABCC1234F" maxLength={10} />
                             </div>
                             <div className="col-span-2">
-                                <label className={labelCls}>Billing Address</label>
+                                <label className={labelCls}>Billing Address <span className="text-red-500">*</span></label>
                                 <textarea value={form.address} onChange={e => update('address', e.target.value)} className={inputCls + ' resize-none'} rows={2} placeholder="Street, City" />
                             </div>
                             <div>
-                                <label className={labelCls}>State</label>
+                                <label className={labelCls}>State <span className="text-red-500">*</span></label>
                                 <select value={form.state} onChange={e => update('state', e.target.value)} className={inputCls}>
                                     <option value="">Select…</option>
                                     {INDIAN_STATES.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className={labelCls}>Pincode</label>
+                                <label className={labelCls}>Pincode <span className="text-red-500">*</span></label>
                                 <input value={form.pincode} onChange={e => update('pincode', e.target.value)} className={inputCls} placeholder="500001" maxLength={6} />
                             </div>
                         </div>
@@ -176,13 +185,13 @@ export default function BillingProfile({ compact = false, onSaved }) {
     return (
         <div className="space-y-4">
             <div>
-                <label className={labelCls}>Business / Company Name</label>
+                <label className={labelCls}>Business / Company Name <span className="text-red-500">*</span></label>
                 <input id="bp-company" value={form.company} onChange={e => update('company', e.target.value)} className={inputCls} placeholder="Your Company Pvt. Ltd." />
             </div>
             <div>
-                <label className={labelCls}>GSTIN</label>
+                <label className={labelCls}>GSTIN <span className="text-red-500">*</span></label>
                 <input id="bp-gstin" value={form.gstin} onChange={e => update('gstin', e.target.value.toUpperCase())} className={inputCls} placeholder="22AABCC1234F1Z5" maxLength={15} />
-                <p className="text-xs text-slate-400 mt-1">15-character GST Identification Number (optional for B2C)</p>
+                <p className="text-xs text-slate-400 mt-1">15-character GST Identification Number</p>
             </div>
             <div>
                 <label className={labelCls}>PAN</label>
@@ -193,19 +202,19 @@ export default function BillingProfile({ compact = false, onSaved }) {
                 <input id="bp-phone" value={form.phone} onChange={e => update('phone', e.target.value)} className={inputCls} placeholder="+91 9876543210" />
             </div>
             <div>
-                <label className={labelCls}>Billing Address</label>
+                <label className={labelCls}>Billing Address <span className="text-red-500">*</span></label>
                 <textarea id="bp-address" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls + ' resize-none'} rows={3} placeholder="Flat no, Building, Street, City" />
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                    <label className={labelCls}>State</label>
+                    <label className={labelCls}>State <span className="text-red-500">*</span></label>
                     <select id="bp-state" value={form.state} onChange={e => update('state', e.target.value)} className={inputCls}>
                         <option value="">Select…</option>
                         {INDIAN_STATES.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className={labelCls}>Country</label>
+                    <label className={labelCls}>Country <span className="text-red-500">*</span></label>
                     <select id="bp-country" value={form.country} onChange={e => update('country', e.target.value)} className={inputCls}>
                         <option value="India">India</option>
                         <option value="United States">United States</option>
@@ -218,7 +227,7 @@ export default function BillingProfile({ compact = false, onSaved }) {
                     </select>
                 </div>
                 <div>
-                    <label className={labelCls}>Pincode</label>
+                    <label className={labelCls}>Pincode <span className="text-red-500">*</span></label>
                     <input id="bp-pincode" value={form.pincode} onChange={e => update('pincode', e.target.value)} className={inputCls} placeholder="500001" maxLength={6} />
                 </div>
                 <div>

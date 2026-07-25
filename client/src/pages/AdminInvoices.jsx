@@ -38,7 +38,7 @@ function formatDate(d) {
     return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function Badge({ type, value }) {
+export function Badge({ type, value }) {
     const map = type === 'wa' ? WA_STATUS_COLORS : INV_TYPE_COLORS;
     const style = map[value] || { bg: '#f3f4f6', color: '#374151', label: value };
     return (
@@ -51,7 +51,7 @@ function Badge({ type, value }) {
     );
 }
 
-function StatCard({ icon, label, value, sub, color }) {
+export function StatCard({ icon, label, value, sub, color }) {
     return (
         <div style={{
             background: '#fff', borderRadius: '14px', padding: '20px 22px',
@@ -72,9 +72,11 @@ function StatCard({ icon, label, value, sub, color }) {
             </div>
         </div>
     );
+
+    return content;
 }
 
-function InvoiceDetailModal({ invoice, onClose, onResend }) {
+export function InvoiceDetailModal({ invoice, onClose, onResend }) {
     const [resending, setResending] = useState(false);
     const [resendMsg, setResendMsg] = useState('');
 
@@ -223,9 +225,11 @@ function InvoiceDetailModal({ invoice, onClose, onResend }) {
             </div>
         </div>
     );
+
+    return content;
 }
 
-export default function AdminInvoices() {
+export default function AdminInvoices({ isComponent = false, parentSearchTerm }) {
     const [invoices, setInvoices] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -235,6 +239,12 @@ export default function AdminInvoices() {
     const [selected, setSelected] = useState(null);
     const [filters, setFilters] = useState({ search: '', invoiceType: '', whatsappStatus: '', from: '', to: '' });
     const [exporting, setExporting] = useState(false);
+
+    useEffect(() => {
+        if (parentSearchTerm !== undefined) {
+            setFilters(f => ({ ...f, search: parentSearchTerm }));
+        }
+    }, [parentSearchTerm]);
 
     const fetchStats = useCallback(async () => {
         try {
@@ -303,8 +313,8 @@ export default function AdminInvoices() {
         borderBottom: '1px solid #f3f4f6', verticalAlign: 'middle'
     };
 
-    return (
-        <div style={{ padding: '24px', fontFamily: "'Inter', system-ui, sans-serif", background: '#f8fafc', minHeight: '100vh' }}>
+    const content = (
+        <div style={{ padding: isComponent ? '0' : '24px', fontFamily: "'Inter', system-ui, sans-serif", background: isComponent ? 'transparent' : '#f8fafc', minHeight: isComponent ? 'auto' : '100vh' }}>
             {/* Page Header */}
             <div style={{ marginBottom: '24px' }}>
                 <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#111827' }}>Invoice Manager</h1>
@@ -329,13 +339,15 @@ export default function AdminInvoices() {
                 boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e5e7eb',
                 display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px'
             }}>
-                <input
-                    style={{ ...inputStyle, minWidth: '200px', flex: 1 }}
-                    placeholder="🔍 Search name, email, invoice#, plan…"
-                    value={filters.search}
-                    onChange={e => handleFilterChange('search', e.target.value)}
-                    id="invoice-search"
-                />
+                {!isComponent && (
+                    <input
+                        style={{ ...inputStyle, minWidth: '200px', flex: 1 }}
+                        placeholder="🔍 Search name, email, invoice#, plan…"
+                        value={filters.search}
+                        onChange={e => handleFilterChange('search', e.target.value)}
+                        id="invoice-search"
+                    />
+                )}
                 <select style={inputStyle} value={filters.invoiceType} onChange={e => handleFilterChange('invoiceType', e.target.value)} id="filter-type">
                     <option value="">All Types</option>
                     <option value="tax_invoice">Tax Invoice</option>
@@ -476,4 +488,6 @@ export default function AdminInvoices() {
             )}
         </div>
     );
+
+    return content;
 }

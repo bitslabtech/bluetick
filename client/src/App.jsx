@@ -35,6 +35,7 @@ const SuperAdminDashboard = React.lazy(() => import('./pages/SuperAdminDashboard
 const AdminUsers = React.lazy(() => import('./pages/AdminUsers'));
 const AdminPlans = React.lazy(() => import('./pages/AdminPlans'));
 const AdminPurchases = React.lazy(() => import('./pages/AdminPurchases'));
+const AdminPurchasesInvoices = React.lazy(() => import('./pages/AdminPurchasesInvoices'));
 const AdminNotifications = React.lazy(() => import('./pages/AdminNotifications'));
 const AdminActivityLogs = React.lazy(() => import('./pages/AdminActivityLogs'));
 const AdminAITokenUsers = React.lazy(() => import('./pages/AdminAITokenUsers'));
@@ -459,7 +460,9 @@ function App() {
                                                 <Route path="/superadmin" element={<SuperAdminDashboard />} />
                                                 <Route path="/superadmin/users" element={<AdminUsers />} />
                                                 <Route path="/superadmin/plans" element={<AdminPlans />} />
-                                                <Route path="/superadmin/purchases" element={<AdminPurchases />} />
+                                                <Route path="/superadmin/purchases" element={<Navigate to="/superadmin/purchases-invoices" replace />} />
+                                                <Route path="/superadmin/invoices" element={<Navigate to="/superadmin/purchases-invoices" replace />} />
+                                                <Route path="/superadmin/purchases-invoices" element={<AdminPurchasesInvoices />} />
                                                 <Route path="/superadmin/notifications" element={<AdminNotifications />} />
                                                 <Route path="/superadmin/alerts" element={<AdminAlerts />} />
                                                 <Route path="/superadmin/activity-logs" element={<AdminActivityLogs />} />
@@ -473,7 +476,6 @@ function App() {
                                                 <Route path="/superadmin/messages" element={<AdminMessages />} />
 
                                                 <Route path="/superadmin/system-control" element={<AdminSystemControls />} />
-                                                <Route path="/superadmin/invoices" element={<AdminInvoices />} />
                                                 <Route path="/superadmin/referral-settings" element={<AdminReferralSettings />} />
                                                 <Route path="/support" element={<Support />} />
                                                 <Route path="/referrals" element={<Referrals />} />

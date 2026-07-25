@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X } from 'lucide-react';
+import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X, Receipt } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 import BillingProfileComp from '../components/BillingProfile';
 import { usePayment } from '../hooks/usePayment';
@@ -24,9 +24,14 @@ const Checkout = () => {
     const [appliedCoupon, setAppliedCoupon] = useState(null);
     const [validatingCoupon, setValidatingCoupon] = useState(false);
 
-    const { showToast } = useUI();
+    const { showToast, showModal } = useUI();
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Track if user has a billing profile (to show GST warning)
+    const [billingProfile, setBillingProfile] = useState(null);
+    const [showGstModal, setShowGstModal] = useState(false);
+    const [proceedWithoutGst, setProceedWithoutGst] = useState(false);
 
     // Effect 1: On mount only — initialise plan from router state (preferred) or localStorage fallback
     // Using router state avoids localStorage race conditions when navigating from /billing
@@ -65,6 +70,19 @@ const Checkout = () => {
             .finally(() => { setRecalculating(false); });
     }, [plan?.name, plan?.interval]); // recalculate on name or interval change
 
+    // Fetch billing profile on mount to check completeness
+    useEffect(() => {
+        axios.get(`${API}/api/auth/billing-profile`)
+            .then(r => setBillingProfile(r.data?.billingProfile || {}))
+            .catch(() => setBillingProfile({}));
+    }, []);
+
+    const isBillingProfileComplete = () => {
+        const bp = billingProfile;
+        if (!bp) return false;
+        return bp.company && bp.gstin && bp.address && bp.state && bp.country && bp.pincode;
+    };
+
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) return;
         setValidatingCoupon(true);
@@ -93,7 +111,7 @@ const Checkout = () => {
         setCouponCode('');
     };
 
-    const handlePayment = async () => {
+    const executePayment = async () => {
         const payload = {
             planName: plan.name,
             isUpgrade: upgradeData?.creditAmount > 0,
@@ -118,6 +136,15 @@ const Checkout = () => {
                 setTimeout(() => navigate('/dashboard'), 2000);
             }
         });
+    };
+
+    const handlePayment = async () => {
+        // If billing profile is empty or incomplete, prompt user
+        if (!isBillingProfileComplete() && !proceedWithoutGst) {
+            setShowGstModal(true);
+            return;
+        }
+        await executePayment();
     };
 
     if (loading) {
@@ -161,6 +188,57 @@ const Checkout = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-indigo-950 py-12 px-4">
+
+            {/* GST Details Warning Modal */}
+            {showGstModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200">
+                        {/* Icon */}
+                        <div className="flex justify-center mb-4">
+                            <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
+                                <Receipt className="w-7 h-7 text-amber-500" />
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="text-center mb-6">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                Claim GST on This Purchase?
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                                Your billing & GST details are not filled in. If you are purchasing on behalf of a registered business, adding your GSTIN lets you claim the Input Tax Credit (ITC) on this invoice.
+                            </p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                                You can still proceed without GST details — the invoice will be generated in your name only.
+                            </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowGstModal(false);
+                                    navigate('/settings?tab=profile');
+                                }}
+                                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20"
+                            >
+                                <Receipt className="w-4 h-4" />
+                                Add GST Details First
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowGstModal(false);
+                                    setProceedWithoutGst(true);
+                                    setTimeout(() => executePayment(), 50);
+                                }}
+                                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition-colors text-sm"
+                            >
+                                Continue Without GST
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="max-w-4xl mx-auto">
                 {/* Back Button */}
                 <button

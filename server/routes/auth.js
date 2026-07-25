@@ -860,6 +860,14 @@ router.patch('/billing-profile', require('../middleware/auth'), async (req, res)
         const sanitized = {};
         allowed.forEach(k => { if (billingProfile[k] !== undefined) sanitized[k] = String(billingProfile[k]).trim(); });
 
+        const required = ['company', 'gstin', 'address', 'state', 'country', 'pincode'];
+        for (const reqField of required) {
+            const finalValue = sanitized[reqField] !== undefined ? sanitized[reqField] : (user.billingProfile?.[reqField] || '');
+            if (!finalValue) {
+                return res.status(400).json({ error: `Please provide your ${reqField} to save billing details.` });
+            }
+        }
+
         // Validate GSTIN format if provided (15 alphanumeric characters)
         if (sanitized.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(sanitized.gstin)) {
             // Soft warning only — don't hard-fail (user may be typing)
