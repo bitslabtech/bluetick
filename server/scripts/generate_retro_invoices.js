@@ -3,7 +3,7 @@ const { sequelize } = require('../config/database');
 const Transaction = require('../models/Transaction');
 const Invoice = require('../models/Invoice');
 const User = require('../models/User');
-const { processInvoiceForTransaction } = require('../services/InvoiceService');
+const { generateAndDeliverInvoice } = require('../services/InvoiceService');
 
 async function run() {
     try {
@@ -31,7 +31,7 @@ async function run() {
                 // so it will automatically use the freshly updated billingProfile data!
                 
                 try {
-                    await processInvoiceForTransaction(tx.id);
+                    await generateAndDeliverInvoice(tx.id);
                     console.log(`    -> Success! Invoice generated for TX: ${tx.id}`);
                     generatedCount++;
                 } catch (err) {
