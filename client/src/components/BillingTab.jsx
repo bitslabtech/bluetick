@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Sparkles, CheckCircle2, XCircle, Clock, BarChart, MessageCircle, UserPlus, Layout, Zap, FileText, Download, TrendingUp, Calendar, AlertTriangle, ShieldCheck } from 'lucide-react';
 import BillingProfile from './BillingProfile';
+import { InvoiceDetailModal } from '../pages/AdminInvoices';
 
 const BillingTab = () => {
     const navigate = useNavigate();
     const [billingInfo, setBillingInfo] = useState(null);
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
 
     useEffect(() => {
         fetchBillingData();
@@ -238,9 +240,15 @@ const BillingTab = () => {
                                             )}
                                         </td>
                                         <td className="px-4 md:px-6 py-4 text-right">
-                                            <button className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
-                                                <Download className="w-4 h-4" />
-                                            </button>
+                                            {inv.status === 'COMPLETED' && inv.invoice && (
+                                                <button 
+                                                    onClick={() => setSelectedInvoice(inv.invoice)}
+                                                    className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                                                    title="View & Download Invoice"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))
@@ -276,10 +284,15 @@ const BillingTab = () => {
                                             <CheckCircle2 className="w-3 h-3" /> {inv.status}
                                         </span>
                                     )}
-                                    <button className="p-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white flex items-center gap-2 text-xs font-bold">
-                                        <Download className="w-4 h-4" />
-                                        Download
-                                    </button>
+                                    {inv.status === 'COMPLETED' && inv.invoice && (
+                                        <button 
+                                            onClick={() => setSelectedInvoice(inv.invoice)}
+                                            className="p-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white flex items-center gap-2 text-xs font-bold"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            Download
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))
@@ -296,6 +309,14 @@ const BillingTab = () => {
             <p className="text-sm text-slate-500 mb-6">Your business / GST details used on tax invoices. Required for GST invoice generation.</p>
             <BillingProfile />
         </div>
+
+        {selectedInvoice && (
+            <InvoiceDetailModal 
+                invoice={selectedInvoice} 
+                onClose={() => setSelectedInvoice(null)} 
+                isUser={true}
+            />
+        )}
         </>
     );
 };

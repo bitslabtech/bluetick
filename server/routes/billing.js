@@ -556,7 +556,22 @@ router.get('/invoices', async (req, res) => {
             where: { userId: req.user.id },
             order: [['createdAt', 'DESC']]
         });
-        res.json(transactions);
+        
+        const Invoice = require('../models/Invoice');
+        const transactionIds = transactions.map(t => t.id);
+        const invoices = await Invoice.findAll({
+            where: { transactionId: transactionIds }
+        });
+        
+        const enrichedTransactions = transactions.map(t => {
+            const invoice = invoices.find(i => i.transactionId === t.id);
+            return {
+                ...t.toJSON(),
+                invoice: invoice ? invoice.toJSON() : null
+            };
+        });
+
+        res.json(enrichedTransactions);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

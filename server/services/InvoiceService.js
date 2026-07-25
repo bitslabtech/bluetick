@@ -453,16 +453,22 @@ async function generatePdf(inv, ic) {
 
 // ─── Save PDF to disk ─────────────────────────────────────────────────────────
 
-function savePdf(buffer, invoiceNumber) {
-    const dir = path.join(__dirname, '../public/uploads/invoices');
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
+async function savePdf(buffer, invoiceNumber, userId = null) {
+    const { processAndStoreBuffer } = require('../utils/storageProvider');
     const filename = `${invoiceNumber}.pdf`;
-    const fullPath = path.join(dir, filename);
-    fs.writeFileSync(fullPath, buffer);
+    
+    const publicUrl = await processAndStoreBuffer(
+        buffer,
+        filename,
+        'application/pdf',
+        'invoices',
+        userId,
+        { registerMedia: false, trackMedia: false }
+    );
+
     return {
-        pdfPath: `uploads/invoices/${filename}`,
+        pdfPath: publicUrl, // Storing the full URL directly
+        pdfPublicUrl: publicUrl,
         filename
     };
 }
@@ -696,8 +702,7 @@ async function generateAndDeliverInvoice(transactionId) {
 
     // ── 9. Generate PDF ────────────────────────────────────────────────────────
     const pdfBuffer = await generatePdf(invoiceData, ic);
-    const { pdfPath, filename } = savePdf(pdfBuffer, invoiceNumber);
-    const pdfPublicUrl = `${backendUrl}/uploads/invoices/${filename}`;
+    const { pdfPath, pdfPublicUrl } = await savePdf(pdfBuffer, invoiceNumber, user.id);
 
     // ── 10. Save Invoice record ────────────────────────────────────────────────
     const invoice = await Invoice.create({

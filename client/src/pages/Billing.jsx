@@ -707,13 +707,13 @@ export default Billing;
 
 // ─── Billing History ──────────────────────────────────────────────────────────
 export function BillingHistory() {
-    const [invoices, setInvoices] = useState([]);
+    const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const API_BASE = import.meta.env.VITE_API_URL || '';
 
     useEffect(() => {
-        axios.get(`${API_BASE}/api/invoices/my`)
-            .then(r => { setInvoices(r.data?.invoices || []); setLoading(false); })
+        axios.get(`${API_BASE}/api/billing/invoices`)
+            .then(r => { setTransactions(r.data || []); setLoading(false); })
             .catch(() => setLoading(false));
     }, []);
 
@@ -726,33 +726,39 @@ export function BillingHistory() {
         return `${c} ${parseFloat(v || 0).toFixed(2)}`;
     };
 
-    if (loading) return <div className="text-center py-8 text-slate-400 text-sm">Loading invoices…</div>;
-    if (invoices.length === 0) return (
+    if (loading) return <div className="text-center py-8 text-slate-400 text-sm">Loading transactions…</div>;
+    if (transactions.length === 0) return (
         <div className="text-center py-10 text-slate-400">
             <div className="text-3xl mb-2">🧾</div>
-            <p className="text-sm">No invoices yet. Invoices will appear here after each purchase.</p>
+            <p className="text-sm">No transactions yet. History will appear here after your first purchase.</p>
         </div>
     );
 
     return (
         <div className="divide-y divide-slate-100 dark:divide-white/5">
-            {invoices.map(inv => (
-                <div key={inv.id} className="flex items-center justify-between py-3 px-2">
+            {transactions.map(tx => (
+                <div key={tx.id} className="flex items-center justify-between py-3 px-2">
                     <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm text-slate-800 dark:text-white">{inv.invoiceNumber}</div>
-                        <div className="text-xs text-slate-500 mt-0.5 truncate">{inv.itemDescription}</div>
-                        <div className="text-xs text-slate-400">{formatDate(inv.invoiceDate)}</div>
+                        <div className="font-semibold text-sm text-slate-800 dark:text-white">
+                            {tx.planName}
+                            <span className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${tx.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                {tx.status}
+                            </span>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5 truncate">
+                            {tx.invoice ? `Invoice: ${tx.invoice.invoiceNumber}` : `Txn ID: ${tx.id.substring(0,8)}...`}
+                        </div>
+                        <div className="text-xs text-slate-400">{formatDate(tx.createdAt)}</div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-4">
-                        <div className="font-bold text-sm text-slate-900 dark:text-white">{formatCurrency(inv.grandTotal, inv.currency)}</div>
+                        <div className="font-bold text-sm text-slate-900 dark:text-white">{formatCurrency(tx.amount, tx.currency)}</div>
                         <div className="flex items-center gap-2 mt-1 justify-end">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${inv.invoiceType === 'tax_invoice' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                                {inv.invoiceType === 'tax_invoice' ? 'Tax Invoice' : 'Quotation'}
-                            </span>
-                            <a href={`${API_BASE}/api/invoices/my/${inv.id}/pdf`} target="_blank" rel="noreferrer"
-                                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
-                                ⬇ PDF
-                            </a>
+                            {tx.status === 'COMPLETED' && tx.invoice && (
+                                <a href={`${API_BASE}/api/invoices/my/${tx.invoice.id}/pdf`} target="_blank" rel="noreferrer"
+                                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 transition-colors">
+                                    ⬇ PDF
+                                </a>
+                            )}
                         </div>
                     </div>
                 </div>

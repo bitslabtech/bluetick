@@ -220,14 +220,27 @@ router.get('/:id/pdf', auth, admin, async (req, res) => {
         if (!inv) return res.status(404).json({ error: 'Invoice not found' });
 
         const filePath = pdfServePath(inv);
-        if (!filePath || !fs.existsSync(filePath)) {
-            return res.status(404).json({ error: 'Invoice PDF not found on disk' });
+        
+        // If file exists on disk, stream it
+        if (filePath && fs.existsSync(filePath)) {
+            const filename = `Invoice-${inv.invoiceNumber}.pdf`;
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            return fs.createReadStream(filePath).pipe(res);
         }
 
+        // Otherwise, re-generate it on demand (Docker container might have restarted)
+        const { generatePdf } = require('../services/InvoiceService');
+        const config = await SystemConfig.getCachedConfig();
+        const ic = config?.settings?.invoiceConfig || {};
+
+        const pdfBuffer = await generatePdf(inv.toJSON(), ic);
         const filename = `Invoice-${inv.invoiceNumber}.pdf`;
+
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        fs.createReadStream(filePath).pipe(res);
+        res.send(pdfBuffer);
+
     } catch (err) {
         console.error('GET /invoices/:id/pdf error:', err);
         res.status(500).json({ error: 'Server Error' });
@@ -366,6 +379,29 @@ router.get('/my/:id/pdf', auth, async (req, res) => {
     } catch (err) {
         console.error('GET /invoices/my/:id/pdf error:', err);
         res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// POST /api/invoices/my/:id/resend — Resend own invoice via WhatsApp
+router.post('/my/:id/resend', auth, async (req, res) => {
+    try {
+        const userId = req.user.realId || req.user.id;
+        const invoice = await Invoice.findOne({
+            where: { id: req.params.id, userId }
+        });
+
+        if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+
+        const { resendInvoice } = require('../services/InvoiceService');
+        const result = await resendInvoice(invoice.id);
+        if (result.success) {
+            res.json({ success: true, message: 'Invoice re-sent successfully via WhatsApp' });
+        } else {
+            res.status(500).json({ success: false, error: result.error || 'Delivery failed' });
+        }
+    } catch (err) {
+        console.error('POST /invoices/my/:id/resend error:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 

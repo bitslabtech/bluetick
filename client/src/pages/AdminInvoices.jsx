@@ -76,9 +76,12 @@ export function StatCard({ icon, label, value, sub, color }) {
     return content;
 }
 
-export function InvoiceDetailModal({ invoice, onClose, onResend }) {
+export function InvoiceDetailModal({ invoice, onClose, onResend, isUser = false }) {
     const [resending, setResending] = useState(false);
     const [resendMsg, setResendMsg] = useState('');
+    const LOCAL_API = isUser 
+        ? `${import.meta.env.VITE_API_URL}/api/invoices/my`
+        : `${import.meta.env.VITE_API_URL}/api/invoices`;
 
     if (!invoice) return null;
 
@@ -86,7 +89,7 @@ export function InvoiceDetailModal({ invoice, onClose, onResend }) {
         setResending(true);
         setResendMsg('');
         try {
-            await axios.post(`${API}/${invoice.id}/resend`);
+            await axios.post(`${LOCAL_API}/${invoice.id}/resend`);
             setResendMsg('✅ Invoice re-sent via WhatsApp!');
             onResend && onResend(invoice.id);
         } catch (err) {
@@ -195,7 +198,7 @@ export function InvoiceDetailModal({ invoice, onClose, onResend }) {
                     {/* Actions */}
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         <a
-                            href={`${API}/${invoice.id}/pdf`}
+                            href={`${LOCAL_API}/${invoice.id}/pdf`}
                             target="_blank"
                             rel="noreferrer"
                             style={{
