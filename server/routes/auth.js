@@ -831,6 +831,51 @@ router.put('/profile', require('../middleware/auth'), async (req, res) => {
     }
 });
 
+// GET BILLING PROFILE (Current User)
+router.get('/billing-profile', require('../middleware/auth'), async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.realId || req.user.id, {
+            attributes: ['id', 'billingProfile']
+        });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json({ billingProfile: user.billingProfile || {} });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// UPDATE BILLING PROFILE (Current User)
+router.patch('/billing-profile', require('../middleware/auth'), async (req, res) => {
+    try {
+        const { billingProfile } = req.body;
+        if (!billingProfile || typeof billingProfile !== 'object') {
+            return res.status(400).json({ error: 'billingProfile object is required' });
+        }
+
+        const user = await User.findByPk(req.user.realId || req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        // Sanitize: only allow known fields
+        const allowed = ['company', 'gstin', 'pan', 'address', 'state', 'stateCode', 'country', 'pincode', 'phone'];
+        const sanitized = {};
+        allowed.forEach(k => { if (billingProfile[k] !== undefined) sanitized[k] = String(billingProfile[k]).trim(); });
+
+        // Validate GSTIN format if provided (15 alphanumeric characters)
+        if (sanitized.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(sanitized.gstin)) {
+            // Soft warning only — don't hard-fail (user may be typing)
+            console.warn('[BILLING PROFILE] Non-standard GSTIN format:', sanitized.gstin);
+        }
+
+        user.billingProfile = { ...(user.billingProfile || {}), ...sanitized };
+        await user.save();
+
+        await logActivity(req, 'Billing Profile Updated', `User updated billing details: ${user.email}`);
+        res.json({ success: true, billingProfile: user.billingProfile });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // UPDATE PASSWORD (Current User)
 router.put('/password', require('../middleware/auth'), async (req, res) => {
     try {

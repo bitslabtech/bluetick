@@ -88,6 +88,7 @@ const adminNavItems = [
     { icon: Sparkles, label: 'AI Tokens', path: '/superadmin/ai-tokens' },
     { icon: CreditCard, label: 'Plans', path: '/superadmin/plans' },
     { icon: ShoppingBag, label: 'Purchases', path: '/superadmin/purchases' },
+    { icon: FileText, label: 'Invoices', path: '/superadmin/invoices' },
     { icon: Bell, label: 'Broadcast Manager', path: '/superadmin/notifications' },
     { icon: Activity, label: 'Activity Logs', path: '/superadmin/activity-logs' }, // Fixed path for logs too
     { icon: Layers, label: 'Add-ons Market', path: '/superadmin/addons' },

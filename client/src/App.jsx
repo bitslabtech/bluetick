@@ -40,6 +40,7 @@ const AdminActivityLogs = React.lazy(() => import('./pages/AdminActivityLogs'));
 const AdminAITokenUsers = React.lazy(() => import('./pages/AdminAITokenUsers'));
 const AdminTechPartners = React.lazy(() => import('./pages/AdminTechPartners'));
 const AdminNfcManager = React.lazy(() => import('./pages/AdminNfcManager'));
+const AdminInvoices = React.lazy(() => import('./pages/AdminInvoices'));
 const Team = React.lazy(() => import('./pages/Team'));
 const TeamMemberAnalytics = React.lazy(() => import('./pages/TeamMemberAnalytics'));
 const AdminSupport = React.lazy(() => import('./pages/AdminSupport'));
@@ -472,6 +473,7 @@ function App() {
                                                 <Route path="/superadmin/messages" element={<AdminMessages />} />
 
                                                 <Route path="/superadmin/system-control" element={<AdminSystemControls />} />
+                                                <Route path="/superadmin/invoices" element={<AdminInvoices />} />
                                                 <Route path="/superadmin/referral-settings" element={<AdminReferralSettings />} />
                                                 <Route path="/support" element={<Support />} />
                                                 <Route path="/referrals" element={<Referrals />} />

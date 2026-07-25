@@ -140,7 +140,52 @@ const SystemConfig = sequelize.define('SystemConfig', {
                 ai_tokens_depleted: { enabled: true, templateName: "admin_alert_ai_depleted" },
                 addon_installed: { enabled: true, templateName: "admin_alert_addon_installed" }
             },
-            adminNotificationNumbers: []
+            adminNotificationNumbers: [],
+
+            // ─── Invoice & GST Configuration ─────────────────────────────────────
+            invoiceConfig: {
+                invoiceType: 'tax_invoice',       // 'tax_invoice' | 'quotation'
+                invoicePrefix: 'INV',
+                invoiceStartNumber: 1,
+                currentInvoiceSequence: 1,
+
+                // Seller / Business Identity (frozen onto every invoice)
+                sellerName: '',
+                sellerAddress: '',
+                sellerState: '',
+                sellerStateCode: '',
+                sellerGstin: '',
+                sellerPan: '',
+                sellerCin: '',
+                sellerEmail: '',
+                sellerPhone: '',
+
+                // Tax Settings
+                gstEnabled: true,
+                gstType: 'exclusive',             // 'exclusive' | 'inclusive'
+                defaultGstRate: 18,
+                hsnSacCode: '998314',             // Default SAC for SaaS/software services
+                useIgstAlways: false,             // If true: always IGST regardless of state
+
+                // Authorized Signature
+                authorizedSignatureUrl: '',
+                authorizedSignatoryName: 'Authorized Signatory',
+
+                // Invoice Text
+                paymentTerms: 'Immediate',
+                invoiceNotes: 'Thank you for your business!',
+
+                // WhatsApp Delivery
+                invoiceWaTemplateName: '',
+                invoiceWaLanguageCode: 'en',
+                ccNumbers: [],                    // Admin CC WhatsApp numbers for invoice copies
+                sendCcOnPurchase: true,
+
+                // Product Description Templates
+                planDescriptionTemplate: '{plan_name} Subscription',
+                addonDescriptionTemplate: '{addon_name} Add-on',
+                topupDescriptionTemplate: '{item_name} Top-up'
+            }
         }
     },
     lastSessionKill: {

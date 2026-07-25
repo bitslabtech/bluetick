@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Sparkles, CheckCircle2, Clock, BarChart, MessageCircle, UserPlus, Layout, Zap, FileText, Download, TrendingUp, Calendar, AlertTriangle, ShieldCheck } from 'lucide-react';
-
+import { Sparkles, CheckCircle2, XCircle, Clock, BarChart, MessageCircle, UserPlus, Layout, Zap, FileText, Download, TrendingUp, Calendar, AlertTriangle, ShieldCheck } from 'lucide-react';
+import BillingProfile from './BillingProfile';
 
 const BillingTab = () => {
     const navigate = useNavigate();
@@ -62,8 +62,9 @@ const BillingTab = () => {
     const daysUntilReset = Math.ceil((nextReset - today) / (1000 * 60 * 60 * 24));
 
     return (
-        <div className="space-y-8">
-            {/* Hero Section */}
+        <>
+            <div className="space-y-8">
+                {/* Hero Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Plan Card */}
                 <div className="lg:col-span-2 relative group overflow-hidden rounded-3xl p-4 md:p-8 text-white shadow-2xl transition-all hover:scale-[1.01]">
@@ -226,9 +227,15 @@ const BillingTab = () => {
                                         <td className="px-4 md:px-6 py-4 font-bold">{inv.planName}</td>
                                         <td className="px-4 md:px-6 py-4">{currencySymbol(inv.currency || plan?.currency)}{inv.amount}</td>
                                         <td className="px-4 md:px-6 py-4">
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                                <CheckCircle2 className="w-3 h-3" /> {inv.status}
-                                            </span>
+                                            {['failed', 'failure', 'declined', 'error'].includes((inv.status || '').toLowerCase()) ? (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                                    <XCircle className="w-3 h-3" /> {inv.status}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                                    <CheckCircle2 className="w-3 h-3" /> {inv.status}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-4 md:px-6 py-4 text-right">
                                             <button className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
@@ -260,9 +267,15 @@ const BillingTab = () => {
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center pt-2">
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                        <CheckCircle2 className="w-3 h-3" /> {inv.status}
-                                    </span>
+                                    {['failed', 'failure', 'declined', 'error'].includes((inv.status || '').toLowerCase()) ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                            <XCircle className="w-3 h-3" /> {inv.status}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                            <CheckCircle2 className="w-3 h-3" /> {inv.status}
+                                        </span>
+                                    )}
                                     <button className="p-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white flex items-center gap-2 text-xs font-bold">
                                         <Download className="w-4 h-4" />
                                         Download
@@ -274,6 +287,16 @@ const BillingTab = () => {
                 </div>
             </div>
         </div>
+
+        {/* GST / Billing Details Section */}
+        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm mt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-indigo-500" /> Billing Details
+            </h2>
+            <p className="text-sm text-slate-500 mb-6">Your business / GST details used on tax invoices. Required for GST invoice generation.</p>
+            <BillingProfile />
+        </div>
+        </>
     );
 };
 

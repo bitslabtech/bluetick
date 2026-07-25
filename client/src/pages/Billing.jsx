@@ -11,8 +11,9 @@ import { useAuth } from '../context/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
+import BillingProfileComp from '../components/BillingProfile';
 
-const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 // Color themes matching the landing page
 const THEME_COLORS = {
@@ -679,6 +680,22 @@ const Billing = () => {
                                 Contact Support
                             </button>
                         </p>
+
+                        {/* Billing History + Profile Section */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-10 border-t border-slate-200 dark:border-white/5">
+                            <div className="md:col-span-2">
+                                <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">Billing History</h3>
+                                <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4">
+                                    <BillingHistory />
+                                </div>
+                            </div>
+                            <div className="md:col-span-1">
+                                <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">Billing Profile</h3>
+                                <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-6">
+                                    <BillingProfileComp />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -687,3 +704,59 @@ const Billing = () => {
 };
 
 export default Billing;
+
+// ─── Billing History ──────────────────────────────────────────────────────────
+export function BillingHistory() {
+    const [invoices, setInvoices] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const API_BASE = import.meta.env.VITE_API_URL || '';
+
+    useEffect(() => {
+        axios.get(`${API_BASE}/api/invoices/my`)
+            .then(r => { setInvoices(r.data?.invoices || []); setLoading(false); })
+            .catch(() => setLoading(false));
+    }, []);
+
+    const formatDate = (d) => {
+        if (!d) return '—';
+        return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+    const formatCurrency = (v, c = 'INR') => {
+        if (c === 'INR') return '₹' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        return `${c} ${parseFloat(v || 0).toFixed(2)}`;
+    };
+
+    if (loading) return <div className="text-center py-8 text-slate-400 text-sm">Loading invoices…</div>;
+    if (invoices.length === 0) return (
+        <div className="text-center py-10 text-slate-400">
+            <div className="text-3xl mb-2">🧾</div>
+            <p className="text-sm">No invoices yet. Invoices will appear here after each purchase.</p>
+        </div>
+    );
+
+    return (
+        <div className="divide-y divide-slate-100 dark:divide-white/5">
+            {invoices.map(inv => (
+                <div key={inv.id} className="flex items-center justify-between py-3 px-2">
+                    <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm text-slate-800 dark:text-white">{inv.invoiceNumber}</div>
+                        <div className="text-xs text-slate-500 mt-0.5 truncate">{inv.itemDescription}</div>
+                        <div className="text-xs text-slate-400">{formatDate(inv.invoiceDate)}</div>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-4">
+                        <div className="font-bold text-sm text-slate-900 dark:text-white">{formatCurrency(inv.grandTotal, inv.currency)}</div>
+                        <div className="flex items-center gap-2 mt-1 justify-end">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${inv.invoiceType === 'tax_invoice' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                                {inv.invoiceType === 'tax_invoice' ? 'Tax Invoice' : 'Quotation'}
+                            </span>
+                            <a href={`${API_BASE}/api/invoices/my/${inv.id}/pdf`} target="_blank" rel="noreferrer"
+                                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
+                                ⬇ PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}

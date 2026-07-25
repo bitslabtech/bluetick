@@ -1,0 +1,800 @@
+/**
+ * InvoiceService.js
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Core service for GST invoice generation, PDF creation, and WhatsApp delivery.
+ *
+ * Responsibilities:
+ *  1. generateAndDeliverInvoice(transactionId) — main entry point
+ *  2. buildInvoiceData()     — fetches all data and computes GST
+ *  3. generatePdf()          — creates PDF using pdfmake
+ *  4. sendViaWhatsApp()      — sends template + document to user + CC numbers
+ *
+ * Strict anti-duplicate protection:
+ *  - DB UNIQUE constraint on Invoice.transactionId
+ *  - Pre-check before generation: skip if invoice already exists
+ *  - Non-blocking: errors are logged but never propagate to payment flow
+ */
+
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+
+// ─── GST Calculation Helper ───────────────────────────────────────────────────
+
+/**
+ * Compute all GST fields given raw inputs.
+ *
+ * @param {number} unitPrice      - Price as entered (before discount)
+ * @param {number} discount       - Discount amount applied
+ * @param {number} gstRate        - GST percentage e.g. 18
+ * @param {string} gstType        - 'inclusive' | 'exclusive'
+ * @param {string} buyerState     - Buyer's state name
+ * @param {string} sellerState    - Seller's state name
+ * @param {boolean} useIgstAlways - If true, always use IGST regardless of state match
+ * @returns {object} Full GST breakdown
+ */
+function computeGst(unitPrice, discount, gstRate, gstType, buyerState, sellerState, useIgstAlways) {
+    const priceAfterDiscount = Math.max(0, parseFloat(unitPrice) - parseFloat(discount || 0));
+    let taxableAmount, totalTaxAmount, grandTotal;
+
+    if (!gstRate || gstRate <= 0) {
+        return {
+            taxScheme: 'none',
+            taxableAmount: priceAfterDiscount,
+            igstAmount: 0, cgstAmount: 0, sgstAmount: 0,
+            totalTaxAmount: 0,
+            grandTotal: priceAfterDiscount
+        };
+    }
+
+    if (gstType === 'inclusive') {
+        // Price already includes GST — back-calculate taxable amount
+        taxableAmount = priceAfterDiscount / (1 + gstRate / 100);
+        totalTaxAmount = priceAfterDiscount - taxableAmount;
+        grandTotal = priceAfterDiscount;
+    } else {
+        // Exclusive — add GST on top
+        taxableAmount = priceAfterDiscount;
+        totalTaxAmount = taxableAmount * (gstRate / 100);
+        grandTotal = taxableAmount + totalTaxAmount;
+    }
+
+    // Determine intra vs inter state
+    const normalizedBuyer = (buyerState || '').trim().toLowerCase();
+    const normalizedSeller = (sellerState || '').trim().toLowerCase();
+    const isInterState = useIgstAlways || !normalizedBuyer || normalizedBuyer !== normalizedSeller;
+
+    const taxScheme = isInterState ? 'igst' : 'cgst_sgst';
+    const igstAmount = isInterState ? totalTaxAmount : 0;
+    const cgstAmount = isInterState ? 0 : totalTaxAmount / 2;
+    const sgstAmount = isInterState ? 0 : totalTaxAmount / 2;
+
+    return {
+        taxScheme,
+        taxableAmount: Math.round(taxableAmount * 100) / 100,
+        igstAmount: Math.round(igstAmount * 100) / 100,
+        cgstAmount: Math.round(cgstAmount * 100) / 100,
+        sgstAmount: Math.round(sgstAmount * 100) / 100,
+        totalTaxAmount: Math.round(totalTaxAmount * 100) / 100,
+        grandTotal: Math.round(grandTotal * 100) / 100
+    };
+}
+
+// ─── Number to Words (Indian System) ─────────────────────────────────────────
+
+function numberToWords(num) {
+    if (num === 0) return 'Zero';
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+        'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+        'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    function convert(n) {
+        if (n < 20) return ones[n];
+        if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+        if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convert(n % 100) : '');
+        if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
+        if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + convert(n % 100000) : '');
+        return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '');
+    }
+
+    const intPart = Math.floor(Math.abs(num));
+    const decPart = Math.round((Math.abs(num) - intPart) * 100);
+    let result = convert(intPart) + ' Rupees';
+    if (decPart > 0) result += ' and ' + convert(decPart) + ' Paise';
+    result += ' Only';
+    return result;
+}
+
+// ─── Format date ──────────────────────────────────────────────────────────────
+
+function formatDate(date) {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = d.toLocaleString('en-IN', { month: 'short' });
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+}
+
+function formatCurrency(amount, currency = 'INR') {
+    if (currency === 'INR') return `₹${parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    return `${currency} ${parseFloat(amount).toFixed(2)}`;
+}
+
+// ─── PDF Generation ───────────────────────────────────────────────────────────
+
+/**
+ * Generate GST-compliant invoice PDF buffer using pdfkit (native Node.js).
+ * @param {object} inv - Invoice data object
+ * @param {object} ic  - invoiceConfig from SystemConfig
+ * @returns {Buffer} PDF buffer
+ */
+async function generatePdf(inv, ic) {
+    const PDFDocument = require('pdfkit');
+
+    // Pre-fetch signature image as buffer
+    let signatureBuffer = null;
+    if (ic && ic.authorizedSignatureUrl) {
+        try {
+            if (ic.authorizedSignatureUrl.startsWith('http')) {
+                const response = await axios.get(ic.authorizedSignatureUrl, { responseType: 'arraybuffer', timeout: 5000 });
+                signatureBuffer = Buffer.from(response.data);
+            } else if (ic.authorizedSignatureUrl.startsWith('data:image')) {
+                const base64Data = ic.authorizedSignatureUrl.split(',')[1];
+                signatureBuffer = Buffer.from(base64Data, 'base64');
+            } else {
+                const localPath = path.join(__dirname, '../public', ic.authorizedSignatureUrl);
+                if (fs.existsSync(localPath)) signatureBuffer = fs.readFileSync(localPath);
+            }
+        } catch (err) {
+            console.warn('[PDF] Failed to load signature image:', err.message);
+        }
+    }
+
+    const isTaxInvoice = inv.invoiceType === 'tax_invoice';
+    const isGstApplicable = isTaxInvoice && inv.taxScheme !== 'none';
+    const title = isTaxInvoice ? 'TAX INVOICE' : 'QUOTATION';
+    const ACCENT = '#1a56db';
+    const DARK   = '#0F172A';
+    const MID    = '#334155';
+    const LIGHT  = '#64748B';
+    const PALE   = '#F8FAFC';
+    const LINE   = '#E2E8F0';
+
+    return new Promise((resolve, reject) => {
+        try {
+            let pageNum = 0;
+            const doc = new PDFDocument({ size: 'A4', margin: 40, autoFirstPage: false });
+            const chunks = [];
+            doc.on('data', c => chunks.push(c));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            doc.on('error', reject);
+
+            const PW = 595.28 - 80; // A4 usable width
+            const LM = 40;
+            const PAGE_H = 841.89;
+            const CONTENT_BOTTOM = PAGE_H - 50; // reserve 50pt for footer
+
+            const drawPageFooter = () => {
+                // Draw at 790 which is within the page but near the bottom (margin is 40 each side)
+                // We use doc.page.height - 40 - 12 = 789 to stay within the margin
+                const pb = doc.page.height - 40 - 10;
+                doc.save();
+                doc.strokeColor(LINE).lineWidth(0.5).moveTo(LM, pb - 8).lineTo(LM + PW, pb - 8).stroke();
+                doc.font('Helvetica').fontSize(7).fillColor(LIGHT);
+                doc.text(inv.sellerName || 'Company', LM, pb, { width: PW / 3, align: 'left', lineBreak: false });
+                doc.text(`Invoice ${inv.invoiceNumber || ''}`, LM, pb, { width: PW, align: 'center', lineBreak: false });
+                doc.text('Computer generated document.', LM, pb, { width: PW, align: 'right', lineBreak: false });
+                doc.restore();
+            };
+
+
+            doc.on('pageAdded', () => { pageNum++; });
+
+            // Add first page
+            doc.addPage();
+
+            // ── helpers ──────────────────────────────────────────────────────────
+            const hr = (y, color = LINE, thick = 0.5) => {
+                doc.save().strokeColor(color).lineWidth(thick).moveTo(LM, y).lineTo(LM + PW, y).stroke().restore();
+            };
+            const rowLine = (cols, y, heights, isHeader = false) => {
+                if (isHeader) {
+                    doc.save().rect(LM, y, PW, heights).fill(ACCENT).restore();
+                }
+                const fnt  = isHeader ? 'Helvetica-Bold' : 'Helvetica';
+                const clr  = isHeader ? '#FFFFFF' : MID;
+                doc.font(fnt).fontSize(8.5).fillColor(clr);
+                let x = LM;
+                cols.forEach(({ text, width, align = 'left' }) => {
+                    doc.text(text, x + 4, y + 5, { width: width - 8, align, lineBreak: false });
+                    x += width;
+                });
+                doc.font('Helvetica');
+            };
+
+            // ── HEADER BAR ────────────────────────────────────────────────────────
+            doc.save().rect(LM, 40, PW, 3).fill(ACCENT).restore();
+
+            // ── Seller info ───────────────────────────────────────────────────────
+            let sy = 54;
+            doc.font('Helvetica-Bold').fontSize(14).fillColor(DARK).text(inv.sellerName || 'Your Company', LM, sy);
+            sy += 18;
+            doc.font('Helvetica').fontSize(8.5).fillColor(MID);
+            if (inv.sellerAddress) { doc.text(inv.sellerAddress, LM, sy); sy += 12; }
+            if (inv.sellerState)   { doc.text(`${inv.sellerState}${inv.sellerStateCode ? ` (${inv.sellerStateCode})` : ''}`, LM, sy); sy += 12; }
+            if (inv.sellerGstin)   { doc.font('Helvetica-Bold').text(`GSTIN: ${inv.sellerGstin}`, LM, sy).font('Helvetica'); sy += 12; }
+            if (inv.sellerPan)     { doc.text(`PAN: ${inv.sellerPan}`, LM, sy); sy += 12; }
+            if (inv.sellerCin)     { doc.text(`CIN: ${inv.sellerCin}`, LM, sy); sy += 12; }
+            if (inv.sellerEmail)   { doc.text(`Email: ${inv.sellerEmail}`, LM, sy); sy += 12; }
+            if (inv.sellerPhone)   { doc.text(`Phone: ${inv.sellerPhone}`, LM, sy); }
+
+            // ── Invoice metadata (right column) ───────────────────────────────────
+            const metaX = LM + PW * 0.52;
+            const metaW = PW * 0.48;
+            doc.font('Helvetica-Bold').fontSize(26).fillColor(ACCENT).text(title, metaX, 54, { width: metaW, align: 'right' });
+            let my = 90;
+            const metaRows = [
+                ['Invoice No:', inv.invoiceNumber || 'N/A'],
+                ['Date:', formatDate(inv.invoiceDate)],
+                ...(inv.placeOfSupply ? [['Place of Supply:', inv.placeOfSupply]] : [])
+            ];
+            metaRows.forEach(([lbl, val]) => {
+                doc.font('Helvetica').fontSize(8).fillColor(LIGHT).text(lbl, metaX, my, { width: metaW * 0.5, align: 'right', lineBreak: false });
+                doc.font('Helvetica-Bold').fontSize(8.5).fillColor(DARK).text(val, metaX + metaW * 0.5 + 4, my, { width: metaW * 0.5 - 4, align: 'right', lineBreak: false });
+                my += 14;
+            });
+
+            // ── Bill To ───────────────────────────────────────────────────────────
+            const billY = Math.max(sy, my) + 20;
+            doc.save().rect(LM, billY, PW, 10).fill(ACCENT).restore();
+            doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#FFFFFF').text('BILLED TO', LM + 6, billY + 2);
+            doc.save().rect(LM, billY + 10, PW, 70).fill(PALE).restore();
+            let by = billY + 16;
+            doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text(inv.buyerName || 'Customer Name', LM + 10, by);
+            by += 14;
+            doc.font('Helvetica').fontSize(8.5).fillColor(MID);
+            if (inv.buyerCompany)  { doc.text(inv.buyerCompany, LM + 10, by); by += 12; }
+            if (inv.buyerAddress)  { doc.text(inv.buyerAddress, LM + 10, by); by += 12; }
+            if (inv.buyerState)    { doc.text(`${inv.buyerState}${inv.buyerStateCode ? ` (${inv.buyerStateCode})` : ''}`, LM + 10, by); by += 12; }
+            if (inv.buyerGstin)    { doc.font('Helvetica-Bold').text(`GSTIN: ${inv.buyerGstin}`, LM + 10, by).font('Helvetica'); by += 12; }
+            if (inv.buyerPhone || inv.buyerEmail) {
+                doc.fillColor(LIGHT).text([inv.buyerPhone, inv.buyerEmail].filter(Boolean).join('  |  '), LM + 10, by);
+            }
+
+            // ── Line Items Table ──────────────────────────────────────────────────
+            const tableY = billY + 90;
+            const cols = [
+                { text: '#', width: 24, align: 'center' },
+                { text: 'Description', width: PW - 24 - 60 - 40 - 80 - 80, align: 'left' },
+                { text: 'SAC', width: 60, align: 'center' },
+                { text: 'Qty', width: 40, align: 'center' },
+                { text: 'Unit Price', width: 80, align: 'right' },
+                { text: 'Amount', width: 80, align: 'right' }
+            ];
+
+            rowLine(cols, tableY, 24, true);
+
+            const itemY = tableY + 26;
+            doc.font('Helvetica').fontSize(8.5).fillColor(MID);
+            let cx = LM;
+            [
+                { text: '1', width: 24, align: 'center' },
+                { text: inv.itemDescription || 'Service', width: cols[1].width, align: 'left' },
+                { text: inv.itemHsnSac || '-', width: 60, align: 'center' },
+                { text: String(inv.quantity || 1), width: 40, align: 'center' },
+                { text: formatCurrency(inv.unitPrice || 0), width: 80, align: 'right' },
+                { text: formatCurrency(inv.taxableAmount || 0), width: 80, align: 'right' }
+            ].forEach(({ text, width, align }) => {
+                doc.text(text, cx + 4, itemY, { width: width - 8, align });
+                cx += width;
+            });
+            if (inv.discountAmount > 0) {
+                doc.fontSize(7.5).fillColor('#10B981').text(`Includes Discount: -${formatCurrency(inv.discountAmount)}`, LM + 28, itemY + 12, { width: cols[1].width });
+            }
+
+            hr(itemY + 26);
+
+            // ── GST Tax Summary ───────────────────────────────────────────────────
+            let nextY = itemY + 34;
+            if (isGstApplicable) {
+                doc.font('Helvetica-Bold').fontSize(7.5).fillColor(LIGHT).text('TAX SUMMARY', LM, nextY);
+                nextY += 12;
+                const taxCols = [
+                    { text: 'Tax Type', width: PW * 0.3 },
+                    { text: 'Rate', width: PW * 0.2, align: 'center' },
+                    { text: 'Taxable Value', width: PW * 0.25, align: 'right' },
+                    { text: 'Tax Amount', width: PW * 0.25, align: 'right' }
+                ];
+                rowLine(taxCols, nextY, 20, true);
+                nextY += 22;
+                const taxEntries = inv.taxScheme === 'igst'
+                    ? [['IGST', `${inv.gstRate}%`, formatCurrency(inv.taxableAmount), formatCurrency(inv.igstAmount)]]
+                    : [
+                        ['CGST', `${inv.gstRate / 2}%`, formatCurrency(inv.taxableAmount), formatCurrency(inv.cgstAmount)],
+                        ['SGST', `${inv.gstRate / 2}%`, formatCurrency(inv.taxableAmount), formatCurrency(inv.sgstAmount)]
+                    ];
+                taxEntries.forEach(([type, rate, taxable, amount]) => {
+                    doc.font('Helvetica').fontSize(8.5).fillColor(MID);
+                    let tx = LM;
+                    [
+                        { text: type, width: PW * 0.3 },
+                        { text: rate, width: PW * 0.2, align: 'center' },
+                        { text: taxable, width: PW * 0.25, align: 'right' },
+                        { text: amount, width: PW * 0.25, align: 'right' }
+                    ].forEach(({ text, width, align = 'left' }) => {
+                        doc.text(text, tx + 4, nextY, { width: width - 8, align });
+                        tx += width;
+                    });
+                    nextY += 18;
+                });
+                hr(nextY);
+                nextY += 10;
+            }
+
+            // ── Totals ────────────────────────────────────────────────────────────
+            const totalX = LM + PW * 0.55;
+            const totalW = PW * 0.45;
+
+            // Amount in words (left side)
+            doc.font('Helvetica-Bold').fontSize(7.5).fillColor(LIGHT).text('AMOUNT IN WORDS', LM, nextY, { lineBreak: false });
+            doc.font('Helvetica').fontSize(8.5).fillColor(MID).text(numberToWords(inv.grandTotal || 0), LM, nextY + 12, { width: PW * 0.5, lineBreak: true });
+
+            // Right side totals — track Y manually with lineBreak:false
+            let totY = nextY;
+            const addTotalRow = (lbl, val, bold = false, color = MID) => {
+                const f = bold ? 'Helvetica-Bold' : 'Helvetica';
+                const sz = bold ? 10 : 8.5;
+                doc.font(f).fontSize(sz).fillColor(LIGHT)
+                    .text(lbl, totalX, totY, { width: totalW * 0.55, align: 'right', lineBreak: false });
+                doc.font(f).fontSize(sz).fillColor(color)
+                    .text(val, totalX + totalW * 0.55 + 2, totY, { width: totalW * 0.45 - 2, align: 'right', lineBreak: false });
+                totY += bold ? 16 : 14;
+            };
+            if (inv.discountAmount > 0) addTotalRow('Discount:', `-${formatCurrency(inv.discountAmount)}`, false, '#10B981');
+            if (isGstApplicable) {
+                addTotalRow('Subtotal:', formatCurrency(inv.taxableAmount));
+                if (inv.taxScheme === 'igst') addTotalRow(`IGST (${inv.gstRate}%):`, formatCurrency(inv.igstAmount));
+                if (inv.taxScheme === 'cgst_sgst') {
+                    addTotalRow(`CGST (${inv.gstRate / 2}%):`, formatCurrency(inv.cgstAmount));
+                    addTotalRow(`SGST (${inv.gstRate / 2}%):`, formatCurrency(inv.sgstAmount));
+                }
+            }
+            // Total Due line
+            doc.save().strokeColor(ACCENT).lineWidth(1.5)
+                .moveTo(totalX, totY).lineTo(LM + PW, totY).stroke().restore();
+            totY += 8;
+            addTotalRow('Total Amount Due:', formatCurrency(inv.grandTotal || 0), true, ACCENT);
+
+            // ── Notes + Signature ─────────────────────────────────────────────────
+            const sectionY = Math.max(nextY + 40, totY + 12) + 10;
+            doc.save().strokeColor(LINE).lineWidth(0.5)
+                .moveTo(LM, sectionY).lineTo(LM + PW, sectionY).stroke().restore();
+
+            let fty = sectionY + 10;
+            if (ic && ic.paymentTerms) {
+                doc.font('Helvetica-Bold').fontSize(7.5).fillColor(LIGHT).text('PAYMENT TERMS', LM, fty, { lineBreak: false });
+                fty += 11;
+                doc.font('Helvetica').fontSize(8.5).fillColor(MID).text(ic.paymentTerms, LM, fty, { width: PW * 0.55 });
+                fty += 14;
+            }
+            if (ic && ic.invoiceNotes) {
+                doc.font('Helvetica-Bold').fontSize(7.5).fillColor(LIGHT).text('NOTES', LM, fty, { lineBreak: false });
+                fty += 11;
+                doc.font('Helvetica').fontSize(8.5).fillColor(MID).text(ic.invoiceNotes, LM, fty, { width: PW * 0.55 });
+            }
+
+            // Signature block
+            const sigX = LM + PW * 0.65;
+            const sigW = PW * 0.35;
+            if (signatureBuffer) {
+                try {
+                    doc.image(signatureBuffer, sigX, sectionY + 6, { width: 90 });
+                } catch (e) { console.warn('[PDF] Signature image error:', e.message); }
+            }
+            const sigLineY = sectionY + 52;
+            doc.save().strokeColor(LINE).lineWidth(0.5)
+                .moveTo(sigX + 5, sigLineY).lineTo(sigX + sigW - 5, sigLineY).stroke().restore();
+            doc.font('Helvetica-Bold').fontSize(8).fillColor(DARK)
+                .text(ic && ic.authorizedSignatoryName ? ic.authorizedSignatoryName : 'Authorized Signatory', sigX, sigLineY + 4, { width: sigW, align: 'center', lineBreak: false });
+            doc.font('Helvetica').fontSize(7.5).fillColor(LIGHT)
+                .text(`For ${inv.sellerName || 'Company'}`, sigX, sigLineY + 15, { width: sigW, align: 'center', lineBreak: false });
+
+            // ── Page footer for last page ─────────────────────────────────────────
+            drawPageFooter();
+
+            doc.end();
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+// ─── Save PDF to disk ─────────────────────────────────────────────────────────
+
+function savePdf(buffer, invoiceNumber) {
+    const dir = path.join(__dirname, '../public/uploads/invoices');
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    const filename = `${invoiceNumber}.pdf`;
+    const fullPath = path.join(dir, filename);
+    fs.writeFileSync(fullPath, buffer);
+    return {
+        pdfPath: `uploads/invoices/${filename}`,
+        filename
+    };
+}
+
+// ─── WhatsApp Delivery ────────────────────────────────────────────────────────
+
+/**
+ * Sends a WA template message + document (PDF) to a phone number.
+ * Uses the linked admin's Meta credentials.
+ */
+async function sendInvoiceWhatsApp(toPhone, inv, ic, pdfPublicUrl) {
+    try {
+        const SystemConfig = require('../models/SystemConfig');
+        const Settings = require('../models/Settings');
+        const User = require('../models/User');
+
+        const config = await SystemConfig.getCachedConfig();
+        const linkedAdminId = config?.settings?.linkedAdminUserId;
+        if (!linkedAdminId) {
+            console.warn('[INVOICE WA] No linked admin account configured.');
+            return { success: false, error: 'No linked account' };
+        }
+
+        const adminSettings = await Settings.findOne({ where: { userId: linkedAdminId } });
+        if (!adminSettings?.metaPhoneNumberId || !adminSettings?.metaAccessToken) {
+            console.warn('[INVOICE WA] Linked account missing WA configuration.');
+            return { success: false, error: 'WA not configured' };
+        }
+
+        const token = adminSettings.metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
+        const phoneId = adminSettings.metaPhoneNumberId.replace(/[^\x20-\x7E]/g, '').trim();
+        const apiUrl = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+        const normalizedTo = String(toPhone).replace(/\D/g, '');
+
+        if (!normalizedTo) return { success: false, error: 'Invalid phone number' };
+
+        // Step 1: Send template message (if configured)
+        if (ic.invoiceWaTemplateName) {
+            const parameters = [
+                { type: 'text', text: inv.buyerName || 'Customer' },
+                { type: 'text', text: inv.invoiceNumber },
+                { type: 'text', text: inv.itemDescription || 'Purchase' },
+                { type: 'text', text: formatCurrency(inv.grandTotal, inv.currency) },
+                { type: 'text', text: formatDate(inv.invoiceDate) }
+            ];
+
+            await axios.post(apiUrl, {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: normalizedTo,
+                type: 'template',
+                template: {
+                    name: ic.invoiceWaTemplateName,
+                    language: { code: ic.invoiceWaLanguageCode || 'en' },
+                    components: [{ type: 'body', parameters }]
+                }
+            }, {
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Step 2: Send PDF as document message
+        if (pdfPublicUrl) {
+            await axios.post(apiUrl, {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: normalizedTo,
+                type: 'document',
+                document: {
+                    link: pdfPublicUrl,
+                    caption: `Your invoice ${inv.invoiceNumber} is attached. Thank you for your purchase!`,
+                    filename: `Invoice-${inv.invoiceNumber}.pdf`
+                }
+            }, {
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+        }
+
+        return { success: true };
+    } catch (err) {
+        console.error('[INVOICE WA] Send error:', err.response?.data || err.message);
+        return { success: false, error: err.response?.data?.error?.message || err.message };
+    }
+}
+
+// ─── Build Item Description ───────────────────────────────────────────────────
+
+function buildDescription(planName, ic) {
+    if (!planName) return 'Software Subscription Service';
+
+    if (planName.startsWith('Addon:')) {
+        const addonName = planName.replace('Addon:', '').trim();
+        return (ic.addonDescriptionTemplate || '{addon_name} Add-on')
+            .replace('{addon_name}', addonName);
+    }
+    if (planName.startsWith('Store:')) {
+        const itemName = planName.replace('Store:', '').trim();
+        return (ic.topupDescriptionTemplate || '{item_name} Top-up')
+            .replace('{item_name}', itemName);
+    }
+    return (ic.planDescriptionTemplate || '{plan_name} Subscription')
+        .replace('{plan_name}', planName);
+}
+
+// ─── Main Entry Point ─────────────────────────────────────────────────────────
+
+/**
+ * Generates an invoice for a completed transaction, saves it to disk,
+ * and delivers it via WhatsApp to the user + admin CC numbers.
+ *
+ * This is intentionally non-throwing — all errors are caught internally.
+ * The payment flow must never fail because of invoice errors.
+ *
+ * @param {string} transactionId - UUID of the COMPLETED Transaction record
+ */
+async function generateAndDeliverInvoice(transactionId) {
+    const Invoice = require('../models/Invoice');
+    const Transaction = require('../models/Transaction');
+    const User = require('../models/User');
+    const SystemConfig = require('../models/SystemConfig');
+    const { getNextInvoiceNumber } = require('../utils/invoiceNumber');
+
+    // ── 1. Strict anti-duplicate check ──────────────────────────────────────────
+    const existingInvoice = await Invoice.findOne({ where: { transactionId } });
+    if (existingInvoice) {
+        console.log(`[INVOICE] Skipping duplicate — invoice ${existingInvoice.invoiceNumber} already exists for transaction ${transactionId}`);
+        return existingInvoice;
+    }
+
+    // ── 2. Fetch transaction ───────────────────────────────────────────────────
+    const txn = await Transaction.findByPk(transactionId);
+    if (!txn) throw new Error(`Transaction ${transactionId} not found`);
+    if (txn.status !== 'COMPLETED') throw new Error(`Transaction ${transactionId} is not COMPLETED (status: ${txn.status})`);
+
+    // ── 3. Fetch user ──────────────────────────────────────────────────────────
+    const user = await User.findByPk(txn.userId);
+    if (!user) throw new Error(`User ${txn.userId} not found`);
+
+    // ── 4. Load GST config ─────────────────────────────────────────────────────
+    const config = await SystemConfig.getCachedConfig();
+    const ic = config?.settings?.invoiceConfig || {};
+    const gstEnabled = ic.gstEnabled !== false;
+    const currency = txn.currency || 'INR';
+    const skipGst = currency !== 'INR'; // Non-INR transactions: skip GST as decided
+
+    // ── 5. Build buyer snapshot ────────────────────────────────────────────────
+    const bp = user.billingProfile || {};
+    const buyerState = bp.state || '';
+    const buyerName = txn.userName || user.name || '';
+    const buyerEmail = txn.userEmail || user.email || '';
+    const buyerPhone = txn.userPhone || user.phone || '';
+
+    // ── 6. Compute GST ────────────────────────────────────────────────────────
+    let gstFields = {};
+    if (gstEnabled && !skipGst && ic.invoiceType === 'tax_invoice') {
+        gstFields = computeGst(
+            txn.amount,
+            txn.discountApplied || 0,
+            ic.defaultGstRate || 18,
+            ic.gstType || 'exclusive',
+            buyerState,
+            ic.sellerState || '',
+            ic.useIgstAlways || false
+        );
+    } else {
+        // Quotation or non-INR or GST disabled — no tax breakdown
+        gstFields = {
+            taxScheme: 'none',
+            taxableAmount: parseFloat(txn.amount) - parseFloat(txn.discountApplied || 0),
+            igstAmount: 0, cgstAmount: 0, sgstAmount: 0,
+            totalTaxAmount: 0,
+            grandTotal: parseFloat(txn.amount)
+        };
+    }
+
+    // ── 7. Get invoice number ──────────────────────────────────────────────────
+    const invoiceNumber = await getNextInvoiceNumber(config);
+
+    // ── 8. Determine public URL base ───────────────────────────────────────────
+    const appBaseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5000';
+    const backendUrl = appBaseUrl.replace(':5173', ':5000'); // Handle dev port mismatch
+
+    const invoiceData = {
+        invoiceNumber,
+        invoiceType: ic.invoiceType || 'tax_invoice',
+        invoiceDate: new Date(),
+        transactionId,
+        userId: user.id,
+
+        // Buyer
+        buyerName,
+        buyerEmail,
+        buyerPhone,
+        buyerCompany: bp.company || user.company || '',
+        buyerAddress: bp.address || '',
+        buyerState,
+        buyerStateCode: bp.stateCode || '',
+        buyerGstin: bp.gstin || '',
+        buyerPan: bp.pan || '',
+        buyerCountry: bp.country || 'India',
+        buyerPincode: bp.pincode || '',
+
+        // Seller (frozen from config)
+        sellerName: ic.sellerName || '',
+        sellerAddress: ic.sellerAddress || '',
+        sellerState: ic.sellerState || '',
+        sellerStateCode: ic.sellerStateCode || '',
+        sellerGstin: ic.sellerGstin || '',
+        sellerPan: ic.sellerPan || '',
+        sellerCin: ic.sellerCin || '',
+        sellerEmail: ic.sellerEmail || '',
+        sellerPhone: ic.sellerPhone || '',
+
+        // Line item
+        itemDescription: buildDescription(txn.planName, ic),
+        itemHsnSac: ic.hsnSacCode || '998314',
+        quantity: 1,
+        unitPrice: parseFloat(txn.amount),
+        discountAmount: parseFloat(txn.discountApplied || 0),
+
+        // GST
+        gstRate: ic.defaultGstRate || 0,
+        ...gstFields,
+
+        // Misc
+        currency,
+        placeOfSupply: buyerState || ic.sellerState || '',
+        reverseCharge: false,
+        notes: ic.invoiceNotes || ''
+    };
+
+    // ── 9. Generate PDF ────────────────────────────────────────────────────────
+    const pdfBuffer = await generatePdf(invoiceData, ic);
+    const { pdfPath, filename } = savePdf(pdfBuffer, invoiceNumber);
+    const pdfPublicUrl = `${backendUrl}/uploads/invoices/${filename}`;
+
+    // ── 10. Save Invoice record ────────────────────────────────────────────────
+    const invoice = await Invoice.create({
+        ...invoiceData,
+        pdfPath,
+        pdfUrl: pdfPublicUrl,
+        whatsappStatus: 'pending',
+        adminCcStatus: 'pending'
+    });
+
+    console.log(`[INVOICE] Generated ${invoiceNumber} for transaction ${transactionId}`);
+
+    // ── 11. Send WhatsApp to user ──────────────────────────────────────────────
+    const userPhone = buyerPhone;
+    if (userPhone) {
+        const waResult = await sendInvoiceWhatsApp(userPhone, invoiceData, ic, pdfPublicUrl);
+        await invoice.update({
+            whatsappStatus: waResult.success ? 'sent' : 'failed',
+            whatsappSentAt: waResult.success ? new Date() : null,
+            whatsappError: waResult.success ? null : waResult.error
+        });
+        console.log(`[INVOICE] WA delivery to user ${userPhone}: ${waResult.success ? 'sent' : 'FAILED'}`);
+    } else {
+        await invoice.update({ whatsappStatus: 'skipped_no_phone' });
+        console.warn(`[INVOICE] WA delivery skipped — user has no phone number`);
+    }
+
+    // ── 12. Send CC copies to admin numbers ────────────────────────────────────
+    const ccNumbers = ic.ccNumbers || [];
+    if (ic.sendCcOnPurchase && ccNumbers.length > 0) {
+        let ccFailed = 0;
+        for (const ccPhone of ccNumbers) {
+            if (!ccPhone) continue;
+            const ccResult = await sendInvoiceWhatsApp(ccPhone, invoiceData, ic, pdfPublicUrl);
+            if (!ccResult.success) ccFailed++;
+        }
+        await invoice.update({
+            adminCcStatus: ccFailed === 0 ? 'sent' : (ccFailed === ccNumbers.length ? 'failed' : 'sent'),
+            adminCcSentAt: new Date()
+        });
+        console.log(`[INVOICE] CC copies sent to ${ccNumbers.length - ccFailed}/${ccNumbers.length} admin numbers`);
+    } else {
+        await invoice.update({ adminCcStatus: 'skipped' });
+    }
+
+    return invoice;
+}
+
+/**
+ * Re-sends an existing invoice via WhatsApp.
+ * Used by admin "Re-Send" button in Invoice Manager.
+ */
+async function resendInvoice(invoiceId) {
+    const Invoice = require('../models/Invoice');
+    const inv = await Invoice.findByPk(invoiceId);
+    if (!inv) throw new Error('Invoice not found');
+
+    const SystemConfig = require('../models/SystemConfig');
+    const config = await SystemConfig.getCachedConfig();
+    const ic = config?.settings?.invoiceConfig || {};
+
+    const pdfPublicUrl = inv.pdfUrl;
+    if (!pdfPublicUrl) throw new Error('No PDF URL on invoice record');
+
+    const waResult = await sendInvoiceWhatsApp(inv.buyerPhone, inv.toJSON(), ic, pdfPublicUrl);
+    await inv.update({
+        whatsappStatus: waResult.success ? 'sent' : 'failed',
+        whatsappSentAt: waResult.success ? new Date() : null,
+        whatsappError: waResult.success ? null : waResult.error
+    });
+
+    return { success: waResult.success };
+}
+
+/**
+ * Sends a test invoice to the admin's own phone.
+ * Used by the "Test Invoice" button in AdminSystemControls.
+ */
+async function sendTestInvoice(adminPhone, ic) {
+    const sampleInvoice = {
+        invoiceNumber: 'TEST-INV-0001',
+        invoiceType: ic.invoiceType || 'tax_invoice',
+        invoiceDate: new Date(),
+        transactionId: 'test',
+        userId: 'test',
+        buyerName: 'Test Customer',
+        buyerEmail: 'test@example.com',
+        buyerPhone: adminPhone,
+        buyerCompany: 'Test Company',
+        buyerAddress: '123, Test Street, Hyderabad',
+        buyerState: 'Telangana',
+        buyerStateCode: '36',
+        buyerGstin: '36AABCT1234F1Z1',
+        buyerPan: '',
+        buyerCountry: 'India',
+        buyerPincode: '500001',
+        sellerName: ic.sellerName || 'Your Company',
+        sellerAddress: ic.sellerAddress || '',
+        sellerState: ic.sellerState || '',
+        sellerStateCode: ic.sellerStateCode || '',
+        sellerGstin: ic.sellerGstin || '',
+        sellerPan: ic.sellerPan || '',
+        sellerCin: ic.sellerCin || '',
+        sellerEmail: ic.sellerEmail || '',
+        sellerPhone: ic.sellerPhone || '',
+        itemDescription: 'Test - Pro Plan Monthly Subscription',
+        itemHsnSac: ic.hsnSacCode || '998314',
+        quantity: 1,
+        unitPrice: 999,
+        discountAmount: 0,
+        taxableAmount: 999,
+        gstRate: ic.defaultGstRate || 18,
+        taxScheme: 'cgst_sgst',
+        igstAmount: 0,
+        cgstAmount: 89.91,
+        sgstAmount: 89.91,
+        totalTaxAmount: 179.82,
+        grandTotal: 1178.82,
+        currency: 'INR',
+        placeOfSupply: ic.sellerState || 'Telangana',
+        reverseCharge: false,
+        notes: ic.invoiceNotes || 'This is a test invoice.'
+    };
+
+    const pdfBuffer = await generatePdf(sampleInvoice, ic);
+    const { pdfPath, filename } = savePdf(pdfBuffer, 'TEST-INV-0001');
+    const appBaseUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
+    const backendUrl = appBaseUrl.replace(':5173', ':5000');
+    const pdfPublicUrl = `${backendUrl}/uploads/invoices/${filename}`;
+
+    return await sendInvoiceWhatsApp(adminPhone, sampleInvoice, ic, pdfPublicUrl);
+}
+
+module.exports = {
+    generateAndDeliverInvoice,
+    resendInvoice,
+    sendTestInvoice,
+    computeGst,         // Exported for unit testing
+    generatePdf,        // Exported for custom PDF generation
+    numberToWords       // Exported for use in frontend/preview
+};

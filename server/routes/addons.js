@@ -232,6 +232,7 @@ router.post('/:id/verify-payment', async (req, res) => {
         }
 
         // Signature is valid, activate the addon!
+        const buyer = await User.findByPk(req.user.id);
         const existing = await UserAddonModel.findOne({
             where: {
                 userId: req.user.id,
@@ -264,11 +265,43 @@ router.post('/:id/verify-payment', async (req, res) => {
             });
         }
 
+        // ── CRITICAL FIX: Create Transaction record for addon purchase ─────────
+        // Previously missing — addon purchases had no Transaction audit trail.
+        // Idempotency: skip if a COMPLETED transaction already exists for this reference.
+        const Transaction = require('../models/Transaction');
+        const transactionRef = payload.razorpay_order_id || payload.session_id || payload.txn_id || `addon_${Date.now()}`;
+        let completedTxn = await Transaction.findOne({
+            where: { transactionReference: transactionRef, status: 'COMPLETED' }
+        });
+        if (!completedTxn) {
+            completedTxn = await Transaction.create({
+                userId: req.user.id,
+                amount: parseFloat(addon.price),
+                currency: addon.currency || 'INR',
+                planName: `Addon: ${addon.name}`,
+                status: 'COMPLETED',
+                paymentGateway: gateway,
+                transactionReference: transactionRef,
+                razorpayOrderId: payload.razorpay_order_id || null,
+                razorpayPaymentId: payload.razorpay_payment_id || null,
+                userName: buyer?.name || null,
+                userEmail: buyer?.email || null,
+                userPhone: buyer?.phone || null
+            });
+        }
+
         await logActivity(req, 'Addon Purchased', `User securely purchased add-on: ${addon.name} via Razorpay`);
+
+        // ≈≈ INVOICE GENERATION (Addon purchase) ≈≈
+        try {
+            const InvoiceService = require('../services/InvoiceService');
+            await InvoiceService.generateAndDeliverInvoice(completedTxn.id);
+        } catch (invoiceErr) {
+            console.error('[INVOICE] Addon invoice generation error:', invoiceErr.message);
+        }
 
         // 🚨 WA ADMIN NOTIFICATION - ADDON INSTALLED (paid)
         try {
-            const buyer = await User.findByPk(req.user.id);
             await sendAdminAlert('addon_installed', `${buyer?.name || req.user.email} installed ${addon.name}`, {
                 name: buyer?.name || req.user.email,
                 addonName: addon.name

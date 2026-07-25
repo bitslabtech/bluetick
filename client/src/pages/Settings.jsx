@@ -10,6 +10,8 @@ import {
     FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2, ArrowRight, ListOrdered, ShieldAlert
 } from 'lucide-react';
 import BillingTab from '../components/BillingTab';
+import InvoiceConfigPanel from '../components/InvoiceConfigPanel';
+import { Receipt } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import WhatsAppAdminNotifPanel from '../components/WhatsAppAdminNotifPanel';
@@ -532,6 +534,7 @@ const Settings = () => {
         { id: 'notifications', label: 'Notification Config', icon: Bell },
         { id: 'whatsapp_gateway', label: 'WhatsApp Gateway', icon: Server },
         { id: 'crm_linking', label: 'CRM Linking', icon: Link2 }, // NEW
+        { id: 'taxation', label: 'Taxation & Invoices', icon: Receipt },
         { id: 'payment_gateway', label: 'Payment Gateway', icon: CreditCard },
         { id: 'smtp', label: 'Email SMTP', icon: Mail },
         { id: 'storage', label: 'Cloud Storage', icon: Database },
@@ -1387,6 +1390,11 @@ const Settings = () => {
                             {/* BILLING TAB */}
                             {activeTab === 'billing' && (
                                 <BillingTab />
+                            )}
+
+                            {/* TAXATION TAB */}
+                            {activeTab === 'taxation' && (
+                                <InvoiceConfigPanel />
                             )}
 
                             {/* GENERAL TAB */}

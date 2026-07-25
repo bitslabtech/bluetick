@@ -266,6 +266,25 @@ const User = sequelize.define('User', {
         type: DataTypes.DATE,
         allowNull: true,
         comment: 'Timestamp when the account was soft-deleted'
+    },
+
+    // ── Billing / GST Profile ──────────────────────────────────────────────────
+    // Filled by user in profile settings or at checkout ("Add GST Details" prompt)
+    // Snapshotted into Invoice.buyerXxx fields at purchase time.
+    billingProfile: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            company: '',     // Business / company name
+            gstin: '',       // GST Identification Number (optional, B2B)
+            pan: '',         // PAN number (optional)
+            address: '',     // Full billing address
+            state: '',       // Indian state name e.g. "Telangana"
+            stateCode: '',   // 2-digit state code e.g. "36"
+            country: 'India',
+            pincode: '',
+            phone: ''        // Billing contact phone (may differ from login phone)
+        },
+        comment: 'User billing/GST details used for invoice generation. Snapshotted at purchase time.'
     }
 }, {
     timestamps: true

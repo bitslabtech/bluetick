@@ -894,11 +894,13 @@ router.post('/verify-payment', async (req, res) => {
                 ...(discountAppliedStore > 0 ? { discountApplied: discountAppliedStore, couponCode: couponCode || null } : {})
             };
 
+            let completedTxn;
             const existingTxn = await Transaction.findOne({ where: { transactionReference } });
             if (existingTxn) {
                 await existingTxn.update(txnData);
+                completedTxn = existingTxn;
             } else {
-                await Transaction.create(txnData);
+                completedTxn = await Transaction.create(txnData);
             }
 
             // Grant Resource
@@ -926,6 +928,14 @@ router.post('/verify-payment', async (req, res) => {
             
             await user.save();
             
+            // ≈≈ INVOICE GENERATION (Store/Top-up purchase) ≈≈
+            try {
+                const InvoiceService = require('../services/InvoiceService');
+                await InvoiceService.generateAndDeliverInvoice(completedTxn.id);
+            } catch (invoiceErr) {
+                console.error('[INVOICE] Store/Topup invoice generation error:', invoiceErr.message);
+            }
+
             // 🚨 ADMIN NOTIFICATION - PURCHASE MADE 🚨
             const discountAppliedStoreForAlert = parseFloat(discountApplied) || 0;
             const amountPaidForStoreAlert = Math.max(0, parseFloat(targetItem.price) - discountAppliedStoreForAlert);
@@ -1030,6 +1040,20 @@ router.post('/verify-payment', async (req, res) => {
                 }
             } catch (notifyErr) {
                 console.error('[PLAN PURCHASE NOTIFICATION ERROR]', notifyErr);
+            }
+
+            // ≈≈ INVOICE GENERATION (Plan purchase) ≈≈
+            try {
+                const InvoiceService = require('../services/InvoiceService');
+                const planTxn = await Transaction.findOne({
+                    where: { transactionReference },
+                    order: [['createdAt', 'DESC']]
+                });
+                if (planTxn) {
+                    await InvoiceService.generateAndDeliverInvoice(planTxn.id);
+                }
+            } catch (invoiceErr) {
+                console.error('[INVOICE] Plan invoice generation error:', invoiceErr.message);
             }
 
             // 🚨 ADMIN NOTIFICATION - PURCHASE MADE 🚨

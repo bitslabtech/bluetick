@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X } from 'lucide-react';
 import { useUI } from '../context/UIContext';
-
+import BillingProfileComp from '../components/BillingProfile';
 import { usePayment } from '../hooks/usePayment';
 
 const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
@@ -379,6 +379,11 @@ const Checkout = () => {
                                     <p className="text-xs font-bold text-green-900 dark:text-green-300 mb-0.5">100% Secure Checkout</p>
                                     <p className="text-xs text-green-700 dark:text-green-400">Pay via Credit/Debit Card, UPI, Net Banking, or Wallets</p>
                                 </div>
+                            </div>
+
+                            {/* GST Details Collapsible */}
+                            <div className="mb-4">
+                                <BillingProfileComp compact={true} />
                             </div>
 
                             {/* Razorpay CTA */}
