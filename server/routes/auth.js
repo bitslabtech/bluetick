@@ -867,6 +867,7 @@ router.patch('/billing-profile', require('../middleware/auth'), async (req, res)
         }
 
         user.billingProfile = { ...(user.billingProfile || {}), ...sanitized };
+        user.changed('billingProfile', true);
         await user.save();
 
         await logActivity(req, 'Billing Profile Updated', `User updated billing details: ${user.email}`);

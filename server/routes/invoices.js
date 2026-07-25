@@ -376,7 +376,7 @@ router.post('/preview', auth, admin, async (req, res) => {
         const ic = req.body.invoiceConfig || {};
         
         const mockInv = {
-            invoiceNumber: 'INV-PREV-001',
+            invoiceNumber: `${ic.invoicePrefix || 'INV-'}${ic.invoiceCounter || '0001'}`,
             invoiceType: 'tax_invoice',
             invoiceDate: new Date(),
             buyerName: 'Preview Client LLC',

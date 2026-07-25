@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import BillingTab from '../components/BillingTab';
 import InvoiceConfigPanel from '../components/InvoiceConfigPanel';
+import BillingProfile from '../components/BillingProfile';
 import { Receipt } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
@@ -1351,6 +1352,15 @@ const Settings = () => {
                                             </section>
                                         </div>
                                     </div>
+
+                                    {/* Billing & GST Details */}
+                                    <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
+                                        <div className="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-white/5 pb-4">
+                                            <Receipt className="w-5 h-5 text-indigo-500" />
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Billing & GST Profile</h3>
+                                        </div>
+                                        <BillingProfile />
+                                    </section>
 
                                     {/* Danger Zone */}
                                     <section className="bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/20 p-4 md:p-6">
