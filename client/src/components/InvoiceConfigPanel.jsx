@@ -352,10 +352,6 @@ const InvoiceConfigPanel = () => {
                             <tbody className="text-blue-800 dark:text-blue-200">
                                 {[
                                     ['{{1}}', 'Customer name', 'Rahul Sharma'],
-                                    ['{{2}}', 'Invoice number', 'INV-2025-0042'],
-                                    ['{{3}}', 'Purchase description', 'Pro Plan - Monthly Subscription'],
-                                    ['{{4}}', 'Amount paid', '₹1,180.00'],
-                                    ['{{5}}', 'Invoice date', '24 Jul 2025'],
                                 ].map(([v, c, e]) => (
                                     <tr key={v} className="border-b border-blue-100/30 dark:border-blue-900/30 last:border-0"><td className="pr-4 py-2 font-mono font-bold bg-blue-100/50 dark:bg-blue-800/30 rounded px-2 my-1 inline-block">{v}</td><td className="pr-4 py-2 font-semibold">{c}</td><td className="py-2 text-blue-500 dark:text-blue-400 font-medium">{e}</td></tr>
                                 ))}
@@ -363,7 +359,7 @@ const InvoiceConfigPanel = () => {
                         </table>
                     </div>
                     <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-4 flex items-center gap-2">
-                        <span className="text-lg">💡</span> The PDF will be sent as a separate WhatsApp document message automatically.
+                        <span className="text-lg">💡</span> Set the Header type to Document. The PDF will be attached to the template's header automatically.
                     </p>
                 </div>
 

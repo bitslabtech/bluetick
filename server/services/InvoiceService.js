@@ -505,15 +505,31 @@ async function sendInvoiceWhatsApp(toPhone, inv, ic, pdfPublicUrl) {
 
         if (!normalizedTo) return { success: false, error: 'Invalid phone number' };
 
-        // Step 1: Send template message (if configured)
+        // Step 1: Send template message with PDF document header
         if (ic.invoiceWaTemplateName) {
-            const parameters = [
-                { type: 'text', text: inv.buyerName || 'Customer' },
-                { type: 'text', text: inv.invoiceNumber },
-                { type: 'text', text: inv.itemDescription || 'Purchase' },
-                { type: 'text', text: formatCurrency(inv.grandTotal, inv.currency) },
-                { type: 'text', text: formatDate(inv.invoiceDate) }
-            ];
+            const components = [];
+
+            if (pdfPublicUrl) {
+                components.push({
+                    type: 'header',
+                    parameters: [
+                        {
+                            type: 'document',
+                            document: {
+                                link: pdfPublicUrl,
+                                filename: `Invoice-${inv.invoiceNumber}.pdf`
+                            }
+                        }
+                    ]
+                });
+            }
+
+            components.push({
+                type: 'body',
+                parameters: [
+                    { type: 'text', text: inv.buyerName || 'Customer' }
+                ]
+            });
 
             await axios.post(apiUrl, {
                 messaging_product: 'whatsapp',
@@ -523,24 +539,7 @@ async function sendInvoiceWhatsApp(toPhone, inv, ic, pdfPublicUrl) {
                 template: {
                     name: ic.invoiceWaTemplateName,
                     language: { code: ic.invoiceWaLanguageCode || 'en' },
-                    components: [{ type: 'body', parameters }]
-                }
-            }, {
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
-        }
-
-        // Step 2: Send PDF as document message
-        if (pdfPublicUrl) {
-            await axios.post(apiUrl, {
-                messaging_product: 'whatsapp',
-                recipient_type: 'individual',
-                to: normalizedTo,
-                type: 'document',
-                document: {
-                    link: pdfPublicUrl,
-                    caption: `Your invoice ${inv.invoiceNumber} is attached. Thank you for your purchase!`,
-                    filename: `Invoice-${inv.invoiceNumber}.pdf`
+                    components: components
                 }
             }, {
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
