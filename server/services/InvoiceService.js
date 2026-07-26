@@ -307,7 +307,7 @@ async function generatePdf(inv, ic) {
             const payRows = [
                 ['Status:', pStatus],
                 ['Method:', payMethod],
-                ['Txn ID:', txnId]
+                ['Payment ID:', txnId]
             ];
             payRows.forEach(([l, v]) => {
                 doc.font('Helvetica').fontSize(9).fillColor(TEXT_MUTED).text(l, rightPad, py, { width: 60, lineBreak: false });
@@ -712,7 +712,12 @@ async function generateAndDeliverInvoice(transactionId) {
         currency,
         placeOfSupply: buyerState || ic.sellerState || '',
         reverseCharge: false,
-        notes: ic.invoiceNotes || ''
+        notes: ic.invoiceNotes || '',
+
+        // Payment Info (passed to PDF generator)
+        paymentMethod: txn.paymentGateway || 'Online',
+        paymentTransactionId: txn.razorpayPaymentId || txn.transactionReference || txn.id,
+        paymentStatus: txn.status === 'COMPLETED' ? 'paid' : 'pending'
     };
 
     // ── 9. Generate PDF ────────────────────────────────────────────────────────
