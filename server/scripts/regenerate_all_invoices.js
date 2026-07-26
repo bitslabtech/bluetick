@@ -12,6 +12,17 @@ async function run() {
         console.log('Deleting existing invoices to regenerate them...');
         await Invoice.destroy({ where: {}, truncate: true, cascade: true }).catch(() => Invoice.destroy({ where: {} }));
 
+        const SystemConfig = require('../models/SystemConfig');
+        const config = await SystemConfig.findOne({ where: { id: 1 } });
+        if (config) {
+            const settings = config.settings || {};
+            if (settings.invoiceConfig) {
+                settings.invoiceConfig.currentInvoiceSequence = settings.invoiceConfig.invoiceStartNumber || 1;
+                await config.update({ settings });
+                console.log('Reset invoice sequence counter to ' + settings.invoiceConfig.currentInvoiceSequence);
+            }
+        }
+
         const transactions = await Transaction.findAll({
             where: { status: 'COMPLETED' },
             order: [['createdAt', 'ASC']]
