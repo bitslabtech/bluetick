@@ -104,7 +104,7 @@ router.get('/public/:slug', async (req, res) => {
             attributes: ['id', 'plan', 'planStatus']
         });
 
-        if (!owner || owner.planStatus !== 'Active') {
+        if (!owner || (owner.planStatus !== 'Active' && owner.planStatus !== 'Trial')) {
             return res.status(403).json({ error: 'This store is currently unavailable.' });
         }
 
@@ -172,7 +172,7 @@ router.get('/public/domain/:domain', async (req, res) => {
             attributes: ['id', 'plan', 'planStatus']
         });
 
-        if (!owner || owner.planStatus !== 'Active') {
+        if (!owner || (owner.planStatus !== 'Active' && owner.planStatus !== 'Trial')) {
             return res.status(403).json({ error: 'This store is currently unavailable.' });
         }
 

@@ -80,7 +80,7 @@ router.get('/public/:slug', async (req, res) => {
         }
 
         const owner = vcard.owner;
-        if (!owner || owner.planStatus !== 'Active') {
+        if (!owner || (owner.planStatus !== 'Active' && owner.planStatus !== 'Trial')) {
             return res.status(403).json({ error: 'This vCard is currently unavailable.' });
         }
 

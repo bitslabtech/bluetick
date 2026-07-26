@@ -30,11 +30,10 @@ async function getNextInvoiceNumber(invoiceConfig) {
         const ic = settings.invoiceConfig || {};
 
         const prefix = ic.invoicePrefix || 'INV';
-        const year = new Date().getFullYear();
         const current = ic.currentInvoiceSequence || (ic.invoiceStartNumber || 1);
 
-        // Format: INV-2025-0042 (zero-padded to 4 digits, grows as needed)
-        const formatted = `${prefix}-${year}-${String(current).padStart(4, '0')}`;
+        // Format: INV-0042 (zero-padded to 4 digits, grows as needed)
+        const formatted = `${prefix}-${String(current).padStart(4, '0')}`;
 
         // Increment sequence atomically
         const updatedSettings = {
