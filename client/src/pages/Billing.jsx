@@ -681,10 +681,10 @@ const Billing = () => {
                             </button>
                         </p>
 
-                        {/* Billing History + Profile Section */}
+                        {/* Transaction History + Profile Section */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-10 border-t border-slate-200 dark:border-white/5">
                             <div className="md:col-span-2">
-                                <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">Billing History</h3>
+                                <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">Transaction History</h3>
                                 <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4">
                                     <BillingHistory />
                                 </div>

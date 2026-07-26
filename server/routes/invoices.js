@@ -110,22 +110,37 @@ router.get('/my/:id/pdf', auth, async (req, res) => {
         });
         if (!inv) return res.status(404).json({ error: 'Invoice not found' });
 
-        const filePath = pdfServePath(inv);
-        if (!filePath || !fs.existsSync(filePath)) {
-            return res.status(404).json({ error: 'Invoice PDF not found on disk' });
-        }
-
-        // Mark as duplicate on re-download (first download: count 0 → 1, subsequent are duplicates)
+        // Mark download count
         const isDuplicate = inv.downloadCount >= 1;
         await inv.increment('downloadCount');
         if (!inv.isDuplicate && isDuplicate) {
             await inv.update({ isDuplicate: true });
         }
 
+        // If pdfPath is a cloud URL (R2/S3), redirect the browser to it
+        if (inv.pdfPath && (inv.pdfPath.startsWith('http://') || inv.pdfPath.startsWith('https://'))) {
+            return res.redirect(inv.pdfPath);
+        }
+
+        // If pdfPath is a local relative path and file exists, stream it
+        const filePath = pdfServePath(inv);
+        if (filePath && fs.existsSync(filePath)) {
+            const filename = `Invoice-${inv.invoiceNumber}.pdf`;
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            return fs.createReadStream(filePath).pipe(res);
+        }
+
+        // Fallback: re-generate on demand
+        const { generatePdf } = require('../services/InvoiceService');
+        const config = await SystemConfig.getCachedConfig();
+        const ic = config?.settings?.invoiceConfig || {};
+        const pdfBuffer = await generatePdf(inv.toJSON(), ic);
         const filename = `Invoice-${inv.invoiceNumber}.pdf`;
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        fs.createReadStream(filePath).pipe(res);
+        res.send(pdfBuffer);
+
     } catch (err) {
         console.error('GET /invoices/my/:id/pdf error:', err);
         res.status(500).json({ error: 'Server Error' });
@@ -219,9 +234,13 @@ router.get('/:id/pdf', auth, admin, async (req, res) => {
         const inv = await Invoice.findByPk(req.params.id);
         if (!inv) return res.status(404).json({ error: 'Invoice not found' });
 
+        // If pdfPath is a cloud URL (R2/S3), redirect the browser to it
+        if (inv.pdfPath && (inv.pdfPath.startsWith('http://') || inv.pdfPath.startsWith('https://'))) {
+            return res.redirect(inv.pdfPath);
+        }
+
+        // If pdfPath is a local relative path and file exists, stream it
         const filePath = pdfServePath(inv);
-        
-        // If file exists on disk, stream it
         if (filePath && fs.existsSync(filePath)) {
             const filename = `Invoice-${inv.invoiceNumber}.pdf`;
             res.setHeader('Content-Type', 'application/pdf');
@@ -356,31 +375,8 @@ router.get('/my', auth, async (req, res) => {
     }
 });
 
-// GET /api/invoices/my/:id/pdf — Download own invoice as PDF
-router.get('/my/:id/pdf', auth, async (req, res) => {
-    try {
-        const userId = req.user.realId || req.user.id;
-        const invoice = await Invoice.findOne({
-            where: { id: req.params.id, userId }
-        });
 
-        if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
 
-        // Re-generate PDF on demand
-        const { generatePdf } = require('../services/InvoiceService');
-        const config = await SystemConfig.findOne();
-        const ic = config?.settings?.invoiceConfig || {};
-
-        const pdfBuffer = await generatePdf(invoice.toJSON(), ic);
-
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${invoice.invoiceNumber}.pdf"`);
-        res.send(pdfBuffer);
-    } catch (err) {
-        console.error('GET /invoices/my/:id/pdf error:', err);
-        res.status(500).json({ error: 'Server Error' });
-    }
-});
 
 // POST /api/invoices/my/:id/resend — Resend own invoice via WhatsApp
 router.post('/my/:id/resend', auth, async (req, res) => {

@@ -200,7 +200,7 @@ const BillingTab = () => {
             <div className="bg-white dark:bg-surface-dark rounded-3xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
                 <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-indigo-500" /> Billing History
+                        <FileText className="w-5 h-5 text-indigo-500" /> Transaction History
                     </h3>
                 </div>
                 {/* Desktop Table View */}

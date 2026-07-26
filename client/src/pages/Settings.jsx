@@ -1404,7 +1404,17 @@ const Settings = () => {
 
                             {/* TAXATION TAB */}
                             {activeTab === 'taxation' && (
-                                <InvoiceConfigPanel />
+                                user?.isAdmin ? (
+                                    <InvoiceConfigPanel />
+                                ) : (
+                                    <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-6 shadow-sm">
+                                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                                            <Receipt className="w-5 h-5 text-indigo-500" /> Billing &amp; Tax Details
+                                        </h2>
+                                        <p className="text-sm text-slate-500 mb-6">Your business / GST details used on tax invoices. These details appear on every invoice generated for your account.</p>
+                                        <BillingProfile />
+                                    </div>
+                                )
                             )}
 
                             {/* GENERAL TAB */}

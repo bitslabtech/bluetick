@@ -117,8 +117,8 @@ function formatDate(date) {
 }
 
 function formatCurrency(amount, currency = 'INR') {
-    if (currency === 'INR') return `₹${parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-    return `${currency} ${parseFloat(amount).toFixed(2)}`;
+    if (currency === 'INR') return parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    return parseFloat(amount).toFixed(2);
 }
 
 // ─── PDF Generation ───────────────────────────────────────────────────────────
@@ -234,7 +234,6 @@ async function generatePdf(inv, ic) {
             
             let taxInfo = [];
             if (inv.sellerGstin) taxInfo.push(`GSTIN: ${inv.sellerGstin}`);
-            if (inv.sellerPan) taxInfo.push(`PAN: ${inv.sellerPan}`);
             if (inv.sellerCin) taxInfo.push(`CIN: ${inv.sellerCin}`);
             if (taxInfo.length > 0) {
                 doc.font('Helvetica-Bold').fontSize(9).fillColor(HEADER_TEXT);
@@ -249,8 +248,8 @@ async function generatePdf(inv, ic) {
             metaY += 30;
             
             const metaRows = [
-                ['Invoice No:', inv.invoiceNumber || 'N/A'],
-                ['Issue Date:', formatDate(inv.invoiceDate)]
+                ['Invoice Number:', inv.invoiceNumber || 'N/A'],
+                ['Invoice Date:', formatDate(inv.invoiceDate)]
             ];
             if (inv.placeOfSupply) metaRows.push(['Place of Supply:', inv.placeOfSupply]);
             
@@ -278,11 +277,20 @@ async function generatePdf(inv, ic) {
             doc.font('Helvetica-Bold').fontSize(11).fillColor(TEXT_DARK).text(inv.buyerName || '', leftPad, currentY + 35);
             doc.font('Helvetica').fontSize(9).fillColor(TEXT_MUTED);
             let by = currentY + 50;
-            if (inv.buyerCompany) { doc.text(inv.buyerCompany, leftPad, by); by += 13; }
-            if (inv.buyerAddress) { doc.text(inv.buyerAddress, leftPad, by); by += 13; }
+            if (inv.buyerCompany) { 
+                const h = doc.heightOfString(inv.buyerCompany, { width: boxW - 10 });
+                doc.text(inv.buyerCompany, leftPad, by, { width: boxW - 10 }); 
+                by += h + 2; 
+            }
+            if (inv.buyerAddress) { 
+                const h = doc.heightOfString(inv.buyerAddress, { width: boxW - 10 });
+                doc.text(inv.buyerAddress, leftPad, by, { width: boxW - 10 }); 
+                by += h + 2; 
+            }
             if (inv.buyerGstin) { doc.font('Helvetica-Bold').text(`GSTIN: ${inv.buyerGstin}`, leftPad, by).font('Helvetica'); by += 13; }
             if (inv.buyerPhone || inv.buyerEmail) {
-                doc.fillColor(TEXT_MUTED).text([inv.buyerPhone, inv.buyerEmail].filter(Boolean).join('  |  '), leftPad, by);
+                const h = doc.heightOfString([inv.buyerPhone, inv.buyerEmail].filter(Boolean).join('  |  '), { width: boxW - 10 });
+                doc.fillColor(TEXT_MUTED).text([inv.buyerPhone, inv.buyerEmail].filter(Boolean).join('  |  '), leftPad, by, { width: boxW - 10 });
             }
 
             // Divider line in the middle of the card
@@ -312,9 +320,9 @@ async function generatePdf(inv, ic) {
             // ── PREMIUM ITEMS TABLE ──────────────────────────────────────────────────
             const cols = [
                 { t: '#', w: 35, a: 'center' },
-                { t: 'DESCRIPTION', w: PW - 35 - 65 - 50 - 90 - 95, a: 'left' },
-                { t: 'SAC', w: 65, a: 'center' },
-                { t: 'QTY', w: 50, a: 'center' },
+                { t: 'DESCRIPTION', w: PW - 35 - 65 - 40 - 90 - 95, a: 'left' },
+                { t: 'HSN', w: 65, a: 'center' },
+                { t: 'Qty', w: 40, a: 'center' },
                 { t: 'PRICE', w: 90, a: 'right' },
                 { t: 'AMOUNT', w: 95, a: 'right' }
             ];
@@ -393,8 +401,7 @@ async function generatePdf(inv, ic) {
                 totY += bold ? 18 : 16;
             };
 
-            addTot('Subtotal:', formatCurrency(inv.taxableAmount));
-            if (inv.discountAmount > 0) addTot('Discount:', `-${formatCurrency(inv.discountAmount)}`, false, SUCCESS);
+            addTot('Taxable Value:', formatCurrency(inv.taxableAmount));
             if (isGstApplicable) addTot('Total Tax:', formatCurrency(inv.totalTaxAmount || (inv.cgstAmount + inv.sgstAmount + inv.igstAmount)));
             
             doc.save().strokeColor(BORDER).lineWidth(1).moveTo(totalX, totY).lineTo(LM+PW, totY).stroke().restore();
@@ -621,11 +628,19 @@ async function generateAndDeliverInvoice(transactionId) {
     const buyerPhone = txn.userPhone || user.phone || '';
 
     // ── 6. Compute GST ────────────────────────────────────────────────────────
+    // txn.amount = amount actually paid (after discount)
+    // txn.discountApplied = voucher/coupon discount value
+    // originalPrice = the full plan price before any discount
+    const discountAmount = parseFloat(txn.discountApplied || 0);
+    const amountPaid = parseFloat(txn.amount); // what was actually charged
+    const originalPrice = amountPaid + discountAmount; // full price before discount
+
     let gstFields = {};
     if (gstEnabled && !skipGst && ic.invoiceType === 'tax_invoice') {
+        // Compute GST on the original price, with discount applied — so taxable base = amountPaid
         gstFields = computeGst(
-            txn.amount,
-            txn.discountApplied || 0,
+            originalPrice,
+            discountAmount,
             ic.defaultGstRate || 18,
             ic.gstType || 'exclusive',
             buyerState,
@@ -636,10 +651,10 @@ async function generateAndDeliverInvoice(transactionId) {
         // Quotation or non-INR or GST disabled — no tax breakdown
         gstFields = {
             taxScheme: 'none',
-            taxableAmount: parseFloat(txn.amount) - parseFloat(txn.discountApplied || 0),
+            taxableAmount: amountPaid,
             igstAmount: 0, cgstAmount: 0, sgstAmount: 0,
             totalTaxAmount: 0,
-            grandTotal: parseFloat(txn.amount)
+            grandTotal: amountPaid
         };
     }
 
@@ -685,8 +700,9 @@ async function generateAndDeliverInvoice(transactionId) {
         itemDescription: buildDescription(txn.planName, ic),
         itemHsnSac: ic.hsnSacCode || '998314',
         quantity: 1,
-        unitPrice: parseFloat(txn.amount),
-        discountAmount: parseFloat(txn.discountApplied || 0),
+        unitPrice: originalPrice,         // ← Full plan price before discount
+        discountAmount: discountAmount,    // ← Voucher/coupon discount
+        couponCode: txn.couponCode || null, // ← For PDF label: "Coupon Discount (CODE)"
 
         // GST
         gstRate: ic.defaultGstRate || 0,

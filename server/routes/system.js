@@ -200,6 +200,21 @@ router.get('/status', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/system/invoice-config
+// @desc    Get invoice/taxation config for authenticated users (read-only, no sensitive data)
+router.get('/invoice-config', auth, async (req, res) => {
+    try {
+        const config = await SystemConfig.getCachedConfig();
+        const ic = config?.settings?.invoiceConfig || {};
+        res.json({ settings: { invoiceConfig: ic } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+
+
 // @route   GET /api/system/crm-data
 // @desc    Get linked CRM team members, templates, and tags for AI Chatbot routing
 router.get('/crm-data', superAdmin, async (req, res) => {

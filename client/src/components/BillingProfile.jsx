@@ -151,10 +151,6 @@ export default function BillingProfile({ compact = false, onSaved }) {
                                 <label className={labelCls}>GSTIN <span className="text-red-500">*</span></label>
                                 <input value={form.gstin} onChange={e => update('gstin', e.target.value.toUpperCase())} className={inputCls} placeholder="22AABCC1234F1Z5" maxLength={15} />
                             </div>
-                            <div>
-                                <label className={labelCls}>PAN (optional)</label>
-                                <input value={form.pan} onChange={e => update('pan', e.target.value.toUpperCase())} className={inputCls} placeholder="AABCC1234F" maxLength={10} />
-                            </div>
                             <div className="col-span-2">
                                 <label className={labelCls}>Billing Address <span className="text-red-500">*</span></label>
                                 <textarea value={form.address} onChange={e => update('address', e.target.value)} className={inputCls + ' resize-none'} rows={2} placeholder="Street, City" />
@@ -192,10 +188,6 @@ export default function BillingProfile({ compact = false, onSaved }) {
                 <label className={labelCls}>GSTIN <span className="text-red-500">*</span></label>
                 <input id="bp-gstin" value={form.gstin} onChange={e => update('gstin', e.target.value.toUpperCase())} className={inputCls} placeholder="22AABCC1234F1Z5" maxLength={15} />
                 <p className="text-xs text-slate-400 mt-1">15-character GST Identification Number</p>
-            </div>
-            <div>
-                <label className={labelCls}>PAN</label>
-                <input id="bp-pan" value={form.pan} onChange={e => update('pan', e.target.value.toUpperCase())} className={inputCls} placeholder="AABCC1234F" maxLength={10} />
             </div>
             <div>
                 <label className={labelCls}>Billing Phone</label>

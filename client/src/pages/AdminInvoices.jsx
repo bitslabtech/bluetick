@@ -137,92 +137,130 @@ export function InvoiceDetailModal({ invoice, onClose, onResend, isUser = false 
                 </div>
 
                 <div style={{ padding: '24px' }}>
+                    {/* User Actions at the top */}
+                    {isUser && (
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                            <a
+                                href={`${LOCAL_API}/${invoice.id}/pdf`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                    padding: '10px 18px', background: '#1a56db', color: '#fff',
+                                    borderRadius: '8px', textDecoration: 'none', fontSize: '13px', fontWeight: 600
+                                }}
+                            >
+                                ⬇️ Download PDF
+                            </a>
+                            <button
+                                onClick={handleResend}
+                                disabled={resending}
+                                style={{
+                                    padding: '10px 18px', background: resending ? '#9ca3af' : '#059669', color: '#fff',
+                                    border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >
+                                {resending ? 'Sending…' : '📤 Re-Send via WhatsApp'}
+                            </button>
+                            {resendMsg && (
+                                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '10px', fontSize: '13px', color: resendMsg.startsWith('✅') ? '#059669' : '#dc2626', fontWeight: 500 }}>
+                                    {resendMsg}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <Section title="📋 Invoice Details">
                         <Row label="Invoice Date" value={formatDate(invoice.invoiceDate)} />
                         <Row label="Invoice Type" value={invoice.invoiceType === 'tax_invoice' ? 'Tax Invoice' : 'Quotation'} />
-                        <Row label="Place of Supply" value={invoice.placeOfSupply} />
+                        {!isUser && <Row label="Place of Supply" value={invoice.placeOfSupply} />}
                         <Row label="Item Description" value={invoice.itemDescription} />
-                        <Row label="HSN/SAC Code" value={invoice.itemHsnSac} />
-                        <Row label="Reverse Charge" value={invoice.reverseCharge ? 'Yes' : 'No'} />
+                        {!isUser && <Row label="HSN/SAC Code" value={invoice.itemHsnSac} />}
+                        {!isUser && <Row label="Reverse Charge" value={invoice.reverseCharge ? 'Yes' : 'No'} />}
                     </Section>
 
-                    <Section title="👤 Buyer Details">
-                        <Row label="Name" value={invoice.buyerName} />
-                        <Row label="Company" value={invoice.buyerCompany} />
-                        <Row label="Email" value={invoice.buyerEmail} />
-                        <Row label="Phone" value={invoice.buyerPhone} />
-                        <Row label="GSTIN" value={invoice.buyerGstin} />
-                        <Row label="PAN" value={invoice.buyerPan} />
-                        <Row label="Address" value={invoice.buyerAddress} />
-                        <Row label="State" value={`${invoice.buyerState || '—'}${invoice.buyerStateCode ? ` (${invoice.buyerStateCode})` : ''}`} />
-                        <Row label="Country" value={invoice.buyerCountry} />
-                        <Row label="Pincode" value={invoice.buyerPincode} />
-                    </Section>
+                    {!isUser && (
+                        <>
+                            <Section title="👤 Buyer Details">
+                                <Row label="Name" value={invoice.buyerName} />
+                                <Row label="Company" value={invoice.buyerCompany} />
+                                <Row label="Email" value={invoice.buyerEmail} />
+                                <Row label="Phone" value={invoice.buyerPhone} />
+                                <Row label="GSTIN" value={invoice.buyerGstin} />
+                                <Row label="Address" value={invoice.buyerAddress} />
+                                <Row label="State" value={`${invoice.buyerState || '—'}${invoice.buyerStateCode ? ` (${invoice.buyerStateCode})` : ''}`} />
+                                <Row label="Country" value={invoice.buyerCountry} />
+                                <Row label="Pincode" value={invoice.buyerPincode} />
+                            </Section>
 
-                    <Section title="🏢 Seller Details">
-                        <Row label="Name" value={invoice.sellerName} />
-                        <Row label="GSTIN" value={invoice.sellerGstin} />
-                        <Row label="PAN" value={invoice.sellerPan} />
-                        <Row label="CIN" value={invoice.sellerCin} />
-                        <Row label="State" value={invoice.sellerState} />
-                        <Row label="Address" value={invoice.sellerAddress} />
-                    </Section>
+                            <Section title="🏢 Seller Details">
+                                <Row label="Name" value={invoice.sellerName} />
+                                <Row label="GSTIN" value={invoice.sellerGstin} />
+                                <Row label="CIN" value={invoice.sellerCin} />
+                                <Row label="State" value={invoice.sellerState} />
+                                <Row label="Address" value={invoice.sellerAddress} />
+                            </Section>
+                        </>
+                    )}
 
                     <Section title="🧾 Amount Breakdown">
                         <Row label="Unit Price" value={formatCurrency(invoice.unitPrice, invoice.currency)} />
-                        <Row label="Discount" value={invoice.discountAmount > 0 ? `-${formatCurrency(invoice.discountAmount, invoice.currency)}` : '—'} />
+                        {invoice.discountAmount > 0 && <Row label="Discount" value={`-${formatCurrency(invoice.discountAmount, invoice.currency)}`} />}
                         <Row label="Taxable Amount" value={formatCurrency(invoice.taxableAmount, invoice.currency)} />
-                        <Row label="GST Rate" value={invoice.gstRate > 0 ? `${invoice.gstRate}%` : '—'} />
-                        <Row label="Tax Scheme" value={invoice.taxScheme === 'cgst_sgst' ? 'CGST + SGST' : invoice.taxScheme === 'igst' ? 'IGST' : 'None'} />
-                        {invoice.taxScheme === 'cgst_sgst' && <>
+                        {!isUser && invoice.gstRate > 0 && <Row label="GST Rate" value={`${invoice.gstRate}%`} />}
+                        {!isUser && <Row label="Tax Scheme" value={invoice.taxScheme === 'cgst_sgst' ? 'CGST + SGST' : invoice.taxScheme === 'igst' ? 'IGST' : 'None'} />}
+                        {!isUser && invoice.taxScheme === 'cgst_sgst' && <>
                             <Row label={`CGST (${invoice.gstRate / 2}%)`} value={formatCurrency(invoice.cgstAmount, invoice.currency)} />
                             <Row label={`SGST (${invoice.gstRate / 2}%)`} value={formatCurrency(invoice.sgstAmount, invoice.currency)} />
                         </>}
-                        {invoice.taxScheme === 'igst' && <Row label={`IGST (${invoice.gstRate}%)`} value={formatCurrency(invoice.igstAmount, invoice.currency)} />}
-                        <Row label="Total Tax" value={formatCurrency(invoice.totalTaxAmount, invoice.currency)} />
+                        {!isUser && invoice.taxScheme === 'igst' && <Row label={`IGST (${invoice.gstRate}%)`} value={formatCurrency(invoice.igstAmount, invoice.currency)} />}
+                        {!isUser && <Row label="Total Tax" value={formatCurrency(invoice.totalTaxAmount, invoice.currency)} />}
                         <div style={{ display: 'flex', gap: '12px', padding: '10px 0', background: '#f0fdf4', borderRadius: '8px', marginTop: '4px' }}>
                             <div style={{ width: '160px', color: '#15803d', fontSize: '13px', flexShrink: 0, fontWeight: 700, paddingLeft: '4px' }}>Grand Total</div>
                             <div style={{ color: '#15803d', fontSize: '15px', fontWeight: 700 }}>{formatCurrency(invoice.grandTotal, invoice.currency)}</div>
                         </div>
                     </Section>
 
-                    <Section title="📲 WhatsApp Delivery">
-                        <Row label="User WA Status" value={invoice.whatsappStatus} />
-                        <Row label="Sent At" value={invoice.whatsappSentAt ? formatDate(invoice.whatsappSentAt) : '—'} />
-                        <Row label="Error" value={invoice.whatsappError} />
-                        <Row label="CC Status" value={invoice.adminCcStatus} />
-                        <Row label="CC Sent At" value={invoice.adminCcSentAt ? formatDate(invoice.adminCcSentAt) : '—'} />
-                        <Row label="Download Count" value={invoice.downloadCount} />
-                    </Section>
+                    {!isUser && (
+                        <>
+                            <Section title="📲 WhatsApp Delivery">
+                                <Row label="User WA Status" value={invoice.whatsappStatus} />
+                                <Row label="Sent At" value={invoice.whatsappSentAt ? formatDate(invoice.whatsappSentAt) : '—'} />
+                                <Row label="Error" value={invoice.whatsappError} />
+                                <Row label="CC Status" value={invoice.adminCcStatus} />
+                                <Row label="CC Sent At" value={invoice.adminCcSentAt ? formatDate(invoice.adminCcSentAt) : '—'} />
+                                <Row label="Download Count" value={invoice.downloadCount} />
+                            </Section>
 
-                    {/* Actions */}
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        <a
-                            href={`${LOCAL_API}/${invoice.id}/pdf`}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                                padding: '10px 18px', background: '#1a56db', color: '#fff',
-                                borderRadius: '8px', textDecoration: 'none', fontSize: '13px', fontWeight: 600
-                            }}
-                        >
-                            ⬇️ Download PDF
-                        </a>
-                        <button
-                            onClick={handleResend}
-                            disabled={resending}
-                            style={{
-                                padding: '10px 18px', background: resending ? '#9ca3af' : '#059669', color: '#fff',
-                                border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
-                            }}
-                        >
-                            {resending ? 'Sending…' : '📤 Re-Send via WhatsApp'}
-                        </button>
-                    </div>
-                    {resendMsg && (
-                        <div style={{ marginTop: '10px', fontSize: '13px', color: resendMsg.startsWith('✅') ? '#059669' : '#dc2626', fontWeight: 500 }}>
-                            {resendMsg}
-                        </div>
+                            {/* Admin Actions (Bottom) */}
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                <a
+                                    href={`${LOCAL_API}/${invoice.id}/pdf`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{
+                                        padding: '10px 18px', background: '#1a56db', color: '#fff',
+                                        borderRadius: '8px', textDecoration: 'none', fontSize: '13px', fontWeight: 600
+                                    }}
+                                >
+                                    ⬇️ Download PDF
+                                </a>
+                                <button
+                                    onClick={handleResend}
+                                    disabled={resending}
+                                    style={{
+                                        padding: '10px 18px', background: resending ? '#9ca3af' : '#059669', color: '#fff',
+                                        border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+                                    }}
+                                >
+                                    {resending ? 'Sending…' : '📤 Re-Send via WhatsApp'}
+                                </button>
+                            </div>
+                            {resendMsg && (
+                                <div style={{ marginTop: '10px', fontSize: '13px', color: resendMsg.startsWith('✅') ? '#059669' : '#dc2626', fontWeight: 500 }}>
+                                    {resendMsg}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
