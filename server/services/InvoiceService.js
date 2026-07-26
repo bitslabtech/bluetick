@@ -617,7 +617,7 @@ async function generateAndDeliverInvoice(transactionId) {
     const config = await SystemConfig.getCachedConfig();
     const ic = config?.settings?.invoiceConfig || {};
     const gstEnabled = ic.gstEnabled !== false;
-    const currency = txn.currency || 'INR';
+    const currency = (txn.currency || 'INR').toUpperCase();
     const skipGst = currency !== 'INR'; // Non-INR transactions: skip GST as decided
 
     // ── 5. Build buyer snapshot ────────────────────────────────────────────────
@@ -636,7 +636,7 @@ async function generateAndDeliverInvoice(transactionId) {
     const originalPrice = amountPaid + discountAmount; // full price before discount
 
     let gstFields = {};
-    if (gstEnabled && !skipGst && ic.invoiceType === 'tax_invoice') {
+    if (gstEnabled && !skipGst && (ic.invoiceType || 'tax_invoice') === 'tax_invoice') {
         // Compute GST on the original price, with discount applied — so taxable base = amountPaid
         gstFields = computeGst(
             originalPrice,
