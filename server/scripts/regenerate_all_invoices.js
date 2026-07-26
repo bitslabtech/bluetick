@@ -15,10 +15,15 @@ async function run() {
         const SystemConfig = require('../models/SystemConfig');
         const config = await SystemConfig.findOne({ where: { id: 1 } });
         if (config) {
-            const settings = config.settings || {};
+            const settings = { ...config.settings } || {};
             if (settings.invoiceConfig) {
-                settings.invoiceConfig.currentInvoiceSequence = settings.invoiceConfig.invoiceStartNumber || 1;
-                await config.update({ settings });
+                settings.invoiceConfig = {
+                    ...settings.invoiceConfig,
+                    currentInvoiceSequence: settings.invoiceConfig.invoiceStartNumber || 1
+                };
+                config.settings = settings;
+                config.changed('settings', true);
+                await config.save();
                 console.log('Reset invoice sequence counter to ' + settings.invoiceConfig.currentInvoiceSequence);
             }
         }
