@@ -145,14 +145,6 @@ router.post('/:userId', (req, res, next) => {
                             let categoryChanged = false;
                             template.status = eventStatus;
 
-                            // ── Save pauseReason if Meta paused this template due to quality issues ──
-                            if (eventStatus === 'PAUSED') {
-                                template.pauseReason = rejectReason || 'HIGH_BLOCK_RATE';
-                            } else if (eventStatus === 'APPROVED') {
-                                // Clear any previous pause reason on re-approval
-                                template.pauseReason = null;
-                            }
-
                             // ── Sync category if Meta reclassified this template ──────────────────
                             if (newCategory && template.category !== newCategory) {
                                 console.log(`[WEBHOOK] Template "${templateName}" category reclassified: ${template.category} → ${newCategory}`);
@@ -161,6 +153,20 @@ router.post('/:userId', (req, res, next) => {
                             }
 
                             await template.save();
+
+                            // ── Save pauseReason via raw SQL (column may not exist on older DB schemas) ──
+                            if (eventStatus === 'PAUSED' || eventStatus === 'APPROVED') {
+                                try {
+                                    const { sequelize } = require('../config/database');
+                                    const newPauseReason = eventStatus === 'PAUSED' ? (rejectReason || 'HIGH_BLOCK_RATE') : null;
+                                    await sequelize.query(
+                                        `UPDATE "Templates" SET "pauseReason" = :pauseReason WHERE id = :id`,
+                                        { replacements: { pauseReason: newPauseReason, id: template.id }, type: sequelize.QueryTypes.UPDATE }
+                                    );
+                                } catch (_) {
+                                    // pauseReason column not yet migrated — OK, skip silently
+                                }
+                            }
 
                             const user = await User.findByPk(userId);
                             if (user) {

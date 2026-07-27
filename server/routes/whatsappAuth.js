@@ -684,12 +684,30 @@ router.get('/quality-insights', auth, async (req, res) => {
             ...(reasonDescriptions[code] || { label: code, description: 'No additional information available for this reason code.', severity: 'medium' })
         }));
 
-        // Also fetch paused templates for this user to include in the insights
+        // Fetch paused templates — use raw SQL so we can handle missing pauseReason column gracefully
         const Template = require('../models/Template');
-        const pausedTemplates = await Template.findAll({
-            where: { userId: user.id, status: 'PAUSED' },
-            attributes: ['id', 'name', 'category', 'pauseReason', 'updatedAt']
-        });
+        let pausedTemplates = [];
+        try {
+            pausedTemplates = await Template.findAll({
+                where: { userId: user.id, status: 'PAUSED' },
+                attributes: ['id', 'name', 'category', 'updatedAt']
+            });
+        } catch (dbErr) {
+            console.warn('[QUALITY INSIGHTS] Could not fetch paused templates:', dbErr.message);
+        }
+
+        // Try to also get pauseReason — might not exist on older DB schemas
+        let pauseReasonMap = {};
+        try {
+            const { sequelize } = require('../config/database');
+            const rows = await sequelize.query(
+                `SELECT id, "pauseReason" FROM "Templates" WHERE "userId" = :userId AND status = 'PAUSED'`,
+                { replacements: { userId: user.id }, type: sequelize.QueryTypes.SELECT }
+            );
+            rows.forEach(r => { pauseReasonMap[r.id] = r.pauseReason; });
+        } catch (_) {
+            // Column doesn't exist yet — that's fine, will show blank
+        }
 
         console.log(`[QUALITY INSIGHTS] User ${user.id} | Score: ${score} | Reasons: ${rawReasons.join(', ')}`);
 
@@ -701,7 +719,7 @@ router.get('/quality-insights', auth, async (req, res) => {
                 id: t.id,
                 name: t.name,
                 category: t.category,
-                pauseReason: t.pauseReason,
+                pauseReason: pauseReasonMap[t.id] || null,
                 pausedAt: t.updatedAt
             })),
             fetchedAt: new Date().toISOString()
@@ -712,15 +730,18 @@ router.get('/quality-insights', auth, async (req, res) => {
         try {
             const userFallback = await User.findByPk(req.user.id);
             const Template = require('../models/Template');
-            const pausedTemplates = await Template.findAll({
-                where: { userId: req.user.id, status: 'PAUSED' },
-                attributes: ['id', 'name', 'category', 'pauseReason', 'updatedAt']
-            });
+            let pausedTemplates = [];
+            try {
+                pausedTemplates = await Template.findAll({
+                    where: { userId: req.user.id, status: 'PAUSED' },
+                    attributes: ['id', 'name', 'category', 'updatedAt']
+                });
+            } catch (_) { /* table might have issues */ }
             return res.json({
                 score: userFallback?.metaQualityRating || 'UNKNOWN',
                 reasons: [],
                 displayPhoneNumber: userFallback?.metaDisplayPhoneNumber,
-                pausedTemplates: pausedTemplates.map(t => ({ id: t.id, name: t.name, category: t.category, pauseReason: t.pauseReason, pausedAt: t.updatedAt })),
+                pausedTemplates: pausedTemplates.map(t => ({ id: t.id, name: t.name, category: t.category, pauseReason: null, pausedAt: t.updatedAt })),
                 fetchedAt: new Date().toISOString(),
                 apiError: 'Could not reach Meta API. Showing cached data only.'
             });
