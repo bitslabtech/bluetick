@@ -1122,7 +1122,7 @@ const Dashboard = () => {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.92, y: 20 }}
                             transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-                            className="bg-white dark:bg-[#0f1923] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-[#1e3048]"
+                            className="bg-white dark:bg-[#0f1923] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-[#1e3048]"
                         >
                             {/* Modal Header */}
                             <div className="sticky top-0 flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1e3048] bg-white dark:bg-[#0f1923] rounded-t-2xl z-10">
@@ -1151,7 +1151,7 @@ const Dashboard = () => {
                             </div>
 
                             {/* Modal Body */}
-                            <div className="p-5 space-y-5">
+                            <div className="p-5 space-y-6">
                                 {qualityInsightsLoading ? (
                                     <div className="flex flex-col items-center justify-center py-12 gap-3">
                                         <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
@@ -1168,56 +1168,106 @@ const Dashboard = () => {
                                         )}
 
                                         {/* Current Score */}
-                                        <div className="p-4 rounded-xl border border-slate-100 dark:border-[#1e3048] bg-slate-50 dark:bg-[#0a1520]">
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 font-medium">Current Score</p>
-                                            <div className="flex items-center gap-3">
-                                                <div className={`text-2xl font-black ${
-                                                    qualityInsights.score === 'RED' ? 'text-red-500' :
-                                                    qualityInsights.score === 'YELLOW' ? 'text-yellow-500' :
-                                                    qualityInsights.score === 'GREEN' ? 'text-emerald-500' :
-                                                    'text-slate-400'
-                                                }`}>
-                                                    {qualityInsights.score === 'RED' ? '🔴 Low' :
-                                                     qualityInsights.score === 'YELLOW' ? '🟡 Medium' :
-                                                     qualityInsights.score === 'GREEN' ? '🟢 High' : '⚪ Unknown'}
+                                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                                            <div className="p-5 rounded-2xl border border-slate-100 dark:border-[#1e3048] bg-slate-50 dark:bg-[#0a1520] min-w-[200px]">
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 font-medium">Current Score</p>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`text-3xl font-black ${
+                                                        qualityInsights.score === 'RED' ? 'text-red-500' :
+                                                        qualityInsights.score === 'YELLOW' ? 'text-yellow-500' :
+                                                        qualityInsights.score === 'GREEN' ? 'text-emerald-500' :
+                                                        'text-slate-400'
+                                                    }`}>
+                                                        {qualityInsights.score === 'RED' ? 'Low' :
+                                                         qualityInsights.score === 'YELLOW' ? 'Medium' :
+                                                         qualityInsights.score === 'GREEN' ? 'High' : 'Unknown'}
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+                                                    Last checked:<br/>
+                                                    {qualityInsights.fetchedAt ? new Date(qualityInsights.fetchedAt).toLocaleString() : '—'}
+                                                </p>
+                                            </div>
+
+                                            {/* Recommended Actions */}
+                                            <div className="flex-1 p-5 rounded-2xl bg-primary/5 dark:bg-primary/10 border border-primary/20">
+                                                <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                                                    <ShieldCheck className="w-5 h-5 text-primary" />
+                                                    How to Recover Your Rating
+                                                </p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                    <ul className="space-y-3">
+                                                        <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                                            <span>Pause all promotional broadcasts immediately.</span>
+                                                        </li>
+                                                        <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                                            <span>Limit messaging to transactional (OTPs, updates) for now.</span>
+                                                        </li>
+                                                    </ul>
+                                                    <ul className="space-y-3">
+                                                        <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                                            <span>Clean contact lists of unengaged or non-opted-in users.</span>
+                                                        </li>
+                                                        <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                                            <span>Ensure an explicit "Opt-out" button exists in future marketing.</span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div className="p-3 bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10 flex items-start gap-3">
+                                                    <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                                                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                        <strong>Did you know?</strong> WhatsApp quality ratings are calculated based on the past 7 days of message quality. By strictly following best practices now, your score will naturally reset and recover within the next 7 days.
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                                                Last checked: {qualityInsights.fetchedAt ? new Date(qualityInsights.fetchedAt).toLocaleString() : '—'}
-                                            </p>
                                         </div>
 
-                                        {/* Block Reasons */}
+                                        {/* Block Reasons (Horizontal Cards) */}
                                         <div>
-                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-                                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                            <p className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                                                <AlertTriangle className="w-5 h-5 text-amber-500" />
                                                 Why users are blocking you
                                             </p>
                                             {qualityInsights.reasons && qualityInsights.reasons.length > 0 ? (
-                                                <div className="space-y-3">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                     {qualityInsights.reasons.map((reason, idx) => (
-                                                        <div key={idx} className={`p-3 rounded-xl border ${
-                                                            reason.severity === 'high' ? 'bg-red-50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20' :
-                                                            reason.severity === 'medium' ? 'bg-amber-50 dark:bg-amber-500/5 border-amber-200 dark:border-amber-500/20' :
-                                                            'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'
-                                                        }`}>
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                                                    reason.severity === 'high' ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400' :
-                                                                    reason.severity === 'medium' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-                                                                    'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300'
-                                                                }`}>{reason.severity?.toUpperCase()}</span>
-                                                                <span className="font-semibold text-sm text-slate-800 dark:text-white">{reason.label}</span>
+                                                        <div key={idx} className="flex flex-col p-5 rounded-2xl bg-white dark:bg-[#152330] border border-slate-200 dark:border-[#1e3048] shadow-sm hover:shadow-md transition-shadow">
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${
+                                                                    reason.severity === 'high' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' :
+                                                                    reason.severity === 'medium' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
+                                                                    'bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300'
+                                                                }`}>
+                                                                    {reason.severity?.toUpperCase()}
+                                                                </span>
+                                                                <span className="font-bold text-sm text-slate-900 dark:text-white truncate" title={reason.label}>
+                                                                    {reason.label}
+                                                                </span>
                                                             </div>
-                                                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{reason.description}</p>
+                                                            <div className="flex-1 space-y-4">
+                                                                <div>
+                                                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Details</p>
+                                                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{reason.description}</p>
+                                                                </div>
+                                                                <div className="pt-3 border-t border-slate-100 dark:border-white/5">
+                                                                    <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1 flex items-center gap-1">
+                                                                        <ShieldCheck className="w-3.5 h-3.5" /> Prevention
+                                                                    </p>
+                                                                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{reason.prevention}</p>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-center">
-                                                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                                                    <p className="text-sm text-slate-600 dark:text-slate-400">No specific block reasons returned by Meta.</p>
-                                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">This can happen when the rating just dropped or data is still aggregating.</p>
+                                                <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 text-center">
+                                                    <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
+                                                    <p className="text-base font-semibold text-slate-800 dark:text-slate-200">No specific block reasons returned by Meta.</p>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto">This usually happens when your rating just dropped and data is still aggregating, or your volume is too low to pinpoint a specific cause.</p>
                                                 </div>
                                             )}
                                         </div>
@@ -1225,45 +1275,31 @@ const Dashboard = () => {
                                         {/* Paused Templates */}
                                         {qualityInsights.pausedTemplates && qualityInsights.pausedTemplates.length > 0 && (
                                             <div>
-                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-                                                    <XCircle className="w-4 h-4 text-red-500" />
-                                                    Paused Templates ({qualityInsights.pausedTemplates.length})
+                                                <p className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                                                    <XCircle className="w-5 h-5 text-red-500" />
+                                                    Paused Templates Requiring Attention
                                                 </p>
-                                                <div className="space-y-2">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     {qualityInsights.pausedTemplates.map((t) => (
-                                                        <div key={t.id} className="flex items-start justify-between p-3 bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-xl">
-                                                            <div>
-                                                                <p className="text-sm font-semibold text-slate-800 dark:text-white">{t.name}</p>
-                                                                <p className="text-xs text-slate-500 dark:text-slate-400">{t.category}{t.pauseReason ? ` · ${t.pauseReason}` : ''}</p>
+                                                        <div key={t.id} className="flex flex-col p-4 bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-2xl">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <p className="text-base font-bold text-slate-900 dark:text-white">{t.name}</p>
+                                                                <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 font-bold rounded-md uppercase">PAUSED</span>
                                                             </div>
+                                                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 flex-1">
+                                                                {t.pauseReason ? `Reason: ${t.pauseReason}` : 'Paused by Meta due to poor user feedback.'}
+                                                            </p>
                                                             <button
                                                                 onClick={() => { setShowQualityModal(false); navigate('/templates'); }}
-                                                                className="text-xs text-primary font-bold hover:underline whitespace-nowrap ml-3"
-                                                            >Edit →</button>
+                                                                className="w-full py-2 bg-white dark:bg-[#1a2936] text-sm text-slate-800 dark:text-slate-200 font-bold rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary hover:text-primary transition-colors"
+                                                            >
+                                                                Review & Edit Template
+                                                            </button>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
                                         )}
-
-                                        {/* Recommended Actions */}
-                                        <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-blue-500/5 border border-primary/20">
-                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-                                                <ShieldCheck className="w-4 h-4 text-primary" />
-                                                How to recover your rating
-                                            </p>
-                                            <ul className="space-y-2">
-                                                {[
-                                                    '🛑 Pause all promotional broadcast campaigns immediately.',
-                                                    '✅ Only send transactional messages (OTPs, order updates) for 5–7 days.',
-                                                    '🚫 Delete or revise any PAUSED templates shown above.',
-                                                    '📋 Clean your contact list — remove anyone who didn\'t explicitly opt in.',
-                                                    '📤 Always include an opt-out option (e.g., "Reply STOP to unsubscribe") in marketing messages.',
-                                                ].map((tip, i) => (
-                                                    <li key={i} className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{tip}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
                                     </>
                                 ) : null}
                             </div>

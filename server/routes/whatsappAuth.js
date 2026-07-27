@@ -674,16 +674,16 @@ router.get('/quality-insights', auth, async (req, res) => {
         // Human-readable mapping for ALL known Meta block reason codes
         const reasonDescriptions = {
             // Standard block reason codes
-            SPAM:                   { label: 'Spam Reports', description: 'Users flagged your messages as spam. Avoid bulk promotional messages and only contact opted-in users.', severity: 'high' },
-            STOP_SENDING:           { label: 'Stop Sending Requests', description: 'Users explicitly replied asking you to stop. Always include a clear opt-out mechanism in every marketing message.', severity: 'high' },
-            BLOCKED_BY_USERS:       { label: 'Blocked by Users', description: 'A significant number of users blocked your number. This is the most common cause of quality drops — review your message content and frequency.', severity: 'high' },
-            UNDEFINED:              { label: 'Unspecified Reason', description: 'Users blocked without selecting a specific reason. This may indicate message irrelevance, too-high frequency, or unrecognized sender name.', severity: 'medium' },
-            UNKNOWN:                { label: 'Unknown Reason', description: 'Meta could not determine the specific reason for blocking.', severity: 'low' },
-            HIGH_MESSAGE_FREQUENCY: { label: 'Too Many Messages', description: 'You are sending messages too frequently to the same users. Space out your campaigns and reduce daily message volume.', severity: 'high' },
-            INAPPROPRIATE_CONTENT:  { label: 'Inappropriate Content', description: 'Messages contained content users found inappropriate or offensive. Review your templates against WhatsApp Commerce and Business policies.', severity: 'high' },
-            NOT_OPTED_IN:           { label: 'No User Opt-in', description: 'You are sending messages to contacts who never explicitly opted in to receive them. Only contact users who have consented.', severity: 'high' },
-            SEE_GUIDELINES:         { label: 'Guideline Violation', description: 'Meta detected a general policy concern with your messaging patterns. Review the WhatsApp Business Messaging Policy and Meta\'s best practices for template messages.', severity: 'medium' },
-            NONE:                   { label: 'No Specific Reason', description: 'Meta has not identified a specific block reason at this time. Monitor your quality rating over the next 24–48 hours.', severity: 'low' },
+            SPAM:                   { label: 'Spam Reports', description: 'Users flagged your messages as spam. Avoid bulk promotional messages and only contact opted-in users.', prevention: 'Ensure strict opt-in compliance and avoid sending repetitive promotional blasts.', severity: 'high' },
+            STOP_SENDING:           { label: 'Stop Sending Requests', description: 'Users explicitly replied asking you to stop. Always include a clear opt-out mechanism in every marketing message.', prevention: 'Add interactive "Opt-out" or "Stop" quick reply buttons to marketing templates.', severity: 'high' },
+            BLOCKED_BY_USERS:       { label: 'Blocked by Users', description: 'A significant number of users blocked your number. This is the most common cause of quality drops — review your message content and frequency.', prevention: 'Segment your audience to send highly relevant, personalized messages instead of generic broadcasts.', severity: 'high' },
+            UNDEFINED:              { label: 'Unspecified Reason', description: 'Users blocked without selecting a specific reason. This may indicate message irrelevance, too-high frequency, or unrecognized sender name.', prevention: 'Ensure your display name is recognizable and you provide clear value in the first interaction.', severity: 'medium' },
+            UNKNOWN:                { label: 'Unknown Reason', description: 'Meta could not determine the specific reason for blocking.', prevention: 'Review your general messaging strategy against Meta\'s Commerce and Business policies.', severity: 'low' },
+            HIGH_MESSAGE_FREQUENCY: { label: 'Too Many Messages', description: 'You are sending messages too frequently to the same users. Space out your campaigns and reduce daily message volume.', prevention: 'Implement frequency capping (e.g., maximum 2 marketing messages per user per week).', severity: 'high' },
+            INAPPROPRIATE_CONTENT:  { label: 'Inappropriate Content', description: 'Messages contained content users found inappropriate or offensive. Review your templates against WhatsApp Commerce and Business policies.', prevention: 'Audit your message content and tone for professionalism and compliance.', severity: 'high' },
+            NOT_OPTED_IN:           { label: 'No User Opt-in', description: 'You are sending messages to contacts who never explicitly opted in to receive them. Only contact users who have consented.', prevention: 'Implement double opt-in flows and regularly clean your contact list of inactive users.', severity: 'high' },
+            SEE_GUIDELINES:         { label: 'Guideline Violation', description: 'Meta detected a general policy concern with your messaging patterns. Review the WhatsApp Business Messaging Policy and Meta\'s best practices for template messages.', prevention: 'Consult Meta\'s official guidelines on high-quality template writing and targeting.', severity: 'medium' },
+            NONE:                   { label: 'No Specific Reason', description: 'Meta has not identified a specific block reason at this time. Monitor your quality rating over the next 24–48 hours.', prevention: 'Maintain baseline good practices: clear opt-outs, relevant content, and reasonable frequency.', severity: 'low' },
         };
 
         // Meta can return reasons as plain strings ["SPAM"] OR as objects [{ reason: "SPAM", description: "..." }]
@@ -698,6 +698,7 @@ router.get('/quality-insights', auth, async (req, res) => {
                 code,
                 label:       mapped?.label       || code.replace(/_/g, ' '),
                 description: mapped?.description || metaDescription || 'No additional details available for this reason.',
+                prevention:  mapped?.prevention  || 'Review your overall messaging practices for relevance and user consent.',
                 severity:    mapped?.severity    || 'medium',
             };
         });
