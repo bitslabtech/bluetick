@@ -668,21 +668,39 @@ router.get('/quality-insights', auth, async (req, res) => {
         const score        = qualityScore.score || user.metaQualityRating || 'UNKNOWN';
         const rawReasons   = qualityScore.reasons || [];
 
-        // Human-readable mapping for Meta block reason codes
+        // Log raw Meta response for debugging
+        console.log(`[QUALITY INSIGHTS] Raw Meta quality_score:`, JSON.stringify(qualityScore));
+
+        // Human-readable mapping for ALL known Meta block reason codes
         const reasonDescriptions = {
-            SPAM:                   { label: 'Spam', description: 'Users flagged your messages as spam. Avoid bulk promotional messages to unverified contacts.', severity: 'high' },
-            STOP_SENDING:           { label: 'Opted Out / Stop Sending', description: 'Users explicitly asked you to stop sending. Always include an opt-out option in your messages.', severity: 'high' },
-            UNDEFINED:              { label: 'Unspecified', description: 'Users blocked without selecting a reason. This may indicate message irrelevance or frequency issues.', severity: 'medium' },
-            UNKNOWN:                { label: 'Unknown', description: 'Meta could not determine the specific reason for blocking.', severity: 'low' },
-            HIGH_MESSAGE_FREQUENCY: { label: 'Too Frequent', description: 'You are sending messages too frequently. Space out your campaigns.', severity: 'high' },
-            INAPPROPRIATE_CONTENT:  { label: 'Inappropriate Content', description: 'Messages contained content users found inappropriate. Review your template content.', severity: 'high' },
-            NOT_OPTED_IN:           { label: 'No Opt-in', description: 'Messages sent to contacts who never opted in. Only message users who have explicitly consented.', severity: 'high' },
+            // Standard block reason codes
+            SPAM:                   { label: 'Spam Reports', description: 'Users flagged your messages as spam. Avoid bulk promotional messages and only contact opted-in users.', severity: 'high' },
+            STOP_SENDING:           { label: 'Stop Sending Requests', description: 'Users explicitly replied asking you to stop. Always include a clear opt-out mechanism in every marketing message.', severity: 'high' },
+            BLOCKED_BY_USERS:       { label: 'Blocked by Users', description: 'A significant number of users blocked your number. This is the most common cause of quality drops — review your message content and frequency.', severity: 'high' },
+            UNDEFINED:              { label: 'Unspecified Reason', description: 'Users blocked without selecting a specific reason. This may indicate message irrelevance, too-high frequency, or unrecognized sender name.', severity: 'medium' },
+            UNKNOWN:                { label: 'Unknown Reason', description: 'Meta could not determine the specific reason for blocking.', severity: 'low' },
+            HIGH_MESSAGE_FREQUENCY: { label: 'Too Many Messages', description: 'You are sending messages too frequently to the same users. Space out your campaigns and reduce daily message volume.', severity: 'high' },
+            INAPPROPRIATE_CONTENT:  { label: 'Inappropriate Content', description: 'Messages contained content users found inappropriate or offensive. Review your templates against WhatsApp Commerce and Business policies.', severity: 'high' },
+            NOT_OPTED_IN:           { label: 'No User Opt-in', description: 'You are sending messages to contacts who never explicitly opted in to receive them. Only contact users who have consented.', severity: 'high' },
+            SEE_GUIDELINES:         { label: 'Guideline Violation', description: 'Meta detected a general policy concern with your messaging patterns. Review the WhatsApp Business Messaging Policy and Meta\'s best practices for template messages.', severity: 'medium' },
+            NONE:                   { label: 'No Specific Reason', description: 'Meta has not identified a specific block reason at this time. Monitor your quality rating over the next 24–48 hours.', severity: 'low' },
         };
 
-        const enrichedReasons = rawReasons.map((code) => ({
-            code,
-            ...(reasonDescriptions[code] || { label: code, description: 'No additional information available for this reason code.', severity: 'medium' })
-        }));
+        // Meta can return reasons as plain strings ["SPAM"] OR as objects [{ reason: "SPAM", description: "..." }]
+        // Normalize both formats into a consistent shape
+        const enrichedReasons = rawReasons.map((item) => {
+            // Handle object format: { reason: "CODE", description: "Meta's text" }
+            const code = (typeof item === 'object' && item !== null) ? (item.reason || item.code || 'UNKNOWN') : String(item);
+            const metaDescription = (typeof item === 'object' && item !== null) ? item.description : null;
+
+            const mapped = reasonDescriptions[code];
+            return {
+                code,
+                label:       mapped?.label       || code.replace(/_/g, ' '),
+                description: mapped?.description || metaDescription || 'No additional details available for this reason.',
+                severity:    mapped?.severity    || 'medium',
+            };
+        });
 
         // Fetch paused templates — use raw SQL so we can handle missing pauseReason column gracefully
         const Template = require('../models/Template');
