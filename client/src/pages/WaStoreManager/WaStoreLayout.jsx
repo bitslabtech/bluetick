@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Outlet, NavLink, useParams, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -15,6 +15,12 @@ export default function WaStoreLayout() {
     const [coverDragOver, setCoverDragOver] = useState(false);
     const [debugInfo, setDebugInfo] = useState({});
     const coverInputRef = useRef(null);
+    const location = useLocation();
+
+    // Scroll to top when changing tabs
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [location.pathname]);
 
     useEffect(() => {
         const fetchStore = async () => {
@@ -261,7 +267,7 @@ export default function WaStoreLayout() {
             {/* Two Column Layout Below Header */}
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Sidebar */}
-                <div className="w-full md:w-64 flex-shrink-0 self-start sticky top-6">
+                <div className="w-full md:w-64 flex-shrink-0 self-start sticky top-0">
                     <button 
                         onClick={() => navigate('/online-store')}
                         className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white mb-6 transition-colors font-medium px-2"

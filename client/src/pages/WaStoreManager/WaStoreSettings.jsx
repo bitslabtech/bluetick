@@ -46,7 +46,7 @@ export default function WaStoreSettings() {
     const [inventoryConfig, setInventoryConfig] = useState({ enabled: false, autoOutOfStock: false, showLowStock: false, preventCartAdd: false, showOutOfStock: false });
     const [savingInventory, setSavingInventory] = useState(false);
 
-    const [invoiceConfig, setInvoiceConfig] = useState({ prefixOnline: 'ORD-', prefixPos: 'POS-', startingNumber: 1001 });
+    const [invoiceConfig, setInvoiceConfig] = useState({ prefixOnline: 'ORD-', prefixPos: 'POS-', onlineStartingNumber: 1001, posStartingNumber: 1001 });
     const [savingInvoice, setSavingInvoice] = useState(false);
 
     const [customerAuthConfig, setCustomerAuthConfig] = useState({
@@ -57,6 +57,15 @@ export default function WaStoreSettings() {
     });
     const [savingAuth, setSavingAuth] = useState(false);
     const [templates, setTemplates] = useState([]);
+    const [activeTab, setActiveTab] = useState('domain');
+
+    const tabs = [
+        { id: 'domain', label: 'General', icon: <Globe className="w-4 h-4" /> },
+        { id: 'layout', label: 'Layout & Display', icon: <LayoutGrid className="w-4 h-4" /> },
+        { id: 'checkout', label: 'Checkout & Auth', icon: <ShoppingBag className="w-4 h-4" /> },
+        { id: 'tax_invoice', label: 'Tax & Invoice', icon: <FileText className="w-4 h-4" /> },
+        { id: 'danger', label: 'Danger Zone', icon: <AlertTriangle className="w-4 h-4" /> },
+    ];
 
     useEffect(() => {
         const fetchStore = async () => {
@@ -205,55 +214,33 @@ export default function WaStoreSettings() {
         </div>
     );
     return (
-        <div className="max-w-4xl space-y-6 pb-7 sm:pb-20">
-            <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-indigo-500" />
-                    Store Settings
-                </h2>
-                <p className="text-sm text-slate-500 mt-1">
-                    Advanced settings and administrative controls for your store.
-                </p>
-            </div>
-            {/* Store Stats Card */}
-            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
-                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <BarChart2 className="w-4 h-4 text-indigo-400" /> Store Overview
-                    </h3>
-                </div>
-                <div className="p-4 md:p-6 grid grid-cols-2 md:grid-cols-3 gap-6">
-                    <div className="text-center">
-                        <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{store.views ?? 0}</div>
-                        <div className="text-xs text-slate-500 font-medium mt-1 flex items-center justify-center gap-1">
-                            <Eye className="w-3.5 h-3.5" /> Total Views
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <div className={`text-3xl font-black ${store.isActive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            {store.isActive ? 'Live' : 'Draft'}
-                        </div>
-                        <div className="text-xs text-slate-500 font-medium mt-1">Store Status</div>
-                    </div>
-                    <div className="text-center col-span-2 md:col-span-1">
-                        <div className="text-3xl font-black text-slate-700 dark:text-slate-300 capitalize">{store.themeId || 'vogue'}</div>
-                        <div className="text-xs text-slate-500 font-medium mt-1">Active Theme</div>
-                    </div>
-                </div>
-                <div className="px-4 md:px-6 pb-5">
-                    <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/40 text-sm text-indigo-700 dark:text-indigo-300">
-                        <p className="font-semibold mb-0.5">Store URL</p>
-                        <a
-                            href={`${window.location.origin}/store/${store.slug}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-indigo-600 dark:text-indigo-400 hover:underline break-all font-mono text-xs"
+        <div className="max-w-4xl pb-7 sm:pb-20">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
+                <Settings className="w-5 h-5 text-indigo-500" />
+                Store Settings
+            </h2>
+
+            {/* Tabs Navigation */}
+            <div className="sticky top-[-16px] md:top-[-24px] z-40 bg-slate-50 dark:bg-slate-900 py-3 border-b border-slate-200 dark:border-slate-800 mb-6 -mx-4 px-4 md:-mx-8 md:px-8">
+                <div className="flex overflow-x-auto hide-scrollbar gap-2">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-slate-700'}`}
                         >
-                            {window.location.origin}/store/{store.slug}
-                        </a>
-                    </div>
+                            {tab.icon}
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
             </div>
+
+            {/* Tab Contents */}
+            <div className="space-y-6">
+
+            {activeTab === 'domain' && (
+            <>
             {/* Custom Domain Mapping */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -263,7 +250,7 @@ export default function WaStoreSettings() {
                 </div>
                 <div className="p-4 md:p-6 space-y-4">
                     <p className="text-sm text-slate-500">
-                        Map your own domain name (e.g., <strong>shop.yourbrand.com</strong>) to your Online Store.
+                        Map your own domain name (e.g., <strong>yourbrand.com</strong>) to your Online Store.
                     </p>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Domain Name</label>
@@ -284,9 +271,9 @@ export default function WaStoreSettings() {
                             </button>
                         </div>
                     </div>
-                    
+
                     <div className="mt-6 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-                        <button 
+                        <button
                             onClick={() => setShowDnsInstructions(!showDnsInstructions)}
                             className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
@@ -295,13 +282,13 @@ export default function WaStoreSettings() {
                             </h4>
                             {showDnsInstructions ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                         </button>
-                        
+
                         {showDnsInstructions && (
                             <div className="p-5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
                                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
                                     To make your custom domain work, you need to log into your domain provider (e.g. GoDaddy, Namecheap, Route53) and add the following record to your DNS settings.
                                 </p>
-                                
+
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm text-left border-collapse">
                                         <thead>
@@ -334,6 +321,10 @@ export default function WaStoreSettings() {
                     </div>
                 </div>
             </div>
+            </>
+            )}
+            {activeTab === 'layout' && (
+            <>
             {/* Product Grid Layout */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -355,19 +346,18 @@ export default function WaStoreSettings() {
                                     key={n}
                                     type="button"
                                     onClick={() => setGridColumns(g => ({ ...g, desktop: n }))}
-                                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                                        gridColumns.desktop === n
+                                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${gridColumns.desktop === n
                                             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
                                             : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
-                                    }`}
+                                        }`}
                                 >
                                     {/* Mini grid preview */}
                                     <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${Math.min(n, 4)}, 1fr)`, width: 52 }}>
                                         {Array(Math.min(n * 2, 8)).fill(0).map((_, i) => (
-                                            <div key={i} className={`h-3 rounded-sm ${ gridColumns.desktop === n ? 'bg-indigo-400' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                                            <div key={i} className={`h-3 rounded-sm ${gridColumns.desktop === n ? 'bg-indigo-400' : 'bg-slate-200 dark:bg-slate-700'}`} />
                                         ))}
                                     </div>
-                                    <span className={`text-xs font-bold ${ gridColumns.desktop === n ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>{n} col</span>
+                                    <span className={`text-xs font-bold ${gridColumns.desktop === n ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>{n} col</span>
                                 </button>
                             ))}
                         </div>
@@ -384,18 +374,17 @@ export default function WaStoreSettings() {
                                     key={n}
                                     type="button"
                                     onClick={() => setGridColumns(g => ({ ...g, mobile: n }))}
-                                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                                        gridColumns.mobile === n
+                                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${gridColumns.mobile === n
                                             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
                                             : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
-                                    }`}
+                                        }`}
                                 >
                                     <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${n}, 1fr)`, width: 52 }}>
                                         {Array(n * 2).fill(0).map((_, i) => (
-                                            <div key={i} className={`h-4 rounded-sm ${ gridColumns.mobile === n ? 'bg-indigo-400' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                                            <div key={i} className={`h-4 rounded-sm ${gridColumns.mobile === n ? 'bg-indigo-400' : 'bg-slate-200 dark:bg-slate-700'}`} />
                                         ))}
                                     </div>
-                                    <span className={`text-xs font-bold ${ gridColumns.mobile === n ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>{n} col</span>
+                                    <span className={`text-xs font-bold ${gridColumns.mobile === n ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>{n} col</span>
                                 </button>
                             ))}
                         </div>
@@ -431,15 +420,13 @@ export default function WaStoreSettings() {
                             />
                             <div
                                 onClick={() => setShowCrossSells(v => !v)}
-                                className={`w-11 h-6 rounded-full transition-colors cursor-pointer border-2 ${
-                                    showCrossSells
+                                className={`w-11 h-6 rounded-full transition-colors cursor-pointer border-2 ${showCrossSells
                                         ? 'bg-indigo-600 border-indigo-600'
                                         : 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
-                                } cursor-pointer`}
+                                    } cursor-pointer`}
                             >
-                                <div className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                                    showCrossSells ? 'translate-x-5' : 'translate-x-0'
-                                }`} />
+                                <div className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow transition-transform ${showCrossSells ? 'translate-x-5' : 'translate-x-0'
+                                    }`} />
                             </div>
                         </div>
                         <div>
@@ -486,15 +473,13 @@ export default function WaStoreSettings() {
                                         className="sr-only peer"
                                     />
                                     <div
-                                        className={`w-9 h-5 rounded-full transition-colors cursor-pointer border-2 ${
-                                            item.enabled
+                                        className={`w-9 h-5 rounded-full transition-colors cursor-pointer border-2 ${item.enabled
                                                 ? 'bg-indigo-600 border-indigo-600'
                                                 : 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
-                                        }`}
+                                            }`}
                                     >
-                                        <div className={`absolute top-[2px] left-[2px] w-3.5 h-3.5 bg-white rounded-full shadow transition-transform ${
-                                            item.enabled ? 'translate-x-4' : 'translate-x-0'
-                                        }`} />
+                                        <div className={`absolute top-[2px] left-[2px] w-3.5 h-3.5 bg-white rounded-full shadow transition-transform ${item.enabled ? 'translate-x-4' : 'translate-x-0'
+                                            }`} />
                                     </div>
                                 </div>
                                 <div>
@@ -524,6 +509,10 @@ export default function WaStoreSettings() {
                     </div>
                 </div>
             </div>
+            </>
+            )}
+            {activeTab === 'checkout' && (
+            <>
             {/* Checkout & Payment Configuration */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -535,8 +524,8 @@ export default function WaStoreSettings() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Store Currency</label>
-                            <select 
-                                value={currency} 
+                            <select
+                                value={currency}
                                 onChange={e => setCurrency(e.target.value)}
                                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
                             >
@@ -552,8 +541,8 @@ export default function WaStoreSettings() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Checkout Mode</label>
-                            <select 
-                                value={checkoutMode} 
+                            <select
+                                value={checkoutMode}
                                 onChange={e => setCheckoutMode(e.target.value)}
                                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
                             >
@@ -570,8 +559,8 @@ export default function WaStoreSettings() {
                         <div className="space-y-4 p-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/30">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Select Payment Provider</label>
-                                <select 
-                                    value={paymentProvider} 
+                                <select
+                                    value={paymentProvider}
                                     onChange={e => setPaymentProvider(e.target.value)}
                                     className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
                                 >
@@ -585,11 +574,11 @@ export default function WaStoreSettings() {
                                 <div className="space-y-3">
                                     <div>
                                         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Razorpay Key ID</label>
-                                        <input type="text" value={paymentConfig.razorpayKeyId || ''} onChange={e => setPaymentConfig(p => ({...p, razorpayKeyId: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                        <input type="text" value={paymentConfig.razorpayKeyId || ''} onChange={e => setPaymentConfig(p => ({ ...p, razorpayKeyId: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Razorpay Key Secret</label>
-                                        <input type="password" value={paymentConfig.razorpayKeySecret || ''} onChange={e => setPaymentConfig(p => ({...p, razorpayKeySecret: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                        <input type="password" value={paymentConfig.razorpayKeySecret || ''} onChange={e => setPaymentConfig(p => ({ ...p, razorpayKeySecret: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
                                     </div>
                                 </div>
                             )}
@@ -598,15 +587,15 @@ export default function WaStoreSettings() {
                                 <div className="space-y-3">
                                     <div>
                                         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Merchant ID</label>
-                                        <input type="text" value={paymentConfig.phonepeMerchantId || ''} onChange={e => setPaymentConfig(p => ({...p, phonepeMerchantId: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                        <input type="text" value={paymentConfig.phonepeMerchantId || ''} onChange={e => setPaymentConfig(p => ({ ...p, phonepeMerchantId: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Salt Key</label>
-                                        <input type="password" value={paymentConfig.phonepeSaltKey || ''} onChange={e => setPaymentConfig(p => ({...p, phonepeSaltKey: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                        <input type="password" value={paymentConfig.phonepeSaltKey || ''} onChange={e => setPaymentConfig(p => ({ ...p, phonepeSaltKey: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Salt Index</label>
-                                        <input type="text" value={paymentConfig.phonepeSaltIndex || '1'} onChange={e => setPaymentConfig(p => ({...p, phonepeSaltIndex: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                        <input type="text" value={paymentConfig.phonepeSaltIndex || '1'} onChange={e => setPaymentConfig(p => ({ ...p, phonepeSaltIndex: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
                                     </div>
                                 </div>
                             )}
@@ -616,13 +605,13 @@ export default function WaStoreSettings() {
                     {/* Order & Shipping Rules */}
                     <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4 mt-6">
                         <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">Order & Shipping Rules</h4>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Minimum Order Value</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-                                    <input type="number" min="0" value={checkoutConfig?.minOrderValue || 0} onChange={e => setCheckoutConfig(p => ({...p, minOrderValue: Number(e.target.value)}))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
+                                    <input type="number" min="0" value={checkoutConfig?.minOrderValue || 0} onChange={e => setCheckoutConfig(p => ({ ...p, minOrderValue: Number(e.target.value) }))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
                                 </div>
                                 <p className="text-[10px] text-slate-500 mt-1">Set to 0 for no minimum.</p>
                             </div>
@@ -630,7 +619,7 @@ export default function WaStoreSettings() {
                                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Flat Shipping Rate</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-                                    <input type="number" min="0" value={checkoutConfig?.flatShippingRate || 0} onChange={e => setCheckoutConfig(p => ({...p, flatShippingRate: Number(e.target.value)}))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
+                                    <input type="number" min="0" value={checkoutConfig?.flatShippingRate || 0} onChange={e => setCheckoutConfig(p => ({ ...p, flatShippingRate: Number(e.target.value) }))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
                                 </div>
                                 <p className="text-[10px] text-slate-500 mt-1">Delivery fee added to cart.</p>
                             </div>
@@ -638,7 +627,7 @@ export default function WaStoreSettings() {
                                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Free Shipping Threshold</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-                                    <input type="number" min="0" value={checkoutConfig?.freeShippingThreshold || 0} onChange={e => setCheckoutConfig(p => ({...p, freeShippingThreshold: Number(e.target.value)}))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
+                                    <input type="number" min="0" value={checkoutConfig?.freeShippingThreshold || 0} onChange={e => setCheckoutConfig(p => ({ ...p, freeShippingThreshold: Number(e.target.value) }))} className="w-full pl-7 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
                                 </div>
                                 <p className="text-[10px] text-slate-500 mt-1">Waive fee if cart &gt; this amount. (0 to disable)</p>
                             </div>
@@ -655,6 +644,10 @@ export default function WaStoreSettings() {
                     </button>
                 </div>
             </div>
+            </>
+            )}
+            {activeTab === 'domain' && (
+            <>
             {/* Inventory Configuration */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -676,15 +669,13 @@ export default function WaStoreSettings() {
                             />
                             <div
                                 onClick={() => setInventoryConfig(c => ({ ...c, enabled: !c.enabled }))}
-                                className={`w-11 h-6 rounded-full transition-colors cursor-pointer border-2 ${
-                                    inventoryConfig.enabled
+                                className={`w-11 h-6 rounded-full transition-colors cursor-pointer border-2 ${inventoryConfig.enabled
                                         ? 'bg-indigo-600 border-indigo-600'
                                         : 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
-                                } cursor-pointer`}
+                                    } cursor-pointer`}
                             >
-                                <div className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                                    inventoryConfig.enabled ? 'translate-x-5' : 'translate-x-0'
-                                }`} />
+                                <div className={`absolute top-[3px] left-[3px] w-4 h-4 bg-white rounded-full shadow transition-transform ${inventoryConfig.enabled ? 'translate-x-5' : 'translate-x-0'
+                                    }`} />
                             </div>
                         </div>
                         <div>
@@ -699,10 +690,10 @@ export default function WaStoreSettings() {
                     {inventoryConfig.enabled && (
                         <div className="space-y-4 pl-4 border-l-2 border-indigo-100 dark:border-indigo-900/50">
                             <label className="flex items-start gap-3 cursor-pointer">
-                                <input 
-                                    type="checkbox" 
-                                    checked={inventoryConfig.autoOutOfStock} 
-                                    onChange={e => setInventoryConfig({...inventoryConfig, autoOutOfStock: e.target.checked})}
+                                <input
+                                    type="checkbox"
+                                    checked={inventoryConfig.autoOutOfStock}
+                                    onChange={e => setInventoryConfig({ ...inventoryConfig, autoOutOfStock: e.target.checked })}
                                     className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                                 />
                                 <div>
@@ -712,10 +703,10 @@ export default function WaStoreSettings() {
                             </label>
 
                             <label className="flex items-start gap-3 cursor-pointer">
-                                <input 
-                                    type="checkbox" 
-                                    checked={inventoryConfig.preventCartAdd} 
-                                    onChange={e => setInventoryConfig({...inventoryConfig, preventCartAdd: e.target.checked})}
+                                <input
+                                    type="checkbox"
+                                    checked={inventoryConfig.preventCartAdd}
+                                    onChange={e => setInventoryConfig({ ...inventoryConfig, preventCartAdd: e.target.checked })}
                                     className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                                 />
                                 <div>
@@ -725,10 +716,10 @@ export default function WaStoreSettings() {
                             </label>
 
                             <label className="flex items-start gap-3 cursor-pointer">
-                                <input 
-                                    type="checkbox" 
-                                    checked={inventoryConfig.showLowStock} 
-                                    onChange={e => setInventoryConfig({...inventoryConfig, showLowStock: e.target.checked})}
+                                <input
+                                    type="checkbox"
+                                    checked={inventoryConfig.showLowStock}
+                                    onChange={e => setInventoryConfig({ ...inventoryConfig, showLowStock: e.target.checked })}
                                     className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                                 />
                                 <div>
@@ -738,10 +729,10 @@ export default function WaStoreSettings() {
                             </label>
 
                             <label className="flex items-start gap-3 cursor-pointer">
-                                <input 
-                                    type="checkbox" 
-                                    checked={inventoryConfig.showOutOfStock} 
-                                    onChange={e => setInventoryConfig({...inventoryConfig, showOutOfStock: e.target.checked})}
+                                <input
+                                    type="checkbox"
+                                    checked={inventoryConfig.showOutOfStock}
+                                    onChange={e => setInventoryConfig({ ...inventoryConfig, showOutOfStock: e.target.checked })}
                                     className="w-5 h-5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                                 />
                                 <div>
@@ -764,6 +755,10 @@ export default function WaStoreSettings() {
                     </div>
                 </div>
             </div>
+            </>
+            )}
+            {activeTab === 'tax_invoice' && (
+            <>
             {/* Invoice Configuration */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
@@ -772,36 +767,51 @@ export default function WaStoreSettings() {
                     </h3>
                 </div>
                 <div className="p-4 md:p-6 space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Online Order Prefix</label>
-                            <input 
-                                type="text" 
-                                value={invoiceConfig.prefixOnline} 
-                                onChange={e => setInvoiceConfig({...invoiceConfig, prefixOnline: e.target.value.toUpperCase()})}
-                                placeholder="ORD-"
-                                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm uppercase font-mono"
-                            />
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Online Order Prefix</label>
+                                <input
+                                    type="text"
+                                    value={invoiceConfig.prefixOnline}
+                                    onChange={e => setInvoiceConfig({ ...invoiceConfig, prefixOnline: e.target.value.toUpperCase() })}
+                                    placeholder="ORD-"
+                                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm uppercase font-mono shadow-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Online Starting Number</label>
+                                <input
+                                    type="number"
+                                    value={invoiceConfig.onlineStartingNumber ?? invoiceConfig.startingNumber ?? 1001}
+                                    onChange={e => setInvoiceConfig({ ...invoiceConfig, onlineStartingNumber: parseInt(e.target.value) || 0 })}
+                                    placeholder="1001"
+                                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm font-mono shadow-sm"
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">POS Order Prefix</label>
-                            <input 
-                                type="text" 
-                                value={invoiceConfig.prefixPos} 
-                                onChange={e => setInvoiceConfig({...invoiceConfig, prefixPos: e.target.value.toUpperCase()})}
-                                placeholder="POS-"
-                                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm uppercase font-mono"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Starting Number</label>
-                            <input 
-                                type="number" 
-                                value={invoiceConfig.startingNumber} 
-                                onChange={e => setInvoiceConfig({...invoiceConfig, startingNumber: parseInt(e.target.value) || 0})}
-                                placeholder="1001"
-                                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm font-mono"
-                            />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">POS Order Prefix</label>
+                                <input
+                                    type="text"
+                                    value={invoiceConfig.prefixPos}
+                                    onChange={e => setInvoiceConfig({ ...invoiceConfig, prefixPos: e.target.value.toUpperCase() })}
+                                    placeholder="POS-"
+                                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm uppercase font-mono shadow-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">POS Starting Number</label>
+                                <input
+                                    type="number"
+                                    value={invoiceConfig.posStartingNumber ?? invoiceConfig.startingNumber ?? 1001}
+                                    onChange={e => setInvoiceConfig({ ...invoiceConfig, posStartingNumber: parseInt(e.target.value) || 0 })}
+                                    placeholder="1001"
+                                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm font-mono shadow-sm"
+                                />
+                            </div>
                         </div>
                     </div>
                     <div className="pt-2">
@@ -825,10 +835,10 @@ export default function WaStoreSettings() {
                 </div>
                 <div className="p-4 md:p-6 space-y-5">
                     <label className="flex items-center gap-3 cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            checked={taxConfig.enabled} 
-                            onChange={e => setTaxConfig({...taxConfig, enabled: e.target.checked})}
+                        <input
+                            type="checkbox"
+                            checked={taxConfig.enabled}
+                            onChange={e => setTaxConfig({ ...taxConfig, enabled: e.target.checked })}
                             className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                         />
                         <span className="text-sm font-medium text-slate-900 dark:text-white">Enable Taxes / GST</span>
@@ -838,9 +848,9 @@ export default function WaStoreSettings() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-8 border-l-2 border-indigo-100 dark:border-indigo-900/50 mt-2">
                             <div>
                                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Tax System</label>
-                                <select 
-                                    value={taxConfig.type} 
-                                    onChange={e => setTaxConfig({...taxConfig, type: e.target.value})}
+                                <select
+                                    value={taxConfig.type}
+                                    onChange={e => setTaxConfig({ ...taxConfig, type: e.target.value })}
                                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
                                 >
                                     <option value="gst">Indian GST (CGST/SGST/IGST)</option>
@@ -849,9 +859,9 @@ export default function WaStoreSettings() {
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Pricing Mode</label>
-                                <select 
-                                    value={taxConfig.taxInclusive ? 'inclusive' : 'exclusive'} 
-                                    onChange={e => setTaxConfig({...taxConfig, taxInclusive: e.target.value === 'inclusive'})}
+                                <select
+                                    value={taxConfig.taxInclusive ? 'inclusive' : 'exclusive'}
+                                    onChange={e => setTaxConfig({ ...taxConfig, taxInclusive: e.target.value === 'inclusive' })}
                                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
                                 >
                                     <option value="exclusive">Product Price Excludes Tax (Tax added at checkout)</option>
@@ -865,37 +875,37 @@ export default function WaStoreSettings() {
                                 <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
                                     {(taxConfig.slabs || []).map((slab, index) => (
                                         <div key={index} className="flex gap-2 items-center">
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 placeholder="Slab Name (e.g., 18% GST)"
                                                 value={slab.name}
                                                 onChange={e => {
                                                     const newSlabs = [...(taxConfig.slabs || [])];
                                                     newSlabs[index].name = e.target.value;
-                                                    setTaxConfig({...taxConfig, slabs: newSlabs});
+                                                    setTaxConfig({ ...taxConfig, slabs: newSlabs });
                                                 }}
                                                 className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
                                             />
                                             <div className="relative w-24">
-                                                <input 
-                                                    type="number" 
+                                                <input
+                                                    type="number"
                                                     placeholder="Rate"
                                                     value={slab.rate}
                                                     onChange={e => {
                                                         const newSlabs = [...(taxConfig.slabs || [])];
                                                         newSlabs[index].rate = parseFloat(e.target.value) || 0;
-                                                        setTaxConfig({...taxConfig, slabs: newSlabs});
+                                                        setTaxConfig({ ...taxConfig, slabs: newSlabs });
                                                     }}
                                                     className="w-full px-3 py-2 pr-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
                                                 />
                                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
                                             </div>
-                                            <button 
+                                            <button
                                                 type="button"
                                                 onClick={() => {
                                                     const newSlabs = [...(taxConfig.slabs || [])];
                                                     newSlabs.splice(index, 1);
-                                                    setTaxConfig({...taxConfig, slabs: newSlabs});
+                                                    setTaxConfig({ ...taxConfig, slabs: newSlabs });
                                                 }}
                                                 className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"
                                             >
@@ -903,9 +913,9 @@ export default function WaStoreSettings() {
                                             </button>
                                         </div>
                                     ))}
-                                    <button 
+                                    <button
                                         type="button"
-                                        onClick={() => setTaxConfig({...taxConfig, slabs: [...(taxConfig.slabs || []), { name: '', rate: 0 }]})}
+                                        onClick={() => setTaxConfig({ ...taxConfig, slabs: [...(taxConfig.slabs || []), { name: '', rate: 0 }] })}
                                         className="text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
                                     >
                                         + Add Tax Slab
@@ -918,10 +928,10 @@ export default function WaStoreSettings() {
                             {(!taxConfig.slabs || taxConfig.slabs.length === 0) && (
                                 <div className="col-span-1 md:col-span-2">
                                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Global Default Tax Rate (%)</label>
-                                    <input 
-                                        type="number" 
-                                        value={taxConfig.rate} 
-                                        onChange={e => setTaxConfig({...taxConfig, rate: parseFloat(e.target.value) || 0})}
+                                    <input
+                                        type="number"
+                                        value={taxConfig.rate}
+                                        onChange={e => setTaxConfig({ ...taxConfig, rate: parseFloat(e.target.value) || 0 })}
                                         className="w-full md:w-1/2 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
                                     />
                                 </div>
@@ -937,27 +947,27 @@ export default function WaStoreSettings() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Legal Business Name</label>
-                                            <input type="text" value={taxConfig.sellerLegalName || ''} onChange={e => setTaxConfig({...taxConfig, sellerLegalName: e.target.value})} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="As registered with GST" />
+                                            <input type="text" value={taxConfig.sellerLegalName || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerLegalName: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="As registered with GST" />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">GSTIN</label>
-                                            <input type="text" value={taxConfig.sellerGstin || ''} onChange={e => setTaxConfig({...taxConfig, sellerGstin: e.target.value.toUpperCase()})} maxLength={15} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono uppercase" placeholder="22AABCC1234F1Z5" />
+                                            <input type="text" value={taxConfig.sellerGstin || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerGstin: e.target.value.toUpperCase() })} maxLength={15} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono uppercase" placeholder="22AABCC1234F1Z5" />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">PAN</label>
-                                            <input type="text" value={taxConfig.sellerPan || ''} onChange={e => setTaxConfig({...taxConfig, sellerPan: e.target.value.toUpperCase()})} maxLength={10} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono uppercase" placeholder="AABCC1234F" />
+                                            <input type="text" value={taxConfig.sellerPan || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerPan: e.target.value.toUpperCase() })} maxLength={10} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono uppercase" placeholder="AABCC1234F" />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
-                                            <input type="text" value={taxConfig.sellerState || ''} onChange={e => setTaxConfig({...taxConfig, sellerState: e.target.value})} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="e.g. Maharashtra" />
+                                            <input type="text" value={taxConfig.sellerState || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerState: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="e.g. Maharashtra" />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">State Code</label>
-                                            <input type="text" value={taxConfig.sellerStateCode || ''} onChange={e => setTaxConfig({...taxConfig, sellerStateCode: e.target.value})} maxLength={2} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="27" />
+                                            <input type="text" value={taxConfig.sellerStateCode || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerStateCode: e.target.value })} maxLength={2} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="27" />
                                         </div>
                                         <div className="md:col-span-2">
                                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Registered Address</label>
-                                            <textarea value={taxConfig.sellerAddress || ''} onChange={e => setTaxConfig({...taxConfig, sellerAddress: e.target.value})} rows={2} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="Full registered address" />
+                                            <textarea value={taxConfig.sellerAddress || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerAddress: e.target.value })} rows={2} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="Full registered address" />
                                         </div>
                                     </div>
                                 </div>
@@ -965,10 +975,10 @@ export default function WaStoreSettings() {
 
                             <div className="col-span-1 md:col-span-2 space-y-3 mt-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={taxConfig.autoGenerateBill} 
-                                        onChange={e => setTaxConfig({...taxConfig, autoGenerateBill: e.target.checked})}
+                                    <input
+                                        type="checkbox"
+                                        checked={taxConfig.autoGenerateBill}
+                                        onChange={e => setTaxConfig({ ...taxConfig, autoGenerateBill: e.target.checked })}
                                         className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                                     />
                                     <span className="text-sm text-slate-700 dark:text-slate-300">Auto-generate Tax Invoice PDF when order is placed</span>
@@ -976,10 +986,10 @@ export default function WaStoreSettings() {
 
                                 {taxConfig.autoGenerateBill && (
                                     <label className="flex items-center gap-3 cursor-pointer pl-6">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={taxConfig.autoSendWhatsApp} 
-                                            onChange={e => setTaxConfig({...taxConfig, autoSendWhatsApp: e.target.checked})}
+                                        <input
+                                            type="checkbox"
+                                            checked={taxConfig.autoSendWhatsApp}
+                                            onChange={e => setTaxConfig({ ...taxConfig, autoSendWhatsApp: e.target.checked })}
                                             className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                                         />
                                         <span className="text-sm text-slate-700 dark:text-slate-300">Auto-send Invoice PDF to customer via WhatsApp</span>
@@ -999,6 +1009,10 @@ export default function WaStoreSettings() {
                     </button>
                 </div>
             </div>
+            </>
+            )}
+            {activeTab === 'danger' && (
+            <>
             {/* Danger Zone */}
             <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-900/30 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-rose-200 dark:border-rose-900/30 flex items-center gap-2">
@@ -1007,7 +1021,7 @@ export default function WaStoreSettings() {
                 </div>
                 <div className="p-4 md:p-6 space-y-4">
                     <p className="text-rose-700 dark:text-rose-300/80 text-sm leading-relaxed">
-                        Deleting your store is <strong>permanent and irreversible</strong>. All products, settings, and analytics data will be lost. 
+                        Deleting your store is <strong>permanent and irreversible</strong>. All products, settings, and analytics data will be lost.
                         To confirm, type your store name exactly as shown below.
                     </p>
 
@@ -1040,6 +1054,10 @@ export default function WaStoreSettings() {
                 </div>
             </div>
 
+            </>
+            )}
+            {activeTab === 'checkout' && (
+            <>
             {/* ─── CUSTOMER ACCOUNTS ─── */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
@@ -1135,7 +1153,10 @@ export default function WaStoreSettings() {
                                     <p className="text-xs text-slate-500">Customers can checkout without account</p>
                                 </div>
                                 <button type="button"
-                                    onClick={() => setCustomerAuthConfig(prev => ({ ...prev, allowGuestCheckout: !prev.allowGuestCheckout }))}
+                                    onClick={() => setCustomerAuthConfig(prev => {
+                                        const newValue = !prev.allowGuestCheckout;
+                                        return { ...prev, allowGuestCheckout: newValue, requireLoginForCheckout: newValue ? false : prev.requireLoginForCheckout };
+                                    })}
                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${customerAuthConfig.allowGuestCheckout ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${customerAuthConfig.allowGuestCheckout ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -1146,7 +1167,10 @@ export default function WaStoreSettings() {
                                     <p className="text-xs text-slate-500">Force login before placing orders</p>
                                 </div>
                                 <button type="button"
-                                    onClick={() => setCustomerAuthConfig(prev => ({ ...prev, requireLoginForCheckout: !prev.requireLoginForCheckout }))}
+                                    onClick={() => setCustomerAuthConfig(prev => {
+                                        const newValue = !prev.requireLoginForCheckout;
+                                        return { ...prev, requireLoginForCheckout: newValue, allowGuestCheckout: newValue ? false : prev.allowGuestCheckout };
+                                    })}
                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${customerAuthConfig.requireLoginForCheckout ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${customerAuthConfig.requireLoginForCheckout ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -1171,6 +1195,9 @@ export default function WaStoreSettings() {
                 >
                     {savingAuth ? 'Saving…' : 'Save Account Settings'}
                 </button>
+            </div>
+            </>
+            )}
             </div>
         </div>
     );

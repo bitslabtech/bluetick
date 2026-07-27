@@ -46,6 +46,34 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
     const [trackingUrl, setTrackingUrl] = useState(order.trackingUrl || '');
     const [fulfilling, setFulfilling] = useState(false);
 
+    // Modal positioning bounds to align with main section and exclude sidebar
+    const [bounds, setBounds] = useState({ left: 0, top: 0, width: '100%', height: '100%' });
+
+    useEffect(() => {
+        const mainEl = document.querySelector('main');
+        let originalOverflow = '';
+        if (mainEl) {
+            const rect = mainEl.getBoundingClientRect();
+            setBounds({ left: rect.left, top: rect.top, width: rect.width, height: rect.height });
+            
+            // Prevent background scrolling while modal is open
+            originalOverflow = window.getComputedStyle(mainEl).overflow;
+            mainEl.style.overflow = 'hidden';
+            
+            // Handle window resize to recalculate bounds
+            const handleResize = () => {
+                const newRect = mainEl.getBoundingClientRect();
+                setBounds({ left: newRect.left, top: newRect.top, width: newRect.width, height: newRect.height });
+            };
+            window.addEventListener('resize', handleResize);
+            
+            return () => {
+                mainEl.style.overflow = originalOverflow;
+                window.removeEventListener('resize', handleResize);
+            };
+        }
+    }, []);
+
     const handleFulfill = async () => {
         setFulfilling(true);
         try {
@@ -87,229 +115,239 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-8">
+        <div 
+            className="fixed z-50 flex items-center justify-center p-0 sm:p-4 md:p-8 overflow-hidden"
+            style={{ left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height }}
+        >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" onClick={onClose} />
-            <div className="relative w-full h-full sm:h-auto max-w-3xl max-h-screen sm:max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 sm:rounded-3xl shadow-2xl text-slate-900 dark:text-white flex flex-col">
+            <div className="relative w-full h-full sm:h-auto max-w-5xl max-h-full overflow-y-auto bg-slate-50 dark:bg-zinc-900 sm:rounded-3xl shadow-2xl text-slate-900 dark:text-white flex flex-col">
                 
                 {/* Header */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/10 bg-white dark:bg-zinc-900 sm:rounded-t-3xl shadow-sm">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-zinc-900 sm:rounded-t-3xl shadow-sm">
                     <div>
-                        <h2 className="text-xl font-black">{order.orderNumber}</h2>
-                        <p className="text-xs text-slate-500 mt-0.5">{formatDate(order.createdAt)}</p>
+                        <h2 className="text-xl font-black">Order {order.orderNumber}</h2>
+                        <p className="text-xs text-slate-500 mt-0.5">Placed on {formatDate(order.createdAt)}</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <div className="p-4 md:p-6 space-y-6">
-                    {/* Status & Actions row */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
-                        <div className="flex-1 space-y-1">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Update Status</label>
-                            <select
-                                value={status}
-                                onChange={e => setStatus(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                                {Object.entries(STATUS_CONFIG).map(([key, { label }]) => (
-                                    <option key={key} value={key}>{label}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="flex gap-2 mt-4 sm:mt-6 w-full sm:w-auto">
-                            {order.customerPhone && (
-                                <button onClick={openWhatsApp} title="Message on WhatsApp"
-                                    className="p-2.5 bg-[#25D366] text-white rounded-xl hover:bg-[#1DA851] transition-colors flex items-center justify-center shrink-0">
-                                    <MessageCircle className="w-5 h-5" />
-                                </button>
-                            )}
-                            <button onClick={handleSave} disabled={saving}
-                                className="flex-1 sm:flex-none px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl font-semibold text-sm transition-colors">
-                                {saving ? 'Saving…' : 'Save Changes'}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Customer Info */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
-                            <h3 className="font-bold text-sm text-slate-500 uppercase tracking-wider">Customer Info</h3>
-                            {order.customerName && (
-                                <div className="flex items-center gap-3 text-sm">
-                                    <User className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                                    <span className="font-medium">{order.customerName}</span>
+                <div className="p-4 md:p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        {/* Left Column (Customer Info, Items & Notes) */}
+                        <div className="lg:col-span-2 space-y-6">
+                            
+                            {/* Customer Details (Moved from right to above items) */}
+                            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]">
+                                    <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                        <User className="w-4 h-4 text-slate-500" /> Customer Details
+                                    </h3>
                                 </div>
-                            )}
-                            {order.customerPhone && (
-                                <div className="flex items-center gap-3 text-sm">
-                                    <Phone className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                                    <span>{order.customerPhone}</span>
-                                </div>
-                            )}
-                            {order.customerEmail && (
-                                <div className="flex items-center gap-3 text-sm">
-                                    <Mail className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                                    <span>{order.customerEmail}</span>
-                                </div>
-                            )}
-                            {order.customerAddress && (
-                                <div className="flex items-start gap-3 text-sm">
-                                    <MapPin className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
-                                    <span className="whitespace-pre-line">{order.customerAddress}</span>
-                                </div>
-                            )}
-                            {!order.customerName && !order.customerPhone && !order.customerEmail && (
-                                <p className="text-slate-400 text-sm italic">No customer details provided</p>
-                            )}
-                        </div>
-
-                        <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
-                            <h3 className="font-bold text-sm text-slate-500 uppercase tracking-wider">Order Summary</h3>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-500">Items</span>
-                                <span className="font-bold">{order.items?.length || 0}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-500">Total Qty</span>
-                                <span className="font-bold">{order.items?.reduce((s, i) => s + i.qty, 0) || 0}</span>
-                            </div>
-
-                            {/* Discount breakdown — only shown if a coupon was applied */}
-                            {order.couponCode && parseFloat(order.discountAmount) > 0 ? (
-                                <>
-                                    <div className="flex justify-between items-center border-t border-slate-200 dark:border-white/10 pt-2 mt-1">
-                                        <span className="text-sm text-slate-500">Original Total</span>
-                                        <span className="font-medium line-through text-slate-400">
-                                            {sym(order.currency)} {Number(order.originalTotal).toFixed(2)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-                                            Coupon: <strong>{order.couponCode}</strong>
-                                        </span>
-                                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                                            − {sym(order.currency)} {Number(order.discountAmount).toFixed(2)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center border-t border-slate-200 dark:border-white/10 pt-2">
-                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Amount Paid</span>
-                                        <span className="font-black text-lg text-indigo-600 dark:text-indigo-400">
-                                            {sym(order.currency)} {Number(order.subtotal).toFixed(2)}
-                                        </span>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="flex justify-between items-center border-t border-slate-200 dark:border-white/10 pt-2 mt-1">
-                                    <span className="text-sm text-slate-500">Total</span>
-                                    <span className="font-black text-lg text-indigo-600 dark:text-indigo-400">
-                                        {sym(order.currency)} {Number(order.subtotal).toFixed(2)}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Logistics / Fulfillment */}
-                    <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
-                        <h3 className="font-bold text-sm text-blue-800 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <Truck className="w-4 h-4" /> Logistics & Tracking
-                        </h3>
-                        {order.status === 'shipped' || order.status === 'delivered' ? (
-                            <div className="space-y-2 text-sm text-blue-900 dark:text-blue-200">
-                                <p><strong>Provider:</strong> {order.trackingProvider || 'Not specified'}</p>
-                                {order.trackingUrl && (
-                                    <p><strong>Tracking URL:</strong> <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline hover:text-blue-800">{order.trackingUrl}</a></p>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <label className="block font-semibold text-blue-800 dark:text-blue-300 mb-1">Shipping Provider</label>
-                                        <input 
-                                            type="text" 
-                                            value={trackingProvider} 
-                                            onChange={e => setTrackingProvider(e.target.value)} 
-                                            placeholder="e.g. Delhivery, Shiprocket"
-                                            className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
-                                        />
+                                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-3">
+                                        {order.customerName && (
+                                            <div className="text-sm">
+                                                <span className="block text-xs text-slate-500 mb-0.5">Name</span>
+                                                <span className="font-medium">{order.customerName}</span>
+                                            </div>
+                                        )}
+                                        {order.customerPhone && (
+                                            <div className="text-sm">
+                                                <span className="block text-xs text-slate-500 mb-0.5">Phone</span>
+                                                <span>{order.customerPhone}</span>
+                                            </div>
+                                        )}
+                                        {order.customerEmail && (
+                                            <div className="text-sm">
+                                                <span className="block text-xs text-slate-500 mb-0.5">Email</span>
+                                                <span>{order.customerEmail}</span>
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
-                                        <label className="block font-semibold text-blue-800 dark:text-blue-300 mb-1">Tracking URL (Optional)</label>
-                                        <input 
-                                            type="url" 
-                                            value={trackingUrl} 
-                                            onChange={e => setTrackingUrl(e.target.value)} 
-                                            placeholder="https://..."
-                                            className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
-                                        />
+                                        {order.customerAddress && (
+                                            <div className="text-sm h-full flex flex-col">
+                                                <span className="block text-xs text-slate-500 mb-1 flex items-center gap-1.5">
+                                                    <MapPin className="w-3.5 h-3.5" /> Shipping Address
+                                                </span>
+                                                <span className="whitespace-pre-line text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-zinc-800 p-3 rounded-xl border border-slate-100 dark:border-white/5 flex-1">
+                                                    {order.customerAddress}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {!order.customerName && !order.customerPhone && !order.customerEmail && !order.customerAddress && (
+                                            <p className="text-slate-400 text-sm italic">No details provided</p>
+                                        )}
                                     </div>
                                 </div>
-                                <button 
-                                    onClick={handleFulfill} 
-                                    disabled={fulfilling}
-                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg font-semibold transition-colors flex items-center gap-2 text-sm"
-                                >
-                                    <Truck className="w-4 h-4" /> 
-                                    {fulfilling ? 'Fulfilling...' : 'Fulfill Order & Notify Customer'}
-                                </button>
-                                <p className="text-xs text-blue-700 dark:text-blue-400">
-                                    This will mark the order as Shipped and automatically send a WhatsApp message to the customer with the tracking details.
-                                </p>
                             </div>
-                        )}
-                    </div>
 
-                    {/* Order Items */}
-                    <div>
-                        <h3 className="font-bold text-sm text-slate-500 uppercase tracking-wider mb-3">Ordered Items</h3>
-                        <div className="space-y-3">
-                            {(order.items || []).map((item, idx) => (
-                                <div key={idx} className="flex items-center gap-4 p-3 rounded-2xl border border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03]">
-                                    {item.imageUrls?.[0] ? (
-                                        <img src={item.imageUrls[0]} alt={item.name} className="w-14 h-14 object-cover rounded-xl" />
-                                    ) : (
-                                        <div className="w-14 h-14 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                                            <ShoppingBag className="w-6 h-6 opacity-30" />
+                            {/* Order Items Table */}
+                            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                                <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]">
+                                    <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300">Items ({order.items?.length || 0})</h3>
+                                </div>
+                                <div className="divide-y divide-slate-100 dark:divide-white/5">
+                                    {(order.items || []).map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-4 p-4">
+                                            {item.imageUrls?.[0] ? (
+                                                <img src={item.imageUrls[0]} alt={item.name} className="w-16 h-16 object-cover rounded-xl border border-slate-100 dark:border-white/10" />
+                                            ) : (
+                                                <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-white/10">
+                                                    <ShoppingBag className="w-6 h-6 text-slate-400" />
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-base text-slate-900 dark:text-white truncate">{item.name}</p>
+                                                <p className="text-sm text-slate-500">{sym(order.currency)} {Number(item.price).toFixed(2)}</p>
+                                            </div>
+                                            <div className="text-center px-4 border-l border-r border-slate-100 dark:border-white/10">
+                                                <p className="text-xs text-slate-400">Qty</p>
+                                                <p className="font-bold">x{item.qty}</p>
+                                            </div>
+                                            <div className="text-right min-w-[80px]">
+                                                <p className="text-xs text-slate-400">Total</p>
+                                                <p className="font-black text-indigo-600 dark:text-indigo-400">{sym(order.currency)} {(item.price * item.qty).toFixed(2)}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {/* Totals Breakdown */}
+                                <div className="border-t border-slate-200 dark:border-white/10 p-4 bg-slate-50 dark:bg-white/[0.02] space-y-2">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-500">Items Subtotal:</span>
+                                        <span className="font-medium">{sym(order.currency)} {Number(order.originalTotal || order.subtotal).toFixed(2)}</span>
+                                    </div>
+                                    {order.couponCode && parseFloat(order.discountAmount) > 0 && (
+                                        <div className="flex justify-between items-center text-sm text-emerald-600 dark:text-emerald-400">
+                                            <span>Discount (Coupon: {order.couponCode}):</span>
+                                            <span>− {sym(order.currency)} {Number(order.discountAmount).toFixed(2)}</span>
                                         </div>
                                     )}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-bold truncate">{item.name}</p>
-                                        <p className="text-sm text-slate-500">Qty: {item.qty}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-black">{sym(order.currency)} {Number(item.price).toFixed(2)}</p>
-                                        <p className="text-xs text-slate-500">each</p>
+                                    <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-200 dark:border-white/10">
+                                        <span className="font-bold text-slate-700 dark:text-slate-300">Order Total:</span>
+                                        <span className="font-black text-xl text-indigo-600 dark:text-indigo-400">{sym(order.currency)} {Number(order.subtotal).toFixed(2)}</span>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            </div>
 
-                    {/* Customer note */}
-                    {order.customerNote && (
-                        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                            <h3 className="font-bold text-sm text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <StickyNote className="w-4 h-4" /> Customer Note
-                            </h3>
-                            <p className="text-sm text-amber-800 dark:text-amber-200">{order.customerNote}</p>
-                        </div>
-                    )}
+                            {/* Notes Section */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {/* Customer Note */}
+                                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm">
+                                    <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                                        <StickyNote className="w-4 h-4 text-amber-500" /> Customer Provided Note
+                                    </h3>
+                                    {order.customerNote ? (
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 italic bg-amber-50 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                                            "{order.customerNote}"
+                                        </p>
+                                    ) : (
+                                        <p className="text-sm text-slate-400 italic">No notes provided by the customer.</p>
+                                    )}
+                                </div>
 
-                    {/* Internal notes */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2 flex items-center gap-2">
-                            <StickyNote className="w-3.5 h-3.5" /> Internal Notes (only visible to you)
-                        </label>
-                        <textarea
-                            rows={3}
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                            placeholder="Add private notes about this order…"
-                            className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 resize-y text-slate-900 dark:text-white placeholder-slate-400"
-                        />
+                                {/* Internal Notes */}
+                                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col">
+                                    <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                                        <StickyNote className="w-4 h-4 text-indigo-500" /> Internal Notes
+                                    </h3>
+                                    <textarea
+                                        rows={3}
+                                        value={notes}
+                                        onChange={e => setNotes(e.target.value)}
+                                        placeholder="Add private notes (only visible to you)..."
+                                        className="w-full flex-1 px-3 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-slate-900 dark:text-white placeholder-slate-400"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Column (Status, Logistics) */}
+                        <div className="space-y-6">
+                            
+                            {/* Order Status & Actions */}
+                            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]">
+                                    <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300">Order Action</h3>
+                                </div>
+                                <div className="p-4 space-y-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500">Order Status</label>
+                                        <select
+                                            value={status}
+                                            onChange={e => setStatus(e.target.value)}
+                                            className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                                        >
+                                            {Object.entries(STATUS_CONFIG).map(([key, { label }]) => (
+                                                <option key={key} value={key}>{label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <button onClick={handleSave} disabled={saving}
+                                        className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                                        <CheckCircle className="w-4 h-4" /> {saving ? 'Saving…' : 'Update Status'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Logistics / Fulfillment */}
+                            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]">
+                                    <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                        <Truck className="w-4 h-4 text-slate-500" /> Logistics
+                                    </h3>
+                                </div>
+                                <div className="p-4">
+                                    {order.status === 'shipped' || order.status === 'delivered' ? (
+                                        <div className="space-y-3 text-sm bg-blue-50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
+                                            <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 font-bold mb-1">
+                                                <Package className="w-4 h-4" /> Package Shipped
+                                            </div>
+                                            <p className="text-blue-900 dark:text-blue-200"><strong>Provider:</strong> {order.trackingProvider || 'Not specified'}</p>
+                                            {order.trackingUrl && (
+                                                <p className="text-blue-900 dark:text-blue-200"><strong>Tracking:</strong> <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline hover:text-blue-800 break-all">{order.trackingUrl}</a></p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">Shipping Provider</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={trackingProvider} 
+                                                    onChange={e => setTrackingProvider(e.target.value)} 
+                                                    placeholder="e.g. FedEx, UPS"
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-slate-900 dark:text-white"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">Tracking URL</label>
+                                                <input 
+                                                    type="url" 
+                                                    value={trackingUrl} 
+                                                    onChange={e => setTrackingUrl(e.target.value)} 
+                                                    placeholder="https://..."
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-slate-900 dark:text-white"
+                                                />
+                                            </div>
+                                            <button 
+                                                onClick={handleFulfill} 
+                                                disabled={fulfilling}
+                                                className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 disabled:opacity-60 text-slate-700 dark:text-slate-300 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm mt-2"
+                                            >
+                                                <Truck className="w-4 h-4" /> 
+                                                {fulfilling ? 'Fulfilling...' : 'Fulfill & Notify Customer'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             </div>

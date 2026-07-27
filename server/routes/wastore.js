@@ -217,8 +217,8 @@ router.post('/orders', async (req, res) => {
 
         // Generate human-readable order number
         const prefixOnline = store.invoiceConfig?.prefixOnline || 'ORD-';
-        const startSeq = parseInt(store.invoiceConfig?.startingNumber) || 1001;
-        const count = await WaOrder.count({ where: { storeId } });
+        const startSeq = parseInt(store.invoiceConfig?.onlineStartingNumber || store.invoiceConfig?.startingNumber) || 1001;
+        const count = await WaOrder.count({ where: { storeId, source: 'online' } });
         const orderNumber = `${prefixOnline}${String(count + startSeq).padStart(4, '0')}`;
 
         const order = await WaOrder.create({
@@ -522,8 +522,8 @@ router.post('/:storeId/orders/pos', auth, async (req, res) => {
         if (!user) return res.status(404).json({ error: 'User not found' });
         
         const prefixPos = store.invoiceConfig?.prefixPos || 'POS-';
-        const startSeq = parseInt(store.invoiceConfig?.startingNumber) || 1001;
-        const count = await WaOrder.count({ where: { storeId } });
+        const startSeq = parseInt(store.invoiceConfig?.posStartingNumber || store.invoiceConfig?.startingNumber) || 1001;
+        const count = await WaOrder.count({ where: { storeId: store.id, source: 'pos' } });
         const orderNumber = `${prefixPos}${String(count + startSeq).padStart(4, '0')}`;
 
         const order = await WaOrder.create({

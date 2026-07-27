@@ -192,7 +192,8 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: {
             prefixOnline: 'ORD-',
             prefixPos: 'POS-',
-            startingNumber: 1001
+            onlineStartingNumber: 1001,
+            posStartingNumber: 1001
         },
         comment: 'Store-level invoice numbering preferences'
     },

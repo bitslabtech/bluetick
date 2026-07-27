@@ -878,34 +878,38 @@ const Dashboard = () => {
                                     <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
                                         <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl"></div>
                                         <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Quality Rating</p>
-                                        <div className="flex items-center gap-2 mt-auto flex-wrap">
-                                            {stats.waAccountQuality === 'GREEN' ? (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold">
-                                                    <Activity className="w-3 h-3" /> High
-                                                </div>
-                                            ) : stats.waAccountQuality === 'YELLOW' ? (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-md text-[11px] font-bold">
-                                                    <Activity className="w-3 h-3" /> Medium
-                                                </div>
-                                            ) : stats.waAccountQuality === 'RED' ? (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-md text-[11px] font-bold">
-                                                    <AlertTriangle className="w-3 h-3" /> Low
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-md text-[11px] font-bold">
-                                                    <Activity className="w-3 h-3" /> N/A
-                                                </div>
-                                            )}
+                                        <div className="flex items-center mt-auto w-full gap-1">
+                                            <div className={(stats.waAccountQuality === 'YELLOW' || stats.waAccountQuality === 'RED') ? "w-[65%]" : "w-full"}>
+                                                {stats.waAccountQuality === 'GREEN' ? (
+                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold w-full truncate">
+                                                        <Activity className="w-3 h-3 shrink-0" /> High
+                                                    </div>
+                                                ) : stats.waAccountQuality === 'YELLOW' ? (
+                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-md text-[11px] font-bold w-full truncate">
+                                                        <Activity className="w-3 h-3 shrink-0" /> Medium
+                                                    </div>
+                                                ) : stats.waAccountQuality === 'RED' ? (
+                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-md text-[11px] font-bold w-full truncate">
+                                                        <AlertTriangle className="w-3 h-3 shrink-0" /> Low
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-md text-[11px] font-bold w-full truncate">
+                                                        <Activity className="w-3 h-3 shrink-0" /> N/A
+                                                    </div>
+                                                )}
+                                            </div>
                                             {/* Show insights button only when quality is degraded */}
                                             {(stats.waAccountQuality === 'YELLOW' || stats.waAccountQuality === 'RED') && (
-                                                <button
-                                                    id="quality-insights-btn"
-                                                    onClick={fetchQualityInsights}
-                                                    className="flex items-center gap-1 px-2 py-1 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-md text-[10px] font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
-                                                    title="View block reasons & improvement tips"
-                                                >
-                                                    <Info className="w-3 h-3" /> Why?
-                                                </button>
+                                                <div className="w-[35%]">
+                                                    <button
+                                                        id="quality-insights-btn"
+                                                        onClick={fetchQualityInsights}
+                                                        className="flex items-center justify-center gap-1 px-1 py-1 w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-md text-[10px] font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all truncate"
+                                                        title="View block reasons & improvement tips"
+                                                    >
+                                                        <Info className="w-3 h-3 shrink-0" /> Details
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
