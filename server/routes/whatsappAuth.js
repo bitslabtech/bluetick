@@ -379,13 +379,13 @@ router.get('/status', auth, async (req, res) => {
 
         // Determine which token + WABA ID to use
         let accessToken = user.fbAccessToken;
-        let wabaId      = user.wabaId;
+        let wabaId = user.wabaId;
 
         // Fallback: use Settings-based WhatsApp credentials
         if (!accessToken || !wabaId) {
             if (settings?.metaAccessToken && settings?.metaBusinessAccountId) {
                 accessToken = settings.metaAccessToken;
-                wabaId      = settings.metaBusinessAccountId;
+                wabaId = settings.metaBusinessAccountId;
             } else if (settings?.metaAccessToken && settings?.metaPhoneNumberId) {
                 // Settings path without WABA ID — fetch phone number info directly
                 try {
@@ -397,13 +397,13 @@ router.get('/status', auth, async (req, res) => {
                     });
                     const phoneData = phoneRes.data;
                     if (phoneData && phoneData.id) {
-                        user.metaPhoneNumberId       = phoneData.id;
-                        user.metaDisplayPhoneNumber  = phoneData.display_phone_number;
-                        user.metaQualityRating        = phoneData.quality_rating;
-                        user.metaTier                 = phoneData.messaging_limit_tier;
-                        user.metaVerifiedName         = phoneData.verified_name;
-                        user.metaNameStatus           = phoneData.name_status;
-                        user.metaConversations24h     = 0;
+                        user.metaPhoneNumberId = phoneData.id;
+                        user.metaDisplayPhoneNumber = phoneData.display_phone_number;
+                        user.metaQualityRating = phoneData.quality_rating;
+                        user.metaTier = phoneData.messaging_limit_tier;
+                        user.metaVerifiedName = phoneData.verified_name;
+                        user.metaNameStatus = phoneData.name_status;
+                        user.metaConversations24h = 0;
                         user.metaConversationsFetchedAt = new Date();
                         await user.save();
                         return res.json({
@@ -438,11 +438,11 @@ router.get('/status', auth, async (req, res) => {
 
         if (phoneResponse.data?.data?.length > 0) {
             const phoneData = phoneResponse.data.data[0];
-            user.metaPhoneNumberId      = phoneData.id;
+            user.metaPhoneNumberId = phoneData.id;
             user.metaDisplayPhoneNumber = phoneData.display_phone_number;
-            user.metaQualityRating       = phoneData.quality_rating;
-            user.metaVerifiedName        = phoneData.verified_name;
-            user.metaNameStatus          = phoneData.name_status;
+            user.metaQualityRating = phoneData.quality_rating;
+            user.metaVerifiedName = phoneData.verified_name;
+            user.metaNameStatus = phoneData.name_status;
 
             // Fetch new portfolio-level messaging limit from WABA
             let portfolioLimit = null;
@@ -634,6 +634,99 @@ router.post('/heal-settings', auth, async (req, res) => {
     } catch (err) {
         console.error('[WA HEAL] Error:', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/whatsapp/quality-insights
+// Fetches live quality score + block reasons from Meta for the user's phone number.
+// Used by the Dashboard "Quality Rating" card to show a detailed popup modal.
+router.get('/quality-insights', auth, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const Settings = require('../models/Settings');
+        const settings = await Settings.findOne({ where: { userId: req.user.id } });
+
+        // Resolve phone number ID and access token (same fallback chain as /status)
+        const phoneNumberId = user.metaPhoneNumberId || settings?.metaPhoneNumberId;
+        const accessToken   = user.fbAccessToken || settings?.metaAccessToken;
+
+        if (!phoneNumberId || !accessToken) {
+            return res.status(400).json({ error: 'WhatsApp is not fully connected. Please complete setup in WhatsApp Settings.' });
+        }
+
+        // Call Meta Graph API — quality_score field returns: { score: "RED"|"YELLOW"|"GREEN", reasons: [...] }
+        const metaRes = await axios.get(`https://graph.facebook.com/v22.0/${phoneNumberId}`, {
+            params: {
+                fields: 'quality_score,display_phone_number',
+                access_token: accessToken
+            }
+        });
+
+        const qualityScore = metaRes.data?.quality_score || {};
+        const score        = qualityScore.score || user.metaQualityRating || 'UNKNOWN';
+        const rawReasons   = qualityScore.reasons || [];
+
+        // Human-readable mapping for Meta block reason codes
+        const reasonDescriptions = {
+            SPAM:                   { label: 'Spam', description: 'Users flagged your messages as spam. Avoid bulk promotional messages to unverified contacts.', severity: 'high' },
+            STOP_SENDING:           { label: 'Opted Out / Stop Sending', description: 'Users explicitly asked you to stop sending. Always include an opt-out option in your messages.', severity: 'high' },
+            UNDEFINED:              { label: 'Unspecified', description: 'Users blocked without selecting a reason. This may indicate message irrelevance or frequency issues.', severity: 'medium' },
+            UNKNOWN:                { label: 'Unknown', description: 'Meta could not determine the specific reason for blocking.', severity: 'low' },
+            HIGH_MESSAGE_FREQUENCY: { label: 'Too Frequent', description: 'You are sending messages too frequently. Space out your campaigns.', severity: 'high' },
+            INAPPROPRIATE_CONTENT:  { label: 'Inappropriate Content', description: 'Messages contained content users found inappropriate. Review your template content.', severity: 'high' },
+            NOT_OPTED_IN:           { label: 'No Opt-in', description: 'Messages sent to contacts who never opted in. Only message users who have explicitly consented.', severity: 'high' },
+        };
+
+        const enrichedReasons = rawReasons.map((code) => ({
+            code,
+            ...(reasonDescriptions[code] || { label: code, description: 'No additional information available for this reason code.', severity: 'medium' })
+        }));
+
+        // Also fetch paused templates for this user to include in the insights
+        const Template = require('../models/Template');
+        const pausedTemplates = await Template.findAll({
+            where: { userId: user.id, status: 'PAUSED' },
+            attributes: ['id', 'name', 'category', 'pauseReason', 'updatedAt']
+        });
+
+        console.log(`[QUALITY INSIGHTS] User ${user.id} | Score: ${score} | Reasons: ${rawReasons.join(', ')}`);
+
+        return res.json({
+            score,
+            reasons: enrichedReasons,
+            displayPhoneNumber: metaRes.data?.display_phone_number || user.metaDisplayPhoneNumber,
+            pausedTemplates: pausedTemplates.map(t => ({
+                id: t.id,
+                name: t.name,
+                category: t.category,
+                pauseReason: t.pauseReason,
+                pausedAt: t.updatedAt
+            })),
+            fetchedAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('[QUALITY INSIGHTS] Error:', error.response?.data || error.message);
+        // Graceful degradation: return cached data from DB if Meta API call fails
+        try {
+            const userFallback = await User.findByPk(req.user.id);
+            const Template = require('../models/Template');
+            const pausedTemplates = await Template.findAll({
+                where: { userId: req.user.id, status: 'PAUSED' },
+                attributes: ['id', 'name', 'category', 'pauseReason', 'updatedAt']
+            });
+            return res.json({
+                score: userFallback?.metaQualityRating || 'UNKNOWN',
+                reasons: [],
+                displayPhoneNumber: userFallback?.metaDisplayPhoneNumber,
+                pausedTemplates: pausedTemplates.map(t => ({ id: t.id, name: t.name, category: t.category, pauseReason: t.pauseReason, pausedAt: t.updatedAt })),
+                fetchedAt: new Date().toISOString(),
+                apiError: 'Could not reach Meta API. Showing cached data only.'
+            });
+        } catch (fallbackErr) {
+            return res.status(500).json({ error: 'Failed to fetch quality insights.' });
+        }
     }
 });
 

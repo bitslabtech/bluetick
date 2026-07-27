@@ -137,37 +137,35 @@ export function InvoiceDetailModal({ invoice, onClose, onResend, isUser = false 
                 </div>
 
                 <div style={{ padding: '24px' }}>
-                    {/* User Actions at the top */}
-                    {isUser && (
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
-                            <a
-                                href={`${LOCAL_API}/${invoice.id}/pdf`}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{
-                                    padding: '10px 18px', background: '#1a56db', color: '#fff',
-                                    borderRadius: '8px', textDecoration: 'none', fontSize: '13px', fontWeight: 600
-                                }}
-                            >
-                                ⬇️ Download PDF
-                            </a>
-                            <button
-                                onClick={handleResend}
-                                disabled={resending}
-                                style={{
-                                    padding: '10px 18px', background: resending ? '#9ca3af' : '#059669', color: '#fff',
-                                    border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
-                                }}
-                            >
-                                {resending ? 'Sending…' : '📤 Re-Send via WhatsApp'}
-                            </button>
-                            {resendMsg && (
-                                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '10px', fontSize: '13px', color: resendMsg.startsWith('✅') ? '#059669' : '#dc2626', fontWeight: 500 }}>
-                                    {resendMsg}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    {/* Action buttons at the top for both admin and users */}
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                        <a
+                            href={`${LOCAL_API}/${invoice.id}/pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                                padding: '10px 18px', background: '#1a56db', color: '#fff',
+                                borderRadius: '8px', textDecoration: 'none', fontSize: '13px', fontWeight: 600
+                            }}
+                        >
+                            ⬇️ Download PDF
+                        </a>
+                        <button
+                            onClick={handleResend}
+                            disabled={resending}
+                            style={{
+                                padding: '10px 18px', background: resending ? '#9ca3af' : '#059669', color: '#fff',
+                                border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+                            }}
+                        >
+                            {resending ? 'Sending…' : '📤 Re-Send via WhatsApp'}
+                        </button>
+                        {resendMsg && (
+                            <div style={{ display: 'flex', alignItems: 'center', marginLeft: '10px', fontSize: '13px', color: resendMsg.startsWith('✅') ? '#059669' : '#dc2626', fontWeight: 500 }}>
+                                {resendMsg}
+                            </div>
+                        )}
+                    </div>
 
                     <Section title="📋 Invoice Details">
                         <Row label="Invoice Date" value={formatDate(invoice.invoiceDate)} />
@@ -230,36 +228,6 @@ export function InvoiceDetailModal({ invoice, onClose, onResend, isUser = false 
                                 <Row label="CC Sent At" value={invoice.adminCcSentAt ? formatDate(invoice.adminCcSentAt) : '—'} />
                                 <Row label="Download Count" value={invoice.downloadCount} />
                             </Section>
-
-                            {/* Admin Actions (Bottom) */}
-                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                <a
-                                    href={`${LOCAL_API}/${invoice.id}/pdf`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{
-                                        padding: '10px 18px', background: '#1a56db', color: '#fff',
-                                        borderRadius: '8px', textDecoration: 'none', fontSize: '13px', fontWeight: 600
-                                    }}
-                                >
-                                    ⬇️ Download PDF
-                                </a>
-                                <button
-                                    onClick={handleResend}
-                                    disabled={resending}
-                                    style={{
-                                        padding: '10px 18px', background: resending ? '#9ca3af' : '#059669', color: '#fff',
-                                        border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
-                                    }}
-                                >
-                                    {resending ? 'Sending…' : '📤 Re-Send via WhatsApp'}
-                                </button>
-                            </div>
-                            {resendMsg && (
-                                <div style={{ marginTop: '10px', fontSize: '13px', color: resendMsg.startsWith('✅') ? '#059669' : '#dc2626', fontWeight: 500 }}>
-                                    {resendMsg}
-                                </div>
-                            )}
                         </>
                     )}
                 </div>

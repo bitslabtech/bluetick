@@ -68,7 +68,7 @@ const WaStore = sequelize.define('WaStore', {
     },
     currency: {
         type: DataTypes.STRING,
-        defaultValue: 'USD'
+        defaultValue: 'INR'
     },
     themeId: {
         type: DataTypes.STRING,

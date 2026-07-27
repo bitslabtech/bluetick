@@ -27,6 +27,16 @@ const WaOrder = sequelize.define('WaOrder', {
     customerEmail: {
         type: DataTypes.STRING
     },
+    customerCompany: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Business name for B2B orders (for GST invoice)'
+    },
+    customerGstin: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Buyer GSTIN for B2B orders — enables Input Tax Credit (ITC) on invoice'
+    },
     customerAddress: {
         type: DataTypes.TEXT
     },

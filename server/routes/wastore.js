@@ -206,7 +206,7 @@ router.get('/public/domain/:domain', async (req, res) => {
 // POST /api/wastore/orders  — Public: record a new order (called from storefront before WhatsApp redirect)
 router.post('/orders', async (req, res) => {
     try {
-        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, storeCustomerId } = req.body;
+        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, customerGstin, customerCompany, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, storeCustomerId } = req.body;
 
         if (!storeId || !items || !subtotal) {
             return res.status(400).json({ error: 'Missing required order fields' });
@@ -224,11 +224,15 @@ router.post('/orders', async (req, res) => {
         const order = await WaOrder.create({
             storeId, orderNumber,
             customerName, customerPhone, customerEmail, customerAddress, customerNote,
+            customerCompany: customerCompany || null,
+            customerGstin: customerGstin || null,
             items, subtotal, currency: currency || store.currency,
             originalTotal: originalTotal || null,
             discountAmount: parseFloat(discountAmount) || 0,
             couponCode: couponCode || null,
             taxAmount: parseFloat(taxAmount) || 0,
+            taxRate: parseFloat(taxRate) || 0,
+            taxName: taxName || null,
             total: parseFloat(total) || subtotal,
             status: 'pending',
             // Link to logged-in store customer account (null for guest checkouts)
@@ -360,9 +364,33 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
         let phone = customerPhone.replace(/\D/g, '');
         
         await generateInvoicePdf(
-            { orderNumber: order.orderNumber, items: order.items, subtotal: order.subtotal, taxAmount: order.taxAmount, total: order.total, taxName: order.taxName, taxRate: order.taxRate },
-            { name: store.name, currency: store.currency || 'USD', contactEmail: user.email, contactPhone: user.phone },
-            { name: customerName, phone: customerPhone },
+            {
+                orderNumber: order.orderNumber,
+                items: order.items,
+                subtotal: order.subtotal,
+                originalTotal: order.originalTotal,
+                discountAmount: order.discountAmount,
+                couponCode: order.couponCode,
+                taxAmount: order.taxAmount,
+                taxRate: order.taxRate,
+                taxName: order.taxName,
+                total: order.total
+            },
+            {
+                name: store.name,
+                currency: store.currency || 'INR',
+                contactEmail: user.email,
+                contactPhone: user.phone,
+                taxConfig: store.taxConfig || {}
+            },
+            {
+                name: customerName,
+                phone: customerPhone,
+                address: order.customerAddress || '',
+                company: order.customerCompany || '',
+                gstin: order.customerGstin || '',
+                state: (order.customerAddress || '').split(',').slice(-2, -1)[0]?.trim() || ''
+            },
             filePath
         );
 
@@ -568,7 +596,7 @@ router.post('/public/:slug/verify-payment', async (req, res) => {
 
                 const storeUser = await User.findByPk(store.userId);
                 if (storeUser) {
-                    if (store.taxConfig?.autoSendInvoice) {
+                    if (store.taxConfig?.autoSendWhatsApp) {
                         await sendWhatsAppInvoiceHelper(store, storeUser, order, order.customerName, order.customerPhone);
                     }
                     // ── Fire payment_received notification (non-blocking) ─────
@@ -613,7 +641,7 @@ router.post('/public/:slug/verify-payment', async (req, res) => {
 
                  const storeUser = await User.findByPk(store.userId);
                  if (storeUser) {
-                     if (store.taxConfig?.autoSendInvoice) {
+                     if (store.taxConfig?.autoSendWhatsApp) {
                          await sendWhatsAppInvoiceHelper(store, storeUser, order, order.customerName, order.customerPhone);
                      }
                      // ── Fire payment_received notification (non-blocking) ─────

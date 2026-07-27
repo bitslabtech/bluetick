@@ -20,6 +20,11 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         notes: ''
     });
 
+    // B2B GST details (optional, only shown when store has GST enabled)
+    const [gstDetails, setGstDetails] = useState({ company: '', gstin: '', pan: '' });
+    const [showGstSection, setShowGstSection] = useState(false);
+    const isGstStore = store?.taxConfig?.enabled && store?.taxConfig?.type === 'gst';
+
     // Pre-fill form when logged-in customer is available
     useEffect(() => {
         if (storeCustomer) {
@@ -106,6 +111,24 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
     };
 
     const taxEnabled = store?.taxConfig?.enabled || false;
+    const taxName = store?.taxConfig?.type === 'gst' ? 'GST' : (store?.taxConfig?.type === 'vat' ? 'VAT' : 'Tax');
+
+    // Compute effective average tax rate for backend (for display on invoice)
+    const calculateEffectiveTaxRate = () => {
+        if (!taxEnabled || cart.length === 0) return 0;
+        let totalBase = 0, totalTax = 0;
+        cart.forEach(item => {
+            const basePrice = getItemPrice(item);
+            const rate = item.taxRate !== null && item.taxRate !== undefined ? parseFloat(item.taxRate) : (parseFloat(store?.taxConfig?.rate) || 0);
+            if (!store.taxConfig.taxInclusive) {
+                totalTax += basePrice * (rate / 100) * item.qty;
+            } else {
+                totalTax += (basePrice - (basePrice / (1 + rate / 100))) * item.qty;
+            }
+            totalBase += basePrice * item.qty;
+        });
+        return totalBase > 0 ? parseFloat(((totalTax / totalBase) * 100).toFixed(2)) : 0;
+    };
     
     const calculateTaxAmount = () => {
         if (!taxEnabled) return 0;
@@ -166,11 +189,14 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                 originalTotal: appliedCoupon ? cartSubtotal : null,
                 discountAmount: appliedCoupon ? calculateDiscountAmount() : 0,
                 taxAmount: calculateTaxAmount(),
-                taxRate: null, // item-level taxes vary
-                taxName: taxEnabled ? 'Tax' : null,
-                total: finalTotal + shippingCost, // finalTotal already includes tax
+                taxRate: calculateEffectiveTaxRate(),
+                taxName: taxEnabled ? taxName : null,
+                total: finalTotal + shippingCost,
                 couponCode: appliedCoupon ? appliedCoupon.code : null,
                 currency: store.currency,
+                // Buyer GST details (B2B)
+                customerGstin: gstDetails.gstin || null,
+                customerCompany: gstDetails.company || null,
                 // Link to logged-in customer account if available
                 storeCustomerId: storeCustomer ? storeCustomer.id : null,
             });
@@ -354,6 +380,49 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                             </div>
                         </div>
                     </div>
+
+                    {/* B2B GST Details (shown only for GST-enabled stores) */}
+                    {isGstStore && (
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setShowGstSection(v => !v)}
+                                className="w-full flex items-center justify-between text-left text-sm font-semibold text-indigo-700 border border-indigo-200 bg-indigo-50 rounded-lg px-4 py-3 hover:bg-indigo-100 transition-colors"
+                            >
+                                <span>🏢 GST / Business Details <span className="font-normal text-indigo-500">(Optional — for B2B purchases)</span></span>
+                                <span className="text-lg">{showGstSection ? '▲' : '▼'}</span>
+                            </button>
+                            {showGstSection && (
+                                <div className="mt-3 space-y-3 p-4 border border-indigo-100 rounded-lg bg-indigo-50/50">
+                                    <p className="text-xs text-indigo-600">Fill in your business details to receive a GST-compliant invoice and claim Input Tax Credit (ITC).</p>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Business / Company Name</label>
+                                        <input
+                                            type="text"
+                                            value={gstDetails.company}
+                                            onChange={e => setGstDetails(d => ({ ...d, company: e.target.value }))}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                                            placeholder="Your Registered Business Name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
+                                        <input
+                                            type="text"
+                                            value={gstDetails.gstin}
+                                            onChange={e => setGstDetails(d => ({ ...d, gstin: e.target.value.toUpperCase() }))}
+                                            maxLength={15}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none uppercase"
+                                            placeholder="22AABCC1234F1Z5"
+                                        />
+                                        {gstDetails.gstin && gstDetails.gstin.length !== 15 && (
+                                            <p className="text-xs text-red-500 mt-1">GSTIN must be exactly 15 characters</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Promo Code */}
                     <div>

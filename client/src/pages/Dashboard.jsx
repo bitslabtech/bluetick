@@ -63,6 +63,25 @@ const Dashboard = () => {
     const [customEnd, setCustomEnd] = useState(new Date());
     const [refreshingStatus, setRefreshingStatus] = useState(false);
 
+    // ── Quality Insights Modal state ──────────────────────────────────────────
+    const [showQualityModal, setShowQualityModal] = useState(false);
+    const [qualityInsights, setQualityInsights] = useState(null);
+    const [qualityInsightsLoading, setQualityInsightsLoading] = useState(false);
+
+    const fetchQualityInsights = async () => {
+        setQualityInsightsLoading(true);
+        setShowQualityModal(true);
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/whatsapp/quality-insights`);
+            setQualityInsights(res.data);
+        } catch (err) {
+            showToast({ type: 'error', title: 'Error', message: err.response?.data?.error || 'Could not load quality insights.' });
+            setShowQualityModal(false);
+        } finally {
+            setQualityInsightsLoading(false);
+        }
+    };
+
     useEffect(() => {
         // Initialize Facebook JS SDK for Connect Button
         const initFBSDK = () => {
@@ -849,7 +868,7 @@ const Dashboard = () => {
                                     <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
                                         <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl"></div>
                                         <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Quality Rating</p>
-                                        <div className="flex items-center gap-2 mt-auto">
+                                        <div className="flex items-center gap-2 mt-auto flex-wrap">
                                             {stats.waAccountQuality === 'GREEN' ? (
                                                 <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold">
                                                     <Activity className="w-3 h-3" /> High
@@ -866,6 +885,17 @@ const Dashboard = () => {
                                                 <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-md text-[11px] font-bold">
                                                     <Activity className="w-3 h-3" /> N/A
                                                 </div>
+                                            )}
+                                            {/* Show insights button only when quality is degraded */}
+                                            {(stats.waAccountQuality === 'YELLOW' || stats.waAccountQuality === 'RED') && (
+                                                <button
+                                                    id="quality-insights-btn"
+                                                    onClick={fetchQualityInsights}
+                                                    className="flex items-center gap-1 px-2 py-1 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-md text-[10px] font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
+                                                    title="View block reasons & improvement tips"
+                                                >
+                                                    <Info className="w-3 h-3" /> Why?
+                                                </button>
                                             )}
                                         </div>
                                     </div>
@@ -1076,6 +1106,189 @@ const Dashboard = () => {
                 }}
                 fbLoading={fbLoading}
             />
+
+            {/* ── Quality Insights Modal ────────────────────────────────────────── */}
+            <AnimatePresence>
+                {showQualityModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={(e) => { if (e.target === e.currentTarget) setShowQualityModal(false); }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.92, y: 20 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                            className="bg-white dark:bg-[#0f1923] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-[#1e3048]"
+                        >
+                            {/* Modal Header */}
+                            <div className="sticky top-0 flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1e3048] bg-white dark:bg-[#0f1923] rounded-t-2xl z-10">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-xl ${
+                                        qualityInsights?.score === 'RED' ? 'bg-red-100 dark:bg-red-500/10' :
+                                        qualityInsights?.score === 'YELLOW' ? 'bg-yellow-100 dark:bg-yellow-500/10' :
+                                        'bg-slate-100 dark:bg-white/5'
+                                    }`}>
+                                        <Activity className={`w-5 h-5 ${
+                                            qualityInsights?.score === 'RED' ? 'text-red-500' :
+                                            qualityInsights?.score === 'YELLOW' ? 'text-yellow-500' :
+                                            'text-slate-400'
+                                        }`} />
+                                    </div>
+                                    <div>
+                                        <h2 className="font-bold text-slate-900 dark:text-white text-base">Quality Rating Insights</h2>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            {qualityInsights?.displayPhoneNumber ? `Phone: ${qualityInsights.displayPhoneNumber}` : 'WhatsApp Number'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button id="close-quality-modal" onClick={() => setShowQualityModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors">
+                                    <XCircle className="w-5 h-5 text-slate-400" />
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-5 space-y-5">
+                                {qualityInsightsLoading ? (
+                                    <div className="flex flex-col items-center justify-center py-12 gap-3">
+                                        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Fetching live data from Meta...</p>
+                                    </div>
+                                ) : qualityInsights ? (
+                                    <>
+                                        {/* API error banner */}
+                                        {qualityInsights.apiError && (
+                                            <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl">
+                                                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                                                <p className="text-xs text-amber-700 dark:text-amber-400">{qualityInsights.apiError}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Current Score */}
+                                        <div className="p-4 rounded-xl border border-slate-100 dark:border-[#1e3048] bg-slate-50 dark:bg-[#0a1520]">
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 font-medium">Current Score</p>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`text-2xl font-black ${
+                                                    qualityInsights.score === 'RED' ? 'text-red-500' :
+                                                    qualityInsights.score === 'YELLOW' ? 'text-yellow-500' :
+                                                    qualityInsights.score === 'GREEN' ? 'text-emerald-500' :
+                                                    'text-slate-400'
+                                                }`}>
+                                                    {qualityInsights.score === 'RED' ? '🔴 Low' :
+                                                     qualityInsights.score === 'YELLOW' ? '🟡 Medium' :
+                                                     qualityInsights.score === 'GREEN' ? '🟢 High' : '⚪ Unknown'}
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                                Last checked: {qualityInsights.fetchedAt ? new Date(qualityInsights.fetchedAt).toLocaleString() : '—'}
+                                            </p>
+                                        </div>
+
+                                        {/* Block Reasons */}
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                                Why users are blocking you
+                                            </p>
+                                            {qualityInsights.reasons && qualityInsights.reasons.length > 0 ? (
+                                                <div className="space-y-3">
+                                                    {qualityInsights.reasons.map((reason, idx) => (
+                                                        <div key={idx} className={`p-3 rounded-xl border ${
+                                                            reason.severity === 'high' ? 'bg-red-50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20' :
+                                                            reason.severity === 'medium' ? 'bg-amber-50 dark:bg-amber-500/5 border-amber-200 dark:border-amber-500/20' :
+                                                            'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'
+                                                        }`}>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                                                    reason.severity === 'high' ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400' :
+                                                                    reason.severity === 'medium' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                                                                    'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300'
+                                                                }`}>{reason.severity?.toUpperCase()}</span>
+                                                                <span className="font-semibold text-sm text-slate-800 dark:text-white">{reason.label}</span>
+                                                            </div>
+                                                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{reason.description}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-center">
+                                                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                                                    <p className="text-sm text-slate-600 dark:text-slate-400">No specific block reasons returned by Meta.</p>
+                                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">This can happen when the rating just dropped or data is still aggregating.</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Paused Templates */}
+                                        {qualityInsights.pausedTemplates && qualityInsights.pausedTemplates.length > 0 && (
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                                                    <XCircle className="w-4 h-4 text-red-500" />
+                                                    Paused Templates ({qualityInsights.pausedTemplates.length})
+                                                </p>
+                                                <div className="space-y-2">
+                                                    {qualityInsights.pausedTemplates.map((t) => (
+                                                        <div key={t.id} className="flex items-start justify-between p-3 bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-xl">
+                                                            <div>
+                                                                <p className="text-sm font-semibold text-slate-800 dark:text-white">{t.name}</p>
+                                                                <p className="text-xs text-slate-500 dark:text-slate-400">{t.category}{t.pauseReason ? ` · ${t.pauseReason}` : ''}</p>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => { setShowQualityModal(false); navigate('/templates'); }}
+                                                                className="text-xs text-primary font-bold hover:underline whitespace-nowrap ml-3"
+                                                            >Edit →</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Recommended Actions */}
+                                        <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-blue-500/5 border border-primary/20">
+                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                                                <ShieldCheck className="w-4 h-4 text-primary" />
+                                                How to recover your rating
+                                            </p>
+                                            <ul className="space-y-2">
+                                                {[
+                                                    '🛑 Pause all promotional broadcast campaigns immediately.',
+                                                    '✅ Only send transactional messages (OTPs, order updates) for 5–7 days.',
+                                                    '🚫 Delete or revise any PAUSED templates shown above.',
+                                                    '📋 Clean your contact list — remove anyone who didn\'t explicitly opt in.',
+                                                    '📤 Always include an opt-out option (e.g., "Reply STOP to unsubscribe") in marketing messages.',
+                                                ].map((tip, i) => (
+                                                    <li key={i} className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{tip}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </>
+                                ) : null}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="sticky bottom-0 flex items-center justify-between p-4 border-t border-slate-100 dark:border-[#1e3048] bg-white dark:bg-[#0f1923] rounded-b-2xl">
+                                <button
+                                    onClick={fetchQualityInsights}
+                                    disabled={qualityInsightsLoading}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary border border-primary/30 rounded-xl hover:bg-primary/5 transition-all disabled:opacity-50"
+                                >
+                                    <svg className={`w-4 h-4 ${qualityInsightsLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    Refresh
+                                </button>
+                                <button
+                                    onClick={() => setShowQualityModal(false)}
+                                    className="px-5 py-2 text-sm font-bold bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
         </div>
     );

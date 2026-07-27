@@ -145,6 +145,14 @@ router.post('/:userId', (req, res, next) => {
                             let categoryChanged = false;
                             template.status = eventStatus;
 
+                            // ── Save pauseReason if Meta paused this template due to quality issues ──
+                            if (eventStatus === 'PAUSED') {
+                                template.pauseReason = rejectReason || 'HIGH_BLOCK_RATE';
+                            } else if (eventStatus === 'APPROVED') {
+                                // Clear any previous pause reason on re-approval
+                                template.pauseReason = null;
+                            }
+
                             // ── Sync category if Meta reclassified this template ──────────────────
                             if (newCategory && template.category !== newCategory) {
                                 console.log(`[WEBHOOK] Template "${templateName}" category reclassified: ${template.category} → ${newCategory}`);
@@ -162,6 +170,9 @@ router.post('/:userId', (req, res, next) => {
                                 if (eventStatus === 'APPROVED') {
                                     type = 'Success';
                                     message = `Great news! Your template "${templateName}" has been approved by Meta.`;
+                                } else if (eventStatus === 'PAUSED') {
+                                    type = 'Warning';
+                                    message = `⚠️ Your template "${templateName}" has been PAUSED by Meta due to poor user feedback (e.g., users reporting it as Spam or blocking it). Please go to Templates, revise or delete this template to prevent further quality rating drops.`;
                                 } else if (eventStatus === 'REJECTED') {
                                     type = 'Error';
                                     message = `Your template "${templateName}" was rejected by Meta. ${rejectReason ? 'Reason: ' + rejectReason : ''}`;

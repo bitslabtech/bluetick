@@ -17,7 +17,7 @@ export default function WaStorePOS() {
     // Tax details from store settings
     const taxEnabled = store?.taxConfig?.enabled || false;
     const taxRate = parseFloat(store?.taxConfig?.rate) || 0;
-    const taxName = store?.taxConfig?.name || 'Tax';
+    const taxName = store?.taxConfig?.type === 'gst' ? 'GST' : (store?.taxConfig?.type === 'vat' ? 'VAT' : 'Tax');
     
     const getCurrencySymbol = (code) => {
         const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AED: 'د.إ', SGD: 'S$', AUD: 'A$', CAD: 'C$' };

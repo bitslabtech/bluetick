@@ -34,7 +34,13 @@ export default function WaStoreSettings() {
     const [checkoutConfig, setCheckoutConfig] = useState({ minOrderValue: 0, flatShippingRate: 0, freeShippingThreshold: 0 });
     const [savingCheckout, setSavingCheckout] = useState(false);
 
-    const [taxConfig, setTaxConfig] = useState({ enabled: false, type: 'gst', taxInclusive: false, slabs: [], rate: 0, autoGenerateBill: false, autoSendWhatsApp: false });
+    const [taxConfig, setTaxConfig] = useState({
+        enabled: false, type: 'gst', taxInclusive: false, slabs: [], rate: 0,
+        autoGenerateBill: false, autoSendWhatsApp: false,
+        // Seller/Business GST registration details
+        sellerLegalName: '', sellerGstin: '', sellerPan: '',
+        sellerAddress: '', sellerState: '', sellerStateCode: ''
+    });
     const [savingTax, setSavingTax] = useState(false);
 
     const [inventoryConfig, setInventoryConfig] = useState({ enabled: false, autoOutOfStock: false, showLowStock: false, preventCartAdd: false, showOutOfStock: false });
@@ -918,6 +924,42 @@ export default function WaStoreSettings() {
                                         onChange={e => setTaxConfig({...taxConfig, rate: parseFloat(e.target.value) || 0})}
                                         className="w-full md:w-1/2 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
                                     />
+                                </div>
+                            )}
+
+                            {/* Seller / Business GST Registration Details */}
+                            {taxConfig.type === 'gst' && (
+                                <div className="col-span-1 md:col-span-2 mt-2 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl space-y-4">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-amber-700 dark:text-amber-400 font-semibold text-sm">🏢 Seller GST Registration Details</span>
+                                        <span className="text-xs text-amber-600 dark:text-amber-500">(Printed on every invoice)</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Legal Business Name</label>
+                                            <input type="text" value={taxConfig.sellerLegalName || ''} onChange={e => setTaxConfig({...taxConfig, sellerLegalName: e.target.value})} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="As registered with GST" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">GSTIN</label>
+                                            <input type="text" value={taxConfig.sellerGstin || ''} onChange={e => setTaxConfig({...taxConfig, sellerGstin: e.target.value.toUpperCase()})} maxLength={15} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono uppercase" placeholder="22AABCC1234F1Z5" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">PAN</label>
+                                            <input type="text" value={taxConfig.sellerPan || ''} onChange={e => setTaxConfig({...taxConfig, sellerPan: e.target.value.toUpperCase()})} maxLength={10} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono uppercase" placeholder="AABCC1234F" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
+                                            <input type="text" value={taxConfig.sellerState || ''} onChange={e => setTaxConfig({...taxConfig, sellerState: e.target.value})} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="e.g. Maharashtra" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">State Code</label>
+                                            <input type="text" value={taxConfig.sellerStateCode || ''} onChange={e => setTaxConfig({...taxConfig, sellerStateCode: e.target.value})} maxLength={2} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="27" />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Registered Address</label>
+                                            <textarea value={taxConfig.sellerAddress || ''} onChange={e => setTaxConfig({...taxConfig, sellerAddress: e.target.value})} rows={2} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="Full registered address" />
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

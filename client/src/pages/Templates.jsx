@@ -29,6 +29,8 @@ const Templates = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [showGuidelines, setShowGuidelines] = useState(false);
+    // Banner: tracks if user dismissed the paused-templates warning
+    const [dismissedPausedBanner, setDismissedPausedBanner] = useState(false);
 
     // AI Draft States
     const [showAiDraftModal, setShowAiDraftModal] = useState(false);
@@ -102,6 +104,13 @@ const Templates = () => {
                 if (category) updated.category = category;
                 return updated;
             }));
+        });
+
+        // Listen for PAUSED events to un-dismiss the banner (so user sees it immediately)
+        socket.on('template_status_update', ({ id, status }) => {
+            if (status === 'PAUSED') {
+                setDismissedPausedBanner(false);
+            }
         });
 
         return () => socket.disconnect();
@@ -209,6 +218,29 @@ const Templates = () => {
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white font-display relative transition-colors duration-300">
+
+            {/* ── PAUSED Templates Alert Banner ───────────────────────────────── */}
+            {!dismissedPausedBanner && templates.some(t => t.status === 'PAUSED') && (
+                <div className="mx-4 mt-3 flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 rounded-xl">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                            {templates.filter(t => t.status === 'PAUSED').length} template{templates.filter(t => t.status === 'PAUSED').length > 1 ? 's' : ''} paused by Meta
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                            Meta paused these due to poor user feedback (blocks/spam reports): <strong>{templates.filter(t => t.status === 'PAUSED').map(t => t.name).join(', ')}</strong>. Please revise or delete them to improve your quality rating.
+                        </p>
+                    </div>
+                    <button
+                        id="dismiss-paused-banner"
+                        onClick={() => setDismissedPausedBanner(true)}
+                        className="p-1 hover:bg-amber-200 dark:hover:bg-amber-500/20 rounded-lg transition-colors flex-shrink-0"
+                        title="Dismiss"
+                    >
+                        <X className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    </button>
+                </div>
+            )}
 
             {/* Confetti Burst Animation */}
             {showConfetti && (
