@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import {
     Search, Bell, HelpCircle, Wallet, Plus,
@@ -67,6 +67,16 @@ const Dashboard = () => {
     const [showQualityModal, setShowQualityModal] = useState(false);
     const [qualityInsights, setQualityInsights] = useState(null);
     const [qualityInsightsLoading, setQualityInsightsLoading] = useState(false);
+    const [showRecoverySection, setShowRecoverySection] = useState(false);
+    const recoveryEndRef = useRef(null);
+
+    useEffect(() => {
+        if (showRecoverySection && recoveryEndRef.current) {
+            setTimeout(() => {
+                recoveryEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 100);
+        }
+    }, [showRecoverySection]);
 
     const fetchQualityInsights = async () => {
         setQualityInsightsLoading(true);
@@ -1168,72 +1178,32 @@ const Dashboard = () => {
                                         )}
 
                                         {/* Current Score */}
-                                        <div className="flex flex-col md:flex-row gap-6 items-start">
-                                            <div className="p-5 rounded-2xl border border-slate-100 dark:border-[#1e3048] bg-slate-50 dark:bg-[#0a1520] min-w-[200px]">
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 font-medium">Current Score</p>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`text-3xl font-black ${
-                                                        qualityInsights.score === 'RED' ? 'text-red-500' :
-                                                        qualityInsights.score === 'YELLOW' ? 'text-yellow-500' :
-                                                        qualityInsights.score === 'GREEN' ? 'text-emerald-500' :
-                                                        'text-slate-400'
-                                                    }`}>
-                                                        {qualityInsights.score === 'RED' ? 'Low' :
-                                                         qualityInsights.score === 'YELLOW' ? 'Medium' :
-                                                         qualityInsights.score === 'GREEN' ? 'High' : 'Unknown'}
-                                                    </div>
-                                                </div>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
-                                                    Last checked:<br/>
-                                                    {qualityInsights.fetchedAt ? new Date(qualityInsights.fetchedAt).toLocaleString() : '—'}
-                                                </p>
+                                        <div className="flex flex-col items-center p-6 mb-6 rounded-2xl border border-slate-100 dark:border-[#1e3048] bg-slate-50 dark:bg-[#0a1520] w-full max-w-sm mx-auto">
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 font-medium">Current Score</p>
+                                            <div className={`text-4xl font-black ${
+                                                qualityInsights.score === 'RED' ? 'text-red-500' :
+                                                qualityInsights.score === 'YELLOW' ? 'text-yellow-500' :
+                                                qualityInsights.score === 'GREEN' ? 'text-emerald-500' :
+                                                'text-slate-400'
+                                            }`}>
+                                                {qualityInsights.score === 'RED' ? 'Low' :
+                                                 qualityInsights.score === 'YELLOW' ? 'Medium' :
+                                                 qualityInsights.score === 'GREEN' ? 'High' : 'Unknown'}
                                             </div>
-
-                                            {/* Recommended Actions */}
-                                            <div className="flex-1 p-5 rounded-2xl bg-primary/5 dark:bg-primary/10 border border-primary/20">
-                                                <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
-                                                    <ShieldCheck className="w-5 h-5 text-primary" />
-                                                    How to Recover Your Rating
-                                                </p>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                                    <ul className="space-y-3">
-                                                        <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
-                                                            <span>Pause all promotional broadcasts immediately.</span>
-                                                        </li>
-                                                        <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
-                                                            <span>Limit messaging to transactional (OTPs, updates) for now.</span>
-                                                        </li>
-                                                    </ul>
-                                                    <ul className="space-y-3">
-                                                        <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
-                                                            <span>Clean contact lists of unengaged or non-opted-in users.</span>
-                                                        </li>
-                                                        <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
-                                                            <span>Ensure an explicit "Opt-out" button exists in future marketing.</span>
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                                <div className="p-3 bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10 flex items-start gap-3">
-                                                    <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                                                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                                                        <strong>Did you know?</strong> WhatsApp quality ratings are calculated based on the past 7 days of message quality. By strictly following best practices now, your score will naturally reset and recover within the next 7 days.
-                                                    </p>
-                                                </div>
-                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 text-center">
+                                                Last checked:<br/>
+                                                {qualityInsights.fetchedAt ? new Date(qualityInsights.fetchedAt).toLocaleString() : '—'}
+                                            </p>
                                         </div>
 
-                                        {/* Block Reasons (Horizontal Cards) */}
-                                        <div>
+                                        {/* Block Reasons (Vertical Cards) */}
+                                        <div className="mb-6">
                                             <p className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
                                                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                                                Why users are blocking you
+                                                Block Category Specific
                                             </p>
                                             {qualityInsights.reasons && qualityInsights.reasons.length > 0 ? (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                <div className="flex flex-col gap-4">
                                                     {qualityInsights.reasons.map((reason, idx) => (
                                                         <div key={idx} className="flex flex-col p-5 rounded-2xl bg-white dark:bg-[#152330] border border-slate-200 dark:border-[#1e3048] shadow-sm hover:shadow-md transition-shadow">
                                                             <div className="flex items-center gap-2 mb-3">
@@ -1242,13 +1212,13 @@ const Dashboard = () => {
                                                                     reason.severity === 'medium' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
                                                                     'bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300'
                                                                 }`}>
-                                                                    {reason.severity?.toUpperCase()}
+                                                                    {idx + 1}. {reason.severity?.toUpperCase()}
                                                                 </span>
-                                                                <span className="font-bold text-sm text-slate-900 dark:text-white truncate" title={reason.label}>
+                                                                <span className="font-bold text-lg text-slate-900 dark:text-white" title={reason.label}>
                                                                     {reason.label}
                                                                 </span>
                                                             </div>
-                                                            <div className="flex-1 space-y-4">
+                                                            <div className="space-y-4">
                                                                 <div>
                                                                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Details</p>
                                                                     <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{reason.description}</p>
@@ -1300,6 +1270,62 @@ const Dashboard = () => {
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Expandable Recovery Section */}
+                                        <div className="mt-6 border border-primary/20 rounded-2xl bg-primary/5 dark:bg-primary/10 overflow-hidden">
+                                            <button 
+                                                onClick={() => setShowRecoverySection(!showRecoverySection)}
+                                                className="w-full p-5 flex items-center justify-between text-left hover:bg-primary/10 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <ShieldCheck className="w-5 h-5 text-primary" />
+                                                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">How to Recover Your Rating</span>
+                                                </div>
+                                                <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform ${showRecoverySection ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            <AnimatePresence>
+                                                {showRecoverySection && (
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="p-5 pt-0">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                                <ul className="space-y-3">
+                                                                    <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                                                        <span>Pause all promotional broadcasts immediately.</span>
+                                                                    </li>
+                                                                    <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                                                        <span>Limit messaging to transactional (OTPs, updates) for now.</span>
+                                                                    </li>
+                                                                </ul>
+                                                                <ul className="space-y-3">
+                                                                    <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                                                        <span>Clean contact lists of unengaged or non-opted-in users.</span>
+                                                                    </li>
+                                                                    <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                                                        <span>Ensure an explicit "Opt-out" button exists in future marketing.</span>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                            <div className="p-3 bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10 flex items-start gap-3">
+                                                                <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                                                                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                                    <strong>Did you know?</strong> WhatsApp quality ratings are calculated based on the past 7 days of message quality. By strictly following best practices now, your score will naturally reset and recover within the next 7 days.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                        <div ref={recoveryEndRef} />
                                     </>
                                 ) : null}
                             </div>
