@@ -593,6 +593,7 @@ const AdminLandingPage = () => {
                                 </div>
                                 {[
                                     { id: 'hero', icon: LayoutTemplate, label: 'Hero Section', desc: 'Title, CTA, colors' },
+                                    { id: 'book_demo', icon: Phone, label: 'Book Demo Button', desc: 'Demo request modal config' },
                                     { id: 'capabilities', icon: Zap, label: 'Capabilities', desc: 'Bento grid section' },
                                     { id: 'advanced_features', icon: BarChart, label: 'Advanced Features', desc: 'Feature tabs showcase' },
                                     { id: 'industries', icon: Globe, label: 'Industries', desc: 'Built for every industry' },

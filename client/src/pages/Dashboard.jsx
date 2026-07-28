@@ -95,72 +95,55 @@ const Dashboard = () => {
     useEffect(() => {
         // Initialize Facebook JS SDK for Connect Button
         const initFBSDK = () => {
-            console.log('[FB DEBUG] initFBSDK() called');
-            console.log('[FB DEBUG] VITE_FB_APP_ID =', import.meta.env.VITE_FB_APP_ID || '(MISSING!)');
-            console.log('[FB DEBUG] VITE_FB_CONFIG_ID =', import.meta.env.VITE_FB_CONFIG_ID || '(MISSING!)');
-            console.log('[FB DEBUG] window.FB exists?', !!window.FB);
-            console.log('[FB DEBUG] Script tag #facebook-jssdk exists?', !!document.getElementById('facebook-jssdk'));
 
             return new Promise((resolve, reject) => {
                 if (window.FB) {
-                    console.log('[FB DEBUG] window.FB already available, re-initializing...');
                     window.FB.init({
                         appId: import.meta.env.VITE_FB_APP_ID,
                         cookie: true,
                         xfbml: true,
                         version: 'v22.0'
                     });
-                    console.log('[FB DEBUG] ✅ FB.init() completed (re-init)');
                     window.__fbSDKReady = true;
                     resolve();
                     return;
                 }
 
-                console.log('[FB DEBUG] window.FB not found, setting up fbAsyncInit...');
                 window.fbAsyncInit = function () {
-                    console.log('[FB DEBUG] fbAsyncInit fired! window.FB =', !!window.FB);
                     window.FB.init({
                         appId: import.meta.env.VITE_FB_APP_ID,
                         cookie: true,
                         xfbml: true,
                         version: 'v22.0'
                     });
-                    console.log('[FB DEBUG] ✅ FB.init() completed (async init)');
                     window.__fbSDKReady = true;
                     resolve();
                 };
 
                 if (!document.getElementById('facebook-jssdk')) {
-                    console.log('[FB DEBUG] Injecting <script> for connect.facebook.net/en_US/sdk.js ...');
                     const js = document.createElement('script');
                     js.id = 'facebook-jssdk';
                     js.src = 'https://connect.facebook.net/en_US/sdk.js';
                     js.async = true;
                     js.onload = () => {
-                        console.log('[FB DEBUG] ✅ SDK script onload fired. window.FB =', !!window.FB);
                     };
                     js.onerror = (e) => {
-                        console.error('[FB DEBUG] ❌ SDK script FAILED to load! This is likely an ad-blocker or network issue.', e);
                         window.__fbSDKFailed = true;
                         reject(new Error('FB SDK script failed to load'));
                     };
                     document.body.appendChild(js);
-                    console.log('[FB DEBUG] <script> tag appended to body');
                 } else {
-                    console.log('[FB DEBUG] Script tag already exists, polling for window.FB...');
                     let pollCount = 0;
                     const checkFB = setInterval(() => {
                         pollCount++;
                         if (window.FB) {
                             clearInterval(checkFB);
-                            console.log(`[FB DEBUG] ✅ window.FB became available after ${pollCount} polls`);
                             window.FB.init({
                                 appId: import.meta.env.VITE_FB_APP_ID,
                                 cookie: true,
                                 xfbml: true,
                                 version: 'v22.0'
                             });
-                            console.log('[FB DEBUG] ✅ FB.init() completed (polled)');
                             window.__fbSDKReady = true;
                             resolve();
                         }
@@ -168,7 +151,6 @@ const Dashboard = () => {
                     setTimeout(() => {
                         clearInterval(checkFB);
                         if (!window.FB) {
-                            console.error(`[FB DEBUG] ❌ window.FB still not available after 15s (${pollCount} polls). SDK timed out.`);
                             window.__fbSDKFailed = true;
                             reject(new Error('FB SDK timed out'));
                         }
@@ -177,7 +159,6 @@ const Dashboard = () => {
             });
         };
 
-        initFBSDK().catch(err => console.warn('[FB DEBUG] initFBSDK promise rejected:', err.message));
     }, []);
 
     const handleRefreshWaStatus = async () => {
@@ -270,17 +251,13 @@ const Dashboard = () => {
     }, [dateRange, customStart, customEnd]);
 
     const exchangeFbCode = async (code, capturedWabaId = null, capturedPhoneNumberId = null) => {
-        console.log('[FB DEBUG] exchangeFbCode() called with code length:', code?.length);
-        console.log('[FB DEBUG] Hint IDs → wabaId:', capturedWabaId, ', phoneNumberId:', capturedPhoneNumberId);
         try {
-            console.log('[FB DEBUG] POSTing to /api/whatsapp/exchange-token ...');
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, {
                 code,
                 hintWabaId: capturedWabaId,
                 hintPhoneNumberId: capturedPhoneNumberId
             });
 
-            console.log('[FB DEBUG] ✅ Exchange token response:', res.data);
             showToast({ type: 'success', title: 'WhatsApp Connected', message: res.data.message });
 
             setStats(prev => ({ ...prev, isWhatsappConfigured: true }));
@@ -288,7 +265,6 @@ const Dashboard = () => {
             // Refresh AuthContext so Settings page sees the updated User model
             await fetchUser();
         } catch (error) {
-            console.error('[FB DEBUG] ❌ Exchange token FAILED:', error?.response?.status, error?.response?.data || error.message);
             const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Failed to connect WhatsApp account.';
             showModal({ type: 'error', title: 'Connection Failed', message: errorMessage, confirmText: 'Close' });
         } finally {
@@ -297,16 +273,8 @@ const Dashboard = () => {
     };
 
     const handleFacebookLogin = () => {
-        console.log('[FB DEBUG] ========== handleFacebookLogin() START ==========');
-        console.log('[FB DEBUG] window.__fbSDKFailed =', window.__fbSDKFailed);
-        console.log('[FB DEBUG] window.__fbSDKReady =', window.__fbSDKReady);
-        console.log('[FB DEBUG] window.FB =', !!window.FB);
-        console.log('[FB DEBUG] typeof window.FB?.login =', typeof window.FB?.login);
-        console.log('[FB DEBUG] VITE_FB_APP_ID =', import.meta.env.VITE_FB_APP_ID);
-        console.log('[FB DEBUG] VITE_FB_CONFIG_ID =', import.meta.env.VITE_FB_CONFIG_ID);
 
         if (window.__fbSDKFailed) {
-            console.error('[FB DEBUG] ❌ SDK failed to load — showing blocked modal');
             showModal({
                 type: 'error',
                 title: 'Facebook SDK Blocked',
@@ -317,7 +285,6 @@ const Dashboard = () => {
         }
 
         if (!window.FB) {
-            console.error('[FB DEBUG] ❌ window.FB is falsy — SDK not loaded yet');
             showToast({ type: 'error', title: 'SDK Not Ready', message: 'Facebook SDK is still loading. Please wait a moment and try again.' });
             return;
         }
@@ -332,11 +299,9 @@ const Dashboard = () => {
         const tryExchange = (source) => {
             if (exchangeAlreadyTriggered) return;
             if (!capturedCode) {
-                console.warn(`[FB DEBUG] tryExchange called from "${source}" but capturedCode is still null — waiting.`);
                 return;
             }
             exchangeAlreadyTriggered = true;
-            console.log(`[FB DEBUG] ✅ tryExchange triggered from "${source}" — wabaId:`, capturedWabaId, ', phoneNumberId:', capturedPhoneNumberId);
             window.removeEventListener('message', fbMessageListener);
             window.removeEventListener('error', fbErrorListener);
             exchangeFbCode(capturedCode, capturedWabaId, capturedPhoneNumberId);
@@ -347,21 +312,17 @@ const Dashboard = () => {
             if (!event.origin || (!event.origin.includes('facebook.com') && !event.origin.includes('fb.com'))) return;
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                console.log('[FB DEBUG] 📩 postMessage from Facebook:', JSON.stringify(data));
 
                 if (data?.type === 'WA_EMBEDDED_SIGNUP') {
                     if (data.event === 'FINISH') {
                         capturedPhoneNumberId = data.data?.phone_number_id || null;
                         capturedWabaId = data.data?.waba_id || null;
-                        console.log('[FB DEBUG] ✅ FINISH postMessage captured → wabaId:', capturedWabaId, ', phoneNumberId:', capturedPhoneNumberId);
                         setTimeout(() => tryExchange('postMessage-FINISH-timeout'), 800);
                     } else if (data.event === 'CANCEL') {
-                        console.warn('[FB DEBUG] ⚠️ Embedded signup CANCELLED by user');
                         window.removeEventListener('message', fbMessageListener);
                         window.removeEventListener('error', fbErrorListener);
                         setFbLoading(false);
                     } else if (data.event === 'ERROR') {
-                        console.error('[FB DEBUG] ❌ Embedded signup ERROR via postMessage:', data);
                         window.removeEventListener('message', fbMessageListener);
                         window.removeEventListener('error', fbErrorListener);
                         setFbLoading(false);
@@ -375,7 +336,6 @@ const Dashboard = () => {
 
         // Global error listener
         const fbErrorListener = (errorEvent) => {
-            console.error('[FB DEBUG] 🔴 Window error during FB flow:', errorEvent.message);
         };
         window.addEventListener('error', fbErrorListener);
 
@@ -389,24 +349,18 @@ const Dashboard = () => {
                 sessionInfoVersion: '3'
             }
         };
-        console.log('[FB DEBUG] Calling FB.login() with options:', JSON.stringify(loginOptions, null, 2));
-        console.log('[FB DEBUG] Current page URL:', window.location.href);
 
         try {
             window.FB.login(function (response) {
-                console.log('[FB DEBUG] ✅ FB.login callback FIRED');
-                console.log('[FB DEBUG] response.status =', response?.status);
 
                 const authRes = response?.authResponse;
                 if (authRes && (authRes.code || authRes.accessToken)) {
                     capturedCode = authRes.code || authRes.accessToken;
-                    console.log('[FB DEBUG] ✅ Got credential (type:', authRes.code ? 'code' : 'accessToken', ', length:', capturedCode.length, ')');
                     tryExchange('FB.login-callback');
                 } else {
                     window.removeEventListener('message', fbMessageListener);
                     window.removeEventListener('error', fbErrorListener);
                     setFbLoading(false);
-                    console.warn('[FB DEBUG] ⚠️ No auth code received.');
                     if (response.status === 'unknown') {
                         showToast({ type: 'warning', title: 'Popup Blocked?', message: 'The login popup may have been blocked. Please allow popups for this site and try again.' });
                     } else {
@@ -415,17 +369,14 @@ const Dashboard = () => {
                 }
             }, loginOptions);
         } catch (err) {
-            console.error('[FB DEBUG] ❌ FB.login() THREW an exception:', err);
             window.removeEventListener('message', fbMessageListener);
             window.removeEventListener('error', fbErrorListener);
         }
 
-        console.log('[FB DEBUG] FB.login() call returned');
 
         setFbLoading(true);
         showToast({ type: 'info', title: 'Connecting...', message: 'Opening WhatsApp Setup. Please allow popups if blocked.' });
 
-        console.log('[FB DEBUG] ========== handleFacebookLogin() END ==========');
     };
 
 

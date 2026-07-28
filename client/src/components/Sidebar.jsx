@@ -220,7 +220,15 @@ function NavItem({ item, location, setIsOpen, unreadCount }) {
                                 {sub.label}
                                 {sub.isLocked && <Lock className="w-3 h-3 text-amber-500 shrink-0" />}
                             </span>
-                            {sub.unreadCount > 0 && !sub.isLocked && (
+                            {sub.isLocked ? (
+                                <Link
+                                    to="/billing"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700/50 whitespace-nowrap hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
+                                >
+                                    Upgrade ↗
+                                </Link>
+                            ) : sub.unreadCount > 0 && (
                                 <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md min-w-[1.25rem] text-center">
                                     {sub.unreadCount}
                                 </span>

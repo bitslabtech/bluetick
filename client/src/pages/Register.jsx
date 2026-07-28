@@ -110,6 +110,7 @@ const Register = () => {
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState('');
+    const [termsAccepted, setTermsAccepted] = useState(false);
     const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [mockMessages, setMockMessages] = useState([]);
@@ -852,10 +853,28 @@ const Register = () => {
                             </div>
                         )}
 
+                        {/* T&C Consent Checkbox */}
+                        <div className="flex items-start gap-2.5 mt-3 mb-1">
+                            <input
+                                type="checkbox"
+                                id="termsAccepted"
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-primary accent-primary cursor-pointer shrink-0"
+                            />
+                            <label htmlFor="termsAccepted" className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed cursor-pointer">
+                                I agree to the{' '}
+                                <Link to="/terms" target="_blank" className="text-primary hover:underline font-semibold">Terms of Service</Link>
+                                {' '}and{' '}
+                                <Link to="/privacy" target="_blank" className="text-primary hover:underline font-semibold">Privacy Policy</Link>.
+                                By registering, you consent to receiving account-related WhatsApp messages.
+                            </label>
+                        </div>
+
                         <div className="relative group w-full mt-2">
                             <button
                                 type="submit"
-                                disabled={isSubmitting || (otpEnabled && otpStep !== 'verified')}
+                                disabled={isSubmitting || (otpEnabled && otpStep !== 'verified') || !termsAccepted}
                                 className="w-full py-2.5 bg-primary text-white rounded-xl hover:opacity-90 font-medium transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50"
                             >
                                 {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}

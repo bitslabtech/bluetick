@@ -43,7 +43,7 @@ const str = (v) => (v == null || typeof v === 'object' ? '' : String(v));
 // --- DATA CONSTANTS ---
 
 const comparisonData = [
-    { metric: 'Open Rate', email: '20%', sms: '45%', whatsapp: '98%' },
+    { metric: 'Open Rate', email: '20%', sms: '45%', whatsapp: '90%' },
     { metric: 'Click-Through Rate', email: '2-5%', sms: '10-15%', whatsapp: '45-60%' },
     { metric: 'Response Rate', email: '6%', sms: '45%', whatsapp: '90%' },
     { metric: 'Format Support', email: 'Rich Text', sms: 'Text Only', whatsapp: 'Images, Videos, Docs, Buttons' },
@@ -218,7 +218,7 @@ const CapabilitiesBento = ({ config }) => {
             id: 'meta_ads',
             badge: 'META ADS & GROWTH',
             title: 'Instagram & Facebook Ads',
-            subtitle: 'Click-to-WhatsApp (CTWA) ads to convert social scrollers into buyers.',
+            subtitle: 'Run Instagram & Facebook Ads that connect directly to WhatsApp — turn scrollers into paying customers.',
             bgGradient: 'from-rose-50/80 via-white to-amber-50/50 dark:from-rose-950/30 dark:via-zinc-900/40 dark:to-amber-950/20',
             borderColor: 'border-rose-100 dark:border-rose-800/40',
             glowColor: 'shadow-rose-500/10 dark:shadow-rose-500/20',
@@ -226,7 +226,7 @@ const CapabilitiesBento = ({ config }) => {
             accentGradient: 'from-rose-500 to-orange-500',
             icon: Target,
             impactPoints: [
-                { title: 'Direct Ad-to-WhatsApp Flow', desc: '1-click from IG/FB Sponsored Post directly into customer WhatsApp chat.' },
+                { title: 'Direct Ad-to-WhatsApp Flow', desc: '1-click from Instagram/Facebook Sponsored Ads/Post directly into your WhatsApp chat.' },
                 { title: 'Automated Instant Lead Qualification', desc: 'AI bot collects lead contact info, interest, & budget in seconds.' },
                 { title: '5x Lower Lead Acquisition Cost', desc: 'Stop wasting ad money on low-converting external landing page links.' },
                 { title: 'High-Intent Buyer Retargeting', desc: 'Re-engage users who clicked your ad with instant broadcast offers.' },
@@ -464,7 +464,7 @@ export const advancedFeatures = [
         tagText: 'Marketing',
         title: 'Click-to-WhatsApp (CTWA) & Bulk Broadcasts',
         desc: 'Launch Meta Ads that drive traffic straight to your WhatsApp inbox, and broadcast personalized campaigns to thousands instantly.',
-        stats: ['98% Open Rate', '5x Lead Gen', '3x ROI'], preview: 'broadcast', category: 'whatsapp'
+        stats: ['90% Open Rate', '5x Lead Gen', '3x ROI'], preview: 'broadcast', category: 'whatsapp'
     },
     {
         id: 'audience_sync', label: 'CRM Audience Sync', icon: Repeat,
@@ -839,7 +839,7 @@ function FeaturePreview({ feature }) {
         analytics_meta: (
             <div className="w-full h-full flex flex-col gap-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {[['45%', 'CTR'], ['98%', 'Open Rate'], ['12K', 'Replies']].map(([v, l]) => (
+                    {[['45%', 'CTR'], ['90%', 'Open Rate'], ['12K', 'Replies']].map(([v, l]) => (
                         <div key={l} className="bg-white/70 rounded-xl p-2 text-center"><div className="font-black text-sm text-slate-800">{v}</div><div className="text-[9px] text-slate-400 font-bold">{l}</div></div>
                     ))}
                 </div>
@@ -1900,13 +1900,15 @@ export default function LandingPage() {
 
 
                     {/* 11. PRICING */}
-                    {plans.length > 0 && (
-                        <section id="pricing" className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
-                            <div className="max-w-[100rem] mx-auto px-4 md:px-6">
-                                <div className="text-center mb-12">
-                                    <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight">Simple, transparent pricing</h2>
-                                    <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg font-medium">Choose the perfect plan to scale your customer engagement seamlessly. No hidden fees.</p>
-                                </div>
+                    <section id="pricing" className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
+                        <div className="max-w-[100rem] mx-auto px-4 md:px-6">
+                            <div className="text-center mb-12">
+                                <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight">Simple, transparent pricing</h2>
+                                <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg font-medium">Choose the perfect plan to scale your customer engagement seamlessly. No hidden fees.</p>
+                            </div>
+
+                    {plans.length > 0 ? (
+                        <>
 
                                 {/* Interval Toggle */}
                                 <div className="flex justify-center mb-16">
@@ -2142,19 +2144,15 @@ export default function LandingPage() {
                                                                 </div>
 
                                                                 <div className="relative p-4">
-                                                                    <div className="flex items-center justify-between mb-3">
+                                                                    <div className="flex items-center justify-between mb-1">
                                                                         <div className="flex items-center gap-1.5">
                                                                             <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                                                                             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Template Rates</h4>
                                                                         </div>
-                                                                        <div className="relative flex items-center justify-center group z-[100]">
-                                                                            <Info className="w-4 h-4 text-slate-400 hover:text-[#0088cc] transition-colors cursor-help" />
-                                                                            <div className="absolute right-0 bottom-full mb-2 w-64 p-3 bg-slate-900 text-white text-[11px] leading-relaxed font-medium rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none">
-                                                                                These are the official WhatsApp message rates charged directly by Meta. The rates shown are for {metaRates.country} and vary based on your recipient's country.
-                                                                                <div className="absolute -bottom-1 right-2 w-2 h-2 bg-slate-900 rotate-45"></div>
-                                                                            </div>
-                                                                        </div>
                                                                     </div>
+                                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                                                                        * These are Meta's official per-message charges (billed directly by Meta, not us). Rates shown are for {metaRates.country} and vary by recipient country.
+                                                                    </p>
 
                                                                     <div className="space-y-2 text-xs font-semibold relative z-10">
                                                                         <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
@@ -2349,11 +2347,39 @@ export default function LandingPage() {
                                         })}
                                     </div>
                                 </div>
+
+                            {/* Enterprise Row */}
+                            <div className="mt-8 mx-auto max-w-3xl">
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-5 rounded-2xl border border-slate-200 dark:border-white/10 bg-gradient-to-r from-slate-50 to-indigo-50/30 dark:from-zinc-900/60 dark:to-indigo-950/20">
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-white">Enterprise</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Have custom requirements? Let's build a plan around your business.</p>
+                                    </div>
+                                    <Link
+                                        to="/contact"
+                                        className="shrink-0 inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-500/20 transition-all"
+                                    >
+                                        Contact Sales →
+                                    </Link>
+                                </div>
                             </div>
-                        </section>
-                    )}
-
-
+                        </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-16 gap-6 text-center px-4">
+                                <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
+                                    <MessageSquare className="w-8 h-8 text-indigo-500" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Pricing plans are being configured</h3>
+                                    <p className="text-slate-500 dark:text-slate-400 max-w-md">Our team is setting up the best plans for you. In the meantime, feel free to reach out — we'll help you find the right fit.</p>
+                                </div>
+                                <Link to="/contact" className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all">
+                                    Contact Us
+                                </Link>
+                            </div>
+                        )}
+                        </div>
+                    </section>
 
 
                     <section id="solutions" className="py-16 md:py-20 bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden relative">
