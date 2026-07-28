@@ -8,15 +8,20 @@ import FloatingChatbot from './FloatingChatbot';
 
 const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
     const [config, setConfig] = useState(null);
+    const [publicSettings, setPublicSettings] = useState(null);
     const [loading, setLoading] = useState(true);
     const location = useLocation();
 
     useEffect(() => {
         const fetchConfig = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing`);
-                setConfig(res.data);
-                if (title) document.title = `${title} - ${res.data.brand?.name || 'Platform'}`;
+                const [landingRes, settingsRes] = await Promise.all([
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/landing`),
+                    axios.get(`${import.meta.env.VITE_API_URL}/api/settings/public`)
+                ]);
+                setConfig(landingRes.data);
+                setPublicSettings(settingsRes.data);
+                if (title) document.title = `${title} - ${settingsRes.data.appName || landingRes.data.brand?.name || 'Platform'}`;
             } catch (err) {
                 console.error("Failed to load landing config", err);
             } finally {
@@ -40,8 +45,6 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
     }
 
     if (!config) return <div className="text-center p-4 md:p-20 text-red-500">Failed to load configuration.</div>;
-
-    const brandName = config.brand?.name || 'Platform';
 
     return (
         <div className="min-h-screen flex flex-col bg-[#F5F5F7] text-slate-900 font-display selection:bg-indigo-500/30 selection:text-indigo-900">
@@ -75,8 +78,8 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
                         <div className="col-span-2 lg:col-span-2 space-y-6">
                             <div className="flex items-center gap-3 font-extrabold text-2xl tracking-tight text-slate-900">
-                                {config.brand?.logo ? (
-                                    <img src={config.brand.logo} alt="Logo" className="h-10 object-contain" />
+                                {(publicSettings?.logoUrl || config.brand?.logo) ? (
+                                    <img src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || "Logo"} className="h-10 object-contain" />
                                 ) : (
                                     <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
                                         <MessageSquare className="w-5 h-5 text-white" />
@@ -90,7 +93,7 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                                     { id: 'facebook', icon: Facebook },
                                     { id: 'linkedin', icon: Linkedin },
                                     { id: 'instagram', icon: Instagram }
-                                ].map(({ id, icon: Icon }) => {
+                                ].map(({ id, icon: Icon }) => { // eslint-disable-line no-unused-vars
                                     const url = config.seo?.socialLinks?.[id];
                                     if (!url) return null;
                                     return (
@@ -162,9 +165,10 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
 
                     <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-sm font-medium text-slate-500">
                         <div>
-                            {config.footer?.bottomBarLeft 
-                                ? config.footer.bottomBarLeft.replace('{year}', new Date().getFullYear()).replace('{brand}', brandName)
-                                : `© ${new Date().getFullYear()} ${brandName}. All rights reserved.`}
+                            {config.footer?.bottomBarLeft
+                                ? config.footer.bottomBarLeft.replace(/\{year\}/ig, new Date().getFullYear()).replace(/\{brand\}/ig, publicSettings?.appName || config.brand?.name || 'Bluetick').replace(config.brand?.name || 'Bluetick', publicSettings?.appName || config.brand?.name || 'Bluetick')
+                                : `© ${new Date().getFullYear()} ${publicSettings?.appName || config.brand?.name || 'Bluetick'}. All rights reserved.`
+                            }
                         </div>
                         <div className="flex gap-4">
                             {config.footer?.bottomBarRight ? (

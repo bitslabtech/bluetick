@@ -12,10 +12,12 @@ import {
     Twitter, Facebook, Linkedin, Instagram,
     CreditCard, Truck, LayoutTemplate, Repeat, QrCode,
     Megaphone, Activity, Target, SplitSquareHorizontal, Wand2,
-    LayoutGrid, ListOrdered, Tag, FileText, LineChart, Wifi, Search, Filter, Info
+    LayoutGrid, ListOrdered, Tag, FileText, LineChart, Wifi, Search, Filter, Info, Phone, ChevronDown, Sparkles
 } from 'lucide-react';
 import PublicHeader from '../components/landing/PublicHeader';
 import FloatingChatbot from '../components/landing/FloatingChatbot';
+import HeroShowcase from '../components/landing/HeroShowcase';
+
 
 // Icon Map for dynamic rendering
 const IconMap = {
@@ -96,381 +98,310 @@ const integrationLogos = [
     { name: 'Make', color: 'text-indigo-500' },
 ];
 
+const defaultTestimonials = [
+    {
+        name: 'Siddharth Mehta',
+        role: 'Head of Growth at RetailPulse',
+        quote: 'Bluetick transformed our abandoned cart recovery. We saw an 84% increase in recovered orders within 2 weeks of deploying WhatsApp workflows.',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+    },
+    {
+        name: 'Ananya Roy',
+        role: 'Marketing Director at EdTech Pro',
+        quote: 'Our lead conversion skyrocketed by 3.5x after switching to official WhatsApp API campaigns. The broadcast delivery speed is unmatched.',
+        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80'
+    },
+    {
+        name: 'Rohan Deshmukh',
+        role: 'Founder at D2C Collective',
+        quote: 'The automated catalog checkout and WhatsApp AI chatbot handled 70% of our customer queries during seasonal sales without extra support staff.',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+    },
+    {
+        name: 'Vikram Malhotra',
+        role: 'VP of Sales at AutoCare India',
+        quote: 'Test drive bookings increased by 300% after integrating Bluetick WhatsApp automations directly with our Meta click-to-WhatsApp ads.',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
+    }
+];
+
 // ──────────────────────────────────────────────────────────
-// capabilities Bento Grid (Interakt Style)
+// Powerful Capabilities Section (4 MSME Core Impact Blocks)
 // ──────────────────────────────────────────────────────────
 const CapabilitiesBento = ({ config }) => {
     const defaultData = {
         title: 'Powerful Capabilities That Maximize Your Reach',
-        subtitle: 'Everything you need to market, sell, and support on WhatsApp.',
-        cards: [
-            { id: 'marketing', title: 'Click-to-WhatsApp\nMeta Ads', desc: 'Launch CTWA campaigns on Facebook & Instagram. Capture leads instantly into your WhatsApp inbox.', tag: 'Meta Marketing' },
-            { id: 'support', title: 'Shared Team Inbox', desc: 'Collaborate with multiple agents on a single WhatsApp number to resolve queries lightning fast.', tag: 'Support' },
-            { id: 'automation', title: 'No-Code AI Chatbots', tag: 'Automation' },
-            { id: 'commerce', title: 'Native WhatsApp\nStore', desc: 'Sell directly in-chat with rich product catalogs and native checkout flows.', tag: 'Commerce' },
-            { id: 'vcard', title: 'Premium Digital\nvCards', desc: 'Create stunning interactive business cards. Capture leads instantly via QR.', tag: 'Networking' }
-        ]
+        subtitle: 'Designed to help MSMEs & growing businesses automate customer conversations, drive sales, and scale with zero tech friction.',
     };
-    const data = config || defaultData;
-    const cards = data.cards || defaultData.cards;
 
-    const marketingCard = cards.find(c => c.id === 'marketing') || cards[0] || defaultData.cards[0];
-    const supportCard = cards.find(c => c.id === 'support') || cards[1] || defaultData.cards[1];
-    const automationCard = cards.find(c => c.id === 'automation') || cards[2] || defaultData.cards[2];
-    const commerceCard = cards.find(c => c.id === 'commerce') || cards[3] || defaultData.cards[3];
-    // 5th card: try 'vcard' id first, then 'crm' (old id), then positional fallback so admin data always wins
-    const vcardCard = cards.find(c => c.id === 'vcard') || cards.find(c => c.id === 'crm') || cards[4] || defaultData.cards[4];
+    const data = config || defaultData;
+
+    const capabilitiesList = [
+        {
+            id: 'automation_crm',
+            badge: 'AUTOMATION & CRM',
+            title: 'WhatsApp Automation & CRM',
+            subtitle: 'Turn WhatsApp into your 24/7 sales team & customer support engine.',
+            bgGradient: 'from-indigo-50/80 via-white to-purple-50/50 dark:from-indigo-950/30 dark:via-zinc-900/40 dark:to-purple-950/20',
+            borderColor: 'border-indigo-100 dark:border-indigo-800/40',
+            glowColor: 'shadow-indigo-500/10 dark:shadow-indigo-500/20',
+            badgeBg: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/50',
+            accentGradient: 'from-indigo-600 to-purple-600',
+            icon: MessageSquare,
+            impactPoints: [
+                { title: 'Smart Broadcast', desc: 'Send bulk messages to your customers safely without the risk of getting your number banned.' },
+                { title: 'Multi-Agent Shared Inbox', desc: 'Let your whole team reply to customers from one single official WhatsApp number.' },
+                { title: 'Automated Followups & Flowbot', desc: 'Easily set up automatic replies and reminders to follow up with customers, no coding needed.' },
+                { title: 'WhatsApp CRM & Lead Management', desc: 'Keep all your customer details, notes, and chats neatly organized in one simple dashboard.' },
+            ],
+            visualMockup: (
+                <div className="w-full bg-white dark:bg-zinc-900/90 rounded-2xl p-4 border border-indigo-100 dark:border-white/10 shadow-lg relative overflow-hidden">
+                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Shared Team Inbox</span>
+                        </div>
+                        <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 rounded-md text-[10px] font-bold uppercase">AI Active</span>
+                    </div>
+                    <div className="space-y-2.5 text-xs">
+                        <div className="bg-slate-50 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-white/5 flex justify-between items-center">
+                            <div>
+                                <div className="font-bold text-slate-800 dark:text-slate-200">Rahul (New Lead)</div>
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400">Asked for Price Catalog</div>
+                            </div>
+                            <span className="px-2 py-1 bg-emerald-500 text-white font-bold rounded-lg text-[10px]">Auto Replied ⚡</span>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-white/5 flex justify-between items-center">
+                            <div>
+                                <div className="font-bold text-slate-800 dark:text-slate-200">Ananya (Support)</div>
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400">Order #8420 Tracking</div>
+                            </div>
+                            <span className="px-2 py-1 bg-indigo-500 text-white font-bold rounded-lg text-[10px]">Assigned to Agent</span>
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            id: 'online_store',
+            badge: 'SMART COMMERCE',
+            title: 'Online E-Commerce Store',
+            subtitle: 'Launch an independent, fast E-Commerce store for your brand with deep WhatsApp automation built right in.',
+            bgGradient: 'from-emerald-50/80 via-white to-teal-50/50 dark:from-emerald-950/30 dark:via-zinc-900/40 dark:to-teal-950/20',
+            borderColor: 'border-emerald-100 dark:border-emerald-800/40',
+            glowColor: 'shadow-emerald-500/10 dark:shadow-emerald-500/20',
+            badgeBg: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50',
+            accentGradient: 'from-emerald-500 to-teal-600',
+            icon: ShoppingCart,
+            impactPoints: [
+                { title: 'Beautiful E-Commerce Store Instantly', desc: 'Launch a stunning, fully-functional independent store in minutes. No developers, no hosting fees, and zero tech skills required.' },
+                { title: '0% Commission on Sales', desc: 'Keep 100% of your profits. We charge absolutely zero transaction fees or hidden commissions on your orders.' },
+                { title: 'Feature-Rich E-Commerce Engine', desc: 'Includes inventory management, POS system, automated WhatsApp order confirmations, premium themes, and discount coupons.' },
+                { title: 'Premium & Blazing-Fast Experience', desc: 'Give your customers a lightning-fast, ultra-modern shopping experience that makes your brand look expensive and miles ahead of competitors.' },
+            ],
+            visualMockup: (
+                <div className="w-full flex items-center justify-center relative py-4">
+                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] rounded-[2rem] overflow-hidden shadow-2xl border-4 border-slate-800 dark:border-zinc-700 relative bg-black group-hover:shadow-emerald-500/20 transition-all duration-500">
+                        <video
+                            src="/online-store-demo.mp4"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover rounded-[1.6rem]"
+                        />
+                    </div>
+                </div>
+            )
+        },
+        {
+            id: 'meta_ads',
+            badge: 'META ADS & GROWTH',
+            title: 'Instagram & Facebook Ads',
+            subtitle: 'Click-to-WhatsApp (CTWA) ads to convert social scrollers into buyers.',
+            bgGradient: 'from-rose-50/80 via-white to-amber-50/50 dark:from-rose-950/30 dark:via-zinc-900/40 dark:to-amber-950/20',
+            borderColor: 'border-rose-100 dark:border-rose-800/40',
+            glowColor: 'shadow-rose-500/10 dark:shadow-rose-500/20',
+            badgeBg: 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/50',
+            accentGradient: 'from-rose-500 to-orange-500',
+            icon: Target,
+            impactPoints: [
+                { title: 'Direct Ad-to-WhatsApp Flow', desc: '1-click from IG/FB Sponsored Post directly into customer WhatsApp chat.' },
+                { title: 'Automated Instant Lead Qualification', desc: 'AI bot collects lead contact info, interest, & budget in seconds.' },
+                { title: '5x Lower Lead Acquisition Cost', desc: 'Stop wasting ad money on low-converting external landing page links.' },
+                { title: 'High-Intent Buyer Retargeting', desc: 'Re-engage users who clicked your ad with instant broadcast offers.' },
+            ],
+            visualMockup: (
+                <div className="w-full bg-white dark:bg-zinc-900/90 rounded-2xl p-4 border border-rose-100 dark:border-white/10 shadow-lg relative overflow-hidden">
+                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-rose-500" />
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Click-to-WhatsApp Ads (CTWA)</span>
+                        </div>
+                        <span className="px-2 py-0.5 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 rounded-md text-[10px] font-bold">5x ROI</span>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                        <div className="bg-gradient-to-r from-rose-500/10 to-orange-500/10 p-2.5 rounded-xl border border-rose-100 dark:border-white/5 flex justify-between items-center">
+                            <div>
+                                <div className="font-extrabold text-rose-600 dark:text-rose-400 text-sm">1,480+ Leads</div>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400">Captured Directly in WhatsApp</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="font-extrabold text-slate-800 dark:text-slate-200">₹14.20</div>
+                                <div className="text-[10px] text-slate-500">Cost Per Lead</div>
+                            </div>
+                        </div>
+                        <div className="w-full bg-[#25D366] text-white font-bold py-2 rounded-xl text-center text-xs flex items-center justify-center gap-1.5 shadow-sm">
+                            <MessageSquare className="w-3.5 h-3.5 fill-white" /> Start WhatsApp Chat from Instagram Ad
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            id: 'vcards',
+            badge: 'SMART NETWORKING',
+            title: 'Vcards — Digital Business Card',
+            subtitle: 'Interactive digital business cards that capture leads & save contacts in 1 tap.',
+            bgGradient: 'from-cyan-50/80 via-white to-blue-50/50 dark:from-cyan-950/30 dark:via-zinc-900/40 dark:to-blue-950/20',
+            borderColor: 'border-cyan-100 dark:border-cyan-800/40',
+            glowColor: 'shadow-cyan-500/10 dark:shadow-cyan-500/20',
+            badgeBg: 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/50',
+            accentGradient: 'from-cyan-500 to-blue-600',
+            icon: QrCode,
+            impactPoints: [
+                { title: 'Instant QR & NFC Contact Sharing', desc: 'Share your business card via QR scan, NFC card tap, or direct URL.' },
+                { title: '1-Tap Save to Phonebook + Lead Capture', desc: 'Clients save your details instantly and send opt-in info to your CRM.' },
+                { title: 'Dynamic Real-Time Profile Updates', desc: 'Update phone, catalog, or address anytime with zero reprinting costs.' },
+                { title: 'Analytics & Click Tracking', desc: 'Monitor profile views, catalog clicks, and WhatsApp inquiry counts.' },
+            ],
+            visualMockup: (
+                <div className="w-full bg-white dark:bg-zinc-900/90 rounded-2xl p-4 border border-cyan-100 dark:border-white/10 shadow-lg relative overflow-hidden">
+                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-2">
+                            <QrCode className="w-4 h-4 text-cyan-500" />
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Smart Digital Vcard</span>
+                        </div>
+                        <span className="px-2 py-0.5 bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded-md text-[10px] font-bold">QR / NFC Ready</span>
+                    </div>
+                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-white/5">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold shrink-0">
+                            vC
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="font-bold text-slate-800 dark:text-slate-200 text-xs truncate">Your Business Vcard</div>
+                            <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-semibold truncate">Tap to Save Contact</div>
+                        </div>
+                        <div className="px-2 py-1 bg-cyan-500 text-white font-bold rounded-lg text-[10px] shrink-0">
+                            Save + WhatsApp
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+    ];
 
     return (
-        <section className="py-24 bg-white dark:bg-[#05050A] transition-colors relative overflow-hidden">
-            {/* Subtle background glow (reduced blur for GPU perf) */}
-            <div className="absolute top-0 right-0 w-1/2 h-[500px] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[80px] pointer-events-none -translate-y-1/2 translate-x-1/3" style={{ transform: 'translateZ(0) translate(33%, -50%)' }} />
-            <div className="absolute bottom-0 left-0 w-1/2 h-[500px] bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none translate-y-1/3 -translate-x-1/3" style={{ transform: 'translateZ(0) translate(-33%, 33%)' }} />
+        <section className="py-24 bg-slate-50 dark:bg-[#05050A] transition-colors relative overflow-hidden border-t border-slate-200/60 dark:border-white/5">
+            {/* Ambient glows */}
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[100px] pointer-events-none -z-10" />
+            <div className="absolute bottom-10 right-10 w-[500px] h-[400px] bg-cyan-500/10 dark:bg-cyan-500/15 rounded-full blur-[80px] pointer-events-none -z-10" />
 
-            <div className="max-w-7xl mx-auto px-4 md:px-6">
-                <div className="mb-12 md:mb-16">
-                    <h2 className="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-4 leading-tight whitespace-pre-line">
-                        {data.title}
-                    </h2>
-                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">
-                        {data.subtitle}
-                    </p>
+            <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
+                {/* Section Header */}
+                <div className="text-center max-w-3xl mx-auto mb-16">
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5 }}
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-300 text-xs font-black uppercase tracking-wider mb-4 shadow-sm"
+                    >
+                        <Zap className="w-3.5 h-3.5 text-indigo-500" /> Complete Growth Ecosystem
+                    </motion.div>
+
+                    <motion.h2
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight mb-5"
+                    >
+                        {data.title || 'Powerful Capabilities That Maximize Your Reach'}
+                    </motion.h2>
+
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="text-slate-600 dark:text-slate-400 text-base md:text-lg font-medium leading-relaxed"
+                    >
+                        {data.subtitle || 'Designed to help MSMEs & growing businesses automate customer conversations, drive sales, and scale with zero tech friction.'}
+                    </motion.p>
                 </div>
 
-                {/* BENTO GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                {/* 4 CORE BLOCKS (1x4 Full-Size Stack) */}
+                <div className="flex flex-col gap-12 lg:gap-16">
+                    {capabilitiesList.map((cap, idx) => {
+                        const isReverse = idx % 2 === 1;
+                        return (
+                            <motion.div
+                                key={cap.id}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.5, delay: 0.1 }}
+                                className={`rounded-3xl p-5 md:p-6 lg:p-7 bg-gradient-to-br ${cap.bgGradient} border ${cap.borderColor} shadow-lg ${cap.glowColor} transition-all duration-300 relative overflow-hidden group`}
+                            >
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+                                    {/* Content Column (7 cols) */}
+                                    <div className={`lg:col-span-7 ${isReverse ? 'lg:order-2' : 'lg:order-1'}`}>
+                                        <h3 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white mb-2 leading-tight">
+                                            {cap.title}
+                                        </h3>
 
-                    {/* CARD 1: MARKETING (Large Left) */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                        className="md:col-span-7 rounded-[32px] bg-[#FFF5F3] dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
-                        <div className="p-8 md:p-4 md:p-10 relative z-10 w-full md:w-[55%] lg:w-[50%] mb-auto">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-rose-500 dark:text-rose-400 mb-4">{marketingCard.tag}</div>
-                            <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight whitespace-pre-line">{marketingCard.title}</h3>
-                            <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium mb-6 md:mb-8 whitespace-pre-line">{marketingCard.desc}</p>
-                            {marketingCard.linkedBlog && (
-                                <Link to={`/blog/${marketingCard.linkedBlog}`} className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4" /></Link>
-                            )}
-                        </div>
-                        {marketingCard.image ? (
-                            <div className="relative md:absolute md:right-0 md:bottom-0 w-[90%] md:w-[50%] lg:w-[45%] h-56 md:h-[85%] self-end rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-2xl overflow-hidden md:translate-x-4 md:translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500">
-                                <img loading="lazy" src={marketingCard.image} className="w-full h-full object-cover" alt={marketingCard.title} />
-                            </div>
-                        ) : (
-                            <div className="relative md:absolute md:right-0 md:bottom-0 w-[90%] md:w-[50%] lg:w-[45%] h-64 md:h-[85%] self-end bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-tl-[32px] border-t border-l border-rose-100 dark:border-rose-800/30 shadow-[0_-10px_40px_-15px_rgba(244,63,94,0.15)] max-w-full flex flex-col p-4 md:p-4 md:p-6 md:translate-x-4 md:translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500 overflow-hidden">
-                                {/* FB/IG Ad Header */}
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center">
-                                        <TrendingUp className="w-4 h-4 text-rose-500" />
-                                    </div>
-                                    <div>
-                                        <div className="text-[10px] font-bold text-slate-800 dark:text-slate-200">Sponsored Ad</div>
-                                        <div className="text-[8px] text-slate-500">Active Campaign</div>
-                                    </div>
-                                    <div className="ml-auto px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 text-[8px] font-bold rounded-full">
-                                        High Converting
-                                    </div>
-                                </div>
+                                        <p className="text-slate-600 dark:text-slate-400 text-sm md:text-base font-medium mb-4 leading-relaxed">
+                                            {cap.subtitle}
+                                        </p>
 
-                                {/* Ad Body mockup */}
-                                <div className="w-full bg-slate-50 dark:bg-zinc-800/50 rounded-xl p-3 flex-1 mb-4 border border-slate-100 dark:border-white/5 relative overflow-hidden group/ad">
-                                    <div className="w-full h-full absolute inset-0 bg-gradient-to-br from-rose-500/5 to-orange-500/5"></div>
-                                    <div className="w-3/4 h-2 bg-slate-200 dark:bg-slate-600 rounded-full mb-2"></div>
-                                    <div className="w-1/2 h-2 bg-slate-200 dark:bg-slate-600 rounded-full mb-4"></div>
-
-                                    {/* Stats overlay */}
-                                    <div className="absolute bottom-3 left-3 right-3 flex justify-between gap-2">
-                                        <div className="flex-1 bg-white/80 dark:bg-zinc-900/80 backdrop-blur shadow-sm p-2 rounded-lg border border-slate-100 dark:border-white/5">
-                                            <div className="text-[8px] text-slate-500 mb-0.5">Reach</div>
-                                            <div className="text-xs font-black text-slate-800 dark:text-slate-200">45.2K</div>
-                                        </div>
-                                        <div className="flex-1 bg-white/80 dark:bg-zinc-900/80 backdrop-blur shadow-sm p-2 rounded-lg border border-slate-100 dark:border-white/5">
-                                            <div className="text-[8px] text-slate-500 mb-0.5">Leads</div>
-                                            <div className="text-xs font-black text-rose-600 dark:text-rose-400">1,240</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* CTA Button */}
-                                <div className="w-full bg-[#25D366] rounded-xl py-2.5 flex items-center justify-center text-white text-[11px] font-bold gap-2 shadow-lg shadow-green-500/20">
-                                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" /></svg>
-                                    WhatsApp Us
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-
-                    {/* CARD 2: SUPPORT (Large Right) */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-                        className="md:col-span-5 rounded-[32px] bg-[#F0FDF4] dark:bg-emerald-950/5 border border-emerald-100 dark:border-emerald-900/30 overflow-hidden relative group flex flex-col min-h-[380px] md:min-h-[400px]">
-                        <div className="p-8 md:p-4 md:p-10 relative z-10 w-full">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400 mb-4">{supportCard.tag}</div>
-                            <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight whitespace-pre-line">{supportCard.title}</h3>
-                            <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium mb-6 md:mb-8 whitespace-pre-line">{supportCard.desc}</p>
-                            {supportCard.linkedBlog && (
-                                <Link to={`/blog/${supportCard.linkedBlog}`} className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2 hover:gap-3 transition-all">Learn More <ArrowRight className="w-4 h-4" /></Link>
-                            )}
-                        </div>
-                        {supportCard.image ? (
-                            <div className="absolute bottom-0 inset-x-8 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] max-w-full dark:shadow-emerald-900/20 border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-6 group-hover:translate-y-0 transition-transform duration-500 h-48">
-                                <img loading="lazy" src={supportCard.image} className="w-full h-full object-cover" alt={supportCard.title} />
-                            </div>
-                        ) : (
-                            <div className="absolute bottom-0 inset-x-4 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-[0_-20px_50px_-15px_rgba(16,185,129,0.15)] max-w-full border-t border-x border-slate-100 dark:border-white/10 overflow-hidden translate-y-8 group-hover:translate-y-0 transition-transform duration-500 flex h-52">
-                                {/* Sidebar (Agents/Chats) */}
-                                <div className="w-1/3 bg-slate-50 dark:bg-zinc-950 border-r border-slate-100 dark:border-white/5 p-3 flex flex-col gap-2">
-                                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Open Chats</div>
-                                    {[
-                                        { name: 'Jassi', active: true, msg: 'Order status?' },
-                                        { name: 'Manish', active: false, msg: 'Thanks for help!' }
-                                    ].map((chat, i) => (
-                                        <div key={i} className={`p-2 rounded-xl flex items-center gap-2 transition-all ${chat.active ? 'bg-white dark:bg-zinc-800 shadow-sm border border-slate-200 dark:border-white/10 ring-1 ring-emerald-500/20' : 'opacity-60 grayscale hover:grayscale-0'}`}>
-                                            <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0 relative">
-                                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">{chat.name[0]}</span>
-                                                {chat.active && <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-zinc-800 rounded-full"></span>}
-                                            </div>
-                                            <div className="overflow-hidden">
-                                                <div className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">{chat.name}</div>
-                                                <div className="text-[8px] text-slate-500 truncate">{chat.msg}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Chat Area */}
-                                <div className="w-2/3 flex flex-col bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.03),transparent)] relative">
-                                    {/* Chat Header */}
-                                    <div className="px-3 py-2 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm z-10">
-                                        <div className="flex items-center gap-2">
-                                            <div className="text-[10px] font-bold dark:text-white">Jassi</div>
-                                            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded text-[8px] font-bold uppercase tracking-wide">Waiting</span>
-                                        </div>
-                                        <div className="flex -space-x-1">
-                                            <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] text-white font-bold border border-white dark:border-zinc-900 z-20">You</div>
-                                            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[8px] text-white font-bold border border-white dark:border-zinc-900 z-10">M</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Chat Messages */}
-                                    <div className="p-3 flex-1 flex flex-col gap-3 relative">
-                                        {/* Floating Badge */}
-                                        <div className="absolute top-2 right-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-full text-[8px] font-bold flex items-center gap-1 backdrop-blur-md z-10">
-                                            <Check className="w-2.5 h-2.5" /> Assigned to You
-                                        </div>
-
-                                        <div className="flex gap-2 items-end mt-4">
-                                            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-zinc-800 shrink-0 flex items-center justify-center text-[8px] font-bold text-slate-500">S</div>
-                                            <div className="bg-slate-100 dark:bg-white/5 p-2 rounded-xl rounded-bl-sm text-[9px] dark:text-slate-300 max-w-[80%] border border-slate-200 dark:border-white/5 shadow-sm">Can you check my order status?</div>
-                                        </div>
-
-                                        <div className="flex gap-2 items-end justify-end mt-1">
-                                            <div className="bg-emerald-500 text-white p-2 rounded-xl rounded-br-sm text-[9px] max-w-[85%] shadow-md">
-                                                Checking that for you right now, Jassi! 📦
-                                            </div>
-                                        </div>
-
-                                        {/* Typing indicator */}
-                                        <div className="flex gap-1 items-center mt-auto opacity-50 px-2">
-                                            <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce"></div>
-                                            <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce delay-75"></div>
-                                            <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce delay-150"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-
-                    {/* CARD 3: AUTOMATION */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.15 }}
-                        className="md:col-span-4 rounded-[32px] bg-[#EEF2FF] dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
-                        <div className="p-4 md:p-10 relative z-10 w-full mb-auto text-center">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-500 dark:text-indigo-400 mb-4">{automationCard.tag}</div>
-                            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{automationCard.title}</h3>
-                            {automationCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{automationCard.desc}</p>}
-                            {automationCard.linkedBlog && (
-                                <Link to={`/blog/${automationCard.linkedBlog}`} className="font-bold text-indigo-500 dark:text-indigo-400 flex items-center justify-center gap-2 hover:gap-3 transition-all mt-4">Learn More <ArrowRight className="w-4 h-4" /></Link>
-                            )}
-                        </div>
-                        {automationCard.image ? (
-                            <div className="relative h-56 w-full mt-auto flex items-center justify-center overflow-hidden">
-                                <img loading="lazy" src={automationCard.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={automationCard.title} />
-                            </div>
-                        ) : (
-                            <div className="relative h-48 w-full mt-auto flex items-center justify-center overflow-hidden">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.1)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.2)_1px,transparent_1px)] bg-[length:16px_16px]"></div>
-
-                                <div className="relative z-10 w-32 bg-white dark:bg-zinc-800 shadow-lg rounded-xl p-3 border border-indigo-100 dark:border-white/10 -translate-y-4 -translate-x-8 group-hover:-translate-y-6 transition-transform duration-500">
-                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 border-b border-slate-100 dark:border-white/10 pb-1">Trigger</div>
-                                    <div className="text-xs font-semibold dark:text-white">Customer Says "Hi"</div>
-                                </div>
-
-                                <svg className="absolute w-24 h-24 top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40px] text-indigo-300 dark:text-indigo-700" fill="none" viewBox="0 0 100 100">
-                                    <path d="M 10 20 Q 50 20 50 50 T 90 80" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" className="animate-[dash_20s_linear_infinite]" />
-                                </svg>
-
-                                <div className="relative z-10 w-36 bg-white dark:bg-zinc-800 shadow-lg rounded-xl p-3 border border-indigo-100 dark:border-white/10 translate-y-8 translate-x-8 group-hover:translate-y-6 transition-transform duration-500 delay-75">
-                                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 border-b border-slate-100 dark:border-white/10 pb-1">AI Action</div>
-                                    <div className="text-xs font-semibold dark:text-white mb-2">Send Welcome Msg</div>
-                                    <div className="w-full h-8 bg-indigo-50 dark:bg-indigo-900/30 rounded flex items-center justify-center">
-                                        <Layers className="w-4 h-4 text-indigo-500" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-
-                    {/* CARD 4: COMMERCE */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                        className="md:col-span-4 rounded-[32px] bg-[#FFFBEB] dark:bg-amber-950/5 border border-amber-100 dark:border-amber-900/30 overflow-hidden relative group flex flex-col min-h-[360px]">
-                        <div className="p-4 md:p-10 relative z-10 w-full mb-auto text-center">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-500 mb-4">{commerceCard.tag}</div>
-                            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{commerceCard.title}</h3>
-                            {commerceCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{commerceCard.desc}</p>}
-                            {commerceCard.linkedBlog && (
-                                <Link to={`/blog/${commerceCard.linkedBlog}`} className="font-bold text-amber-600 dark:text-amber-500 flex items-center justify-center gap-2 hover:gap-3 transition-all mt-4">Learn More <ArrowRight className="w-4 h-4" /></Link>
-                            )}
-                        </div>
-                        {commerceCard.image ? (
-                            <div className="relative h-56 w-full mt-auto flex flex-col items-center justify-end px-4 md:px-8 pb-8">
-                                <img loading="lazy" src={commerceCard.image} className="w-full h-full object-cover rounded-2xl shadow-xl border border-amber-100 dark:border-white/10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500" alt={commerceCard.title} />
-                            </div>
-                        ) : (
-                            <div className="relative flex-1 w-full mt-auto overflow-hidden px-5 pb-5 flex items-end">
-                                {/* Ambient glow */}
-                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-50/40 to-amber-100/60 dark:via-amber-950/20 dark:to-amber-950/40 pointer-events-none" />
-
-                                <div className="relative w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                                    {/* Store header bar */}
-                                    <div className="w-full bg-green-600 rounded-t-2xl px-4 py-2.5 flex items-center gap-2.5 shadow-md">
-                                        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" /></svg>
-                                        </div>
-                                        <span className="text-white font-bold text-xs flex-1">My Online Store</span>
-                                        <span className="text-white/70 text-[10px] font-semibold">🛒 3 items</span>
-                                    </div>
-
-                                    {/* Product grid */}
-                                    <div className="bg-white dark:bg-zinc-900 border border-t-0 border-amber-100 dark:border-white/10 rounded-b-2xl p-3 shadow-xl">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-                                            {[
-                                                { name: 'Sneakers', price: '₹1,299', color: 'bg-blue-100', dot: 'bg-blue-400' },
-                                                { name: 'Watch', price: '₹2,999', color: 'bg-amber-100', dot: 'bg-amber-400' },
-                                                { name: 'Bag', price: '₹899', color: 'bg-rose-100', dot: 'bg-rose-400' },
-                                            ].map((p, i) => (
-                                                <motion.div key={p.name}
-                                                    initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }}
-                                                    viewport={{ once: true }} transition={{ delay: 0.1 + i * 0.12 }}
-                                                    className="bg-slate-50 dark:bg-zinc-800 rounded-xl p-2 relative overflow-hidden">
-                                                    <div className={`w-full h-10 ${p.color} dark:opacity-40 rounded-lg mb-1.5 flex items-center justify-center`}>
-                                                        <ShoppingCart className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                                        {/* MSME Impact Points (2x2 sub-grid) */}
+                                        <div className="space-y-2 pt-4 border-t border-slate-200/60 dark:border-white/10">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                                {cap.impactPoints.map((pt, pIdx) => (
+                                                    <div key={pIdx} className="flex items-start gap-2.5 bg-white/60 dark:bg-zinc-900/60 p-2.5 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm">
+                                                        <div className={`mt-0.5 w-4 h-4 rounded-full bg-gradient-to-tr ${cap.accentGradient} flex items-center justify-center text-white shrink-0 shadow-sm`}>
+                                                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100 mb-0.5">
+                                                                {pt.title}
+                                                            </div>
+                                                            <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-normal">
+                                                                {pt.desc}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate">{p.name}</div>
-                                                    <div className="text-[9px] font-black text-green-600 dark:text-green-400">{p.price}</div>
-                                                    <div className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${p.dot}`} />
-                                                </motion.div>
-                                            ))}
-                                        </div>
-                                        {/* Checkout button */}
-                                        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.5 }}
-                                            className="w-full bg-green-500 text-white text-center text-[10px] font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-green-500/30">
-                                            <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" /></svg>
-                                            Checkout
-                                        </motion.div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-
-                    {/* CARD 5: vCards */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.25 }}
-                        className="md:col-span-4 rounded-[32px] bg-[#F8FAFC] dark:bg-slate-900 border border-slate-200 dark:border-white/10 overflow-hidden relative group flex flex-col min-h-[360px]">
-                        <div className="p-4 md:p-10 relative z-10 w-full mb-auto text-center">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400 mb-4">{vcardCard.tag}</div>
-                            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 whitespace-pre-line">{vcardCard.title}</h3>
-                            {vcardCard.desc && <p className="text-sm text-slate-600 dark:text-slate-400 font-medium whitespace-pre-line">{vcardCard.desc}</p>}
-                            {vcardCard.linkedBlog && (
-                                <Link to={`/blog/${vcardCard.linkedBlog}`} className="font-bold text-cyan-600 dark:text-cyan-400 flex items-center justify-center gap-2 hover:gap-3 transition-all mt-4">Learn More <ArrowRight className="w-4 h-4" /></Link>
-                            )}
-                        </div>
-                        {vcardCard.image ? (
-                            <div className="relative h-56 w-full mt-auto px-4 md:px-6 overflow-hidden flex items-end">
-                                <img loading="lazy" src={vcardCard.image} className="w-full h-full object-cover rounded-t-xl translate-y-8 group-hover:translate-y-4 transition-transform duration-500" alt={vcardCard.title} />
-                            </div>
-                        ) : (
-                            <div className="relative h-56 w-full mt-auto flex items-end justify-center px-4 md:px-6 overflow-hidden pb-0">
-                                {/* Ambient glow */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent dark:from-cyan-500/20 pointer-events-none" />
-
-                                <div className="relative w-52 h-52 bg-white dark:bg-zinc-900 shadow-[0_-10px_40px_-15px_rgba(6,182,212,0.3)] max-w-full border-t border-x border-slate-200 dark:border-white/10 rounded-t-[32px] p-5 flex flex-col items-center translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
-                                    {/* Phone notch mockup */}
-                                    <div className="absolute top-0 inset-x-0 h-4 flex justify-center">
-                                        <div className="w-16 h-3 bg-slate-100 dark:bg-zinc-800 rounded-b-xl border-x border-b border-slate-200 dark:border-white/5"></div>
-                                    </div>
-
-                                    {/* Profile Avatar with glow */}
-                                    <div className="relative mt-3 mb-4">
-                                        <div className="absolute inset-0 bg-cyan-400 rounded-full blur-md opacity-40 animate-pulse"></div>
-                                        <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 p-[3px] relative z-10">
-                                            <div className="w-full h-full bg-white dark:bg-zinc-950 rounded-full flex items-center justify-center">
-                                                <User className="w-7 h-7 text-cyan-500" />
+                                                ))}
                                             </div>
                                         </div>
-                                        {/* Verification Badge */}
-                                        <div className="absolute bottom-0 right-0 w-5 h-5 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-900 flex items-center justify-center z-20">
-                                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                                        </div>
                                     </div>
 
-                                    {/* Name & Role */}
-                                    <div className="text-center w-full mb-5">
-                                        <div className="h-2.5 w-24 bg-slate-800 dark:bg-slate-200 rounded-full mx-auto mb-2.5"></div>
-                                        <div className="h-1.5 w-16 bg-cyan-600/50 dark:bg-cyan-400/50 rounded-full mx-auto"></div>
-                                    </div>
-
-                                    {/* Action Buttons Mockup */}
-                                    <div className="flex gap-3 w-full mb-4">
-                                        <div className="flex-1 h-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl flex items-center justify-center">
-                                            <div className="w-4 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full"></div>
+                                    {/* Visual Mockup Column (5 cols) */}
+                                    <div className={`lg:col-span-5 ${isReverse ? 'lg:order-1' : 'lg:order-2'} flex items-center justify-center`}>
+                                        <div className="w-full transform group-hover:scale-[1.01] transition-transform duration-500">
+                                            {cap.visualMockup}
                                         </div>
-                                        <div className="flex-1 h-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl flex items-center justify-center">
-                                            <div className="w-4 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full"></div>
-                                        </div>
-                                        <div className="flex-1 h-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl flex items-center justify-center">
-                                            <div className="w-4 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full"></div>
-                                        </div>
-                                    </div>
-
-                                    {/* Save Contact CTA */}
-                                    <div className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-1.5 mt-auto">
-                                        <User className="w-3.5 h-3.5" />
-                                        <span className="text-[10px] font-bold">Save Contact</span>
                                     </div>
                                 </div>
-
-                                {/* Floating QR Code Modal (Offset) */}
-                                <div className="absolute right-4 md:right-8 top-4 w-20 h-24 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/50 dark:border-white/10 p-2 flex flex-col items-center translate-y-4 group-hover:-translate-y-2 opacity-0 group-hover:opacity-100 transition-all duration-700 delay-100">
-                                    <div className="w-full bg-cyan-50 dark:bg-cyan-900/30 rounded-xl p-1.5 mb-1.5 aspect-square flex items-center justify-center relative overflow-hidden">
-                                        {/* Scanner line animation */}
-                                        <div className="absolute top-0 inset-x-0 h-0.5 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] max-w-full animate-[scan_2s_ease-in-out_infinite]"></div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-[2px] opacity-70 w-full h-full p-1 bg-white dark:bg-transparent rounded">
-                                            <div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div>
-                                            <div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-transparent"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div>
-                                            <div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div><div className="bg-slate-800 dark:bg-white rounded-[2px]"></div>
-                                        </div>
-                                    </div>
-                                    <div className="text-[8px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Scan Me</div>
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-
+                            </motion.div>
+                        );
+                    })}
                 </div>
             </div>
         </section>
     );
-}
+};
 
 
 
@@ -1550,105 +1481,7 @@ function FAQSection({ faqs }) {
     );
 }
 
-// ──────────────────────────────────────────────────────────
-// ADDON MARKETPLACE SHOWCASE
-// ──────────────────────────────────────────────────────────
-const AddonMarketplaceShowcase = () => {
-    const marketplaceBenefits = [
-        { id: 'instant', name: 'One-Click Installs', category: 'Speed', icon: Zap, color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20', glow: 'shadow-[0_0_15px_rgba(251,191,36,0.6)]', desc: 'Instantly add new capabilities to your workspace without touching a single line of code. Just click and deploy.' },
-        { id: 'tailored', name: 'Tailor-Made Workspace', category: 'Efficiency', icon: Layers, color: 'text-indigo-500 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-500/10', border: 'border-indigo-200 dark:border-indigo-500/20', glow: 'shadow-[0_0_15px_rgba(99,102,241,0.6)]', desc: 'Keep your dashboard clean. Only install the exact tools and features your business actually needs to operate.' },
-        { id: 'scale', name: 'Scale on Demand', category: 'Growth', icon: TrendingUp, color: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20', glow: 'shadow-[0_0_15px_rgba(52,211,153,0.6)]', desc: 'As your business grows, your platform grows with it. Seamlessly upgrade your toolkit to handle new challenges.' },
-        { id: 'community', name: 'Expanding Ecosystem', category: 'Innovation', icon: Globe, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/20', glow: 'shadow-[0_0_15px_rgba(59,130,246,0.6)]', desc: 'Benefit from a continuously evolving ecosystem with new tools and integrations added by our team and community.' },
-        { id: 'integrations', name: 'Native Integrations', category: 'Connectivity', icon: Repeat, color: 'text-purple-500 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-500/10', border: 'border-purple-200 dark:border-purple-500/20', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.6)]', desc: 'Seamlessly connect with your favorite CRM, support, and marketing tools via our native ecosystem bridges.' },
-        { id: 'analytics', name: 'Real-Time Insights', category: 'Data', icon: Activity, color: 'text-cyan-500 dark:text-cyan-400', bg: 'bg-cyan-100 dark:bg-cyan-500/10', border: 'border-cyan-200 dark:border-cyan-500/20', glow: 'shadow-[0_0_15px_rgba(6,182,212,0.6)]', desc: 'Unlock powerful reporting addons to visualize your message performance and agent productivity.' },
-    ];
 
-    return (
-        <section className="py-24 relative bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden border-t border-slate-200 dark:border-white/5">
-            {/* Ambient Backgrounds (reduced blur for GPU perf) */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] max-w-full h-[600px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[80px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
-            <div className="absolute bottom-0 right-0 w-[500px] max-w-full h-[500px] bg-violet-500/10 dark:bg-violet-500/15 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateZ(0)' }} />
-
-            {/* Subtle Grid Pattern */}
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgxNTAsMTUwLDE1MCwwLjE1KSIvPjwvc3ZnPg==')] opacity-40 dark:opacity-[0.15] pointer-events-none" />
-
-            <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
-                <div className="text-center mb-16 relative">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5 }}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-black uppercase tracking-widest mb-5 shadow-sm"
-                    >
-                        <Layers className="w-3.5 h-3.5" /> Infinite Possibilities
-                    </motion.div>
-                    <motion.h2
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-slate-900 dark:text-white tracking-tight leading-[1.1]"
-                    >
-                        The Power of <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">Marketplace</span>
-                    </motion.h2>
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="text-slate-600 dark:text-slate-400 text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed"
-                    >
-                        Transform your platform into exactly what you need. Our addon architecture ensures you have unlimited scalability without the bloat.
-                    </motion.p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 perspective-1000">
-                    {marketplaceBenefits.map((benefit, i) => {
-                        const Icon = benefit.icon;
-                        return (
-                            <motion.div
-                                key={benefit.id}
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true, margin: "-50px" }}
-                                transition={{ duration: 0.5, delay: i * 0.08 }}
-                                whileHover={{ y: -6, scale: 1.01 }}
-                                className="group relative rounded-3xl p-4 md:p-6 bg-white dark:bg-[#0c0c14] border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-200/50 dark:shadow-none hover:shadow-xl transition-all duration-300 cursor-pointer overflow-visible"
-                                style={{ willChange: 'transform' }}
-                            >
-                                {/* Glowing backdrop that appears on hover */}
-                                <div className={`absolute -inset-1 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-15 blur-lg transition-opacity duration-500 -z-10`} />
-
-                                <div className="relative z-10 flex flex-col h-full">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${benefit.bg} ${benefit.border} border shadow-sm group-hover:${benefit.glow} transition-all duration-500 relative`}>
-                                            <Icon className={`w-6 h-6 ${benefit.color} relative z-10`} />
-                                            <div className="absolute inset-0 bg-white/50 dark:bg-white/0 rounded-xl group-hover:bg-transparent transition-colors" />
-                                        </div>
-                                        <div className="px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest shadow-sm">
-                                            {benefit.category}
-                                        </div>
-                                    </div>
-
-                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-indigo-500 group-hover:to-purple-500 transition-all duration-300">
-                                        {benefit.name}
-                                    </h3>
-
-                                    <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed flex-1">
-                                        {benefit.desc}
-                                    </p>
-                                </div>
-                            </motion.div>
-                        );
-                    })}
-                </div>
-
-
-            </div>
-        </section>
-    );
-};
 
 const CURRENCY_SYMBOLS = {
     USD: '$', INR: '₹', EUR: '€', GBP: '£',
@@ -1657,22 +1490,36 @@ const CURRENCY_SYMBOLS = {
 };
 
 const TestimonialCard = ({ t, str }) => (
-    <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 p-4 md:p-8 rounded-3xl shadow-sm hover:shadow-xl transition-shadow h-full flex flex-col">
-        <div className="flex gap-1 mb-6">
-            {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
+    <div className="relative bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col justify-between overflow-hidden min-h-[220px] sm:min-h-[240px] group">
+        {/* Subtle top accent gradient bar */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+
+        <div>
+            {/* Stars */}
+            <div className="flex items-center gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map(s => (
+                    <Star key={s} className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 fill-amber-400" />
+                ))}
+            </div>
+
+            {/* Quote */}
+            <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm md:text-base font-medium leading-relaxed mb-5">
+                "{str(t.quote)}"
+            </p>
         </div>
-        <p className="text-lg text-slate-700 dark:text-slate-300 font-medium mb-8">"{str(t.quote)}"</p>
-        <div className="flex items-center gap-4 mt-auto">
+
+        {/* User Info */}
+        <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-zinc-800/80 mt-auto">
             {t.avatar ? (
-                <img loading="lazy" src={str(t.avatar)} className="w-12 h-12 rounded-full object-cover bg-slate-100" alt={str(t.name)} />
+                <img loading="lazy" src={str(t.avatar)} className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover ring-2 ring-indigo-500/20 bg-slate-100 shrink-0" alt={str(t.name)} />
             ) : (
-                <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300 shrink-0">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/50 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400 text-xs sm:text-sm shrink-0">
                     {str(t.name).substring(0, 1)}
                 </div>
             )}
-            <div>
-                <div className="font-bold text-slate-900 dark:text-white">{str(t.name)}</div>
-                <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{str(t.role)}</div>
+            <div className="min-w-0">
+                <div className="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm truncate">{str(t.name)}</div>
+                <div className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{str(t.role)}</div>
             </div>
         </div>
     </div>
@@ -1682,6 +1529,8 @@ function TestimonialSlider({ testimonials }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(true);
     const [visibleCount, setVisibleCount] = useState(3);
+    const touchStartX = useRef(0);
+    const touchEndX = useRef(0);
 
     useEffect(() => {
         const handleResize = () => {
@@ -1699,7 +1548,7 @@ function TestimonialSlider({ testimonials }) {
         const timer = setInterval(() => {
             setIsTransitioning(true);
             setCurrentIndex((prev) => prev + 1);
-        }, 3000);
+        }, 3500);
         return () => clearInterval(timer);
     }, [testimonials.length, visibleCount]);
 
@@ -1713,32 +1562,80 @@ function TestimonialSlider({ testimonials }) {
         }
     }, [currentIndex, testimonials.length]);
 
+    const handleTouchStart = (e) => {
+        touchStartX.current = e.targetTouches[0].clientX;
+    };
+
+    const handleTouchMove = (e) => {
+        touchEndX.current = e.targetTouches[0].clientX;
+    };
+
+    const handleTouchEnd = () => {
+        if (!touchStartX.current || !touchEndX.current) return;
+        const distance = touchStartX.current - touchEndX.current;
+        if (distance > 50) {
+            // Swipe Left
+            setIsTransitioning(true);
+            setCurrentIndex((prev) => (prev + 1) % testimonials.length);
+        } else if (distance < -50) {
+            // Swipe Right
+            setIsTransitioning(true);
+            setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+        }
+        touchStartX.current = 0;
+        touchEndX.current = 0;
+    };
+
     const str = (v) => v || '';
 
     if (testimonials.length <= visibleCount) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {testimonials.map((t, i) => <TestimonialCard key={i} t={t} str={str} />)}
             </div>
         );
     }
 
     const extendedTestimonials = [...testimonials, ...testimonials.slice(0, visibleCount)];
+    const activeDotIndex = currentIndex % testimonials.length;
 
     return (
-        <div className="overflow-hidden relative -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div
+            className="overflow-hidden relative px-1 sm:px-0 py-2"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
             <div
-                className={`flex gap-6 ${isTransitioning ? 'transition-transform duration-500 ease-in-out' : ''}`}
-                style={{ transform: `translateX(calc(-${currentIndex} * (100% + 24px) / ${visibleCount}))` }}
+                className={`flex gap-4 sm:gap-6 ${isTransitioning ? 'transition-transform duration-500 ease-in-out' : ''}`}
+                style={{ transform: `translateX(calc(-${currentIndex} * (100% + ${visibleCount === 1 ? 16 : 24}px) / ${visibleCount}))` }}
             >
                 {extendedTestimonials.map((t, i) => (
                     <div
                         key={i}
                         className="flex-shrink-0"
-                        style={{ width: `calc((100% - ${(visibleCount - 1) * 24}px) / ${visibleCount})` }}
+                        style={{ width: `calc((100% - ${(visibleCount - 1) * (visibleCount === 1 ? 16 : 24)}px) / ${visibleCount})` }}
                     >
                         <TestimonialCard t={t} str={str} />
                     </div>
+                ))}
+            </div>
+
+            {/* Pagination Dots for Portrait / Mobile view */}
+            <div className="flex justify-center items-center gap-2 mt-6">
+                {testimonials.map((_, idx) => (
+                    <button
+                        key={idx}
+                        onClick={() => {
+                            setIsTransitioning(true);
+                            setCurrentIndex(idx);
+                        }}
+                        className={`h-2 rounded-full transition-all duration-300 ${activeDotIndex === idx
+                            ? 'w-6 bg-indigo-600 dark:bg-indigo-400'
+                            : 'w-2 bg-slate-300 dark:bg-zinc-700 hover:bg-slate-400'
+                            }`}
+                        aria-label={`Go to slide ${idx + 1}`}
+                    />
                 ))}
             </div>
         </div>
@@ -1755,6 +1652,8 @@ export default function LandingPage() {
     const [billingInterval, setBillingInterval] = useState('monthly');
     const [currencySymbol, setCurrencySymbol] = useState('$');
     const [activeIndustry, setActiveIndustry] = useState(industries[0].id);
+    const [showAllIndustries, setShowAllIndustries] = useState(false);
+    const [isPartnerExpanded, setIsPartnerExpanded] = useState(false);
 
     const industryScrollRef = useRef(null);
 
@@ -1774,18 +1673,6 @@ export default function LandingPage() {
         return merged;
     }, [config]);
 
-    // Auto-scroll logic for industry tabs
-    useEffect(() => {
-        if (industryScrollRef.current && window.innerWidth < 1024) {
-            const activeTab = Array.from(industryScrollRef.current.children).find(
-                child => allIndustries.find(ind => ind.id === activeIndustry)?.title === child.textContent
-            );
-            if (activeTab) {
-                const scrollLeft = activeTab.offsetLeft - (industryScrollRef.current.offsetWidth / 2) + (activeTab.offsetWidth / 2);
-                industryScrollRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-            }
-        }
-    }, [activeIndustry]);
 
     const hasMonthly = plans.some(p => parseFloat(p.monthlyPrice) > 0);
     const hasHalfYearly = plans.some(p => parseFloat(p.halfYearlyPrice) > 0);
@@ -1811,39 +1698,8 @@ export default function LandingPage() {
         }
     }, [plans]);
 
-    // Auto-autoplay loop for industry tabs (all screen sizes, no progress bar)
-    useEffect(() => {
-        const duration = 4000;
-        const timer = setTimeout(() => {
-            setActiveIndustry(prev => {
-                const currentIndex = allIndustries.findIndex(ind => ind.id === prev);
-                const nextIndex = (currentIndex + 1) % allIndustries.length;
-                return allIndustries[nextIndex].id;
-            });
-        }, duration);
-        return () => clearTimeout(timer);
-    }, [activeIndustry, allIndustries]);
 
-    useEffect(() => {
-        fetchConfig();
-        fetchPlans();
-        fetchPublicSettings();
-        fetchMetaRates();
-    }, []);
 
-    // Update SEO Meta
-    useEffect(() => {
-        if (config?.seo) {
-            document.title = config.seo.title || publicSettings?.appName || config?.brand?.name || 'Bluetick';
-            let metaDesc = document.querySelector("meta[name='description']");
-            if (!metaDesc) {
-                metaDesc = document.createElement('meta');
-                metaDesc.name = "description";
-                document.head.appendChild(metaDesc);
-            }
-            metaDesc.content = config.seo.description || '';
-        }
-    }, [config]);
 
     const fetchConfig = async () => {
         try {
@@ -1885,6 +1741,28 @@ export default function LandingPage() {
         }
     };
 
+    useEffect(() => {
+        fetchConfig();
+        fetchPlans();
+        fetchPublicSettings();
+        fetchMetaRates();
+    }, []);
+
+    // Update SEO Meta
+    useEffect(() => {
+        if (config?.seo) {
+            document.title = config.seo.title || publicSettings?.appName || config?.brand?.name || 'Bluetick';
+            let metaDesc = document.querySelector("meta[name='description']");
+            if (!metaDesc) {
+                metaDesc = document.createElement('meta');
+                metaDesc.name = "description";
+                document.head.appendChild(metaDesc);
+            }
+            metaDesc.content = config.seo.description || '';
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [config]);
+
     if (error) return (
         <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 text-slate-800 gap-4">
             <p className="text-red-500 font-bold">Failed to load content.</p>
@@ -1909,113 +1787,58 @@ export default function LandingPage() {
                     <PublicHeader />
 
                     {/* 2. HERO SECTION */}
-                    <section className="relative pt-24 pb-7 sm:pb-20 md:pt-32 md:pb-24 px-4 md:px-6 overflow-hidden">
 
-                        <div className="max-w-7xl mx-auto">
-                            {config.hero.layout === 'type2' ? (
-                                <div className="flex flex-col items-center justify-center text-center">
-                                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
-                                        <span className="inline-flex py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 items-center gap-2 whitespace-nowrap">
-                                            <Star className="w-3.5 h-3.5 shrink-0" /> Next-Gen AI Powered Platform
-                                        </span>
-                                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
-                                            {config.hero.title}
-                                        </h1>
-                                        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mb-10 leading-relaxed font-medium">
-                                            {config.hero.subtitle}
-                                        </p>
 
-                                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-                                            <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-4 md:px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
-                                                {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
-                                            </Link>
-                                            <a href="#platform" className="w-full sm:w-auto px-4 md:px-10 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
-                                                <Play className="w-5 h-5 fill-current" /> See how it works
-                                            </a>
-                                        </div>
-                                    </motion.div>
 
-                                    {(config.hero.imageType2 || config.hero.image) && (
-                                        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1 }} className="mt-16 w-full relative z-10">
-                                            <div className={`relative ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
-                                                <img loading="lazy" src={config.hero.imageType2 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType2 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
-                                            </div>
-                                        </motion.div>
-                                    )}
+                    <section className="relative pt-24 md:pt-28 pb-12 px-4 md:px-6 overflow-hidden min-h-[85vh] flex items-center justify-center">
+                        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                            {/* Left Column: Headline & CTAs */}
+                            <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.6 }}
+                                className="lg:col-span-6 text-center lg:text-left space-y-5"
+                            >
+                                <span className="inline-flex items-center gap-2 py-1.5 px-3.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider border border-indigo-200 dark:border-indigo-800/40">
+                                    <Star className="w-3.5 h-3.5 fill-current text-indigo-500" /> Complete Business Ecosystem
+                                </span>
+
+                                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] text-slate-900 dark:text-white">
+                                    One Platform.<br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+                                        Infinite Growth.
+                                    </span>
+                                </h1>
+
+                                <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto lg:mx-0 font-normal leading-relaxed">
+                                    Automate customer engagement on WhatsApp, launch a mobile Storefront, run targeted Meta Ads, and share digital vCards—all from one unified dashboard.
+                                </p>
+
+                                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
+                                    <Link
+                                        to={config?.hero?.ctaLink || '/register'}
+                                        className="w-full sm:w-auto px-7 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-base hover:scale-105 transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2"
+                                    >
+                                        Start Free Trial <ArrowRight className="w-4 h-4" />
+                                    </Link>
+                                    <a
+                                        href="#platform"
+                                        className="w-full sm:w-auto px-6 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-base hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Play className="w-4 h-4 fill-current" /> Watch Demo
+                                    </a>
                                 </div>
-                            ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-                                    {/* Left Content */}
-                                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center lg:text-left z-10 lg:col-span-6">
-                                        <span className="inline-flex py-1.5 px-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/20 mb-6 items-center gap-2 max-w-fit mx-auto lg:mx-0 whitespace-nowrap">
-                                            <Star className="w-3.5 h-3.5 shrink-0" /> Next-Gen AI Powered Platform
-                                        </span>
-                                        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] text-slate-900 dark:text-white whitespace-pre-line">
-                                            {config.hero.title}
-                                        </h1>
-                                        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto lg:mx-0 mb-10 leading-relaxed font-medium">
-                                            {config.hero.subtitle}
-                                        </p>
+                            </motion.div>
 
-                                        <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                                            <Link to={config.hero.ctaLink || '/register'} className="w-full sm:w-auto px-4 md:px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
-                                                {config.hero.ctaText || 'Start Free Trial'} <ArrowRight className="w-5 h-5" />
-                                            </Link>
-                                            <a href="#platform" className="w-full sm:w-auto px-4 md:px-8 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 shadow-sm">
-                                                <Play className="w-5 h-5 fill-current" /> See how it works
-                                            </a>
-                                        </div>
-                                    </motion.div>
-
-                                    {/* Right Mock UI */}
-                                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 1 }} className="relative hidden lg:block lg:col-span-6">
-                                        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 blur-2xl rounded-full" />
-                                        {(config.hero.imageType1 || config.hero.image) ? (
-                                            <div className={`relative ml-auto mr-0 xl:mr-10 ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? '' : 'rounded-[2rem] overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl shadow-indigo-500/10'}`}>
-                                                <img loading="lazy" src={config.hero.imageType1 || config.hero.image} alt="Platform Preview" className={`w-full h-auto block ${(config.hero.imageType1 || config.hero.image).toLowerCase().includes('.png') ? 'object-contain' : 'object-cover'}`} />
-                                            </div>
-                                        ) : (
-                                            <div className="relative mx-auto w-[340px] max-w-full h-[680px] bg-slate-900 dark:bg-[#0A0A0A] rounded-[3rem] border-[8px] border-slate-800 shadow-2xl p-4 overflow-hidden flex flex-col transition-colors ml-auto mr-0 xl:mr-10">
-                                                {/* Phone Header */}
-                                                <div className="flex items-center gap-3 pb-4 border-b border-white/10 px-2 mt-4">
-                                                    {(publicSettings?.logoUrl || config.brand?.logo) ? (
-                                                        <img loading="lazy" src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-white p-1" />
-                                                    ) : (
-                                                        <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                                                            <MessageSquare className="w-5 h-5 text-white" />
-                                                        </div>
-                                                    )}
-                                                    <div>
-                                                        <div className="font-bold text-white text-sm">AI Agent</div>
-                                                        <div className="text-[10px] text-green-400 font-bold tracking-wider uppercase">• Online</div>
-                                                    </div>
-                                                </div>
-                                                {/* Chat UI */}
-                                                <div className="flex-1 py-4 space-y-4 text-sm font-medium">
-                                                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
-                                                        Hi! 👋 Welcome to {config.brand.name}. How can we help you scale today?
-                                                    </motion.div>
-                                                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.6 }} className="bg-green-600 text-white rounded-2xl rounded-tr-sm p-3 max-w-[85%] ml-auto">
-                                                        I need to automate my support and broadcast offers!
-                                                    </motion.div>
-                                                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2.4 }} className="bg-white/10 text-white rounded-2xl rounded-tl-sm p-3 max-w-[85%] self-start backdrop-blur-sm">
-                                                        Perfect. Our AI handles 80% of support automatically. Want to see a quick demo?
-                                                    </motion.div>
-                                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="flex gap-2 flex-wrap pt-2">
-                                                        <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full text-[11px] font-bold cursor-pointer">Yes, show me!</div>
-                                                        <div className="px-3 py-1.5 bg-white/5 text-white border border-white/10 rounded-full text-[11px] font-bold cursor-pointer">Pricing</div>
-                                                    </motion.div>
-                                                </div>
-                                                {/* Bottom Input */}
-                                                <div className="w-full h-12 bg-white/5 rounded-full mt-auto flex items-center px-4 justify-between border border-white/10">
-                                                    <span className="text-white/40 text-sm font-medium">Message...</span>
-                                                    <Send className="w-4 h-4 text-white/40" />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </motion.div>
-                                </div>
-                            )}
+                            {/* Right Column: Hero Showcase */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.6, delay: 0.2 }}
+                                className="lg:col-span-6 w-full"
+                            >
+                                <HeroShowcase />
+                            </motion.div>
                         </div>
                     </section>
 
@@ -2074,396 +1897,6 @@ export default function LandingPage() {
 
                     <CapabilitiesBento config={config?.capabilities} />
 
-
-                    {/* 5. ADVANCED FEATURES */}
-                    <section id="platform" className="py-20 bg-slate-50 dark:bg-zinc-950 transition-colors overflow-hidden relative">
-                        {/* Ambient glow */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] max-w-full h-[400px] bg-indigo-400/5 dark:bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none" style={{ transform: 'translateX(-50%) translateZ(0)' }} />
-
-                        <div className="max-w-7xl mx-auto px-4 md:px-6">
-                            {/* Premium Header */}
-                            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-4">
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
-                                    <Zap className="w-3 h-3" /> Platform Features
-                                </div>
-                                <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4 leading-tight">
-                                    <span className="text-slate-900 dark:text-white">{config.advancedFeatures?.title?.replace(/ drive Conversions$/, ' drive ') || 'Advanced Features that drive '}</span>
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600">Conversions</span>
-                                </h2>
-                                <p className="text-slate-500 dark:text-slate-400 font-medium text-lg max-w-2xl mx-auto">
-                                    {config.advancedFeatures?.subtitle || 'Everything you need to market, sell, and support customers — all inside WhatsApp.'}
-                                </p>
-                            </motion.div>
-
-                            {/* Two-column layout: Feature tabs left, Live preview right */}
-                            <AdvancedFeaturesShowcase config={config?.advancedFeatures} />
-                        </div>
-                    </section>
-
-
-                    <section id="solutions" className="py-24 bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden">
-                        <div className="max-w-7xl mx-auto px-4 md:px-6">
-                            <div className="text-center mb-12 md:mb-16">
-                                <h2 className="text-2xl md:text-4xl lg:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight leading-tight">{config.industries?.title || 'Built for every industry'}</h2>
-                                <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">{config.industries?.subtitle || 'See how leading verticals leverage WhatsApp to cut costs and drive unprecedented revenue.'}</p>
-                            </div>
-
-                            {/* Desktop: 3-col grid (left tabs 1-8 | detail panel | right tabs 9-16). Mobile: single horizontal scroll + detail panel */}
-                            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 items-start">
-
-                                {/* LEFT: Industries 1-8 — vertical tab list on desktop, part of horizontal scroll on mobile */}
-                                <div
-                                    ref={industryScrollRef}
-                                    className="lg:col-span-3 w-full flex lg:flex-col flex-row gap-2 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 hide-scrollbar scroll-smooth"
-                                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                >
-                                    {allIndustries.slice(0, 8).map((ind) => {
-                                        const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
-                                        const Icon = defaults.icon || ind.icon || ShoppingCart;
-                                        const isActive = activeIndustry === ind.id;
-                                        return (
-                                            <button
-                                                key={ind.id}
-                                                onClick={() => setActiveIndustry(ind.id)}
-                                                className={`relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm shrink-0 lg:shrink-1 whitespace-nowrap lg:whitespace-normal border overflow-hidden transition-colors duration-200 ${isActive
-                                                    ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
-                                                    : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
-                                                    }`}
-                                            >
-                                                {isActive && (
-                                                    <motion.span
-                                                        layoutId="industryActivePill"
-                                                        className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
-                                                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                                                    />
-                                                )}
-                                                <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                                                <span className="relative z-10">{ind.title}</span>
-                                            </button>
-                                        );
-                                    })}
-                                    {/* Mobile only: industries 9-16 in the same horizontal scroll row */}
-                                    {allIndustries.slice(8).map((ind) => {
-                                        const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
-                                        const Icon = defaults.icon || ind.icon || ShoppingCart;
-                                        const isActive = activeIndustry === ind.id;
-                                        return (
-                                            <button
-                                                key={`mob-${ind.id}`}
-                                                onClick={() => setActiveIndustry(ind.id)}
-                                                className={`lg:hidden relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm shrink-0 whitespace-nowrap border overflow-hidden transition-colors duration-200 ${isActive
-                                                    ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
-                                                    : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
-                                                    }`}
-                                            >
-                                                {isActive && (
-                                                    <motion.span
-                                                        layoutId="industryActivePill"
-                                                        className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
-                                                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                                                    />
-                                                )}
-                                                <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                                                <span className="relative z-10">{ind.title}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* CENTER: Detail panel */}
-                                <div className="lg:col-span-6">
-                                    <AnimatePresence mode="wait">
-                                        {allIndustries.map(ind => {
-                                            const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
-                                            return ind.id === activeIndustry && (
-                                                <motion.div
-                                                    key={ind.id}
-                                                    initial={{ opacity: 0, y: 16 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: -16 }}
-                                                    transition={{ duration: 0.3 }}
-                                                    className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 md:p-4 md:p-8 shadow-xl flex flex-col"
-                                                >
-                                                    <div className="flex items-center gap-3 mb-4">
-                                                        {(() => { const DIcon = (INDUSTRY_DEFAULTS[ind.id] || {}).icon || ind.icon || ShoppingCart; return <div className={`w-10 h-10 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} flex items-center justify-center`}><DIcon className="w-5 h-5 text-white" /></div>; })()}
-                                                        <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white">{ind.title}</h3>
-                                                    </div>
-                                                    <p className="text-base text-slate-600 dark:text-slate-400 font-medium mb-6 leading-relaxed">
-                                                        {ind.desc}
-                                                    </p>
-
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                                        {(Array.isArray(ind.metrics) ? ind.metrics : []).map((m, i) => (
-                                                            <div key={i} className="bg-slate-50 dark:bg-black/20 p-3 rounded-2xl border border-slate-100 dark:border-white/5 flex items-start gap-2">
-                                                                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                                                                <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{m}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-
-                                                    {ind.image ? (
-                                                        <div className="w-full rounded-2xl overflow-hidden">
-                                                            <img loading="lazy" src={ind.image} alt={ind.title} className="w-full h-auto object-contain rounded-2xl" />
-                                                        </div>
-                                                    ) : (
-                                                        <div className={`w-full h-36 md:h-48 rounded-2xl ${(INDUSTRY_DEFAULTS[ind.id] || {}).imagePattern || 'bg-indigo-500'} opacity-15 dark:opacity-10`} />
-                                                    )}
-                                                </motion.div>
-                                            );
-                                        })}
-                                    </AnimatePresence>
-                                </div>
-
-                                {/* RIGHT: Industries 9-16 — same vertical tab list, desktop only */}
-                                <div className="hidden lg:flex lg:col-span-3 flex-col gap-2">
-                                    {allIndustries.slice(8).map((ind) => {
-                                        const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
-                                        const Icon = defaults.icon || ind.icon || ShoppingCart;
-                                        const isActive = activeIndustry === ind.id;
-                                        return (
-                                            <button
-                                                key={`right-${ind.id}`}
-                                                onClick={() => setActiveIndustry(ind.id)}
-                                                className={`relative p-3 rounded-2xl flex items-center gap-2.5 text-left font-semibold text-sm border overflow-hidden transition-colors duration-200 ${isActive
-                                                    ? 'text-white border-transparent shadow-lg shadow-indigo-500/25'
-                                                    : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-100 dark:border-white/5'
-                                                    }`}
-                                            >
-                                                {isActive && (
-                                                    <motion.span
-                                                        layoutId="industryActivePillR"
-                                                        className="absolute inset-0 bg-indigo-600 rounded-2xl z-0"
-                                                        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                                                    />
-                                                )}
-                                                <Icon className={`relative z-10 w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
-                                                <span className="relative z-10">{ind.title}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-
-
-                    <AddonMarketplaceShowcase />
-
-                    {/* 8. INTEGRATIONS */}
-                    <section id="integrations" className="py-20 bg-white dark:bg-zinc-950 relative overflow-hidden">
-                        {/* Subtle bg texture */}
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_50%,rgba(99,102,241,0.06),transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_70%_50%,rgba(99,102,241,0.12),transparent)] pointer-events-none" />
-
-                        <div className="max-w-7xl mx-auto px-4 md:px-6">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
-                                {/* LEFT: Text Content */}
-                                <motion.div initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
-                                        <Zap className="w-3 h-3" /> Integrations
-                                    </div>
-                                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-4 tracking-tight leading-tight">
-                                        Connects with apps<br /> you already use
-                                    </h2>
-                                    <p className="text-slate-500 dark:text-slate-400 font-medium text-base mb-8 leading-relaxed">
-                                        Plug into your existing tech stack instantly — CRM, e-commerce, helpdesk, and automation tools. No developer, no friction.
-                                    </p>
-
-                                    {/* Feature bullets */}
-                                    <div className="space-y-3 mb-8">
-                                        {[
-                                            { icon: '⚡', text: 'One-click native integrations' },
-                                            { icon: '🔄', text: 'Real-time bidirectional sync' },
-                                            { icon: '🛠️', text: 'Zapier & Make.com support' },
-                                            { icon: '📡', text: 'REST API + Webhooks included' },
-                                        ].map((item, i) => (
-                                            <motion.div
-                                                key={i}
-                                                initial={{ opacity: 0, x: -12 }}
-                                                whileInView={{ opacity: 1, x: 0 }}
-                                                viewport={{ once: true }}
-                                                transition={{ delay: i * 0.08 + 0.2 }}
-                                                className="flex items-center gap-3"
-                                            >
-                                                <span className="text-base">{item.icon}</span>
-                                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{item.text}</span>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-
-                                    {/* Mini stats */}
-                                    <div className="flex gap-6">
-                                        {[
-                                            { val: '50+', label: 'Integrations' },
-                                            { val: '< 5 min', label: 'Setup time' },
-                                            { val: '99.9%', label: 'Uptime' },
-                                        ].map((s, i) => (
-                                            <div key={i}>
-                                                <div className="text-xl font-black text-slate-900 dark:text-white">{s.val}</div>
-                                                <div className="text-xs text-slate-400 font-semibold">{s.label}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </motion.div>
-
-                                {/* RIGHT: Floating Integration Card Grid */}
-                                <div className="relative">
-                                    {/* Glow behind grid */}
-                                    <div className="absolute inset-0 bg-indigo-400/10 dark:bg-indigo-500/15 rounded-3xl blur-3xl scale-90 pointer-events-none" />
-
-                                    <div className="relative grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        {[
-                                            { name: 'Shopify', emoji: '🛒', color: 'bg-green-50 dark:bg-green-950/40 border-green-100 dark:border-green-900/50', dot: 'bg-green-400', delay: 0 },
-                                            { name: 'HubSpot', emoji: '🧲', color: 'bg-orange-50 dark:bg-orange-950/40 border-orange-100 dark:border-orange-900/50', dot: 'bg-orange-400', delay: 0.05 },
-                                            { name: 'Zapier', emoji: '⚡', color: 'bg-red-50 dark:bg-red-950/40 border-red-100 dark:border-red-900/50', dot: 'bg-red-400', delay: 0.1 },
-                                            { name: 'Zoho CRM', emoji: '📊', color: 'bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/50', dot: 'bg-blue-400', delay: 0.15 },
-                                            { name: 'WhatsApp', emoji: '💬', color: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50', dot: 'bg-emerald-400', delay: 0.2, featured: true },
-                                            { name: 'Make.com', emoji: '🔗', color: 'bg-violet-50 dark:bg-violet-950/40 border-violet-100 dark:border-violet-900/50', dot: 'bg-violet-400', delay: 0.25 },
-                                            { name: 'Salesforce', emoji: '☁️', color: 'bg-sky-50 dark:bg-sky-950/40 border-sky-100 dark:border-sky-900/50', dot: 'bg-sky-400', delay: 0.3 },
-                                            { name: 'WooCommerce', emoji: '🏪', color: 'bg-purple-50 dark:bg-purple-950/40 border-purple-100 dark:border-purple-900/50', dot: 'bg-purple-400', delay: 0.35 },
-                                            { name: 'Google Sheets', emoji: '📋', color: 'bg-teal-50 dark:bg-teal-950/40 border-teal-100 dark:border-teal-900/50', dot: 'bg-teal-400', delay: 0.4 },
-                                        ].map((item, i) => (
-                                            <motion.div
-                                                key={item.name}
-                                                initial={{ opacity: 0, y: 16, scale: 0.95 }}
-                                                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                                                viewport={{ once: true }}
-                                                transition={{ delay: item.delay, type: 'spring', stiffness: 180 }}
-                                                whileHover={{ y: -4, scale: 1.04, zIndex: 10 }}
-                                                className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border ${item.color} ${item.featured ? 'ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/20' : 'shadow-sm hover:shadow-md'} transition-shadow cursor-default`}
-                                            >
-                                                <span className="text-2xl">{item.emoji}</span>
-                                                <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 text-center leading-tight">{item.name}</span>
-                                                {/* Live status dot */}
-                                                <span className={`absolute top-2 right-2 w-2 h-2 rounded-full ${item.dot} animate-pulse`} />
-                                            </motion.div>
-                                        ))}
-                                    </div>
-
-                                    {/* "All connected" badge */}
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 8 }}
-                                        whileInView={{ opacity: 1, y: 0 }}
-                                        viewport={{ once: true }}
-                                        transition={{ delay: 0.5 }}
-                                        className="mt-4 flex items-center justify-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400"
-                                    >
-                                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                        All integrations live & syncing
-                                    </motion.div>
-                                </div>
-                            </div>
-
-                            {/* Marquee — compact strip */}
-                            <div className="relative overflow-hidden mt-16 pt-10 border-t border-slate-100 dark:border-white/5">
-                                <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
-                                <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
-                                <div className="flex gap-3 animate-[marquee_22s_linear_infinite] w-max">
-                                    {[...integrationLogos, { name: 'Google Sheets', color: 'text-teal-600' }, { name: 'Freshdesk', color: 'text-cyan-600' }, { name: 'Stripe', color: 'text-indigo-600' }, { name: 'Notion', color: 'text-slate-700' }, ...integrationLogos, { name: 'Google Sheets', color: 'text-teal-600' }, { name: 'Freshdesk', color: 'text-cyan-600' }, { name: 'Stripe', color: 'text-indigo-600' }, { name: 'Notion', color: 'text-slate-700' }].map((logo, i) => (
-                                        <div key={i} className={`flex-shrink-0 inline-flex items-center gap-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/8 px-4 py-2 rounded-full text-xs font-bold ${logo.color}`}>
-                                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-                                            {logo.name}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <style>{`
-                        @keyframes marquee {
-                            from { transform: translateX(0); }
-                            to { transform: translateX(-50%); }
-                        }
-                    `}</style>
-                    </section>
-
-                    {/* 9. HOW IT WORKS (STEPS) */}
-                    {config.steps && config.steps.length > 0 && (
-                        <section className="py-16 bg-slate-50 dark:bg-[#05050A] relative overflow-hidden">
-                            {/* Subtle gradient bg */}
-                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_120%,rgba(99,102,241,0.08),transparent)] pointer-events-none" />
-
-                            <div className="max-w-6xl mx-auto px-4 md:px-6">
-                                {/* Compact header */}
-                                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
-                                    <div>
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-3">
-                                            <Zap className="w-3 h-3" /> Guided Setup
-                                        </div>
-                                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Seamless Integration</h2>
-                                    </div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs sm:text-right">Follow our step-by-step onboarding to safely connect your Meta accounts and avoid restrictions.</p>
-                                </div>
-
-                                {/* Steps — horizontal cards with connecting line */}
-                                <div className="relative">
-                                    {/* Animated connector line */}
-                                    <div className="hidden md:block absolute top-8 left-[calc(100%/6)] right-[calc(100%/6)] h-px bg-indigo-100 dark:bg-white/8 z-0">
-                                        <div className="h-full bg-gradient-to-r from-indigo-300 via-violet-400 to-indigo-300 dark:from-indigo-600 dark:via-violet-500 dark:to-indigo-600 animate-[shimmer_3s_ease-in-out_infinite]" style={{ backgroundSize: '200% 100%' }} />
-                                    </div>
-
-                                    <div className={`grid grid-cols-1 md:grid-cols-${Math.min(config.steps.length, 4)} gap-4 relative z-10`}>
-                                        {config.steps.map((step, i) => {
-                                            const StepIcon = resolveIcon(step.icon, Plus);
-                                            const gradients = [
-                                                'from-indigo-500 to-violet-500 shadow-indigo-500/30',
-                                                'from-violet-500 to-purple-500 shadow-violet-500/30',
-                                                'from-purple-500 to-pink-500 shadow-purple-500/30',
-                                                'from-pink-500 to-rose-500 shadow-rose-500/30',
-                                            ];
-                                            const grad = gradients[i % gradients.length];
-                                            return (
-                                                <motion.div
-                                                    key={i}
-                                                    initial={{ opacity: 0, y: 16 }}
-                                                    whileInView={{ opacity: 1, y: 0 }}
-                                                    viewport={{ once: true }}
-                                                    transition={{ delay: i * 0.1, duration: 0.4 }}
-                                                    className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/8 rounded-2xl p-4 md:p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
-                                                >
-                                                    {/* Step number + icon row */}
-                                                    <div className="flex items-center gap-3 mb-4">
-                                                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center shadow-lg shrink-0 group-hover:scale-110 transition-transform`}>
-                                                            <StepIcon className="w-5 h-5 text-white" />
-                                                        </div>
-                                                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Step {String(i + 1).padStart(2, '0')}</span>
-                                                    </div>
-                                                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1.5 leading-tight">{str(step.title)}</h3>
-                                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{str(step.description)}</p>
-
-                                                    {/* Arrow connector for desktop */}
-                                                    {i < config.steps.length - 1 && (
-                                                        <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-full items-center justify-center z-20 shadow-sm">
-                                                            <ArrowRight className="w-3 h-3 text-indigo-400" />
-                                                        </div>
-                                                    )}
-                                                </motion.div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <style>{`
-                            @keyframes shimmer {
-                                0%, 100% { background-position: 200% 0; }
-                                50% { background-position: -200% 0; }
-                            }
-                        `}</style>
-                        </section>
-                    )}
-
-
-                    {/* 10. SOCIAL PROOF / TESTIMONIALS */}
-                    {config.testimonials && config.testimonials.length > 0 && (
-                        <section className="py-24 bg-slate-50 dark:bg-[#05050A]">
-                            <div className="max-w-7xl mx-auto px-4 md:px-6">
-                                <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight text-center mb-16">Loved by go-to-market teams</h2>
-                                <TestimonialSlider testimonials={config.testimonials} />
-                            </div>
-                        </section>
-                    )}
 
 
                     {/* 11. PRICING */}
@@ -2664,16 +2097,16 @@ export default function LandingPage() {
                                                     className={`relative w-[85vw] sm:w-[300px] lg:w-auto lg:flex-1 lg:min-w-[260px] lg:max-w-[320px] shrink-0 snap-center p-5 lg:p-6 rounded-[2rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
                                                 >
                                                     {isPopular && (
-                                                         <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-indigo-500/10 border-b border-x border-indigo-400/30 whitespace-nowrap z-10">
-                                                             MOST POPULAR
-                                                         </div>
-                                                     )}
+                                                        <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-indigo-500/10 border-b border-x border-indigo-400/30 whitespace-nowrap z-10">
+                                                            MOST POPULAR
+                                                        </div>
+                                                    )}
                                                     {plan.trialDays > 0 && (
-                                                         <div className="absolute top-0 left-6 px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-emerald-500/10 border-b border-x border-emerald-400/30 whitespace-nowrap z-10 flex items-center gap-1.5">
-                                                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
-                                                             {plan.trialDays}-Day Trial
-                                                         </div>
-                                                     )}
+                                                        <div className="absolute top-0 left-6 px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-emerald-500/10 border-b border-x border-emerald-400/30 whitespace-nowrap z-10 flex items-center gap-1.5">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
+                                                            {plan.trialDays}-Day Trial
+                                                        </div>
+                                                    )}
 
                                                     <h3 className="text-xl font-bold mb-2 pt-2">{plan.name}</h3>
                                                     <p className="text-xs mb-6 font-medium text-slate-500 dark:text-slate-400">{plan.description || 'Perfect for growing businesses.'}</p>
@@ -2707,7 +2140,7 @@ export default function LandingPage() {
                                                                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
                                                                     <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
                                                                 </div>
-                                                                
+
                                                                 <div className="relative p-4">
                                                                     <div className="flex items-center justify-between mb-3">
                                                                         <div className="flex items-center gap-1.5">
@@ -2722,7 +2155,7 @@ export default function LandingPage() {
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    
+
                                                                     <div className="space-y-2 text-xs font-semibold relative z-10">
                                                                         <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
                                                                             <span className="text-slate-500 dark:text-slate-400">Marketing</span>
@@ -2920,83 +2353,212 @@ export default function LandingPage() {
                         </section>
                     )}
 
+
+
+
+                    <section id="solutions" className="py-16 md:py-20 bg-slate-50 dark:bg-[#05050A] transition-colors overflow-hidden relative">
+                        {/* Background Ambient Glow */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-indigo-500/10 dark:bg-indigo-600/10 rounded-full blur-[130px] pointer-events-none" />
+
+                        <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
+                            {/* Section Header - Super Crisp */}
+                            <div className="text-center mb-10">
+                                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-100/80 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider mb-3">
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    Proven Across 16+ Verticals
+                                </div>
+                                <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight mb-2">
+                                    {config.industries?.title || 'Built for Every Industry'}
+                                </h2>
+                                <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-xl mx-auto font-medium">
+                                    {config.industries?.subtitle || 'High-converting WhatsApp automation engineered for your specific business model.'}
+                                </p>
+                            </div>
+
+                            {/* Dual Marquee Ticker Showcase */}
+                            <div className="relative w-full overflow-hidden flex flex-col gap-4 py-2">
+                                {/* Fading Edge Overlays */}
+                                <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-slate-50 dark:from-[#05050A] to-transparent z-20 pointer-events-none" />
+                                <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-slate-50 dark:from-[#05050A] to-transparent z-20 pointer-events-none" />
+
+                                {/* Row 1: Forward Marquee */}
+                                <div className="flex overflow-hidden group">
+                                    <div className="flex gap-4 shrink-0 animate-marquee group-hover:[animation-play-state:paused]">
+                                        {[...allIndustries.slice(0, 8), ...allIndustries.slice(0, 8)].map((ind, i) => {
+                                            const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
+                                            const Icon = defaults.icon || ind.icon || ShoppingCart;
+                                            const metric = Array.isArray(ind.metrics) && ind.metrics[0] ? ind.metrics[0] : 'High ROI';
+                                            return (
+                                                <div
+                                                    key={`r1-${ind.id}-${i}`}
+                                                    className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 shadow-sm hover:shadow-lg hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:scale-[1.02] transition-all duration-300 shrink-0 cursor-pointer"
+                                                >
+                                                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                        <Icon className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">{ind.title}</span>
+                                                        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{metric}</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Row 2: Reverse Marquee */}
+                                <div className="flex overflow-hidden group">
+                                    <div className="flex gap-4 shrink-0 animate-marquee-reverse group-hover:[animation-play-state:paused]">
+                                        {[...allIndustries.slice(8, 16), ...allIndustries.slice(8, 16)].map((ind, i) => {
+                                            const defaults = INDUSTRY_DEFAULTS[ind.id] || {};
+                                            const Icon = defaults.icon || ind.icon || ShoppingCart;
+                                            const metric = Array.isArray(ind.metrics) && ind.metrics[0] ? ind.metrics[0] : 'High ROI';
+                                            return (
+                                                <div
+                                                    key={`r2-${ind.id}-${i}`}
+                                                    className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 shadow-sm hover:shadow-lg hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:scale-[1.02] transition-all duration-300 shrink-0 cursor-pointer"
+                                                >
+                                                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                        <Icon className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">{ind.title}</span>
+                                                        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{metric}</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+
+
+
+
+
+
+                    {/* 10. SOCIAL PROOF / TESTIMONIALS */}
+                    <section id="testimonials" className="py-24 bg-slate-50 dark:bg-[#05050A] transition-colors relative overflow-hidden">
+                        <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
+                            <div className="text-center mb-14">
+                                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-extrabold uppercase tracking-wider mb-3">
+                                    <Users className="w-3.5 h-3.5" />
+                                    Customer Stories
+                                </div>
+                                <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-3 leading-tight">
+                                    What Our Customers Say
+                                </h2>
+                                <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
+                                    Real feedback from founders, marketing directors, and growth teams scaling with WhatsApp.
+                                </p>
+                            </div>
+
+                            <TestimonialSlider testimonials={(config?.testimonials && config.testimonials.length >= 3) ? config.testimonials : defaultTestimonials} />
+                        </div>
+                    </section>
+
+
+
                     {/* 13. FAQ Section */}
                     {config.faqs && config.faqs.length > 0 && (
                         <FAQSection faqs={config.faqs} />
                     )}
 
-                    {/* 14. CTA & PARTNER ECOSYSTEM */}
-                    <section className="py-16 sm:py-24 md:py-32 px-4 sm:px-4 md:px-6 relative z-10 bg-white dark:bg-[#05050A] overflow-hidden">
-                        {/* Background Gradients */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] max-w-full h-[600px] bg-indigo-500/5 dark:bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" style={{ transform: 'translate(-50%, -50%) translateZ(0)' }} />
-
-                        <div className="max-w-7xl mx-auto">
-
-                            {/* Main CTA Block */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                                className="rounded-[1.75rem] sm:rounded-[2.5rem] md:rounded-[3rem] overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 relative border border-indigo-500/50 shadow-2xl shadow-indigo-500/20 mb-12"
-                            >
-                                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] pointer-events-none" />
-                                <div className="absolute -top-24 -right-24 w-96 max-w-full h-96 bg-white/20 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
-                                <div className="absolute -bottom-24 -left-24 w-96 max-w-full h-96 bg-purple-500/40 rounded-full blur-2xl pointer-events-none" style={{ transform: 'translateZ(0)' }} />
-
-                                <div className="relative py-12 px-4 sm:py-16 sm:px-8 md:py-20 md:px-20 text-center flex flex-col items-center">
-                                    <h2 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 tracking-tight text-white max-w-4xl leading-[1.2] sm:leading-[1.1]">
-                                        Become a Partner & Grow with Us
-                                    </h2>
-                                    <p className="text-indigo-100 text-sm sm:text-base md:text-lg lg:text-xl max-w-2xl mx-auto mb-8 sm:mb-10 font-medium leading-relaxed">
-                                        Join our ecosystem as an affiliate or tech partner. Leverage our platform's infrastructure to generate new revenue streams and scale your own business.
-                                    </p>
-                                    <div className="flex flex-col sm:flex-row gap-4 mb-12 sm:mb-16 w-full sm:w-auto px-4 sm:px-0">
-                                        <Link to="/partner" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 sm:px-4 md:px-10 sm:py-4 bg-white text-indigo-700 rounded-full font-bold text-base sm:text-lg hover:scale-105 transition-transform shadow-xl shadow-indigo-900/50 w-full sm:w-auto">
-                                            View Partner Portal <ArrowRight className="w-5 h-5" />
-                                        </Link>
+                    {/* 14. BECOME A PARTNER (COLLAPSIBLE / EXPANDABLE BANNER) */}
+                    <section className="py-10 bg-slate-50 dark:bg-[#05050A] transition-colors relative overflow-hidden">
+                        <div className="max-w-7xl mx-auto px-4 md:px-6">
+                            <div className="rounded-3xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-800 border border-indigo-500/40 shadow-xl overflow-hidden text-white transition-all duration-300">
+                                {/* Collapsed Header Bar */}
+                                <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                                            <TrendingUp className="w-6 h-6 text-emerald-300" />
+                                        </div>
+                                        <div>
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 text-[11px] font-bold uppercase tracking-wider mb-1">
+                                                Partner Program
+                                            </div>
+                                            <h3 className="text-xl md:text-2xl font-extrabold tracking-tight">
+                                                Become a Partner & Grow with Us
+                                            </h3>
+                                            <p className="text-indigo-100 text-xs md:text-sm font-medium mt-0.5 max-w-xl">
+                                                Earn up to 30% commission & dual-sided subscription rewards by joining our ecosystem.
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    {/* Modern Minimal Partner Details (Moved Inside) */}
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                                        className="relative w-full max-w-5xl bg-white/10 backdrop-blur-md border border-white/20 rounded-[1.5rem] sm:rounded-[2rem] p-1.5 sm:p-2 shadow-2xl text-left"
-                                    >
-                                        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10">
-                                            {/* Referral */}
-                                            <Link to="/partner" className="p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 group cursor-pointer hover:bg-white/10 rounded-t-[1.25rem] rounded-b-none md:rounded-l-[1.5rem] md:rounded-r-none transition-colors">
-                                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                                                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
-                                                </div>
-                                                <div className="flex-1 w-full">
-                                                    <div className="flex items-center justify-center sm:justify-between mb-2 gap-2">
-                                                        <h4 className="text-lg sm:text-xl font-bold text-white">Referral Program</h4>
-                                                        <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200 group-hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 hidden sm:block" />
-                                                    </div>
-                                                    <p className="text-xs sm:text-sm text-indigo-100 font-medium leading-relaxed">
-                                                        Both you and your referral get <span className="text-emerald-400 font-bold">extra subscription months & AI tokens</span> when they sign up. Dual-sided rewards!
-                                                    </p>
-                                                </div>
-                                            </Link>
-
-                                            {/* Tech Partner */}
-                                            <Link to="/partner" className="p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5 group cursor-pointer hover:bg-white/10 rounded-b-[1.25rem] rounded-t-none md:rounded-r-[1.5rem] md:rounded-l-none transition-colors">
-                                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                                                    <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
-                                                </div>
-                                                <div className="flex-1 w-full">
-                                                    <div className="flex items-center justify-center sm:justify-between mb-2 gap-2">
-                                                        <h4 className="text-lg sm:text-xl font-bold text-white">Tech Partner</h4>
-                                                        <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 -translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 hidden sm:block" />
-                                                    </div>
-                                                    <p className="text-xs sm:text-sm text-indigo-100 font-medium leading-relaxed">
-                                                        Join our Tech Partner program and earn <span className="text-blue-400 font-bold">up to 30% commission</span> with unique tracking links, discount coupons, and dedicated marketing assets.
-                                                    </p>
-                                                </div>
-                                            </Link>
-                                        </div>
-                                    </motion.div>
-
+                                    {/* Action Buttons */}
+                                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                                        <button
+                                            onClick={() => setIsPartnerExpanded(!isPartnerExpanded)}
+                                            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs md:text-sm font-bold transition-all shrink-0 cursor-pointer"
+                                        >
+                                            <span>{isPartnerExpanded ? 'Hide Details' : 'Learn More'}</span>
+                                            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isPartnerExpanded ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        <Link
+                                            to="/partner"
+                                            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-white text-indigo-700 hover:bg-indigo-50 text-xs md:text-sm font-bold shadow-lg transition-transform hover:scale-105 shrink-0"
+                                        >
+                                            Partner Portal <ArrowRight className="w-4 h-4" />
+                                        </Link>
+                                    </div>
                                 </div>
-                            </motion.div>
 
+                                {/* Expandable Details Panel */}
+                                <AnimatePresence>
+                                    {isPartnerExpanded && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.35, ease: 'easeInOut' }}
+                                            className="border-t border-white/15 bg-black/10 overflow-hidden"
+                                        >
+                                            <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {/* Referral Program */}
+                                                <div className="p-5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                                                                <TrendingUp className="w-5 h-5 text-emerald-400" /> Referral Program
+                                                            </h4>
+                                                            <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">Dual Rewards</span>
+                                                        </div>
+                                                        <p className="text-xs md:text-sm text-indigo-100 font-medium leading-relaxed mb-4">
+                                                            Both you and your referral get extra subscription months & AI tokens when they sign up with your link.
+                                                        </p>
+                                                    </div>
+                                                    <Link to="/partner" className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 hover:underline">
+                                                        Start Referring <ArrowRight className="w-3.5 h-3.5" />
+                                                    </Link>
+                                                </div>
+
+                                                {/* Tech Partner */}
+                                                <div className="p-5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                                                                <Layers className="w-5 h-5 text-blue-400" /> Tech & Affiliate Partner
+                                                            </h4>
+                                                            <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full">Up to 30% Revenue</span>
+                                                        </div>
+                                                        <p className="text-xs md:text-sm text-indigo-100 font-medium leading-relaxed mb-4">
+                                                            Earn recurring commissions with tracking links, custom discount coupons, and dedicated partner support.
+                                                        </p>
+                                                    </div>
+                                                    <Link to="/partner" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-300 hover:underline">
+                                                        Apply as Tech Partner <ArrowRight className="w-3.5 h-3.5" />
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
                     </section>
 
