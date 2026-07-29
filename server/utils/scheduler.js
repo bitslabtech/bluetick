@@ -58,6 +58,28 @@ async function pruneExpiredTags() {
 function initScheduler() {
     console.log('Campaign Scheduler initialized. Checking every 60 seconds...');
 
+    // ── STALE CAMPAIGN RECOVERY (Run once on startup) ──
+    // If the server crashed mid-campaign, the campaign is stuck in SENDING state.
+    // Since we just booted, we know no campaigns are actually running in memory.
+    // We can safely resume all SENDING campaigns.
+    (async () => {
+        try {
+            const staleMessages = await Message.findAll({
+                where: { status: 'SENDING' }
+            });
+            if (staleMessages.length > 0) {
+                console.log(`[RECOVERY] Found ${staleMessages.length} stale SENDING campaigns. Resuming...`);
+                for (const msg of staleMessages) {
+                    console.log(`[RECOVERY] Resuming campaign ${msg.id}...`);
+                    // We pass a flag to tell the processor this is a recovery run
+                    processCampaign(msg.id, true).catch(err => console.error(`[RECOVERY] Error [${msg.id}]:`, err));
+                }
+            }
+        } catch (err) {
+            console.error('[RECOVERY] Stale campaign check failed:', err);
+        }
+    })();
+
     setInterval(async () => {
         try {
             // Find messages that are SCHEDULED and due for sending (scheduledFor <= now)

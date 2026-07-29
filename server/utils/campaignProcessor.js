@@ -9,9 +9,9 @@ const ChatMessage = require('../models/ChatMessage');
 const { getIo } = require('../socket');
 const { getUserPlanLimits, checkLimit, getMonthlyMessageCount } = require('../utils/planLimits');
 
-const processCampaign = async (campaignId) => {
+const processCampaign = async (campaignId, isRecovery = false) => {
     try {
-        console.log(`Starting processing for campaign ${campaignId}`);
+        console.log(`Starting processing for campaign ${campaignId}${isRecovery ? ' (RECOVERY MODE)' : ''}`);
         const message = await Message.findByPk(campaignId);
         if (!message) throw new Error('Campaign not found');
 
@@ -113,10 +113,28 @@ const processCampaign = async (campaignId) => {
 
         const limit = pLimit(5);
 
+        // ── RECOVERY LOGIC ──
+        let skipSet = new Set();
+        if (isRecovery) {
+            const logs = await MessageLog.findAll({
+                where: { campaignId },
+                attributes: ['phone']
+            });
+            logs.forEach(log => skipSet.add(log.phone));
+            console.log(`[RECOVERY] Campaign ${campaignId} already processed ${skipSet.size} contacts. Resuming remaining...`);
+        }
+
         const CHUNK_SIZE = 100;
 
         for (let i = 0; i < allTargets.length; i += CHUNK_SIZE) {
-            const chunk = allTargets.slice(i, i + CHUNK_SIZE);
+            let chunk = allTargets.slice(i, i + CHUNK_SIZE);
+            
+            // Skip already processed contacts in recovery mode
+            if (isRecovery) {
+                chunk = chunk.filter(c => !skipSet.has(c.phone));
+                if (chunk.length === 0) continue;
+            }
+
             const sendPromises = chunk.map(contact => limit(async () => {
                 try {
                     let phone = contact.phone.replace(/\D/g, '');

@@ -46,6 +46,75 @@ router.post('/', verifyTurnstile, async (req, res) => {
     }
 });
 
+// POST /api/contact/demo - Public endpoint for Book Demo Modal
+router.post('/demo', async (req, res) => {
+    try {
+        const { name, countryCode, phone, triggerTemplate } = req.body;
+        
+        if (!name || !phone) {
+            return res.status(400).json({ error: 'Please provide name and phone' });
+        }
+
+        const fullPhone = `${countryCode || '91'}${phone}`.replace(/\D/g, '');
+
+        const SystemConfig = require('../models/SystemConfig');
+        const Contact = require('../models/Contact');
+        
+        const config = await SystemConfig.getConfig();
+        const linkedAdminUserId = config?.settings?.linkedAdminUserId;
+
+        if (linkedAdminUserId) {
+            // Find or create contact for this admin
+            let contact = await Contact.findOne({ where: { userId: linkedAdminUserId, phone: fullPhone } });
+            
+            if (contact) {
+                // Ensure tag exists
+                let currentTags = contact.tags || [];
+                if (!currentTags.includes('demo request')) {
+                    contact.tags = [...currentTags, 'demo request'];
+                    await contact.save();
+                }
+            } else {
+                contact = await Contact.create({
+                    userId: linkedAdminUserId,
+                    name,
+                    phone: fullPhone,
+                    tags: ['demo request']
+                });
+            }
+
+            // Optional: Notify admin
+            await AdminNotification.create({
+                type: 'SYSTEM_ALERT',
+                message: `New demo request from ${name} (${fullPhone})`,
+            });
+            try {
+                await sendAdminAlert('contact_inquiry', `New Demo Request from ${name} (${fullPhone})`, { name, message: 'Demo Request' });
+            } catch (e) {}
+
+            // Send template if configured
+            if (triggerTemplate) {
+                try {
+                    const Template = require('../models/Template');
+                    const { sendTemplateMessage } = require('../services/whatsapp');
+                    
+                    const template = await Template.findOne({ where: { userId: linkedAdminUserId, name: triggerTemplate } });
+                    if (template) {
+                        await sendTemplateMessage(linkedAdminUserId, fullPhone, template.name, template.language, []);
+                    }
+                } catch (tempErr) {
+                    console.error('Demo trigger template error:', tempErr);
+                }
+            }
+        }
+
+        res.status(201).json({ success: true, message: 'Demo request received!' });
+    } catch (err) {
+        console.error('Demo Submit Error:', err);
+        res.status(500).json({ error: 'Server error while processing demo request' });
+    }
+});
+
 // GET /api/contact/unread-count - Admin endpoint to get unread message count
 router.get('/unread-count', [auth, admin], async (req, res) => {
     try {

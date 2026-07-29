@@ -261,12 +261,12 @@ router.post('/send-otp', async (req, res) => {
         const otpConfig = { otpExpirySec: 300, resendCooldownSec: 60, maxResendPerHour: 5, maxVerifyAttempts: 5 };
 
         // Rate limit check
-        const limitCheck = checkSendLimits(normalizedPhone, otpConfig);
+        const limitCheck = await checkSendLimits(normalizedPhone, otpConfig);
         if (!limitCheck.allowed) {
             return res.status(429).json({ error: limitCheck.reason, retryAfterSec: limitCheck.retryAfterSec });
         }
 
-        const otp = createOtp(normalizedPhone, otpConfig);
+        const otp = await createOtp(normalizedPhone, otpConfig);
         const result = await sendWhatsAppOtp(store, normalizedPhone, otp);
 
         if (!result.sent) {
@@ -298,7 +298,7 @@ router.post('/verify-otp', async (req, res) => {
         const normalizedPhone = normalizePhone(phone);
         const otpConfig = { maxVerifyAttempts: 5 };
 
-        const result = verifyOtp(normalizedPhone, otp, otpConfig);
+        const result = await verifyOtp(normalizedPhone, otp, otpConfig);
         if (!result.valid) return res.status(400).json({ error: result.reason });
 
         // Find or auto-create the customer

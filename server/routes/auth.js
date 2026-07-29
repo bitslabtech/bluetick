@@ -87,7 +87,7 @@ router.post('/send-otp', authLimiter, async (req, res) => {
         }
 
         // ── Rate limit check ──
-        const limitCheck = otpStore.checkSendLimits(normalized, otpConfig);
+        const limitCheck = await otpStore.checkSendLimits(normalized, otpConfig);
         if (!limitCheck.allowed) {
             return res.status(429).json({
                 error: limitCheck.reason,
@@ -96,7 +96,7 @@ router.post('/send-otp', authLimiter, async (req, res) => {
         }
 
         // ── Generate OTP ──
-        const otp = otpStore.createOtp(normalized, otpConfig);
+        const otp = await otpStore.createOtp(normalized, otpConfig);
 
         const sysConfig = await SystemConfig.getCachedConfig();
         const appName = sysConfig?.settings?.appName || 'Bluetick';
@@ -192,7 +192,7 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
         }
 
         const normalized = otpStore.normalizePhone(phone);
-        const result = otpStore.verifyOtp(normalized, otp, otpConfig);
+        const result = await otpStore.verifyOtp(normalized, otp, otpConfig);
 
         if (!result.valid) {
             return res.status(400).json({ error: result.reason });
@@ -249,12 +249,12 @@ router.post('/forgot-password-otp', authLimiter, async (req, res) => {
             return res.status(404).json({ error: 'No account found with this phone number.' });
         }
 
-        const limitCheck = otpStore.checkSendLimits(normalized, otpConfig);
+        const limitCheck = await otpStore.checkSendLimits(normalized, otpConfig);
         if (!limitCheck.allowed) {
             return res.status(429).json({ error: limitCheck.reason, retryAfterSec: limitCheck.retryAfterSec });
         }
 
-        const otp = otpStore.createOtp(normalized, otpConfig);
+        const otp = await otpStore.createOtp(normalized, otpConfig);
         const sysConfig = await SystemConfig.getCachedConfig();
         const appName = sysConfig?.settings?.appName || 'Bluetick';
         const minutes = Math.ceil(otpConfig.otpExpirySec / 60);
@@ -327,7 +327,7 @@ router.post('/reset-password-otp', authLimiter, async (req, res) => {
         }
 
         const normalized = otpStore.normalizePhone(phone);
-        const result = otpStore.verifyOtp(normalized, otp, otpConfig);
+        const result = await otpStore.verifyOtp(normalized, otp, otpConfig);
 
         if (!result.valid) {
             return res.status(400).json({ error: result.reason });

@@ -730,6 +730,50 @@ const AdminLandingPage = () => {
                                     </div>
                                 )}
 
+                                {/* BOOK DEMO SECTION */}
+                                {contentTab === 'book_demo' && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                                        <div>
+                                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Book Demo Button</h3>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Configure the Book Free Demo modal and WhatsApp trigger template.</p>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                                            <div className="col-span-2 md:col-span-1">
+                                                <InputGroup label="Button Text" value={config.bookDemo?.buttonText || 'Book Free Demo'}
+                                                    onChange={v => setConfig({ ...config, bookDemo: { ...(config.bookDemo || {}), buttonText: v } })} />
+                                            </div>
+                                            <div className="col-span-2 md:col-span-1">
+                                                <InputGroup label="Modal Title" value={config.bookDemo?.modalTitle || 'Book a Free Demo'}
+                                                    onChange={v => setConfig({ ...config, bookDemo: { ...(config.bookDemo || {}), modalTitle: v } })} />
+                                            </div>
+                                            <div className="col-span-2">
+                                                <InputGroup label="Modal Subtitle" type="textarea" value={config.bookDemo?.modalSubtitle || 'Leave your details and our team will get back to you shortly.'}
+                                                    onChange={v => setConfig({ ...config, bookDemo: { ...(config.bookDemo || {}), modalSubtitle: v } })} />
+                                            </div>
+                                            <div className="col-span-2">
+                                                <InputGroup label="Success Message" value={config.bookDemo?.successMessage || 'Thank you! We have received your request.'}
+                                                    onChange={v => setConfig({ ...config, bookDemo: { ...(config.bookDemo || {}), successMessage: v } })} />
+                                            </div>
+                                            
+                                            <div className="col-span-2 space-y-2">
+                                                <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Trigger Template (Sent on submit)</label>
+                                                <select
+                                                    className="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                                                    value={config.bookDemo?.triggerTemplate || ''}
+                                                    onChange={e => setConfig({ ...config, bookDemo: { ...(config.bookDemo || {}), triggerTemplate: e.target.value } })}
+                                                >
+                                                    <option value="">-- No Template Triggered --</option>
+                                                    {templates.map(t => (
+                                                        <option key={t.id} value={t.name}>{t.name} ({t.language})</option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-[11px] text-slate-500 mt-1">When a user submits the demo form, they will automatically be sent this WhatsApp template (if selected) and added to your CRM with the tag "demo request".</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* CAPABILITIES SECTION */}
                                 {contentTab === 'capabilities' && config.capabilities && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">

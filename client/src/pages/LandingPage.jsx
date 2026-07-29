@@ -1646,6 +1646,10 @@ export default function LandingPage() {
     const [config, setConfig] = useState(null);
     const [publicSettings, setPublicSettings] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showDemoModal, setShowDemoModal] = useState(false);
+    const [demoForm, setDemoForm] = useState({ name: '', phone: '', countryCode: '91' });
+    const [demoSubmitting, setDemoSubmitting] = useState(false);
+    const [demoSuccess, setDemoSuccess] = useState(false);
     const [error, setError] = useState(false);
     const [plans, setPlans] = useState([]);
     const [metaRates, setMetaRates] = useState(null);
@@ -1776,11 +1780,139 @@ export default function LandingPage() {
         </div>
     );
 
+    const handleDemoSubmit = async (e) => {
+        e.preventDefault();
+        setDemoSubmitting(true);
+        setError(false);
+        try {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/contact/demo`, {
+                ...demoForm,
+                triggerTemplate: config?.bookDemo?.triggerTemplate
+            });
+            setDemoSuccess(true);
+            setTimeout(() => {
+                setShowDemoModal(false);
+                setDemoSuccess(false);
+                setDemoForm({ name: '', phone: '', countryCode: '91' });
+            }, 3000);
+        } catch (err) {
+            console.error('Demo request failed:', err);
+            setError(true);
+        } finally {
+            setDemoSubmitting(false);
+        }
+    };
+
     const isDark = config.theme === 'dark';
 
     return (
         <div className={isDark ? 'dark' : ''}>
             <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-hidden selection:bg-indigo-500/30 transition-colors duration-300">
+                {/* Book Demo Modal */}
+                <AnimatePresence>
+                    {showDemoModal && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowDemoModal(false)}
+                                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden"
+                            >
+                                {/* Decorative Header Gradient */}
+                                <div className="h-32 bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 relative">
+                                    <button
+                                        onClick={() => setShowDemoModal(false)}
+                                        className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-colors"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                
+                                <div className="px-6 pb-8 pt-6 relative">
+                                    {/* Icon Avatar */}
+                                    <div className="absolute -top-10 left-6 w-16 h-16 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl flex items-center justify-center border-4 border-white dark:border-zinc-900">
+                                        <Phone className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+                                    </div>
+                                    
+                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-8 tracking-tight">
+                                        {config?.bookDemo?.modalTitle || 'Book a Free Demo'}
+                                    </h3>
+                                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">
+                                        {config?.bookDemo?.modalSubtitle || 'Leave your details and our team will get back to you shortly.'}
+                                    </p>
+                                    
+                                    {demoSuccess ? (
+                                        <div className="mt-8 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl flex flex-col items-center text-center space-y-3">
+                                            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center">
+                                                <CheckCircle className="w-6 h-6" />
+                                            </div>
+                                            <p className="font-bold text-emerald-800 dark:text-emerald-300">
+                                                {config?.bookDemo?.successMessage || 'Thank you! We have received your request.'}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <form onSubmit={handleDemoSubmit} className="mt-6 space-y-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Your Name</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="John Doe"
+                                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                                                    value={demoForm.name}
+                                                    onChange={e => setDemoForm({ ...demoForm, name: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">WhatsApp Number</label>
+                                                <div className="flex gap-2">
+                                                    <select
+                                                        className="w-24 px-3 py-3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                                                        value={demoForm.countryCode}
+                                                        onChange={e => setDemoForm({ ...demoForm, countryCode: e.target.value })}
+                                                    >
+                                                        <option value="91">+91 (IN)</option>
+                                                        <option value="1">+1 (US)</option>
+                                                        <option value="44">+44 (UK)</option>
+                                                        <option value="971">+971 (AE)</option>
+                                                        <option value="61">+61 (AU)</option>
+                                                    </select>
+                                                    <input
+                                                        type="tel"
+                                                        required
+                                                        placeholder="Phone number"
+                                                        className="flex-1 px-4 py-3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                                                        value={demoForm.phone}
+                                                        onChange={e => setDemoForm({ ...demoForm, phone: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            {error && (
+                                                <p className="text-red-500 text-sm font-medium">Failed to submit request. Please try again.</p>
+                                            )}
+                                            
+                                            <button
+                                                type="submit"
+                                                disabled={demoSubmitting || !demoForm.name || !demoForm.phone}
+                                                className="w-full mt-2 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                            >
+                                                {demoSubmitting ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : 'Submit Request'}
+                                            </button>
+                                        </form>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
 
                 <LazyMotion features={domAnimation}>
                     {/* 1. NAVBAR */}
@@ -1821,12 +1953,12 @@ export default function LandingPage() {
                                     >
                                         Start Free Trial <ArrowRight className="w-4 h-4" />
                                     </Link>
-                                    <a
-                                        href="#platform"
+                                    <button
+                                        onClick={() => setShowDemoModal(true)}
                                         className="w-full sm:w-auto px-6 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-base hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
                                     >
-                                        <Play className="w-4 h-4 fill-current" /> Watch Demo
-                                    </a>
+                                        <Phone className="w-4 h-4 fill-current" /> {config?.bookDemo?.buttonText || 'Book Free Demo'}
+                                    </button>
                                 </div>
                             </motion.div>
 
