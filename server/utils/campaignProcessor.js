@@ -300,13 +300,33 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                     if (!metaRes.ok) {
                         console.error(`[CAMPAIGN] Meta API Error for ${phone}:`, JSON.stringify(data, null, 2));
                         console.error(`[CAMPAIGN] Payload that failed:`, JSON.stringify(payload, null, 2));
+                        
+                        const metaErrorMsg = data.error?.message || 'Meta API Error';
+                        const metaErrorCode = data.error?.code;
+
                         await MessageLog.create({
                             campaignId: message.id,
                             contactId: contact.isTemp ? null : contact.id,
                             phone: contact.phone,
                             status: 'FAILED',
-                            error: data.error?.message || 'Meta API Error'
+                            error: metaErrorMsg
                         });
+
+                        // 1a. If the error indicates the number is not on WhatsApp (131026) or invalid (131009),
+                        //     mark the contact as 'Not on WhatsApp' in the database so we don't try again.
+                        if (!contact.isTemp && contact.id) {
+                            if (metaErrorCode === 131026 || metaErrorCode === 131009 || metaErrorMsg.toLowerCase().includes('not a valid whatsapp number')) {
+                                try {
+                                    await Contact.update(
+                                        { status: 'Not on WhatsApp' },
+                                        { where: { id: contact.id } }
+                                    );
+                                    console.log(`[CAMPAIGN] Contact ${contact.id} (${phone}) marked as Not on WhatsApp.`);
+                                } catch (statusErr) {
+                                    console.error(`[CAMPAIGN] Failed to mark contact ${contact.id} as Not on WhatsApp:`, statusErr.message);
+                                }
+                            }
+                        }
                     } else {
                         const sentMessageId = data.messages?.[0]?.id;
 
