@@ -155,29 +155,16 @@ const CapabilitiesBento = ({ config }) => {
                 { title: 'WhatsApp CRM & Lead Management', desc: 'Keep all your customer details, notes, and chats neatly organized in one simple dashboard.' },
             ],
             visualMockup: (
-                <div className="w-full bg-white dark:bg-zinc-900/90 rounded-2xl p-4 border border-indigo-100 dark:border-white/10 shadow-lg relative overflow-hidden">
-                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-white/5">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Shared Team Inbox</span>
-                        </div>
-                        <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 rounded-md text-[10px] font-bold uppercase">AI Active</span>
-                    </div>
-                    <div className="space-y-2.5 text-xs">
-                        <div className="bg-slate-50 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-white/5 flex justify-between items-center">
-                            <div>
-                                <div className="font-bold text-slate-800 dark:text-slate-200">Rahul (New Lead)</div>
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400">Asked for Price Catalog</div>
-                            </div>
-                            <span className="px-2 py-1 bg-emerald-500 text-white font-bold rounded-lg text-[10px]">Auto Replied ⚡</span>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-white/5 flex justify-between items-center">
-                            <div>
-                                <div className="font-bold text-slate-800 dark:text-slate-200">Ananya (Support)</div>
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400">Order #8420 Tracking</div>
-                            </div>
-                            <span className="px-2 py-1 bg-indigo-500 text-white font-bold rounded-lg text-[10px]">Assigned to Agent</span>
-                        </div>
+                <div className="w-full flex items-center justify-center relative py-4">
+                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] rounded-[2rem] overflow-hidden shadow-2xl border-4 border-slate-800 dark:border-zinc-700 relative bg-black group-hover:shadow-indigo-500/20 transition-all duration-500">
+                        <video
+                            src="/whatsapp-mockup-video.mp4"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover object-center rounded-[1.6rem]"
+                        />
                     </div>
                 </div>
             )
@@ -1808,6 +1795,7 @@ export default function LandingPage() {
     return (
         <div className={isDark ? 'dark' : ''}>
             <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-hidden selection:bg-indigo-500/30 transition-colors duration-300">
+                <LazyMotion features={domAnimation}>
                 {/* Book Demo Modal */}
                 <AnimatePresence>
                     {showDemoModal && (
@@ -1913,8 +1901,6 @@ export default function LandingPage() {
                         </div>
                     )}
                 </AnimatePresence>
-
-                <LazyMotion features={domAnimation}>
                     {/* 1. NAVBAR */}
                     <PublicHeader />
 
