@@ -156,14 +156,14 @@ const CapabilitiesBento = ({ config }) => {
             ],
             visualMockup: (
                 <div className="w-full flex items-center justify-center relative py-4">
-                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] rounded-[2rem] overflow-hidden shadow-2xl border-4 border-slate-800 dark:border-zinc-700 relative bg-black group-hover:shadow-indigo-500/20 transition-all duration-500">
+                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative bg-black group-hover:shadow-indigo-500/20 transition-all duration-500 rounded-xl">
                         <video
                             src="/whatsapp-mockup-video.mp4"
                             autoPlay
                             loop
                             muted
                             playsInline
-                            className="w-full h-full object-cover object-center rounded-[1.6rem]"
+                            className="w-full h-full object-cover object-center"
                         />
                     </div>
                 </div>

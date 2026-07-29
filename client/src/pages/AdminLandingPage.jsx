@@ -770,6 +770,57 @@ const AdminLandingPage = () => {
                                                 </select>
                                                 <p className="text-[11px] text-slate-500 mt-1">When a user submits the demo form, they will automatically be sent this WhatsApp template (if selected) and added to your CRM with the tag "demo request".</p>
                                             </div>
+
+                                            <div className={`col-span-2 space-y-4 pt-4 border-t border-slate-100 dark:border-white/5 ${!crmLinkedUser ? 'opacity-50 pointer-events-none' : ''}`}>
+                                                {!crmLinkedUser && (
+                                                    <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 p-3 rounded-xl text-sm font-medium mb-4">
+                                                        ⚠️ Warning: No System CRM account is linked. Please go to the CRM section and link a Platform CRM account first.
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Assign Lead To (Team Member)</label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {teamMembers.map(member => {
+                                                            const isSelected = (config.bookDemo?.crmOwners || []).includes(member.id);
+                                                            return (
+                                                                <button key={member.id} type="button"
+                                                                    onClick={() => {
+                                                                        const owners = config.bookDemo?.crmOwners || [];
+                                                                        if (isSelected) setConfig({ ...config, bookDemo: { ...config.bookDemo, crmOwners: owners.filter(id => id !== member.id) } });
+                                                                        else setConfig({ ...config, bookDemo: { ...config.bookDemo, crmOwners: [member.id] } }); // only 1 owner for demo
+                                                                    }}
+                                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isSelected ? 'bg-indigo-600 text-white shadow-md' : 'bg-white dark:bg-black/20 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 hover:border-indigo-400'}`}>
+                                                                    {member.name} {isSelected && '✓'}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                        {teamMembers.length === 0 && <span className="text-xs text-slate-400">No team members found.</span>}
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Assign CRM Tags</label>
+                                                    <MultiSelectDropdown
+                                                        options={crmTagsList.map(t => ({ value: t, label: t }))}
+                                                        value={typeof config.bookDemo?.crmTags === 'string' ? config.bookDemo?.crmTags.split(',').map(t => t.trim()).filter(Boolean) : (config.bookDemo?.crmTags || [])}
+                                                        onChange={val => setConfig({ ...config, bookDemo: { ...config.bookDemo, crmTags: val } })}
+                                                        placeholder="Select or create tags..."
+                                                        allowCreate={true}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Assign CRM Groups</label>
+                                                    <MultiSelectDropdown
+                                                        options={crmGroupsList.map(g => ({ value: g.name, label: g.name, color: g.color }))}
+                                                        value={typeof config.bookDemo?.crmGroups === 'string' ? config.bookDemo?.crmGroups.split(',').map(t => t.trim()).filter(Boolean) : (config.bookDemo?.crmGroups || [])}
+                                                        onChange={val => setConfig({ ...config, bookDemo: { ...config.bookDemo, crmGroups: val } })}
+                                                        placeholder="Select groups..."
+                                                        allowCreate={false}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}

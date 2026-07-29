@@ -54,10 +54,12 @@ router.put('/', [auth, admin], async (req, res) => {
         if (req.body.advancedFeatures !== undefined) settings.advancedFeatures = req.body.advancedFeatures;
         if (req.body.industries !== undefined) settings.industries = req.body.industries;
         if (req.body.aiChatbot !== undefined) settings.aiChatbot = req.body.aiChatbot;
+        if (req.body.bookDemo !== undefined) settings.bookDemo = req.body.bookDemo;
         
         settings.changed('publicPages', true);
         settings.changed('footer', true);
         settings.changed('contactInfo', true);
+        settings.changed('bookDemo', true);
 
         await settings.save();
 

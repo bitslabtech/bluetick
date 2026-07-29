@@ -151,6 +151,19 @@ const LandingPage = sequelize.define('LandingPage', {
             terms: ''
         }
     },
+    bookDemo: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            buttonText: 'Book Free Demo',
+            modalTitle: 'Book a Free Demo',
+            modalSubtitle: 'Leave your details and our team will get back to you shortly.',
+            successMessage: 'Thank you! We have received your request.',
+            triggerTemplate: '',
+            crmOwners: [],
+            crmTags: [],
+            crmGroups: []
+        }
+    },
     aiChatbot: {
         type: DataTypes.JSON,
         defaultValue: {

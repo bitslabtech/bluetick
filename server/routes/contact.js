@@ -59,27 +59,48 @@ router.post('/demo', async (req, res) => {
 
         const SystemConfig = require('../models/SystemConfig');
         const Contact = require('../models/Contact');
+        const LandingPage = require('../models/LandingPage');
         
         const config = await SystemConfig.getConfig();
+        const landingSettings = await LandingPage.getSettings();
+        
         const linkedAdminUserId = config?.settings?.linkedAdminUserId;
+        const bookDemoConfig = landingSettings.bookDemo || {};
+
+        const parseTags = (input) => {
+            if (!input) return [];
+            if (Array.isArray(input)) return input.map(t => typeof t === 'object' ? (t.value || t.name) : t.toString());
+            if (typeof input === 'string') return input.split(',').map(t => t.trim()).filter(Boolean);
+            return [];
+        };
 
         if (linkedAdminUserId) {
-            // Find or create contact for this admin
-            let contact = await Contact.findOne({ where: { userId: linkedAdminUserId, phone: fullPhone } });
+            let primaryOwnerId = linkedAdminUserId;
+            if (bookDemoConfig.crmOwners && bookDemoConfig.crmOwners.length > 0) {
+                primaryOwnerId = bookDemoConfig.crmOwners[0];
+            }
+
+            const customTags = [
+                ...parseTags(bookDemoConfig.crmTags),
+                ...parseTags(bookDemoConfig.crmGroups)
+            ];
+
+            // Find or create contact for this owner
+            let contact = await Contact.findOne({ where: { userId: primaryOwnerId, phone: fullPhone } });
             
             if (contact) {
-                // Ensure tag exists
+                // Ensure tags exist
                 let currentTags = contact.tags || [];
-                if (!currentTags.includes('demo request')) {
-                    contact.tags = [...currentTags, 'demo request'];
-                    await contact.save();
-                }
+                contact.tags = [...new Set([...currentTags, 'demo request', ...customTags])];
+                if (contact.name === 'AI Chatbot Lead') contact.name = name;
+                await contact.save();
             } else {
                 contact = await Contact.create({
-                    userId: linkedAdminUserId,
+                    userId: primaryOwnerId,
                     name,
                     phone: fullPhone,
-                    tags: ['demo request']
+                    tags: [...new Set(['demo request', ...customTags])],
+                    createdById: primaryOwnerId
                 });
             }
 

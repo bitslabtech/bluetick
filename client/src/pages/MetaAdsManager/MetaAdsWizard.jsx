@@ -1743,7 +1743,7 @@ export default function MetaAdsWizard() {
                                         <span className="text-[10px] text-slate-400 font-normal ml-auto">Editable</span>
                                     </h4>
                                     <div className="flex flex-wrap gap-2 mb-2">
-                                        {audienceData?.locations?.map((loc, i) => (
+                                        {Array.isArray(audienceData?.locations) && audienceData.locations.map((loc, i) => (
                                             <span key={i} className="flex items-center gap-1.5 bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300 px-3 py-1 rounded-full text-xs font-bold">
                                                 📍 {loc}
                                                 <button
@@ -1762,8 +1762,8 @@ export default function MetaAdsWizard() {
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter' && e.target.value.trim()) {
                                                     const loc = e.target.value.trim();
-                                                    if (!audienceData.locations?.includes(loc)) {
-                                                        setAudienceData({ ...audienceData, locations: [...(audienceData.locations || []), loc] });
+                                                    if (!Array.isArray(audienceData.locations) || !audienceData.locations.includes(loc)) {
+                                                        setAudienceData({ ...audienceData, locations: [...(Array.isArray(audienceData.locations) ? audienceData.locations : []), loc] });
                                                     }
                                                     e.target.value = '';
                                                 }
@@ -1778,7 +1778,7 @@ export default function MetaAdsWizard() {
                                     <TrendingUp className="w-4 h-4 text-slate-400" /> Detailed Targeting (Interests)
                                 </h4>
                                 <div className="flex flex-wrap gap-2">
-                                    {audienceData?.interests?.map((int, i) => (
+                                    {Array.isArray(audienceData?.interests) && audienceData.interests.map((int, i) => (
                                         <span key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm">{int}</span>
                                     ))}
                                 </div>
@@ -1811,7 +1811,7 @@ export default function MetaAdsWizard() {
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {creativeData?.map((variation, index) => (
+                            {Array.isArray(creativeData) && creativeData.map((variation, index) => (
                                 <motion.div
                                     key={index}
                                     whileHover={{ y: -4 }}
