@@ -154,6 +154,7 @@ const LandingPage = sequelize.define('LandingPage', {
     bookDemo: {
         type: DataTypes.JSON,
         defaultValue: {
+            enabled: true,
             buttonText: 'Book Free Demo',
             modalTitle: 'Book a Free Demo',
             modalSubtitle: 'Leave your details and our team will get back to you shortly.',

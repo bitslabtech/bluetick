@@ -8,6 +8,8 @@ if (import.meta.env.VITE_API_URL) {
   axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 }
 axios.defaults.withCredentials = true;
+axios.defaults.xsrfCookieName = 'csrf-token';
+axios.defaults.xsrfHeaderName = 'x-csrf-token';
 
 // Global response interceptor: redirect to /checkout if the server blocks an expired plan.
 // This is a last-resort catch-all — ProtectedRoute handles it on navigation,

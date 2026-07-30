@@ -12,7 +12,7 @@ import {
     Twitter, Facebook, Linkedin, Instagram,
     CreditCard, Truck, LayoutTemplate, Repeat, QrCode,
     Megaphone, Activity, Target, SplitSquareHorizontal, Wand2,
-    LayoutGrid, ListOrdered, Tag, FileText, LineChart, Wifi, Search, Filter, Info, Phone, ChevronDown, Sparkles
+    LayoutGrid, ListOrdered, Tag, FileText, LineChart, Wifi, Search, Filter, Info, Phone, ChevronDown, Sparkles, CheckCircle, Lock, Clock
 } from 'lucide-react';
 import PublicHeader from '../components/landing/PublicHeader';
 import FloatingChatbot from '../components/landing/FloatingChatbot';
@@ -214,33 +214,21 @@ const CapabilitiesBento = ({ config }) => {
             icon: Target,
             impactPoints: [
                 { title: 'Direct Ad-to-WhatsApp Flow', desc: '1-click from Instagram/Facebook Sponsored Ads/Post directly into your WhatsApp chat.' },
-                { title: 'Automated Instant Lead Qualification', desc: 'AI bot collects lead contact info, interest, & budget in seconds.' },
+                { title: 'Automated Instant Lead Qualification', desc: 'Flowbot automatically collects lead contact info, interest, & budget in seconds without any human intervention.' },
                 { title: '5x Lower Lead Acquisition Cost', desc: 'Stop wasting ad money on low-converting external landing page links.' },
                 { title: 'High-Intent Buyer Retargeting', desc: 'Re-engage users who clicked your ad with instant broadcast offers.' },
             ],
             visualMockup: (
-                <div className="w-full bg-white dark:bg-zinc-900/90 rounded-2xl p-4 border border-rose-100 dark:border-white/10 shadow-lg relative overflow-hidden">
-                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-white/5">
-                        <div className="flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4 text-rose-500" />
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Click-to-WhatsApp Ads (CTWA)</span>
-                        </div>
-                        <span className="px-2 py-0.5 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 rounded-md text-[10px] font-bold">5x ROI</span>
-                    </div>
-                    <div className="space-y-2 text-xs">
-                        <div className="bg-gradient-to-r from-rose-500/10 to-orange-500/10 p-2.5 rounded-xl border border-rose-100 dark:border-white/5 flex justify-between items-center">
-                            <div>
-                                <div className="font-extrabold text-rose-600 dark:text-rose-400 text-sm">1,480+ Leads</div>
-                                <div className="text-[10px] text-slate-500 dark:text-slate-400">Captured Directly in WhatsApp</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="font-extrabold text-slate-800 dark:text-slate-200">₹14.20</div>
-                                <div className="text-[10px] text-slate-500">Cost Per Lead</div>
-                            </div>
-                        </div>
-                        <div className="w-full bg-[#25D366] text-white font-bold py-2 rounded-xl text-center text-xs flex items-center justify-center gap-1.5 shadow-sm">
-                            <MessageSquare className="w-3.5 h-3.5 fill-white" /> Start WhatsApp Chat from Instagram Ad
-                        </div>
+                <div className="w-full flex items-center justify-center relative py-4">
+                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative transition-all duration-500 group-hover:shadow-rose-500/20 rounded-xl">
+                        <video
+                            src="/ctwa-final.mp4"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover"
+                        />
                     </div>
                 </div>
             )
@@ -258,7 +246,7 @@ const CapabilitiesBento = ({ config }) => {
             icon: QrCode,
             impactPoints: [
                 { title: 'Instant QR & NFC Contact Sharing', desc: 'Share your business card via QR scan, NFC card tap, or direct URL.' },
-                { title: '1-Tap Save to Phonebook + Lead Capture', desc: 'Clients save your details instantly and send opt-in info to your CRM.' },
+                { title: '1-Tap Save to Phonebook', desc: 'Clients save your details instantly to their contacts with a single tap.' },
                 { title: 'Dynamic Real-Time Profile Updates', desc: 'Update phone, catalog, or address anytime with zero reprinting costs.' },
                 { title: 'Analytics & Click Tracking', desc: 'Monitor profile views, catalog clicks, and WhatsApp inquiry counts.' },
             ],
@@ -1637,6 +1625,7 @@ export default function LandingPage() {
     const [demoForm, setDemoForm] = useState({ name: '', phone: '', countryCode: '91' });
     const [demoSubmitting, setDemoSubmitting] = useState(false);
     const [demoSuccess, setDemoSuccess] = useState(false);
+    const [phoneError, setPhoneError] = useState('');
     const [error, setError] = useState(false);
     const [plans, setPlans] = useState([]);
     const [metaRates, setMetaRates] = useState(null);
@@ -1767,8 +1756,34 @@ export default function LandingPage() {
         </div>
     );
 
+    const validatePhone = (phone, countryCode) => {
+        const cleanPhone = phone ? String(phone).replace(/\D/g, '') : '';
+        if (!cleanPhone) {
+            return 'WhatsApp number is required.';
+        }
+        if (countryCode === '91') {
+            if (cleanPhone.length !== 10) {
+                return 'Please enter a valid 10-digit Indian mobile number.';
+            }
+            if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+                return 'Indian mobile numbers must start with 6, 7, 8, or 9.';
+            }
+        } else {
+            if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+                return 'Please enter a valid phone number (7 to 15 digits).';
+            }
+        }
+        return '';
+    };
+
     const handleDemoSubmit = async (e) => {
         e.preventDefault();
+        const vError = validatePhone(demoForm.phone, demoForm.countryCode);
+        if (vError) {
+            setPhoneError(vError);
+            return;
+        }
+        setPhoneError('');
         setDemoSubmitting(true);
         setError(false);
         try {
@@ -1781,6 +1796,7 @@ export default function LandingPage() {
                 setShowDemoModal(false);
                 setDemoSuccess(false);
                 setDemoForm({ name: '', phone: '', countryCode: '91' });
+                setPhoneError('');
             }, 3000);
         } catch (err) {
             console.error('Demo request failed:', err);
@@ -1796,111 +1812,149 @@ export default function LandingPage() {
         <div className={isDark ? 'dark' : ''}>
             <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 font-sans overflow-x-hidden selection:bg-indigo-500/30 transition-colors duration-300">
                 <LazyMotion features={domAnimation}>
-                {/* Book Demo Modal */}
-                <AnimatePresence>
-                    {showDemoModal && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setShowDemoModal(false)}
-                                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                            />
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden"
-                            >
-                                {/* Decorative Header Gradient */}
-                                <div className="h-32 bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 relative">
-                                    <button
-                                        onClick={() => setShowDemoModal(false)}
-                                        className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-md transition-colors"
-                                    >
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                
-                                <div className="px-6 pb-8 pt-6 relative">
-                                    {/* Icon Avatar */}
-                                    <div className="absolute -top-10 left-6 w-16 h-16 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl flex items-center justify-center border-4 border-white dark:border-zinc-900">
-                                        <Phone className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
-                                    </div>
-                                    
-                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-8 tracking-tight">
-                                        {config?.bookDemo?.modalTitle || 'Book a Free Demo'}
-                                    </h3>
-                                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">
-                                        {config?.bookDemo?.modalSubtitle || 'Leave your details and our team will get back to you shortly.'}
-                                    </p>
-                                    
-                                    {demoSuccess ? (
-                                        <div className="mt-8 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl flex flex-col items-center text-center space-y-3">
-                                            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center">
-                                                <CheckCircle className="w-6 h-6" />
-                                            </div>
-                                            <p className="font-bold text-emerald-800 dark:text-emerald-300">
-                                                {config?.bookDemo?.successMessage || 'Thank you! We have received your request.'}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <form onSubmit={handleDemoSubmit} className="mt-6 space-y-4">
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Your Name</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    placeholder="John Doe"
-                                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
-                                                    value={demoForm.name}
-                                                    onChange={e => setDemoForm({ ...demoForm, name: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">WhatsApp Number</label>
-                                                <div className="flex gap-2">
-                                                    <select
-                                                        className="w-24 px-3 py-3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
-                                                        value={demoForm.countryCode}
-                                                        onChange={e => setDemoForm({ ...demoForm, countryCode: e.target.value })}
-                                                    >
-                                                        <option value="91">+91 (IN)</option>
-                                                        <option value="1">+1 (US)</option>
-                                                        <option value="44">+44 (UK)</option>
-                                                        <option value="971">+971 (AE)</option>
-                                                        <option value="61">+61 (AU)</option>
-                                                    </select>
-                                                    <input
-                                                        type="tel"
-                                                        required
-                                                        placeholder="Phone number"
-                                                        className="flex-1 px-4 py-3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
-                                                        value={demoForm.phone}
-                                                        onChange={e => setDemoForm({ ...demoForm, phone: e.target.value })}
-                                                    />
+                    {/* Book Demo Modal */}
+                    <AnimatePresence>
+                        {showDemoModal && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setShowDemoModal(false)}
+                                    className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md transition-opacity"
+                                />
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    transition={{ type: "spring", duration: 0.5, bounce: 0.2 }}
+                                    className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-zinc-800/80 overflow-hidden z-10 my-auto"
+                                >
+                                    <div className="p-6 sm:p-8">
+                                        {/* Modal Header */}
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm shrink-0">
+                                                    <Phone className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                                                        {config?.bookDemo?.modalTitle || 'Book a Free Demo'}
+                                                    </h3>
+                                                    <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed mt-0.5">
+                                                        {config?.bookDemo?.modalSubtitle || 'Leave your details and our team will get back to you shortly.'}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            
-                                            {error && (
-                                                <p className="text-red-500 text-sm font-medium">Failed to submit request. Please try again.</p>
-                                            )}
-                                            
                                             <button
-                                                type="submit"
-                                                disabled={demoSubmitting || !demoForm.name || !demoForm.phone}
-                                                className="w-full mt-2 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                                onClick={() => { setShowDemoModal(false); setPhoneError(''); }}
+                                                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-all cursor-pointer shrink-0 -mr-2 -mt-2"
                                             >
-                                                {demoSubmitting ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : 'Submit Request'}
+                                                <X className="w-5 h-5" />
                                             </button>
-                                        </form>
-                                    )}
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                                        </div>
+
+                                        {demoSuccess ? (
+                                            <div className="my-6 p-6 bg-emerald-50/80 dark:bg-emerald-500/10 border border-emerald-200/80 dark:border-emerald-500/20 rounded-2xl flex flex-col items-center text-center space-y-3">
+                                                <div className="w-14 h-14 bg-emerald-500 text-white rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center">
+                                                    <CheckCircle className="w-7 h-7" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-extrabold text-emerald-900 dark:text-emerald-200 text-lg">Request Confirmed!</h4>
+                                                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 mt-1">
+                                                        {config?.bookDemo?.successMessage || 'Thank you! We have received your request and will contact you shortly.'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <form onSubmit={handleDemoSubmit} className="mt-6 space-y-4">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-1.5">
+                                                        <User className="w-3.5 h-3.5 text-indigo-500" /> Full Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        placeholder="e.g. Rahul Sharma"
+                                                        className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/60 rounded-xl focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all dark:text-white text-sm font-medium placeholder:text-slate-400"
+                                                        value={demoForm.name}
+                                                        onChange={e => setDemoForm({ ...demoForm, name: e.target.value })}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-1.5">
+                                                        <Phone className="w-3.5 h-3.5 text-indigo-500" /> WhatsApp Number
+                                                    </label>
+                                                    <div className="flex gap-2">
+                                                        <select
+                                                            className="w-28 px-3 py-3 bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/60 rounded-xl focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all dark:text-white text-sm font-semibold cursor-pointer"
+                                                            value={demoForm.countryCode}
+                                                            onChange={e => {
+                                                                const code = e.target.value;
+                                                                const maxLen = code === '91' ? 10 : 15;
+                                                                const trimmedPhone = (demoForm.phone || '').replace(/\D/g, '').slice(0, maxLen);
+                                                                setDemoForm({ ...demoForm, countryCode: code, phone: trimmedPhone });
+                                                                if (phoneError) setPhoneError(validatePhone(trimmedPhone, code));
+                                                            }}
+                                                        >
+                                                            <option value="91">🇮🇳 +91</option>
+                                                            <option value="1">🇺🇸 +1</option>
+                                                            <option value="44">🇬🇧 +44</option>
+                                                            <option value="971">🇦🇪 +971</option>
+                                                            <option value="61">🇦🇺 +61</option>
+                                                        </select>
+                                                        <input
+                                                            type="tel"
+                                                            required
+                                                            maxLength={demoForm.countryCode === '91' ? 10 : 15}
+                                                            placeholder={demoForm.countryCode === '91' ? '9876543210' : 'Phone number'}
+                                                            className={`flex-1 px-4 py-3 bg-slate-50 dark:bg-zinc-800/60 border rounded-xl focus:ring-2 outline-none transition-all dark:text-white text-sm font-medium placeholder:text-slate-400 ${phoneError ? 'border-rose-500 focus:ring-rose-500/30' : 'border-slate-200 dark:border-zinc-700/60 focus:ring-indigo-500/30 focus:border-indigo-500'}`}
+                                                            value={demoForm.phone}
+                                                            onChange={e => {
+                                                                let val = e.target.value.replace(/\D/g, '');
+                                                                const maxLen = demoForm.countryCode === '91' ? 10 : 15;
+                                                                if (val.length > maxLen) {
+                                                                    val = val.slice(0, maxLen);
+                                                                }
+                                                                setDemoForm({ ...demoForm, phone: val });
+                                                                if (phoneError) setPhoneError(validatePhone(val, demoForm.countryCode));
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    {phoneError && (
+                                                        <p className="text-xs font-semibold text-rose-500 mt-1 flex items-center gap-1">
+                                                            ⚠️ {phoneError}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                {error && (
+                                                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                                                        Failed to submit request. Please try again.
+                                                    </div>
+                                                )}
+
+                                                <button
+                                                    type="submit"
+                                                    disabled={demoSubmitting || !demoForm.name || !demoForm.phone}
+                                                    className="w-full mt-2 py-3.5 px-6 bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm tracking-wide cursor-pointer"
+                                                >
+                                                    {demoSubmitting ? (
+                                                        <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                                    ) : (
+                                                        <>
+                                                            Book Free Demo <ArrowRight className="w-4 h-4" />
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </form>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
                     {/* 1. NAVBAR */}
                     <PublicHeader />
 
@@ -1922,14 +1976,14 @@ export default function LandingPage() {
                                 </span>
 
                                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] text-slate-900 dark:text-white">
-                                    One Platform.<br />
+                                    Bring Your Business Online.<br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-                                        Infinite Growth.
+                                        Now Simplified.
                                     </span>
                                 </h1>
 
                                 <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto lg:mx-0 font-normal leading-relaxed">
-                                    Automate customer engagement on WhatsApp, launch a mobile Storefront, run targeted Meta Ads, and share digital vCards—all from one unified dashboard.
+                                    Launch your e-commerce store, automate your WhatsApp, run Meta ads for your brand, and network with smart VeCards—all from one easy-to-use dashboard.
                                 </p>
 
                                 <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
@@ -1939,12 +1993,14 @@ export default function LandingPage() {
                                     >
                                         Start Free Trial <ArrowRight className="w-4 h-4" />
                                     </Link>
-                                    <button
-                                        onClick={() => setShowDemoModal(true)}
-                                        className="w-full sm:w-auto px-6 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-base hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Phone className="w-4 h-4 fill-current" /> {config?.bookDemo?.buttonText || 'Book Free Demo'}
-                                    </button>
+                                    {config?.bookDemo?.enabled !== false && (
+                                        <button
+                                            onClick={() => setShowDemoModal(true)}
+                                            className="w-full sm:w-auto px-6 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-base hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Phone className="w-4 h-4 fill-current" /> {config?.bookDemo?.buttonText || 'Book Free Demo'}
+                                        </button>
+                                    )}
                                 </div>
                             </motion.div>
 
@@ -1962,14 +2018,14 @@ export default function LandingPage() {
 
                     {/* 3. WHY CHOOSE US — Slim Trust Strip */}
                     <section className="border-y border-slate-200 dark:border-white/5 bg-white dark:bg-black/20 transition-colors relative overflow-hidden">
-                        <div className="max-w-6xl mx-auto px-4 py-10">
-                            <p className="text-center text-[11px] font-bold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 mb-8">Why Choose Us</p>
+                        <div className="max-w-6xl mx-auto px-4 py-6">
+                            <p className="text-center text-[11px] font-bold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 mb-5">Why Choose Us</p>
 
-                            <div className="flex flex-col sm:flex-row items-stretch gap-8 sm:divide-x sm:divide-slate-200 sm:dark:divide-white/10">
+                            <div className="flex flex-col sm:flex-row items-stretch justify-center gap-6 sm:divide-x sm:divide-slate-200 sm:dark:divide-white/10">
 
                                 {/* Badge 1: Official WhatsApp API */}
                                 <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0 }}
-                                    className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
+                                    className="flex flex-col items-center gap-4 px-4 text-center group">
                                     <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20 shrink-0 group-hover:scale-110 transition-transform">
                                         <svg viewBox="0 0 24 24" className="w-8 h-8 fill-white">
                                             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
@@ -1983,7 +2039,7 @@ export default function LandingPage() {
 
                                 {/* Badge 2: Meta Business Tech Partner */}
                                 <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-                                    className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
+                                    className="flex flex-col items-center gap-4 px-4 text-center group">
                                     <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 dark:border-white/10 flex items-center justify-center shadow-lg shadow-blue-100/60 dark:shadow-blue-900/20 shrink-0 group-hover:scale-110 transition-transform p-2">
                                         <img
                                             src="/meta-icon.svg"
@@ -1997,9 +2053,25 @@ export default function LandingPage() {
                                     </div>
                                 </motion.div>
 
-                                {/* Badge 3: Enterprise Security */}
+                                {/* Badge 3: Razorpay Partner */}
                                 <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                                    className="flex-1 flex flex-col items-center gap-4 px-4 text-center group">
+                                    className="flex flex-col items-center gap-4 px-4 text-center group">
+                                    <div className="w-24 h-14 rounded-2xl bg-white border border-slate-200 dark:border-white/10 flex items-center justify-center shadow-lg shadow-blue-100/60 dark:shadow-blue-900/20 shrink-0 group-hover:scale-110 transition-transform p-3">
+                                        <img 
+                                            src="/razorpay-logo.svg" 
+                                            alt="Razorpay" 
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Official Razorpay Partner</div>
+                                        <div className="text-sm text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ Verified Payment Gateway</div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Badge 4: Enterprise Security */}
+                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}
+                                    className="flex flex-col items-center gap-4 px-4 text-center group">
                                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 group-hover:scale-110 transition-transform">
                                         <Shield className="w-8 h-8 text-white" />
                                     </div>
@@ -2025,477 +2097,471 @@ export default function LandingPage() {
                                 <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg font-medium">Choose the perfect plan to scale your customer engagement seamlessly. No hidden fees.</p>
                             </div>
 
-                    {plans.length > 0 ? (
-                        <>
+                            {plans.length > 0 ? (
+                                <>
 
-                                {/* Interval Toggle */}
-                                <div className="flex justify-center mb-16">
-                                    <div className="inline-flex bg-slate-100 dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 gap-1 shadow-inner">
-                                        {hasMonthly && (
-                                            <button
-                                                onClick={() => setBillingInterval('monthly')}
-                                                className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'monthly'
-                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                                                    }`}
-                                            >
-                                                <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Monthly</span>
-                                            </button>
-                                        )}
-                                        {hasHalfYearly && (
-                                            <button
-                                                onClick={() => setBillingInterval('half-yearly')}
-                                                className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'half-yearly'
-                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                                                    }`}
-                                            >
-                                                <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Half-Yearly</span>
-                                                {maxHalfYearlySavings > 0 && (
-                                                    <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/20 shadow-sm ${billingInterval === 'half-yearly'
-                                                        ? 'bg-indigo-200 text-indigo-900'
-                                                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800/50'
-                                                        }`}>
-                                                        Save {maxHalfYearlySavings}%
-                                                    </span>
-                                                )}
-                                            </button>
-                                        )}
-                                        {hasYearly && (
-                                            <button
-                                                onClick={() => setBillingInterval('yearly')}
-                                                className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'yearly'
-                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
-                                                    }`}
-                                            >
-                                                <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Yearly</span>
-                                                {maxYearlySavings > 0 && (
-                                                    <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-white/20 shadow-md ${billingInterval === 'yearly'
-                                                        ? 'bg-indigo-200 text-indigo-900'
-                                                        : 'bg-emerald-500 text-white dark:bg-emerald-600 shadow-emerald-500/30 dark:border-emerald-500/30'
-                                                        }`}>
-                                                        Save {maxYearlySavings}%
-                                                    </span>
-                                                )}
-                                            </button>
-                                        )}
+                                    {/* Enterprise Row - Minimalist */}
+                                    <div className="mb-8 mx-auto max-w-lg w-full text-center px-4">
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            Need a custom solution? <Link to="/contact" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition-colors">Contact us for an Enterprise plan &rarr;</Link>
+                                        </p>
                                     </div>
-                                </div>
 
-
-                                {/* Mobile Swipe Hint */}
-                                {plans.length > 1 && (
-                                    <div className="md:hidden flex items-center justify-center mb-4 px-2">
-                                        <div className="text-sm font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                            <ArrowRight className="w-4 h-4 animate-pulse text-indigo-500" /> Swipe to view other plans
+                                    {/* Interval Toggle */}
+                                    <div className="flex justify-center mb-16">
+                                        <div className="inline-flex bg-slate-100 dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 gap-1 shadow-inner">
+                                            {hasMonthly && (
+                                                <button
+                                                    onClick={() => setBillingInterval('monthly')}
+                                                    className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'monthly'
+                                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                                        : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
+                                                        }`}
+                                                >
+                                                    <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Monthly</span>
+                                                </button>
+                                            )}
+                                            {hasHalfYearly && (
+                                                <button
+                                                    onClick={() => setBillingInterval('half-yearly')}
+                                                    className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'half-yearly'
+                                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                                        : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
+                                                        }`}
+                                                >
+                                                    <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Half-Yearly</span>
+                                                    {maxHalfYearlySavings > 0 && (
+                                                        <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/20 shadow-sm ${billingInterval === 'half-yearly'
+                                                            ? 'bg-indigo-200 text-indigo-900'
+                                                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800/50'
+                                                            }`}>
+                                                            Save {maxHalfYearlySavings}%
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            )}
+                                            {hasYearly && (
+                                                <button
+                                                    onClick={() => setBillingInterval('yearly')}
+                                                    className={`relative flex items-center justify-center px-6 sm:px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-w-[90px] sm:min-w-[110px] ${billingInterval === 'yearly'
+                                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                                        : 'text-slate-500 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-200'
+                                                        }`}
+                                                >
+                                                    <span className="font-extrabold text-[14px] sm:text-[15px] tracking-tight">Yearly</span>
+                                                    {maxYearlySavings > 0 && (
+                                                        <span className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-white/20 shadow-md ${billingInterval === 'yearly'
+                                                            ? 'bg-indigo-200 text-indigo-900'
+                                                            : 'bg-emerald-500 text-white dark:bg-emerald-600 shadow-emerald-500/30 dark:border-emerald-500/30'
+                                                            }`}>
+                                                            Save {maxYearlySavings}%
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
-                                )}
 
-                                {/* Slider Wrapper */}
-                                <div className="relative w-full mx-auto">
-                                    {/* Sticky Vertical Center Arrows for Mobile */}
+                                    {/* Mobile Swipe Hint */}
                                     {plans.length > 1 && (
-                                        <div className="absolute inset-x-0 top-[10%] bottom-[10%] pointer-events-none z-30">
-                                            <div className="md:hidden sticky top-[50vh] flex justify-between w-full -translate-y-1/2">
-                                                <button
-                                                    onClick={() => document.getElementById('pricing-slider').scrollBy({ left: -300, behavior: 'smooth' })}
-                                                    className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -ml-5 active:scale-95 transition-transform"
-                                                >
-                                                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                                                </button>
-                                                <button
-                                                    onClick={() => document.getElementById('pricing-slider').scrollBy({ left: 300, behavior: 'smooth' })}
-                                                    className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -mr-5 active:scale-95 transition-transform"
-                                                >
-                                                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-                                                </button>
+                                        <div className="md:hidden flex items-center justify-center mb-4 px-2">
+                                            <div className="text-sm font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                                <ArrowRight className="w-4 h-4 animate-pulse text-indigo-500" /> Swipe to view other plans
                                             </div>
                                         </div>
                                     )}
 
-                                    <div
-                                        id="pricing-slider"
-                                        className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pt-8 pb-6 snap-x snap-mandatory"
-                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                    >
-                                        <style>{`#pricing-slider::-webkit-scrollbar { display: none; }`}</style>
-                                        {plans.map((plan, i) => {
-                                            const isPopular = plan.isPopular;
+                                    {/* Slider Wrapper */}
+                                    <div className="relative w-full mx-auto">
+                                        {/* Sticky Vertical Center Arrows for Mobile */}
+                                        {plans.length > 1 && (
+                                            <div className="absolute inset-x-0 top-[10%] bottom-[10%] pointer-events-none z-30">
+                                                <div className="md:hidden sticky top-[50vh] flex justify-between w-full -translate-y-1/2">
+                                                    <button
+                                                        onClick={() => document.getElementById('pricing-slider').scrollBy({ left: -300, behavior: 'smooth' })}
+                                                        className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -ml-5 active:scale-95 transition-transform"
+                                                    >
+                                                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => document.getElementById('pricing-slider').scrollBy({ left: 300, behavior: 'smooth' })}
+                                                        className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -mr-5 active:scale-95 transition-transform"
+                                                    >
+                                                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
 
-                                            const themeColors = {
-                                                blue: {
-                                                    bgPop: 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 shadow-xl shadow-blue-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-blue-50/10 dark:bg-blue-950/5 border-blue-200/90 dark:border-blue-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-blue-500/40',
-                                                    badgePop: 'bg-blue-500 text-white',
-                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
-                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
-                                                    checkPop: 'bg-emerald-500 text-white',
-                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
-                                                    btnSubtlePop: 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
-                                                    btnSubtleReg: 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50',
-                                                    btnPrimary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25'
-                                                },
-                                                green: {
-                                                    bgPop: 'bg-green-50 dark:bg-green-900/20 border-green-400 shadow-xl shadow-green-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-green-50/10 dark:bg-green-950/5 border-green-200/90 dark:border-green-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-green-500/40',
-                                                    badgePop: 'bg-green-500 text-white',
-                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
-                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
-                                                    checkPop: 'bg-emerald-500 text-white',
-                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
-                                                    btnSubtlePop: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800',
-                                                    btnSubtleReg: 'bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800/50',
-                                                    btnPrimary: 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/25'
-                                                },
-                                                amber: {
-                                                    bgPop: 'bg-amber-50 dark:bg-amber-900/20 border-amber-400 shadow-xl shadow-amber-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-amber-50/10 dark:bg-amber-950/5 border-amber-200/90 dark:border-amber-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-amber-500/40',
-                                                    badgePop: 'bg-amber-500 text-white',
-                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
-                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
-                                                    checkPop: 'bg-emerald-500 text-white',
-                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
-                                                    btnSubtlePop: 'bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800',
-                                                    btnSubtleReg: 'bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50',
-                                                    btnPrimary: 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/25'
-                                                },
-                                                emerald: {
-                                                    bgPop: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-400 shadow-xl shadow-emerald-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-emerald-50/10 dark:bg-emerald-950/5 border-emerald-200/90 dark:border-emerald-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-emerald-500/40',
-                                                    badgePop: 'bg-emerald-500 text-white',
-                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
-                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
-                                                    checkPop: 'bg-emerald-500 text-white',
-                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
-                                                    btnSubtlePop: 'bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800',
-                                                    btnSubtleReg: 'bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50',
-                                                    btnPrimary: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-                                                },
-                                                purple: {
-                                                    bgPop: 'bg-purple-50 dark:bg-purple-900/20 border-purple-400 shadow-xl shadow-purple-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
-                                                    bgReg: 'bg-purple-50/10 dark:bg-purple-950/5 border-purple-200/90 dark:border-purple-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-purple-500/40',
-                                                    badgePop: 'bg-purple-500 text-white',
-                                                    textSubtlePop: 'text-slate-500 dark:text-slate-400',
-                                                    lineThroughPop: 'text-slate-400 dark:text-slate-500',
-                                                    checkPop: 'bg-emerald-500 text-white',
-                                                    checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
-                                                    btnSubtlePop: 'bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800',
-                                                    btnSubtleReg: 'bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50',
-                                                    btnPrimary: 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/25'
+                                        <div
+                                            id="pricing-slider"
+                                            className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pt-8 pb-6 snap-x snap-mandatory"
+                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                        >
+                                            <style>{`#pricing-slider::-webkit-scrollbar { display: none; }`}</style>
+                                            {plans.map((plan, i) => {
+                                                const isPopular = plan.isPopular;
+
+                                                const themeColors = {
+                                                    blue: {
+                                                        bgPop: 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 shadow-xl shadow-blue-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+                                                        bgReg: 'bg-blue-50/10 dark:bg-blue-950/5 border-blue-200/90 dark:border-blue-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-blue-500/40',
+                                                        badgePop: 'bg-blue-500 text-white',
+                                                        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+                                                        checkPop: 'bg-emerald-500 text-white',
+                                                        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+                                                        btnSubtlePop: 'bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
+                                                        btnSubtleReg: 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50',
+                                                        btnPrimary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25'
+                                                    },
+                                                    green: {
+                                                        bgPop: 'bg-green-50 dark:bg-green-900/20 border-green-400 shadow-xl shadow-green-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+                                                        bgReg: 'bg-green-50/10 dark:bg-green-950/5 border-green-200/90 dark:border-green-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-green-500/40',
+                                                        badgePop: 'bg-green-500 text-white',
+                                                        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+                                                        checkPop: 'bg-emerald-500 text-white',
+                                                        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+                                                        btnSubtlePop: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800',
+                                                        btnSubtleReg: 'bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800/50',
+                                                        btnPrimary: 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/25'
+                                                    },
+                                                    amber: {
+                                                        bgPop: 'bg-amber-50 dark:bg-amber-900/20 border-amber-400 shadow-xl shadow-amber-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+                                                        bgReg: 'bg-amber-50/10 dark:bg-amber-950/5 border-amber-200/90 dark:border-amber-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-amber-500/40',
+                                                        badgePop: 'bg-amber-500 text-white',
+                                                        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+                                                        checkPop: 'bg-emerald-500 text-white',
+                                                        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+                                                        btnSubtlePop: 'bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800',
+                                                        btnSubtleReg: 'bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50',
+                                                        btnPrimary: 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/25'
+                                                    },
+                                                    emerald: {
+                                                        bgPop: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-400 shadow-xl shadow-emerald-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+                                                        bgReg: 'bg-emerald-50/10 dark:bg-emerald-950/5 border-emerald-200/90 dark:border-emerald-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-emerald-500/40',
+                                                        badgePop: 'bg-emerald-500 text-white',
+                                                        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+                                                        checkPop: 'bg-emerald-500 text-white',
+                                                        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+                                                        btnSubtlePop: 'bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800',
+                                                        btnSubtleReg: 'bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50',
+                                                        btnPrimary: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                                                    },
+                                                    purple: {
+                                                        bgPop: 'bg-purple-50 dark:bg-purple-900/20 border-purple-400 shadow-xl shadow-purple-500/10 text-slate-900 dark:text-white transform md:-translate-y-4',
+                                                        bgReg: 'bg-purple-50/10 dark:bg-purple-950/5 border-purple-200/90 dark:border-purple-900/60 text-slate-900 dark:text-white hover:shadow-xl hover:border-purple-500/40',
+                                                        badgePop: 'bg-purple-500 text-white',
+                                                        textSubtlePop: 'text-slate-500 dark:text-slate-400',
+                                                        lineThroughPop: 'text-slate-400 dark:text-slate-500',
+                                                        checkPop: 'bg-emerald-500 text-white',
+                                                        checkSubtle: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+                                                        btnSubtlePop: 'bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800',
+                                                        btnSubtleReg: 'bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50',
+                                                        btnPrimary: 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/25'
+                                                    }
+                                                };
+                                                const theme = themeColors[plan.color] || themeColors.blue;
+
+                                                // Determine Display Price
+                                                let displayPrice = parseFloat(plan.price) || 0;
+                                                let displayInterval = 'mo';
+                                                let internalIntervalCode = 'month';
+                                                let originalTotal = null;
+                                                let billedTotal = null;
+                                                let billedPeriodText = '';
+                                                let savingsPercentage = 0;
+                                                
+                                                const baseMonthlyPrice = parseFloat(plan.monthlyPrice) || parseFloat(plan.price) || 0;
+
+                                                if (billingInterval === 'monthly') {
+                                                    displayPrice = baseMonthlyPrice;
+                                                    displayInterval = 'mo';
+                                                    internalIntervalCode = 'month';
+                                                } else if (billingInterval === 'half-yearly' && parseFloat(plan.halfYearlyPrice) > 0) {
+                                                    billedTotal = parseFloat(plan.halfYearlyPrice);
+                                                    displayPrice = billedTotal / 6; 
+                                                    displayInterval = 'mo';
+                                                    internalIntervalCode = 'half-year';
+                                                    originalTotal = baseMonthlyPrice * 6;
+                                                    billedPeriodText = 'billed half-yearly';
+                                                    if (originalTotal > 0 && originalTotal > billedTotal) {
+                                                        savingsPercentage = Math.round(((originalTotal - billedTotal) / originalTotal) * 100);
+                                                    }
+                                                } else if (billingInterval === 'yearly' && parseFloat(plan.yearlyPrice) > 0) {
+                                                    billedTotal = parseFloat(plan.yearlyPrice);
+                                                    displayPrice = billedTotal / 12;
+                                                    displayInterval = 'mo';
+                                                    internalIntervalCode = 'year';
+                                                    originalTotal = baseMonthlyPrice * 12;
+                                                    billedPeriodText = 'billed yearly';
+                                                    if (originalTotal > 0 && originalTotal > billedTotal) {
+                                                        savingsPercentage = Math.round(((originalTotal - billedTotal) / originalTotal) * 100);
+                                                    }
                                                 }
-                                            };
-                                            const theme = themeColors[plan.color] || themeColors.blue;
 
-                                            // Determine Display Price
-                                            let displayPrice = parseFloat(plan.price);
-                                            let displayInterval = 'mo';
-                                            let internalIntervalCode = 'month';
-                                            let originalPrice = null;
+                                                const planCurrencySymbol = plan.currency ? (CURRENCY_SYMBOLS[plan.currency] || plan.currency) : currencySymbol;
 
-                                            if (billingInterval === 'monthly' && parseFloat(plan.monthlyPrice) > 0) {
-                                                displayPrice = parseFloat(plan.monthlyPrice);
-                                                displayInterval = 'mo';
-                                                internalIntervalCode = 'month';
-                                            } else if (billingInterval === 'half-yearly' && parseFloat(plan.halfYearlyPrice) > 0) {
-                                                displayPrice = parseFloat(plan.halfYearlyPrice);
-                                                displayInterval = '6mo';
-                                                internalIntervalCode = 'half-year';
-                                                originalPrice = (parseFloat(plan.monthlyPrice) || 0) * 6;
-                                            } else if (billingInterval === 'yearly' && parseFloat(plan.yearlyPrice) > 0) {
-                                                displayPrice = parseFloat(plan.yearlyPrice);
-                                                displayInterval = 'yr';
-                                                internalIntervalCode = 'year';
-                                                originalPrice = (parseFloat(plan.monthlyPrice) || 0) * 12;
-                                            }
-
-                                            const planCurrencySymbol = plan.currency ? (CURRENCY_SYMBOLS[plan.currency] || plan.currency) : currencySymbol;
-
-                                            return (
-                                                <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                                                    className={`relative w-[85vw] sm:w-[300px] lg:w-auto lg:flex-1 lg:min-w-[260px] lg:max-w-[320px] shrink-0 snap-center p-5 lg:p-6 rounded-[2rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
-                                                >
-                                                    {isPopular && (
-                                                        <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-indigo-500/10 border-b border-x border-indigo-400/30 whitespace-nowrap z-10">
-                                                            MOST POPULAR
-                                                        </div>
-                                                    )}
-                                                    {plan.trialDays > 0 && (
-                                                        <div className="absolute top-0 left-6 px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-emerald-500/10 border-b border-x border-emerald-400/30 whitespace-nowrap z-10 flex items-center gap-1.5">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
-                                                            {plan.trialDays}-Day Trial
-                                                        </div>
-                                                    )}
-
-                                                    <h3 className="text-xl font-bold mb-2 pt-2">{plan.name}</h3>
-                                                    <p className="text-xs mb-6 font-medium text-slate-500 dark:text-slate-400">{plan.description || 'Perfect for growing businesses.'}</p>
-
-                                                    <div className="flex flex-col gap-1 mb-2 pb-10 border-b border-indigo-500/20 dark:border-white/10">
-                                                        {originalPrice > displayPrice && (
-                                                            <span className="text-lg font-bold line-through text-slate-400 dark:text-slate-500">
-                                                                {planCurrencySymbol}{originalPrice.toLocaleString()}
-                                                            </span>
-                                                        )}
-                                                        <div className="flex items-baseline gap-1">
-                                                            <span className="text-4xl font-extrabold">{planCurrencySymbol}{displayPrice.toLocaleString()}</span>
-                                                            <span className="font-bold text-slate-500 dark:text-slate-400">
-                                                                /{displayInterval}
-                                                                {plan.taxEnabled && <span className="text-[10px] ml-1 font-semibold opacity-70">({plan.taxText})</span>}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    {plan.trialDays > 0 && (
-                                                        <p className="text-xs font-semibold mb-6 -mt-7 text-slate-500 dark:text-slate-400">
-                                                            🎉 Try free for {plan.trialDays} days — no credit card required
-                                                        </p>
-                                                    )}
-
-                                                    <div className="space-y-5 mb-8 flex-1">
-                                                        {/* Meta Message Pricing Box */}
-                                                        {metaRates && (
-                                                            <div className="mb-6 relative rounded-xl bg-gradient-to-br from-emerald-50/10 to-green-50/5 dark:from-emerald-950/5 dark:to-green-950/5 border border-emerald-200/60 dark:border-emerald-900/40 shadow-sm">
-                                                                {/* Decorative subtle glows in a clipped wrapper */}
-                                                                <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
-                                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
-                                                                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
-                                                                </div>
-
-                                                                <div className="relative p-4">
-                                                                    <div className="flex items-center justify-between mb-1">
-                                                                        <div className="flex items-center gap-1.5">
-                                                                            <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                                                                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Template Rates</h4>
-                                                                        </div>
-                                                                    </div>
-                                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
-                                                                        * These are Meta's official per-message charges (billed directly by Meta, not us). Rates shown are for {metaRates.country} and vary by recipient country.
-                                                                    </p>
-
-                                                                    <div className="space-y-2 text-xs font-semibold relative z-10">
-                                                                        <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
-                                                                            <span className="text-slate-500 dark:text-slate-400">Marketing</span>
-                                                                            <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.marketing}</span>
-                                                                        </div>
-                                                                        <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
-                                                                            <span className="text-slate-500 dark:text-slate-400">Utility</span>
-                                                                            <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.utility}</span>
-                                                                        </div>
-                                                                        <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
-                                                                            <span className="text-slate-500 dark:text-slate-400">Authentication</span>
-                                                                            <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.authentication}</span>
-                                                                        </div>
-                                                                        <div className="flex justify-between items-center pt-0.5">
-                                                                            <span className="text-emerald-600 dark:text-emerald-400">Service</span>
-                                                                            <span className="text-emerald-500">{metaRates.rates.service}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                return (
+                                                    <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                                                        className={`relative w-[85vw] sm:w-[300px] lg:w-auto lg:flex-1 lg:min-w-[260px] lg:max-w-[320px] shrink-0 snap-center p-5 lg:p-6 rounded-[2rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
+                                                    >
+                                                        {isPopular && (
+                                                            <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-indigo-500/10 border-b border-x border-indigo-400/30 whitespace-nowrap z-10">
+                                                                MOST POPULAR
                                                             </div>
                                                         )}
 
-                                                        {/* Core Limits */}
-                                                        <div>
-                                                            <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Core</div>
-                                                            <ul className="space-y-3">
-                                                                <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                    <span>{plan.messageLimit === -1 ? 'Unlimited' : plan.messageLimit.toLocaleString()} Messages/mo</span>
-                                                                </li>
-                                                                <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                    <span>{plan.contactLimit === -1 ? 'Unlimited' : plan.contactLimit.toLocaleString()} Contacts</span>
-                                                                </li>
-                                                                {(plan.templateLimit > 0 || plan.templateLimit === -1) && (
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.templateLimit === -1 ? 'Unlimited' : plan.templateLimit} Message Templates</span>
-                                                                    </li>
-                                                                )}
-                                                                {(plan.teamMemberLimit > 0 || plan.teamMemberLimit === -1) && (
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.teamMemberLimit === -1 ? 'Unlimited' : plan.teamMemberLimit} Team Members</span>
-                                                                    </li>
-                                                                )}
-                                                                {plan.vcardLimit > 0 || plan.vcardLimit === -1 ? (
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.vcardLimit === -1 ? 'Unlimited' : plan.vcardLimit} VeCards</span>
-                                                                    </li>
-                                                                ) : (
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
-                                                                        <span className="text-slate-900 dark:text-white">VeCards</span>
-                                                                    </li>
-                                                                )}
-                                                                {plan.waStoreLimit > 0 || plan.waStoreLimit === -1 ? (
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Stores</span>
-                                                                    </li>
-                                                                ) : (
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
-                                                                        <span className="text-slate-900 dark:text-white">Online Stores</span>
-                                                                    </li>
-                                                                )}
-                                                                <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-70' : ''}`}>
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
-                                                                        {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                                    </div>
-                                                                    <span className={!plan.flowBotEnabled ? "text-slate-900 dark:text-white" : ""}>
-                                                                        {plan.flowBotEnabled && plan.flowLimit !== undefined
-                                                                            ? `${plan.flowLimit === -1 ? 'Unlimited' : plan.flowLimit} AI FlowBots`
-                                                                            : 'AI FlowBot Builder'}
-                                                                    </span>
-                                                                </li>
-                                                                <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-70' : ''}`}>
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
-                                                                        {plan.allowCtwaAnalytics ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                                    </div>
-                                                                    <span className={!plan.allowCtwaAnalytics ? "text-slate-900 dark:text-white" : ""}>Click to WhatsApp Ads</span>
-                                                                </li>
-                                                                <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-70' : ''}`}>
-                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
-                                                                        {plan.allowMetaAds ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                                    </div>
-                                                                    <span className={!plan.allowMetaAds ? "text-slate-900 dark:text-white" : ""}>Meta Ads Marketing</span>
-                                                                </li>
-                                                            </ul>
+
+                                                        <h3 className="text-xl font-bold mb-2 pt-2">{plan.name}</h3>
+                                                        <p className="text-xs mb-6 font-medium text-slate-500 dark:text-slate-400">{plan.description || 'Perfect for growing businesses.'}</p>
+
+                                                        <div className="flex flex-col gap-1 mb-2 pb-6 border-b border-indigo-500/20 dark:border-white/10 min-h-[110px] justify-end">
+                                                            <div className="flex items-baseline gap-1 mt-auto">
+                                                                <span className="text-4xl font-extrabold">{planCurrencySymbol}{displayPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                                <span className="font-bold text-slate-500 dark:text-slate-400">
+                                                                    /{displayInterval}
+                                                                    {plan.taxEnabled && <span className="text-[10px] ml-1 font-semibold opacity-70">({plan.taxText})</span>}
+                                                                </span>
+                                                            </div>
+                                                            {billedTotal ? (
+                                                                <div className="text-[14px] font-semibold text-slate-500 dark:text-slate-400 mt-2 flex flex-wrap items-center gap-1.5 leading-tight">
+                                                                    {originalTotal > billedTotal && (
+                                                                        <span className="line-through opacity-70 text-[13px]">{planCurrencySymbol}{originalTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                                    )}
+                                                                    <span className="text-slate-800 dark:text-slate-200 text-[15px]">{planCurrencySymbol}{billedTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                                    <span>{billedPeriodText}</span>
+                                                                    {savingsPercentage > 0 && (
+                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold ml-0.5 whitespace-nowrap">· save {savingsPercentage}%</span>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-[13px] h-[20px] mt-2"></div>
+                                                            )}
                                                         </div>
 
-                                                        {/* Capabilities */}
-                                                        {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
+
+                                                        <div className="space-y-5 mb-8 flex-1">
+                                                            {/* Meta Message Pricing Box */}
+                                                            {metaRates && (
+                                                                <div className="mb-6 relative rounded-xl bg-gradient-to-br from-emerald-50/10 to-green-50/5 dark:from-emerald-950/5 dark:to-green-950/5 border border-emerald-200/60 dark:border-emerald-900/40 shadow-sm">
+                                                                    {/* Decorative subtle glows in a clipped wrapper */}
+                                                                    <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                                                                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
+                                                                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
+                                                                    </div>
+
+                                                                    <div className="relative p-4">
+                                                                        <div className="flex items-center justify-between mb-4">
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                                                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Template Rates</h4>
+                                                                                <div className="relative group flex items-center">
+                                                                                    <Info className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 hover:text-emerald-500 cursor-help transition-colors" />
+                                                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 sm:w-56 p-2.5 bg-slate-900 dark:bg-zinc-800 text-white text-[10px] sm:text-xs rounded-xl shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 leading-relaxed font-medium text-center">
+                                                                                        These are Meta's official per-message charges (billed directly by Meta, not us). Rates shown are for {metaRates.country} and vary by recipient country.
+                                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-b-slate-900 dark:border-b-zinc-800"></div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div className="space-y-2 text-xs font-semibold relative z-10">
+                                                                            <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                                                                <span className="text-slate-500 dark:text-slate-400">Marketing</span>
+                                                                                <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.marketing}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                                                                <span className="text-slate-500 dark:text-slate-400">Utility</span>
+                                                                                <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.utility}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                                                                <span className="text-slate-500 dark:text-slate-400">Authentication</span>
+                                                                                <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.authentication}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between items-center pt-0.5">
+                                                                                <span className="text-emerald-600 dark:text-emerald-400">Service</span>
+                                                                                <span className="text-emerald-500">{metaRates.rates.service}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Core Limits */}
                                                             <div>
-                                                                <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Add-ons</div>
+                                                                <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Core</div>
                                                                 <ul className="space-y-3">
-                                                                    {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1) && (
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.messageLimit === -1 ? 'Unlimited' : plan.messageLimit.toLocaleString()} Messages/mo</span>
+                                                                    </li>
+                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <span>{plan.contactLimit === -1 ? 'Unlimited' : plan.contactLimit.toLocaleString()} Contacts</span>
+                                                                    </li>
+                                                                    {(plan.templateLimit > 0 || plan.templateLimit === -1) && (
                                                                         <li className="flex items-center gap-3 text-sm font-semibold">
                                                                             <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.aiTokensAllowance === -1 ? 'Unlimited' : plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
+                                                                            <span>{plan.templateLimit === -1 ? 'Unlimited' : plan.templateLimit} Message Templates</span>
                                                                         </li>
                                                                     )}
-                                                                    {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
-                                                                        <li className="flex items-start gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                            <div className="flex flex-col">
-                                                                                <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
-                                                                                <ul className="mt-2 space-y-1.5">
-                                                                                    {plan.includedAddons.map(addonKey => (
-                                                                                        <li key={addonKey} className="text-xs font-semibold flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                                                                                            <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
-                                                                                            {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                                                                                        </li>
-                                                                                    ))}
-                                                                                </ul>
-                                                                            </div>
+                                                                    {(plan.teamMemberLimit > 0 || plan.teamMemberLimit === -1) && (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.teamMemberLimit === -1 ? 'Unlimited' : plan.teamMemberLimit} Team Members</span>
                                                                         </li>
                                                                     )}
-                                                                </ul>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Custom Features list */}
-                                                        <div>
-                                                            <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Features</div>
-                                                            <ul className="space-y-3">
-                                                                {(plan.quickReplyLimit > 0 || plan.quickReplyLimit === -1) && (
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.quickReplyLimit === -1 ? 'Unlimited' : plan.quickReplyLimit} Quick Replies</span>
-                                                                    </li>
-                                                                )}
-                                                                {(plan.tagLimit > 0 || plan.tagLimit === -1) && (
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.tagLimit === -1 ? 'Unlimited' : plan.tagLimit} Contact Tags</span>
-                                                                    </li>
-                                                                )}
-                                                                {(plan.groupLimit > 0 || plan.groupLimit === -1) && (
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                        <span>{plan.groupLimit === -1 ? 'Unlimited' : plan.groupLimit} Contact Groups</span>
-                                                                    </li>
-                                                                )}
-                                                                {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
-                                                                    <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                        <span className="leading-tight">{feat}</span>
-                                                                    </li>
-                                                                ))}
-                                                                {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => (
-                                                                    <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50 grayscale' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
-                                                                            {(!feat.qty || feat.qty === '0') ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                                                                    {plan.vcardLimit > 0 || plan.vcardLimit === -1 ? (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.vcardLimit === -1 ? 'Unlimited' : plan.vcardLimit} VeCards</span>
+                                                                        </li>
+                                                                    ) : (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
+                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
+                                                                            <span className="text-slate-900 dark:text-white">VeCards</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {plan.waStoreLimit > 0 || plan.waStoreLimit === -1 ? (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Stores</span>
+                                                                        </li>
+                                                                    ) : (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
+                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
+                                                                            <span className="text-slate-900 dark:text-white">Online Stores</span>
+                                                                        </li>
+                                                                    )}
+                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-70' : ''}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
+                                                                            {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                                                         </div>
-                                                                        <span className="leading-tight">
-                                                                            {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
-                                                                            {feat.name}
+                                                                        <span className={!plan.flowBotEnabled ? "text-slate-900 dark:text-white" : ""}>
+                                                                            {plan.flowBotEnabled && plan.flowLimit !== undefined
+                                                                                ? `${plan.flowLimit === -1 ? 'Unlimited' : plan.flowLimit} AI FlowBots`
+                                                                                : 'AI FlowBot Builder'}
                                                                         </span>
                                                                     </li>
-                                                                ))}
-                                                            </ul>
+                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-70' : ''}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
+                                                                            {plan.allowCtwaAnalytics ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                        </div>
+                                                                        <span className={!plan.allowCtwaAnalytics ? "text-slate-900 dark:text-white" : ""}>Click to WhatsApp Ads</span>
+                                                                    </li>
+                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-70' : ''}`}>
+                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
+                                                                            {plan.allowMetaAds ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                        </div>
+                                                                        <span className={!plan.allowMetaAds ? "text-slate-900 dark:text-white" : ""}>Meta Ads Marketing</span>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+
+                                                            {/* Capabilities */}
+                                                            {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
+                                                                <div>
+                                                                    <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Add-ons</div>
+                                                                    <ul className="space-y-3">
+                                                                        {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1) && (
+                                                                            <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                                <span>{plan.aiTokensAllowance === -1 ? 'Unlimited' : plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
+                                                                            </li>
+                                                                        )}
+                                                                        {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
+                                                                            <li className="flex items-start gap-3 text-sm font-semibold">
+                                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                                <div className="flex flex-col">
+                                                                                    <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
+                                                                                    <ul className="mt-2 space-y-1.5">
+                                                                                        {plan.includedAddons.map(addonKey => (
+                                                                                            <li key={addonKey} className="text-xs font-semibold flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                                                                                                <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
+                                                                                                {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                                                                            </li>
+                                                                                        ))}
+                                                                                    </ul>
+                                                                                </div>
+                                                                            </li>
+                                                                        )}
+                                                                    </ul>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Custom Features list */}
+                                                            <div>
+                                                                <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Features</div>
+                                                                <ul className="space-y-3">
+                                                                    {(plan.quickReplyLimit > 0 || plan.quickReplyLimit === -1) && (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.quickReplyLimit === -1 ? 'Unlimited' : plan.quickReplyLimit} Quick Replies</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {(plan.tagLimit > 0 || plan.tagLimit === -1) && (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.tagLimit === -1 ? 'Unlimited' : plan.tagLimit} Contact Tags</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {(plan.groupLimit > 0 || plan.groupLimit === -1) && (
+                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <span>{plan.groupLimit === -1 ? 'Unlimited' : plan.groupLimit} Contact Groups</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
+                                                                        <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                            <span className="leading-tight">{feat}</span>
+                                                                        </li>
+                                                                    ))}
+                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => (
+                                                                        <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50 grayscale' : ''}`}>
+                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                                                                            </div>
+                                                                            <span className="leading-tight">
+                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                                                                {feat.name}
+                                                                            </span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
                                                         </div>
-                                                    </div>
 
 
-                                                    {plan.trialDays > 0 ? (
-                                                        <div className="flex flex-col gap-2 mt-auto">
-                                                            <Link
-                                                                to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`}
-                                                                className={`w-full py-4 rounded-xl font-bold text-center transition-all text-sm bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20`}
-                                                            >
-                                                                Choose {plan.name} — {currencySymbol}{displayPrice.toLocaleString()}/{displayInterval}
+                                                            <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all mt-auto bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20`}>
+                                                                Choose {plan.name}
                                                             </Link>
-                                                            <Link
-                                                                to={`/register?plan=${plan.id}&trial=true`}
-                                                                className={`w-full py-3 rounded-xl font-bold text-center text-xs transition-all border shadow-sm bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50`}
-                                                            >
-                                                                🎉 Try {plan.trialDays} days free trial
-                                                            </Link>
-                                                        </div>
-                                                    ) : (
-                                                        <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all mt-auto bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20`}>
-                                                            Choose {plan.name}
-                                                        </Link>
-                                                    )}
-                                                </motion.div>
-                                            );
-                                        })}
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
 
-                            {/* Enterprise Row */}
-                            <div className="mt-8 mx-auto max-w-3xl">
-                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-5 rounded-2xl border border-slate-200 dark:border-white/10 bg-gradient-to-r from-slate-50 to-indigo-50/30 dark:from-zinc-900/60 dark:to-indigo-950/20">
+
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-16 gap-6 text-center px-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
+                                        <MessageSquare className="w-8 h-8 text-indigo-500" />
+                                    </div>
                                     <div>
-                                        <p className="text-sm font-bold text-slate-800 dark:text-white">Enterprise</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Have custom requirements? Let's build a plan around your business.</p>
+                                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Pricing plans are being configured</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 max-w-md">Our team is setting up the best plans for you. In the meantime, feel free to reach out — we'll help you find the right fit.</p>
                                     </div>
-                                    <Link
-                                        to="/contact"
-                                        className="shrink-0 inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-500/20 transition-all"
-                                    >
-                                        Contact Sales →
+                                    <Link to="/contact" className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all">
+                                        Contact Us
                                     </Link>
                                 </div>
-                            </div>
-                        </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-16 gap-6 text-center px-4">
-                                <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-                                    <MessageSquare className="w-8 h-8 text-indigo-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Pricing plans are being configured</h3>
-                                    <p className="text-slate-500 dark:text-slate-400 max-w-md">Our team is setting up the best plans for you. In the meantime, feel free to reach out — we'll help you find the right fit.</p>
-                                </div>
-                                <Link to="/contact" className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all">
-                                    Contact Us
-                                </Link>
-                            </div>
-                        )}
+                            )}
                         </div>
                     </section>
 

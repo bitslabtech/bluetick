@@ -68,47 +68,7 @@ export default function HeroShowcase() {
 
     return (
         <div className="w-full max-w-xl mx-auto lg:max-w-none">
-            {/* Top Interactive Tab Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-                {TABS.map((tab, idx) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === idx;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => handleTabClick(idx)}
-                            className={`relative overflow-hidden flex flex-col items-center sm:items-start p-2.5 sm:p-3 rounded-xl border transition-all duration-300 ${
-                                isActive
-                                    ? `bg-white dark:bg-zinc-900 border-indigo-500/40 shadow-lg shadow-indigo-500/10 dark:shadow-none`
-                                    : 'bg-white/50 dark:bg-zinc-900/40 border-slate-200/60 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-900/80 text-slate-600 dark:text-slate-400'
-                            }`}
-                        >
-                            <div className="flex items-center gap-2 w-full mb-1">
-                                <div className={`p-1.5 rounded-lg ${isActive ? tab.activeColor : 'bg-slate-100 dark:bg-white/5'}`}>
-                                    <Icon className={`w-3.5 h-3.5 ${isActive ? '' : 'text-slate-500 dark:text-slate-400'}`} />
-                                </div>
-                                <span className={`text-xs font-bold truncate ${isActive ? 'text-slate-900 dark:text-white' : ''}`}>
-                                    {tab.label}
-                                </span>
-                            </div>
-                            
-                            <span className="hidden sm:inline-block text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                                {tab.badge}
-                            </span>
 
-                            {/* Active Tab Progress Bar */}
-                            {isActive && (
-                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-100 dark:bg-zinc-800">
-                                    <div
-                                        className={`h-full bg-gradient-to-r ${tab.color} transition-all duration-75`}
-                                        style={{ width: `${progress}%` }}
-                                    />
-                                </div>
-                            )}
-                        </button>
-                    );
-                })}
-            </div>
 
             {/* Main Blended Showcase Container */}
             <div className="relative rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl shadow-xl overflow-hidden h-[480px] sm:h-[540px]">
@@ -307,6 +267,24 @@ export default function HeroShowcase() {
                             </motion.div>
                         )}
                     </AnimatePresence>
+                </div>
+
+                {/* Slider Progress Bar & Navigation Dots */}
+                <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-200/50 dark:bg-zinc-800/50 z-20">
+                    <div
+                        className={`h-full bg-gradient-to-r ${TABS[activeTab].color} transition-all duration-75`}
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-20">
+                    {TABS.map((_, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => handleTabClick(idx)}
+                            className={`w-2 h-2 rounded-full transition-all duration-300 ${activeTab === idx ? 'bg-indigo-600 scale-125' : 'bg-slate-300 dark:bg-zinc-600 hover:bg-slate-400 dark:hover:bg-zinc-500'}`}
+                            aria-label={`Go to slide ${idx + 1}`}
+                        />
+                    ))}
                 </div>
             </div>
         </div>

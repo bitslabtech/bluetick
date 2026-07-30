@@ -201,6 +201,7 @@ app.use('/api/admin/tech-partners', require('./routes/adminTechPartners')); // B
 app.use('/api/contact', require('./routes/contact')); // Public Contact Us form endpoints
 app.use('/api/ctwa', require('./routes/ctwa')); // CTWA Ads Analytics & OAuth
 app.use('/api/meta-ads', require('./routes/meta-ads')); // Meta Ads Maker
+app.use('/api/meta-ads-webhook', require('./routes/meta-ads-webhook')); // Meta Ads Webhook
 app.use('/api/store-customer/:storeSlug', require('./routes/storeCustomerAuth')); // Store Customer Auth
 app.use('/api/vcards', require('./routes/vcards')); // Digital Business Card Config
 app.use('/api/wastore', require('./routes/wastore')); // WhatsApp Store Config

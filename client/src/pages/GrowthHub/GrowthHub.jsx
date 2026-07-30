@@ -8,7 +8,7 @@ import {
     Filter, Search, Calendar, CheckCircle2, XCircle, Timer,
     Image as ImageIcon, LogOut, BarChart2, CreditCard, Phone, Mail,
     Tag, UserCheck, AlertCircle, Inbox, Send, Shield, Settings,
-    Radio, Copy, X, Hash, Calculator, IndianRupee, PieChart,
+    Radio, Copy, X, Hash,
     Pause, Play, Trash2, Edit3, MoreVertical, Bot, Zap as ZapIcon,
     ToggleLeft, ToggleRight, ChevronDown, Save
 } from 'lucide-react';
@@ -19,6 +19,7 @@ import { useUI } from '../../context/UIContext';
 import { formatDistanceToNow } from 'date-fns';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { io } from 'socket.io-client';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 const fmt = (n, decimals = 0) => {
@@ -39,8 +40,6 @@ const TABS = [
     { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
     { id: 'leads', label: 'Smart Leads', icon: UserCheck },
     { id: 'analytics', label: 'Ad Analytics', icon: BarChart3 },
-    { id: 'capi', label: 'CAPI', icon: Shield },
-    { id: 'roi', label: 'ROI Calculator', icon: Calculator },
     { id: 'ad-settings', label: 'Ad Settings', icon: Settings },
 ];
 
@@ -262,7 +261,9 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected, on
                                         <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 w-full sm:w-auto border-t sm:border-0 border-slate-100 dark:border-white/5 pt-2 sm:pt-0">
                                             <div className="text-right">
                                                 <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                    ₹{parseFloat(campaign.dailyBudget || 0).toFixed(0)}<span className="text-[10px] font-medium text-slate-400">/day</span>
+                                                    {campaign.creatives?.budgetType === 'lifetime'
+                                                        ? <>₹{parseFloat(campaign.creatives?.lifetimeBudget || 0).toFixed(0)}<span className="text-[10px] font-medium text-slate-400">/total</span></>
+                                                        : <>₹{parseFloat(campaign.dailyBudget || 0).toFixed(0)}<span className="text-[10px] font-medium text-slate-400">/day</span></>}
                                                 </p>
                                                 {parseFloat(campaign.spend || 0) > 0 && (
                                                     <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
@@ -318,11 +319,24 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
     const [actionLoading, setActionLoading] = useState({}); // { [campaignId]: 'pause'|'resume'|'delete'|'duplicate' }
     const [openMenu, setOpenMenu] = useState(null); // campaign id with open dropdown
     const [editModal, setEditModal] = useState(null); // { campaign, newName, newBudget }
+    const [publishProgress, setPublishProgress] = useState({}); // { campaignId: "progress string" }
 
     const menuRef = useRef(null);
 
     // Sync when parent updates (e.g. refresh)
     useEffect(() => { setCampaigns(initialCampaigns); }, [initialCampaigns]);
+
+    useEffect(() => {
+        const socket = io(import.meta.env.VITE_API_URL || '', { withCredentials: true });
+        
+        socket.on('campaign_publish_progress', (data) => {
+            setPublishProgress(prev => ({ ...prev, global: data.message }));
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -381,12 +395,14 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
 
     const handleEditSave = async () => {
         if (!editModal) return;
-        const { campaign, newName, newBudget } = editModal;
+        const { campaign, newName, newBudget, newPrimaryText, newHeadline } = editModal;
         setLoading(campaign.id, 'edit');
         try {
             const res = await axios.patch(`/api/meta-ads/${campaign.id}`, {
                 campaignName: newName,
-                dailyBudget: parseFloat(newBudget)
+                dailyBudget: parseFloat(newBudget),
+                primaryText: newPrimaryText,
+                headline: newHeadline
             }, { withCredentials: true });
             setCampaigns(prev => prev.map(c => c.id === campaign.id ? { ...c, ...res.data.campaign } : c));
             toast.success('Campaign updated');
@@ -401,6 +417,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
     const handlePublish = async (campaign) => {
         setLoading(campaign.id, 'publish');
         setOpenMenu(null);
+        setPublishProgress(prev => ({ ...prev, global: 'Starting...' }));
         try {
             const res = await axios.post(`/api/meta-ads/${campaign.id}/publish`, {}, { withCredentials: true });
             setCampaigns(prev => prev.map(c => c.id === campaign.id ? { ...c, status: res.data.status || 'Published', metaCampaignId: res.data.metaCampaignId || c.metaCampaignId } : c));
@@ -409,6 +426,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
             toast.error(err.response?.data?.error || 'Failed to publish campaign');
         } finally {
             clearLoading(campaign.id);
+            setPublishProgress(prev => ({ ...prev, global: null }));
         }
     };
 
@@ -567,6 +585,8 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-white/5">
                             {filteredCampaigns.map((campaign) => {
+                                const isLifetime = campaign.creatives?.budgetType === 'lifetime';
+                                const budgetToDisplay = isLifetime ? parseFloat(campaign.creatives?.lifetimeBudget || 0) : parseFloat(campaign.dailyBudget || 0);
                                 const dailyBudget = parseFloat(campaign.dailyBudget || 0);
                                 const spent       = parseFloat(campaign.spend || 0);
                                 const impressions = parseInt(campaign.impressions || 0);
@@ -595,10 +615,19 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
 
                                             {/* Status + Date + Click hint */}
                                             <div className="flex items-center gap-2 flex-shrink-0">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColors[campaign.status] || statusColors.Draft}`}>
-                                                    {campaign.status === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                                                    {campaign.status || 'Draft'}
-                                                </span>
+                                                <div className="flex gap-2">
+                                                    {actionLoading[campaign.id] === 'publish' ? (
+                                                        <span className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-full">
+                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                            {publishProgress.global || 'Publishing...'}
+                                                        </span>
+                                                    ) : (
+                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColors[campaign.status] || statusColors.Draft}`}>
+                                                            {campaign.status === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                                                            {campaign.status || 'Draft'}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <span className="text-[11px] text-slate-400 hidden sm:block">
                                                     {campaign.createdAt ? formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true }) : '—'}
                                                 </span>
@@ -607,11 +636,11 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                         </div>
                                         {/* Budget + Spend Row */}
                                         <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                            {/* Daily Budget */}
+                                            {/* Budget */}
                                             <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Daily Budget</p>
-                                                <p className="text-base font-black text-slate-900 dark:text-white mt-1">₹{fmt(dailyBudget)}</p>
-                                                <p className="text-[10px] text-slate-400">per day</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{isLifetime ? 'Lifetime Budget' : 'Daily Budget'}</p>
+                                                <p className="text-base font-black text-slate-900 dark:text-white mt-1">₹{fmt(budgetToDisplay)}</p>
+                                                <p className="text-[10px] text-slate-400">{isLifetime ? 'total budget' : 'per day'}</p>
                                             </div>
 
                                             {/* Total Spent */}
@@ -658,16 +687,16 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                             </div>
                                         </div>
                                         {/* Budget Utilization Bar + extra metrics */}
-                                        {hasInsights && dailyBudget > 0 && (
+                                        {hasInsights && budgetToDisplay > 0 && (
                                             <div className="mt-3">
                                                 <div className="flex justify-between items-center mb-1">
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Spend vs Daily Budget</span>
-                                                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">₹{fmt(spent, 2)} / ₹{fmt(dailyBudget)}</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{isLifetime ? 'Spend vs Lifetime Budget' : 'Spend vs Daily Budget'}</span>
+                                                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">₹{fmt(spent, 2)} / ₹{fmt(budgetToDisplay)}</span>
                                                 </div>
                                                 <div className="h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
                                                     <div
-                                                        className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-500"
-                                                        style={{ width: `${Math.min(100, dailyBudget > 0 ? (spent / dailyBudget) * 100 : 0)}%` }}
+                                                        className={`h-full rounded-full transition-all duration-500 ${budgetToDisplay > 0 && (spent / budgetToDisplay) > 0.9 ? 'bg-red-500' : 'bg-gradient-to-r from-primary to-secondary'}`}
+                                                        style={{ width: `${Math.min(100, budgetToDisplay > 0 ? (spent / budgetToDisplay) * 100 : 0)}%` }}
                                                     />
                                                 </div>
                                                 <div className="flex gap-4 mt-2">
@@ -741,7 +770,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                                         >
                                                             {/* Edit */}
                                                             <button
-                                                                onClick={() => { setOpenMenu(null); setEditModal({ campaign, newName: campaign.campaignName, newBudget: campaign.dailyBudget }); }}
+                                                                onClick={() => { setOpenMenu(null); setEditModal({ campaign, newName: campaign.campaignName, newBudget: campaign.dailyBudget, newPrimaryText: campaign.creatives?.primary_text || '', newHeadline: campaign.creatives?.headline || '' }); }}
                                                                 className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                                                             >
                                                                 <Edit3 className="w-4 h-4" /> Edit Name & Budget
@@ -841,6 +870,26 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                             </>
                                         );
                                     })()}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Ad Primary Text</label>
+                                    <textarea
+                                        value={editModal.newPrimaryText || ''}
+                                        onChange={e => setEditModal(prev => ({ ...prev, newPrimaryText: e.target.value }))}
+                                        rows={3}
+                                        className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm resize-none"
+                                        placeholder="What are you offering?"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Ad Headline</label>
+                                    <input
+                                        type="text"
+                                        value={editModal.newHeadline || ''}
+                                        onChange={e => setEditModal(prev => ({ ...prev, newHeadline: e.target.value }))}
+                                        className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-primary transition-all text-sm"
+                                        placeholder="Catchy headline"
+                                    />
                                 </div>
                             </div>
                             <div className="p-5 border-t border-slate-100 dark:border-white/5 flex justify-end gap-3">
@@ -1328,254 +1377,6 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
     );
 };
 
-// ── ROI Calculator Tab (Phase 6) ────────────────────────────────────────
-const RoiCalculatorTab = ({ ctwaData }) => {
-    const totalLeads = ctwaData?.totalLeads || 0;
-    const totalSpend = ctwaData?.totalSpend || 0;
-    const actualCpl = totalLeads > 0 && totalSpend > 0 ? totalSpend / totalLeads : 0;
-
-    const [dealValue, setDealValue] = useState(5000);
-    const [conversionRate, setConversionRate] = useState(15);
-    const [dailyBudget, setDailyBudget] = useState(1000);
-    const [cpl, setCpl] = useState(actualCpl || 50);
-
-    useEffect(() => {
-        if (actualCpl > 0) setCpl(actualCpl);
-    }, [actualCpl]);
-
-    // Calculations — use EXACT (non-floored) leads for revenue math, floor only for display
-    const exactDailyLeads  = dailyBudget > 0 && cpl > 0 ? dailyBudget / cpl : 0;
-    const dailyLeads        = Math.floor(exactDailyLeads); // display only
-    const dailyConversions  = exactDailyLeads * (conversionRate / 100);
-    const dailyRevenue      = dailyConversions * dealValue;
-    const monthlyRevenue    = dailyRevenue * 30;
-    const monthlySpend      = dailyBudget * 30;
-    const roi               = monthlySpend > 0 ? ((monthlyRevenue - monthlySpend) / monthlySpend * 100) : 0;
-    // Break-even CR: the minimum conversion rate needed so monthly revenue >= monthly spend
-    // monthlySpend = exactDailyLeads * CR * dealValue * 30  =>  CR = cpl / dealValue
-    const breakEvenCr       = dealValue > 0 && cpl > 0 ? (cpl / dealValue) * 100 : 0;
-
-    return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Calculator className="w-5 h-5 text-primary" /> ROI Calculator
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                    Estimate your return on ad spend based on actual campaign performance.
-                </p>
-            </div>
-
-            {/* Current Performance Banner */}
-            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5">
-                <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <TrendingUp className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Your Current Performance</h4>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                            {totalLeads > 0
-                                ? `Based on ${totalLeads} leads at ₹${actualCpl.toFixed(2)} CPL from ₹${totalSpend.toFixed(0)} total spend.`
-                                : 'No campaign data yet. Enter manual values below to estimate ROI.'}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-                {/* Input Panel */}
-                <div className="lg:col-span-5 bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl sm:rounded-[2rem] p-5 sm:p-8 shadow-xl shadow-slate-200/40 dark:shadow-none space-y-6">
-                    <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2 mb-2">
-                        <Settings className="w-5 h-5 text-primary" /> Your Business Metrics
-                    </h3>
-
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                            Average Deal / Order Value (₹)
-                        </label>
-                        <div className="relative">
-                            <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input
-                                type="number"
-                                value={dealValue}
-                                onChange={e => setDealValue(Number(e.target.value))}
-                                className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-2xl pl-12 pr-4 py-4 text-slate-900 dark:text-white outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono text-xl font-bold transition-all"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex justify-between">
-                            <span>Conversion Rate</span>
-                            <span className="text-primary font-black">{conversionRate}%</span>
-                        </label>
-                        <input
-                            type="range"
-                            min="1"
-                            max="50"
-                            value={conversionRate}
-                            onChange={e => setConversionRate(Number(e.target.value))}
-                            className="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                            Daily Ad Budget (₹)
-                        </label>
-                        <div className="relative">
-                            <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input
-                                type="number"
-                                value={dailyBudget}
-                                onChange={e => setDailyBudget(Number(e.target.value))}
-                                className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-2xl pl-12 pr-4 py-4 text-slate-900 dark:text-white outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono text-xl font-bold transition-all"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex justify-between">
-                            <span>Cost Per Lead (CPL) [₹]</span>
-                            {actualCpl > 0 && <span className="text-xs text-primary font-bold">Using Real CPL</span>}
-                        </label>
-                        <div className="relative">
-                            <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input
-                                type="number"
-                                step="0.5"
-                                value={cpl}
-                                onChange={e => setCpl(Number(e.target.value))}
-                                className={`w-full bg-white dark:bg-white/5 border-2 ${actualCpl > 0 ? 'border-primary/40 bg-primary/5' : 'border-slate-100 dark:border-white/10'} rounded-2xl pl-12 pr-4 py-4 text-slate-900 dark:text-white outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono text-xl font-bold transition-all`}
-                            />
-                        </div>
-                        {actualCpl === 0 && <p className="text-[10px] text-slate-500 mt-1">Estimated CPL (since no campaigns are running)</p>}
-                    </div>
-                </div>
-
-                {/* Results Panel */}
-                <div className="lg:col-span-7 space-y-6">
-                    {/* Main ROI Card */}
-                    <div className={`relative overflow-hidden rounded-3xl sm:rounded-[2rem] p-6 sm:p-8 ${
-                        roi > 0
-                            ? 'bg-primary text-white shadow-2xl shadow-primary/30'
-                            : roi === 0
-                            ? 'bg-slate-600 text-white shadow-xl'
-                            : 'bg-red-600 text-white shadow-2xl shadow-red-500/30'
-                    }`}>
-                        <div className="absolute -top-10 -right-10 opacity-20 mix-blend-overlay">
-                            <TrendingUp className="w-48 h-48" />
-                        </div>
-                        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-                            <div>
-                                <p className="text-sm font-bold text-white/80 uppercase tracking-widest mb-1">Estimated Monthly ROI</p>
-                                <p className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter drop-shadow-md">{roi > 0 ? '+' : ''}{roi.toFixed(0)}%</p>
-                            </div>
-                            <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/30 w-full sm:w-auto text-center">
-                                <p className="text-sm font-bold text-white">
-                                    {roi > 100 ? '🔥 Exceptional!' : roi > 50 ? '✅ Strong!' : roi > 0 ? '📊 Positive' : '⚠️ Adjust inputs'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Breakdown Cards */}
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                        <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl p-4 sm:p-5 shadow-sm">
-                            <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                    <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                                </div>
-                                <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider">Daily Leads</span>
-                            </div>
-                            <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{dailyLeads}</p>
-                            <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1 font-medium">@ ₹{cpl.toFixed(0)} CPL</p>
-                        </div>
-                        <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl p-4 sm:p-5 shadow-sm">
-                            <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                    <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                                </div>
-                                <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider">Daily Sales</span>
-                            </div>
-                            <p className="text-2xl sm:text-3xl font-black text-primary tracking-tight">{dailyConversions.toFixed(1)}</p>
-                            <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1 font-medium">@ {conversionRate}% conv.</p>
-                        </div>
-                        <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl p-4 sm:p-5 shadow-sm">
-                            <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                    <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                                </div>
-                                <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider">Daily Rev</span>
-                            </div>
-                            <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate">₹{dailyRevenue.toLocaleString('en-IN')}</p>
-                        </div>
-                        <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl p-4 sm:p-5 shadow-sm">
-                            <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                    <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                                </div>
-                                <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider">Monthly Rev</span>
-                            </div>
-                            <p className="text-xl sm:text-2xl font-black text-primary tracking-tight truncate">₹{monthlyRevenue.toLocaleString('en-IN')}</p>
-                        </div>
-                    </div>
-
-                    {/* Break-even */}
-                    <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-sm">
-                        <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <PieChart className="w-5 h-5 text-primary" /> Break-Even Analysis
-                        </h4>
-                        <div className="mt-3 space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">Break-even conversion rate</span>
-                                <span className="font-black text-primary">{breakEvenCr.toFixed(2)}%</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">Your current conversion rate</span>
-                                <span className={`font-black ${conversionRate >= breakEvenCr ? 'text-emerald-600' : 'text-red-500'}`}>{conversionRate}%</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">Status</span>
-                                <span className={`font-bold text-xs px-2 py-0.5 rounded-full ${conversionRate >= breakEvenCr ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'}`}>
-                                    {conversionRate >= breakEvenCr ? '✓ Above break-even' : '✗ Below break-even'}
-                                </span>
-                            </div>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-3">
-                            At ₹{cpl.toFixed(0)} CPL and ₹{dealValue.toLocaleString('en-IN')} deal value, you need at least {breakEvenCr.toFixed(2)}% conversion to break even.
-                        </p>
-                        {breakEvenCr > 0 && (
-                            <div className="mt-4">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
-                                    <span>0%</span>
-                                    <span className="text-primary">Break-even: {breakEvenCr.toFixed(1)}%</span>
-                                    <span>50%</span>
-                                </div>
-                                <div className="w-full bg-slate-200 dark:bg-white/10 rounded-full h-3 overflow-hidden relative shadow-inner">
-                                    {/* Break-even marker */}
-                                    <div
-                                        className="absolute top-0 bottom-0 w-0.5 bg-white/70 dark:bg-white/30 z-10"
-                                        style={{ left: `${Math.min(98, (breakEvenCr / 50) * 100)}%` }}
-                                    />
-                                    {/* Current CR fill */}
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-500 ease-out ${conversionRate >= breakEvenCr ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                                        style={{ width: `${Math.min(100, (conversionRate / 50) * 100)}%` }}
-                                    />
-                                </div>
-                                <p className="text-[10px] text-slate-400 mt-1">Scale: 0–50% conversion rate</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 // ── CTWA Ad Settings Tab ───────────────────────────────────────────────
 const CtwaAdSettingsTab = () => {
     const [config, setConfig] = useState({ enabled: false, templateName: '', language: 'en', injectName: false });
@@ -1815,10 +1616,7 @@ export default function GrowthHub() {
     const [retargetSending, setRetargetSending] = useState(false);
     const [retargetLeadCount, setRetargetLeadCount] = useState(0);
 
-    // Phase 5: CAPI state
-    const [capiConfig, setCapiConfig] = useState({ pixelId: '', accessToken: '', testEventCode: '' });
-    const [capiSaving, setCapiSaving] = useState(false);
-    const [capiTesting, setCapiTesting] = useState(false);
+
 
     // ── Fetch all data on mount ─────────────────────────────
     useEffect(() => {
@@ -1863,6 +1661,26 @@ export default function GrowthHub() {
         fetchCtwaData();
     }, [fetchCtwaData]);
 
+    const handleFullRefresh = async () => {
+        setLoading(true);
+        try {
+            toast('Refreshing data from Meta...', { icon: '🔄' });
+            await fetchCtwaData();
+            const res = await axios.get('/api/meta-ads/insights', { withCredentials: true });
+            if (res.data?.campaigns) {
+                setCampaigns(prev => prev.map(c => {
+                    const updated = res.data.campaigns.find(r => r.id === c.id);
+                    return updated ? { ...c, ...updated } : c;
+                }));
+            }
+            toast.success('Analytics refreshed!');
+        } catch (err) {
+            toast.error('Failed to refresh data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // ── Phase 4: Open retarget modal ─────────────────────────
     const handleRetarget = async (ad) => {
         setRetargetAd(ad);
@@ -1900,44 +1718,7 @@ export default function GrowthHub() {
         }
     };
 
-    // ── Phase 5: CAPI handlers ─────────────────────────────
-    const handleCapiSave = async () => {
-        setCapiSaving(true);
-        try {
-            await axios.post('/api/ctwa/capi-config', capiConfig, { withCredentials: true });
-            toast.success('CAPI configuration saved!');
-        } catch (err) {
-            toast.error(err.response?.data?.error || 'Failed to save CAPI config');
-        } finally {
-            setCapiSaving(false);
-        }
-    };
 
-    const handleCapiTest = async () => {
-        setCapiTesting(true);
-        try {
-            const res = await axios.post('/api/ctwa/capi-test', {}, { withCredentials: true });
-            if (res.data?.success) {
-                toast.success('Test event sent successfully! Check your Events Manager.');
-            } else {
-                toast.error(res.data?.error || 'Test event failed');
-            }
-        } catch (err) {
-            toast.error(err.response?.data?.error || 'Failed to send test event');
-        } finally {
-            setCapiTesting(false);
-        }
-    };
-
-    // Load CAPI config on mount
-    useEffect(() => {
-        if (activeTab === 'capi') {
-            axios.get('/api/ctwa/capi-config', { withCredentials: true })
-                .then(res => {
-                    if (res.data) setCapiConfig(prev => ({ ...prev, ...res.data }));
-                }).catch(() => { /* not configured yet */ });
-        }
-    }, [activeTab]);
 
     return (
         <div className="min-h-screen max-w-[1500px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 lg:gap-10">
@@ -2052,143 +1833,12 @@ export default function GrowthHub() {
                             loading={loading}
                             dateRange={dateRange}
                             setDateRange={setDateRange}
-                            onRefresh={fetchCtwaData}
+                            onRefresh={handleFullRefresh}
                             isDarkMode={isDarkMode}
                             onRetarget={handleRetarget}
                         />
                     )}
-                    {activeTab === 'capi' && (
-                        <div className="space-y-8">
-                            {/* CAPI Header */}
-                            <div>
-                                <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                                        <Shield className="w-5 h-5 text-primary" />
-                                    </div>
-                                    Meta Conversions API (CAPI)
-                                </h2>
-                                <p className="text-sm text-slate-500 font-medium mt-2 max-w-2xl">
-                                    Server-side event tracking for perfect attribution, lower CPA, and iOS 14+ privacy compliance.
-                                </p>
-                            </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                                <div className="lg:col-span-7 space-y-6">
-                                    {/* CAPI Config Form */}
-                                    <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl sm:rounded-[2rem] p-5 sm:p-8 shadow-xl shadow-slate-200/40 dark:shadow-none space-y-6">
-                                        <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2 mb-2">
-                                            <Settings className="w-5 h-5 text-primary" /> API Configuration
-                                        </h3>
-                                        <div className="grid grid-cols-1 gap-6">
-                                            <div>
-                                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                                                    <Hash className="w-4 h-4 text-slate-400" /> Pixel ID
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={capiConfig.pixelId}
-                                                    onChange={e => setCapiConfig({ ...capiConfig, pixelId: e.target.value })}
-                                                    placeholder="e.g. 123456789012345"
-                                                    className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono text-lg transition-all"
-                                                />
-                                                <p className="text-[11px] font-medium text-slate-400 mt-1.5">Find in Meta Events Manager → Data Sources</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                                                    <Shield className="w-4 h-4 text-slate-400" /> Access Token
-                                                </label>
-                                                <input
-                                                    type="password"
-                                                    value={capiConfig.accessToken}
-                                                    onChange={e => setCapiConfig({ ...capiConfig, accessToken: e.target.value })}
-                                                    placeholder="System User Access Token"
-                                                    className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono text-lg transition-all"
-                                                />
-                                                <p className="text-[11px] font-medium text-slate-400 mt-1.5">Generate in Events Manager → Settings → Generate Access Token</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Test Event Code <span className="text-slate-400 font-normal">(optional)</span></label>
-                                            <input
-                                                type="text"
-                                                value={capiConfig.testEventCode}
-                                                onChange={e => setCapiConfig({ ...capiConfig, testEventCode: e.target.value })}
-                                                placeholder="e.g. TEST12345"
-                                                className="w-full bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-2xl px-5 py-4 text-slate-900 dark:text-white outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 font-mono text-lg transition-all"
-                                            />
-                                            <p className="text-[11px] font-medium text-slate-400 mt-1.5">Use this for testing events in Meta Events Manager before going live</p>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4">
-                                            <button
-                                                onClick={handleCapiSave}
-                                                disabled={capiSaving || !capiConfig.pixelId || !capiConfig.accessToken}
-                                                className="w-full sm:w-auto flex-1 flex justify-center items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-4 rounded-xl font-bold shadow-md shadow-primary/20 transition-all text-sm disabled:opacity-50"
-                                            >
-                                                {capiSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
-                                                Save Configuration
-                                            </button>
-                                            <button
-                                                onClick={handleCapiTest}
-                                                disabled={capiTesting || !capiConfig.pixelId || !capiConfig.accessToken}
-                                                className="w-full sm:w-auto flex-1 flex justify-center items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-surface-dark border-2 border-slate-200 dark:border-white/10 px-6 py-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
-                                            >
-                                                {capiTesting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Radio className="w-5 h-5" />}
-                                                Send Test Event
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="lg:col-span-5 space-y-6">
-                                    {/* Info Banner */}
-                                    <div className="bg-primary rounded-3xl sm:rounded-[2rem] p-6 sm:p-8 text-white shadow-2xl shadow-primary/20 relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-                                        <div className="relative z-10">
-                                            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-4 border border-white/20">
-                                                <Target className="w-6 h-6 text-white" />
-                                            </div>
-                                            <h4 className="text-xl font-black mb-3">Why CAPI is Crucial</h4>
-                                            <p className="text-sm text-blue-50 leading-relaxed">
-                                                The Conversions API sends events directly from your server to Meta, completely bypassing browser limitations like ad blockers and iOS 14+ tracking preventions.
-                                            </p>
-                                            <div className="mt-6 bg-white/10 rounded-xl p-4 border border-white/20">
-                                                <p className="text-xs font-bold uppercase tracking-wider text-blue-100 mb-1">Impact</p>
-                                                <p className="text-2xl font-black">15-30%</p>
-                                                <p className="text-[11px] text-blue-50 mt-1">Improvement in ad optimization & CPA reduction.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Events Auto-Fired */}
-                                    <div className="bg-white/70 dark:bg-surface-dark/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 rounded-3xl sm:rounded-[2rem] p-5 sm:p-6 shadow-xl shadow-slate-200/40 dark:shadow-none space-y-4">
-                                        <h3 className="font-bold text-slate-900 dark:text-white text-sm">Events Auto-Fired Server-Side</h3>
-                                        <div className="flex flex-col gap-3">
-                                            {[
-                                                { event: 'Lead', desc: 'When a CTWA lead sends first message', color: 'emerald' },
-                                                { event: 'InitiateCheckout', desc: 'When a cart is created in WA Store', color: 'blue' },
-                                                { event: 'Purchase', desc: 'When a WA Store order is confirmed', color: 'purple' },
-                                            ].map(ev => (
-                                                <div key={ev.event} className="flex items-center gap-4 border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 rounded-2xl p-4 transition-all hover:bg-slate-100 dark:hover:bg-white/10">
-                                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                                        <CheckCircle2 className="w-5 h-5 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-sm text-slate-900 dark:text-white">{ev.event}</p>
-                                                        <p className="text-[11px] text-slate-500 font-medium">{ev.desc}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {activeTab === 'roi' && (
-                        <div className="relative z-10">
-                            <RoiCalculatorTab ctwaData={ctwaData} />
-                        </div>
-                    )}
                     {activeTab === 'ad-settings' && (
                         <CtwaAdSettingsTab />
                     )}

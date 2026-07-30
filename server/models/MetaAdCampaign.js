@@ -47,6 +47,19 @@ const MetaAdCampaign = sequelize.define('MetaAdCampaign', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    budgetType: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: 'daily'
+    },
+    scheduleStart: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    scheduleEnd: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
     insights: {
         type: DataTypes.JSON,
         defaultValue: {}

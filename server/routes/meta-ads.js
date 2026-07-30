@@ -7,6 +7,10 @@ const SystemConfig = require('../models/SystemConfig');
 const AiTokenLog = require('../models/AiTokenLog');
 const axios = require('axios');
 const { Op } = require('sequelize');
+const multer = require('multer');
+const { publishCampaignToMeta } = require('../utils/metaAdsPublisher');
+const csrfProtection = require('../middleware/csrf');
+const { canTransition } = require('../utils/metaAdsStateMachine');
 
 // Helper to retry axios post requests on 429 errors
 async function axiosPostWithRetry(url, payload, maxRetries = 3) {
@@ -26,6 +30,8 @@ async function axiosPostWithRetry(url, payload, maxRetries = 3) {
 }
 
 router.use(auth);
+// Apply CSRF to all routes (GET will set token, POST/PATCH/DELETE will verify)
+router.use(csrfProtection);
 
 // GET all campaigns (includes cached insights)
 router.get('/', async (req, res) => {
@@ -348,547 +354,24 @@ router.post('/publish', async (req, res) => {
         let adSetRes = null;
 
         if (user.metaAdsToken && user.metaAdAccountId) {
-            try {
-                const fbAdAccountId = user.metaAdAccountId;
-                const token = user.metaAdsToken;
-
-                // 1. Create Campaign
-                // Meta API campaign objective mapping:
-                // OUTCOME_ENGAGEMENT  → CTWA (Click-to-WhatsApp) — campaign obj + CONVERSATIONS adset goal
-                // OUTCOME_TRAFFIC     → Website link clicks
-                // OUTCOME_LEADS       → Lead generation
-                // OUTCOME_AWARENESS   → Brand reach/impressions
-                // NOTE: OUTCOME_MESSAGES does NOT exist in Meta's API — OUTCOME_ENGAGEMENT is correct for CTWA
-                const campaignObjective = objective || 'OUTCOME_ENGAGEMENT';
-                campRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/campaigns`, null, {
-                    params: {
-                        name: campaignName,
-                        objective: campaignObjective,
-                        status: 'ACTIVE',
-                        special_ad_categories: JSON.stringify([]),
-                        is_adset_budget_sharing_enabled: false,
-                        access_token: token
-                    }
-                });
-                const campaignId = campRes.data.id;
-
-                // ── Build geo_locations ────────────────────────────────
-                // Prefer Meta location keys (from LocationSearchInput) for exact matching
-                const userLocations = targeting?.locations || [];
-                const locationKeys  = targeting?.locationKeys || [];
-
-                let geoLocations;
-                if (locationKeys.length > 0) {
-                    // Categorise keys by type from the stored location objects
-                    const locObjects = targeting?.locationObjects || [];
-                    const countries  = locObjects.filter(l => l.type === 'country').map(l => l.countryCode || l.key);
-                    const regions    = locObjects.filter(l => l.type === 'region').map(l => ({ key: l.key, name: l.name, country: l.countryCode }));
-                    const cities     = locObjects.filter(l => l.type === 'city').map(l => ({ key: l.key, name: l.name, country: l.countryCode, region: l.region }));
-                    const zips       = locObjects.filter(l => l.type === 'zip').map(l => ({ key: l.key }));
-
-                    geoLocations = {};
-                    if (countries.length > 0)  geoLocations.countries = countries;
-                    if (regions.length > 0)    geoLocations.regions   = regions;
-                    if (cities.length > 0)     geoLocations.cities    = cities;
-                    if (zips.length > 0)       geoLocations.zips      = zips;
-                    if (Object.keys(geoLocations).length === 0) geoLocations = { countries: ['IN'] };
-                } else if (userLocations.length > 0) {
-                    // Fallback: name-based (less precise)
-                    geoLocations = { cities: userLocations.map(loc => ({ name: typeof loc === 'string' ? loc : loc.name })) };
-                } else {
-                    geoLocations = { countries: ['IN'] };
-                }
-
-                // ── Build interests (flexible_spec) ───────────────────
-                // Meta requires each interest to have a numeric `id`. Resolve via Targeting Search API.
-                const userInterests = targeting?.interests || [];
-                let flexibleSpec = undefined;
-                if (userInterests.length > 0) {
-                    const resolvedInterests = [];
-                    for (const interestName of userInterests) {
-                        try {
-                            const searchRes = await axios.get('https://graph.facebook.com/v22.0/search', {
-                                params: {
-                                    type: 'adinterest',
-                                    q: typeof interestName === 'string' ? interestName : interestName.name,
-                                    access_token: token,
-                                    limit: 1
-                                },
-                                timeout: 5000
-                            });
-                            const match = searchRes.data?.data?.[0];
-                            if (match && match.id) {
-                                resolvedInterests.push({ id: match.id, name: match.name });
-                            } else {
-                                console.warn(`[META-ADS] Interest not found on Meta: "${interestName}" — skipping`);
-                            }
-                        } catch (e) {
-                            console.warn(`[META-ADS] Interest lookup failed for "${interestName}": ${e.message}`);
-                        }
-                    }
-                    if (resolvedInterests.length > 0) {
-                        flexibleSpec = [{ interests: resolvedInterests }];
-                        console.log(`[META-ADS] Resolved ${resolvedInterests.length}/${userInterests.length} interests:`, resolvedInterests.map(i => `${i.name}(${i.id})`).join(', '));
-                    } else {
-                        console.warn('[META-ADS] No interests could be resolved — omitting flexible_spec entirely');
-                    }
-                }
-
-                // ── Build genders array (Meta: 1=male, 2=female, omit=all) ─
-                let gendersArr = undefined;
-                if (targeting?.gender === 'male')   gendersArr = [1];
-                if (targeting?.gender === 'female')  gendersArr = [2];
-
-                // ── Build locales (language targeting) ─────────────────
-                // Meta locale IDs — common ones
-                const LOCALE_MAP = { en: 6, hi: 23, mr: 45, gu: 20, ta: 57, te: 59, kn: 33, ml: 42, bn: 12, ar: 28, pa: 51, ur: 67 };
-                let localesArr = undefined;
-                if (targeting?.targetingLanguage && LOCALE_MAP[targeting.targetingLanguage]) {
-                    localesArr = [LOCALE_MAP[targeting.targetingLanguage]];
-                }
-
-                // ── Build placement (publisher_platforms) ──────────────
-                const placements = targeting?.placements || ['facebook', 'instagram'];
-                let publisherPlatforms = placements.filter(p => ['facebook', 'instagram', 'audience_network', 'messenger'].includes(p));
-
-                // Meta compliance: CTWA (Engagement) does NOT support messenger or audience_network
-                // — these require a WhatsApp deep-link which neither placement can deliver
-                if ((objective || 'OUTCOME_ENGAGEMENT') === 'OUTCOME_ENGAGEMENT') {
-                    publisherPlatforms = publisherPlatforms.filter(p => p !== 'messenger' && p !== 'audience_network');
-                }
-
-                // Meta compliance: Audience Network cannot be the sole placement
-                // — must be paired with facebook or instagram
-                if (publisherPlatforms.includes('audience_network') &&
-                    !publisherPlatforms.includes('facebook') &&
-                    !publisherPlatforms.includes('instagram')) {
-                    publisherPlatforms.push('facebook');
-                    console.log('[META-ADS] Audience Network requires a paired platform — auto-added facebook');
-                }
-
-                const facebookPositions  = placements.includes('facebook')   ? (targeting?.fbPositions   || ['feed', 'facebook_reels']) : undefined;
-                const instagramPositions = placements.includes('instagram')  ? (targeting?.igPositions   || ['stream', 'reels'])        : undefined;
-                // messenger_home deprecated by Meta Nov 2025 — only messenger_story is valid
-                // Filter out messenger_home from any incoming messengerPositions as a safety net
-                const rawMessengerPos    = (targeting?.messengerPositions || ['messenger_story']).filter(pos => pos !== 'messenger_home');
-                const messengerPositions = placements.includes('messenger') && publisherPlatforms.includes('messenger')
-                    ? (rawMessengerPos.length > 0 ? rawMessengerPos : ['messenger_story'])
-                    : undefined;
-
-                // ── Build full targeting spec ─────────────────────────
-                // targeting_automation MUST be inside the targeting JSON (confirmed by Meta error_subcode 1870227)
-                // Setting advantage_audience:0 keeps our manual targeting; Meta won't override it with AI.
-                const targetingSpec = {
-                    age_max: targeting?.age_max || 65,
-                    age_min: targeting?.age_min || 18,
-                    geo_locations: geoLocations,
-                    ...(gendersArr          && { genders: gendersArr }),
-                    ...(localesArr          && { locales: localesArr }),
-                    ...(flexibleSpec        && { flexible_spec: flexibleSpec }),
-                    ...(publisherPlatforms.length > 0 && { publisher_platforms: publisherPlatforms }),
-                    ...(facebookPositions   && { facebook_positions: facebookPositions }),
-                    ...(instagramPositions  && { instagram_positions: instagramPositions }),
-                    ...(messengerPositions  && { messenger_positions: messengerPositions }),
-                    targeting_automation: { advantage_audience: 0 },
-                };
-
-                // ── Build AdSet params — resolve Page ID (multi-strategy) ──
-                let pageId = user.metaPageId || req.body.fbPageId || null;
-
-                if (!pageId) {
-                    console.log(`[META-ADS] Attempting to auto-resolve Facebook Page ID for user ${req.user.id}...`);
-                    let resolvedPageId = null;
-                    let resolveError = null;
-
-                    // Strategy 1: /me/accounts — personal pages
-                    if (!resolvedPageId) {
-                        try {
-                            const pagesRes = await axios.get('https://graph.facebook.com/v22.0/me/accounts', {
-                                params: { access_token: token, fields: 'id,name', limit: 10 }
-                            });
-                            if (pagesRes.data?.data?.length > 0) {
-                                resolvedPageId = pagesRes.data.data[0].id;
-                                console.log(`[META-ADS] Strategy 1 (me/accounts): Found page ${resolvedPageId}`);
-                            }
-                        } catch (e) {
-                            resolveError = e.response?.data?.error?.message || e.message;
-                            console.warn(`[META-ADS] Strategy 1 (me/accounts) failed: ${resolveError}`);
-                        }
-                    }
-
-                    // Strategy 2: /me/businesses → owned_pages (Business Manager)
-                    if (!resolvedPageId) {
-                        try {
-                            const bizRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
-                                params: { access_token: token, fields: 'id,name', limit: 5 }
-                            });
-                            const businesses = bizRes.data?.data || [];
-                            for (const biz of businesses) {
-                                if (resolvedPageId) break;
-                                try {
-                                    const pagesRes = await axios.get(`https://graph.facebook.com/v22.0/${biz.id}/owned_pages`, {
-                                        params: { access_token: token, fields: 'id,name', limit: 5 }
-                                    });
-                                    if (pagesRes.data?.data?.length > 0) {
-                                        resolvedPageId = pagesRes.data.data[0].id;
-                                        console.log(`[META-ADS] Strategy 2 (Business Manager ${biz.id}): Found page ${resolvedPageId}`);
-                                    }
-                                } catch (e2) {
-                                    console.warn(`[META-ADS] Strategy 2 inner (biz ${biz.id}) failed:`, e2.message);
-                                }
-                            }
-                        } catch (e) {
-                            console.warn(`[META-ADS] Strategy 2 (/me/businesses) failed:`, e.response?.data?.error?.message || e.message);
-                        }
-                    }
-
-                    // Strategy 3: Try via Ad Account → connected Facebook Page
-                    if (!resolvedPageId && user.metaAdAccountId) {
-                        try {
-                            const actRes = await axios.get(`https://graph.facebook.com/v22.0/${user.metaAdAccountId}`, {
-                                params: { access_token: token, fields: 'id,name,business' }
-                            });
-                            const businessId = actRes.data?.business?.id;
-                            if (businessId) {
-                                const pagesRes = await axios.get(`https://graph.facebook.com/v22.0/${businessId}/owned_pages`, {
-                                    params: { access_token: token, fields: 'id,name', limit: 5 }
-                                });
-                                if (pagesRes.data?.data?.length > 0) {
-                                    resolvedPageId = pagesRes.data.data[0].id;
-                                    console.log(`[META-ADS] Strategy 3 (Ad Account business): Found page ${resolvedPageId}`);
-                                }
-                            }
-                        } catch (e) {
-                            console.warn(`[META-ADS] Strategy 3 (Ad Account business) failed:`, e.response?.data?.error?.message || e.message);
-                        }
-                    }
-
-                    if (resolvedPageId) {
-                        pageId = resolvedPageId;
-                        // Cache for future use
-                        user.metaPageId = pageId;
-                        await user.save();
-                    } else {
-                        // All strategies failed — surface a helpful message
-                        throw new Error(
-                            'No Facebook Page found on your account. Please ensure: ' +
-                            '(1) Your Meta token has pages_show_list permission, ' +
-                            '(2) You have admin access to a Facebook Page in your Business Manager, ' +
-                            'or (3) Provide your Page ID manually in Settings → Meta Ads.'
-                        );
-                    }
-                }
-                const isLifetime = budgetType === 'lifetime';
-
-                // ── Build AdSet params based on campaign objective ──
-                // OUTCOME_ENGAGEMENT → CTWA (Click-to-WhatsApp): campaign obj + CONVERSATIONS adset goal + WHATSAPP destination
-                // OUTCOME_TRAFFIC    → Link clicks
-                // OUTCOME_LEADS      → Lead generation
-                // OUTCOME_AWARENESS  → Reach/impressions
-                // NOTE: OUTCOME_MESSAGES is NOT a valid Meta campaign objective.
-                //       OUTCOME_ENGAGEMENT + optimization_goal:CONVERSATIONS + destination_type:WHATSAPP = CTWA
-                const isCTWA = (objective || 'OUTCOME_ENGAGEMENT') === 'OUTCOME_ENGAGEMENT';
-
-                const OBJECTIVE_CONFIG = {
-                    OUTCOME_ENGAGEMENT: { optimization_goal: 'CONVERSATIONS',   destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-                    OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS',      bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-                    OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION',  bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-                    OUTCOME_AWARENESS:  { optimization_goal: 'REACH',            bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-                };
-                const objConfig = OBJECTIVE_CONFIG[objective] || OBJECTIVE_CONFIG.OUTCOME_ENGAGEMENT;
-
-                const adSetParams = {
-                    name: `${campaignName} - AdSet`,
-                    campaign_id: campaignId,
-                    billing_event: 'IMPRESSIONS',
-                    optimization_goal: objConfig.optimization_goal,
-                    // Always explicitly set bid_strategy to avoid inheriting account-level BID_CAP
-                    // which would require a bid_amount we don't send (error_subcode 2490487)
-                    bid_strategy: objConfig.bid_strategy || 'LOWEST_COST_WITHOUT_CAP',
-                    promoted_object: JSON.stringify({ page_id: pageId }),
-                    targeting: JSON.stringify(targetingSpec),
-                    status: 'ACTIVE',
-                    access_token: token
-                };
-                if (objConfig.destination_type) adSetParams.destination_type = objConfig.destination_type;
-
-                if (isLifetime) {
-                    adSetParams.lifetime_budget = Math.round((Number(lifetimeBudget) || 3000) * 100);
-                } else {
-                    adSetParams.daily_budget = Math.round((Number(dailyBudget) || 500) * 100);
-                }
-
-                // ── Ad Scheduling ──────────────────────────────────────
-                // Meta rules:
-                //  • start_time is optional (defaults to now)
-                //  • For DAILY budget: end_time is optional and should be omitted for
-                //    indefinite campaigns. If provided, the gap MUST be >= 24 hours.
-                //  • For LIFETIME budget: end_time is required.
-                const schedStart = scheduling?.startDate ? Math.floor(new Date(scheduling.startDate).getTime() / 1000) : null;
-                const schedEnd   = scheduling?.endDate   ? Math.floor(new Date(scheduling.endDate).getTime()   / 1000) : null;
-
-                if (schedStart && !isNaN(schedStart)) {
-                    adSetParams.start_time = schedStart;
-                }
-
-                if (isLifetime) {
-                    // Lifetime budget REQUIRES an end_time
-                    if (schedEnd && !isNaN(schedEnd)) {
-                        adSetParams.end_time = schedEnd;
-                    } else {
-                        // Default: 30 days from now
-                        adSetParams.end_time = Math.floor(Date.now() / 1000) + (30 * 24 * 3600);
-                    }
-                } else {
-                    // Daily budget: only set end_time if provided AND gap is at least 24h
-                    if (schedEnd && !isNaN(schedEnd)) {
-                        const effectiveStart = schedStart || Math.floor(Date.now() / 1000);
-                        const gapSeconds = schedEnd - effectiveStart;
-                        if (gapSeconds < 24 * 3600) {
-                            return res.status(400).json({
-                                error: `Ad schedule is too short (${Math.round(gapSeconds / 3600)} hour(s)). Daily budget campaigns must run for at least 24 hours. Please extend the end date or leave it blank to run the campaign indefinitely.`
-                            });
-                        }
-                        adSetParams.end_time = schedEnd;
-                    }
-                    // If no end date provided for daily budget → omit end_time (runs until paused)
-                }
-
-                // Log outgoing params for debugging (redact token)
-                const debugParams = { ...adSetParams };
-                delete debugParams.access_token;
-                console.log(`[META-ADS] AdSet params (${isCTWA ? 'CTWA' : 'Standard'}):`, JSON.stringify(debugParams, null, 2));
-
-                // 2. Create AdSet — for CTWA, auto-fallback if Page not linked to WABA
-                adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
-                    params: adSetParams
-                }).catch(async (e) => {
-                    const errData = e.response?.data?.error || {};
-                    const errSubcode = errData.error_subcode;
-                    console.error('[META-ADS] AdSet creation failed:', JSON.stringify(errData, null, 2));
-
-                    // Only fallback for CTWA ads when Page isn't linked to WABA
-                    if (isCTWA && (errSubcode === 2446886 || errSubcode === 1885264 || (errData.message && errData.message.includes('WhatsApp')))) {
-                        console.log('[META-ADS] Page not linked to WABA — retrying as standard engagement ad...');
-                        delete adSetParams.destination_type;
-                        adSetParams.optimization_goal = 'LINK_CLICKS';
-                        // Keep bid_strategy — removing it causes error_subcode 2490487 (bid amount required)
-                        adSetParams.bid_strategy = 'LOWEST_COST_WITHOUT_CAP';
-
-                        const debugRetry = { ...adSetParams };
-                        delete debugRetry.access_token;
-                        console.log('[META-ADS] AdSet params (fallback — standard):', JSON.stringify(debugRetry, null, 2));
-
-                        return axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
-                            params: adSetParams
-                        }).catch(e2 => {
-                            console.error('[META-ADS] Standard fallback also failed:', JSON.stringify(e2.response?.data?.error || e2.message, null, 2));
-                            return { data: { id: null } };
-                        });
-                    }
-
-                    if (errData.error_data) {
-                        console.error('[META-ADS] blame_field_specs:', JSON.stringify(errData.error_data, null, 2));
-                    }
-                    return { data: { id: null } };
-                });
-
-                const adSetId = adSetRes.data.id;
-                fbStatus = adSetId ? 'Active' : 'Draft';
-
-                // 3. Upload image to Meta (if provided) and create Ad Creative
-                if (adSetId) {
-                    try {
-                        let imageHash = null;
-
-                        // Upload image bytes if a base64 data URL is provided
-                        // NOTE: Meta /adimages requires `bytes` in the POST body (form-encoded),
-                        // NOT as a URL query param — large base64 strings exceed URL length limits.
-                        if (imageUrl && imageUrl.startsWith('data:image')) {
-                            // Extract base64 data from the data URL
-                            const base64Data = imageUrl.split(',')[1];
-                            if (base64Data) {
-                                const qs = require('querystring');
-                                const imgUploadRes = await axios.post(
-                                    `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
-                                    qs.stringify({ bytes: base64Data, access_token: token }),
-                                    {
-                                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                                        maxBodyLength: Infinity,
-                                        maxContentLength: Infinity
-                                    }
-                                ).catch(e => {
-                                    console.warn('[META-ADS] Image upload warning:', e.response?.data?.error?.message || e.message);
-                                    return null;
-                                });
-                                // Meta returns { images: { <filename>: { hash, url } } }
-                                if (imgUploadRes?.data?.images) {
-                                    const firstKey = Object.keys(imgUploadRes.data.images)[0];
-                                    imageHash = imgUploadRes.data.images[firstKey]?.hash;
-                                    console.log('[META-ADS] Image uploaded, hash:', imageHash);
-                                }
-                            }
-                        } else if (imageUrl && imageUrl.startsWith('http')) {
-                            // External URL — upload via URL fetch so we get a hash
-                            console.log('[META-ADS] External image URL provided, uploading by URL...');
-                            const qs = require('querystring');
-                            const imgUploadRes = await axios.post(
-                                `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
-                                qs.stringify({ url: imageUrl, access_token: token }),
-                                { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-                            ).catch(e => {
-                                console.warn('[META-ADS] External image upload warning:', e.response?.data?.error?.message || e.message);
-                                return null;
-                            });
-                            if (imgUploadRes?.data?.images) {
-                                const firstKey = Object.keys(imgUploadRes.data.images)[0];
-                                imageHash = imgUploadRes.data.images[firstKey]?.hash;
-                                console.log('[META-ADS] External image uploaded, hash:', imageHash);
-                            }
-                        }
-
-                        // Build AdCreative spec (CTWA — Click-to-WhatsApp)
-                        const primaryText  = creatives?.primary_text || '';
-                        const headline     = creatives?.headline     || '';
-
-                        // Resolve user's WhatsApp display phone number (required for CTWA CTA)
-                        let waPhoneNumber = user.metaDisplayPhoneNumber || null;
-                        if (!waPhoneNumber) {
-                            try {
-                                const Settings = require('../models/Settings');
-                                const settings = await Settings.findOne({ where: { userId: req.user.id } });
-                                if (settings?.metaPhoneNumberId) {
-                                    const phoneRes = await axios.get(`https://graph.facebook.com/v22.0/${settings.metaPhoneNumberId}`, {
-                                        params: { fields: 'display_phone_number', access_token: settings.metaAccessToken },
-                                        timeout: 5000
-                                    }).catch(() => null);
-                                    waPhoneNumber = phoneRes?.data?.display_phone_number || null;
-                                }
-                            } catch (e) { /* non-fatal */ }
-                        }
-                        // Strip spaces/dashes — Meta needs digits + country code e.g. +919876543210
-                        const waPhoneClean = waPhoneNumber ? waPhoneNumber.replace(/[\s\-().]/g, '') : null;
-                        console.log(`[META-ADS] WhatsApp number for CTWA: ${waPhoneClean || '(not found)'}`);
-
-                        // CTA value for CTWA.
-                        // IMPORTANT: app_destination, page_id, and page_welcome_message in the
-                        // CTA value all require the Facebook Page to be FULLY linked to a WABA.
-                        // The log shows a Page-WABA permission error (code 100), meaning this
-                        // link is absent. Including those fields causes OAuthException code 1.
-                        // Safe approach: only include whatsapp_number — Meta accepts this even
-                        // when the Page is not formally linked to WABA.
-                        const ctaValue = {};
-                        if (waPhoneClean) ctaValue.whatsapp_number = waPhoneClean;
-
-                        const linkData = {
-                            message: primaryText,
-                            name:    headline,
-                            link:    `https://www.facebook.com/${pageId}`,
-                            call_to_action: { type: 'WHATSAPP_MESSAGE', value: ctaValue }
-                        };
-
-                        if (imageHash) {
-                            linkData.image_hash = imageHash;
-                        } else if (imageUrl && imageUrl.startsWith('http')) {
-                            linkData.picture = imageUrl;
-                        } else {
-                            // Meta AdCreative requires at least an image. Upload a minimal 1×1
-                            // transparent PNG so the creative doesn't fail with code 1.
-                            const PLACEHOLDER_B64 =
-                                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==';
-                            const qs = require('querystring');
-                            const phRes = await axios.post(
-                                `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
-                                qs.stringify({ bytes: PLACEHOLDER_B64, access_token: token }),
-                                { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-                            ).catch(e => {
-                                console.warn('[META-ADS] Placeholder image upload warning:', e.response?.data?.error?.message || e.message);
-                                return null;
-                            });
-                            if (phRes?.data?.images) {
-                                const firstKey = Object.keys(phRes.data.images)[0];
-                                imageHash = phRes.data.images[firstKey]?.hash;
-                                if (imageHash) {
-                                    linkData.image_hash = imageHash;
-                                    console.log('[META-ADS] Placeholder image uploaded, hash:', imageHash);
-                                }
-                            }
-                        }
-
-                        const objectStorySpec = JSON.stringify({
-                            page_id:   pageId,
-                            link_data: linkData
-                        });
-
-                        // Log creative payload for debugging (without token)
-                        console.log('[META-ADS] AdCreative object_story_spec:', objectStorySpec);
-
-                        // IMPORTANT: Send as form-encoded POST body, NOT URL query params.
-                        // Sending large/nested JSON as URL params causes Meta to silently
-                        // reject the request with OAuthException code 1 "unknown error".
-                        const qsCreative = require('querystring');
-                        const creativeBody = qsCreative.stringify({
-                            name:              `${campaignName} - Creative`,
-                            object_story_spec: objectStorySpec,
-                            access_token:      token
-                        });
-
-                        let creativeErrMsg = null;
-                        const creativeRes = await axios.post(
-                            `https://graph.facebook.com/v22.0/${fbAdAccountId}/adcreatives`,
-                            creativeBody,
-                            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-                        ).catch(e => {
-                            creativeErrMsg = e.response?.data?.error?.message || e.message;
-                            console.error('[META-ADS] ❌ AdCreative creation FAILED:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
-                            return null;
-                        });
-
-                        const creativeId = creativeRes?.data?.id;
-                        console.log('[META-ADS] AdCreative ID:', creativeId || `(failed: ${creativeErrMsg})`);
-
-                        // 4. Create the actual Ad
-                        let adErrMsg = null;
-                        if (creativeId) {
-                            const adRes = await axios.post(
-                                `https://graph.facebook.com/v22.0/${fbAdAccountId}/ads`,
-                                null,
-                                {
-                                    params: {
-                                        name:      `${campaignName} - Ad`,
-                                        adset_id:  adSetId,
-                                        creative:  JSON.stringify({ creative_id: creativeId }),
-                                        status:    'ACTIVE',
-                                        access_token: token
-                                    }
-                                }
-                            ).catch(e => {
-                                adErrMsg = e.response?.data?.error?.message || e.message;
-                                console.error('[META-ADS] ❌ Ad creation FAILED:', JSON.stringify(e.response?.data?.error || e.message, null, 2));
-                                return null;
-                            });
-                            if (adRes?.data?.id) {
-                                console.log('[META-ADS] ✅ Ad created successfully. Ad ID:', adRes.data.id);
-                            }
-                        }
-
-                        // Track ad-level errors to return in response
-                        if (creativeErrMsg || adErrMsg) {
-                            fbStatus = 'Error';
-                            req._adWarning = creativeErrMsg || adErrMsg;
-                        }
-                    } catch (creativeErr) {
-                        const msg = creativeErr.response?.data?.error?.message || creativeErr.message;
-                        console.error('[META-ADS] ❌ Creative/Ad creation error:', msg);
-                        req._adWarning = msg;
-                        fbStatus = 'Error';
-                    }
-                }
-            } catch (graphAPIError) {
-                console.error('Graph API Publish Error:', graphAPIError.response?.data || graphAPIError.message);
-                fbStatus = 'Error';
+            const payload = {
+                campaignName, objective, dailyBudget, targeting,
+                creatives, imageUrl, automation, scheduling,
+                budgetType, lifetimeBudget, fbPageId: req.body.fbPageId
+            };
+            
+            const result = await publishCampaignToMeta(user, payload);
+            
+            fbStatus = result.status;
+            campRes = { data: { id: result.campaignId } };
+            adSetRes = { data: { id: result.adSetId } };
+            
+            if (result.warning) {
+                req._adWarning = result.warning;
             }
-
+            if (result.errorMsg) {
+                return res.status(400).json({ error: result.errorMsg });
+            }
         }
 
         const campaign = await MetaAdCampaign.create({
@@ -900,7 +383,11 @@ router.post('/publish', async (req, res) => {
             creatives: { ...creatives, imageUrl, automation: automation || null, budgetType: budgetType || 'daily', lifetimeBudget: lifetimeBudget || null },
             status: fbStatus,
             metaCampaignId: campRes?.data?.id || null,
-            metaAdsetId:    adSetRes?.data?.id || null
+            metaAdsetId:    adSetRes?.data?.id || null,
+            metaAdId:       result?.adId || null,
+            budgetType:     budgetType || 'daily',
+            scheduleStart:  scheduling?.startDate ? new Date(scheduling.startDate) : null,
+            scheduleEnd:    scheduling?.endDate ? new Date(scheduling.endDate) : null
         });
 
         res.json({
@@ -918,7 +405,7 @@ router.post('/publish', async (req, res) => {
 router.get('/insights', async (req, res) => {
     try {
         const user = await User.findByPk(req.user.id);
-        const { range = 'last_30d' } = req.query;
+        const { range = 'last_30d', campaignId } = req.query;
 
         const datePresetMap = {
             '1d': 'today',
@@ -928,20 +415,24 @@ router.get('/insights', async (req, res) => {
         };
         const datePreset = datePresetMap[range] || 'last_30d';
 
+        const whereClause = { userId: req.user.id };
+        if (campaignId) whereClause.id = campaignId;
+
         const campaigns = await MetaAdCampaign.findAll({
-            where: { userId: req.user.id },
+            where: whereClause,
             order: [['createdAt', 'DESC']]
         });
 
         const hasToken = user.metaAdsToken && user.metaAdAccountId;
-        const results = [];
-        let totalImpressions = 0, totalClicks = 0, totalSpend = 0;
-
-        for (const campaign of campaigns) {
-            const plain = campaign.toJSON();
-            let insights = plain.insights || {};
-
-            if (hasToken && campaign.metaCampaignId) {
+        
+        // P3: Process in batches of 5 to avoid 504 timeouts on accounts with many campaigns
+        const BATCH_SIZE = 5;
+        for (let i = 0; i < campaigns.length; i += BATCH_SIZE) {
+            const batch = campaigns.slice(i, i + BATCH_SIZE);
+            
+            await Promise.allSettled(batch.map(async (campaign) => {
+                if (!hasToken || !campaign.metaCampaignId) return;
+                
                 try {
                     const fbRes = await axios.get(
                         `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}/insights`,
@@ -950,12 +441,13 @@ router.get('/insights', async (req, res) => {
                                 fields: 'impressions,clicks,spend,ctr,cpc,reach,frequency',
                                 date_preset: datePreset,
                                 access_token: user.metaAdsToken
-                            }
+                            },
+                            timeout: 5000
                         }
                     );
 
                     const fbData = fbRes.data?.data?.[0] || {};
-                    insights = {
+                    const insights = {
                         impressions: parseInt(fbData.impressions || 0),
                         clicks:      parseInt(fbData.clicks || 0),
                         spend:       parseFloat(fbData.spend || 0),
@@ -967,20 +459,33 @@ router.get('/insights', async (req, res) => {
                     };
                     
                     // Update cache safely
-                    campaign.update({ insights }).catch(e => console.error('[Meta Ads] Failed to cache insights:', e.message));
+                    await campaign.update({ insights });
                 } catch (fbErr) {
                     const errorObj = fbErr.response?.data?.error || {};
                     const msg = errorObj.message || fbErr.message;
                     console.error(`[META-ADS] Insights fetch failed for ${campaign.metaCampaignId}:`, msg);
                     
-                    // Safe Fallback: if Meta says it doesn't exist, mark as Error locally
                     if (errorObj.code === 100 || msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('invalid parameter')) {
                         campaign.status = 'Error';
                         await campaign.save().catch(e => null);
                     }
                 }
-            }
+            }));
+        }
 
+        // Refetch campaigns after all updates to build the response
+        const updatedCampaigns = await MetaAdCampaign.findAll({
+            where: whereClause,
+            order: [['createdAt', 'DESC']]
+        });
+        
+        const results = [];
+        let totalImpressions = 0, totalClicks = 0, totalSpend = 0;
+
+        for (const campaign of updatedCampaigns) {
+            const plain = campaign.toJSON();
+            const insights = plain.insights || {};
+            
             totalImpressions += parseInt(insights.impressions || 0);
             totalClicks      += parseInt(insights.clicks || 0);
             totalSpend       += parseFloat(insights.spend || 0);
@@ -1252,6 +757,10 @@ router.patch('/:id/status', async (req, res) => {
         const metaStatus = action === 'pause' ? 'PAUSED' : 'ACTIVE';
         const localStatus = action === 'pause' ? 'Paused' : 'Active';
 
+        if (!canTransition(campaign.status, localStatus)) {
+            return res.status(400).json({ error: `Cannot change status from ${campaign.status} to ${localStatus}` });
+        }
+
         // Sync with Meta Graph API if we have a real campaign ID
         if (campaign.metaCampaignId && user.metaAdsToken) {
             try {
@@ -1302,330 +811,42 @@ router.post('/:id/publish', async (req, res) => {
         }
 
         const user = await User.findByPk(req.user.id);
-        // ── STRICT PREREQUISITE CHECKS (BACKEND ENFORCEMENT) ──
+        
         if (!user.metaAdsToken || !user.metaAdAccountId) {
             return res.status(403).json({ error: 'Missing Meta Ads prerequisites: Connect Meta Ads and select an Ad Account first.' });
         }
-        const storedObjective = campaignRecord.objective || 'OUTCOME_ENGAGEMENT';
-        if (storedObjective === 'OUTCOME_ENGAGEMENT') {
-            const Settings = require('../models/Settings');
-            let hasWhatsApp = !!(user.metaPhoneNumberId || user.wabaId || user.fbAccessToken);
-            if (!hasWhatsApp) {
-                try {
-                    const settings = await Settings.findOne({ where: { userId: req.user.id } });
-                    hasWhatsApp = !!(settings?.metaPhoneNumberId && settings?.metaAccessToken);
-                } catch (e) {}
-            }
-            if (!hasWhatsApp) {
-                return res.status(403).json({ error: 'Missing Meta Ads prerequisites: Set up WhatsApp Business API first to run Click-to-WhatsApp ads.' });
-            }
-        }
-        // ────────────────────────────────────────────────────────
-
+        
         const stored = campaignRecord.toJSON();
-        const creatives = stored.creatives || {};
-        const targeting = stored.targeting || {};
-        const imageUrl = creatives.imageUrl || null;
-        const budgetType = creatives.budgetType || 'daily';
-        const lifetimeBudget = creatives.lifetimeBudget || null;
-        const dailyBudget = stored.dailyBudget || 500;
-
-        const fbAdAccountId = user.metaAdAccountId;
-        const token = user.metaAdsToken;
-        const isLifetime = budgetType === 'lifetime';
-
-        // ── 1. Create Campaign ──
-        const campRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/campaigns`, null, {
-            params: {
-                name: stored.campaignName,
-                objective: stored.objective || 'OUTCOME_ENGAGEMENT',
-                status: 'ACTIVE',
-                special_ad_categories: JSON.stringify([]),
-                access_token: token
-            }
-        });
-        const campaignId = campRes.data.id;
-        if (!campaignId) throw new Error('Meta did not return a Campaign ID.');
-        console.log(`[META-ADS] Campaign created: ${campaignId}`);
-
-        // ── Resolve Page ID ──
-        let pageId = user.metaPageId || null;
-        if (!pageId) {
-            let resolvedPageId = null;
-            // Strategy 1: /me/accounts
-            try {
-                const pagesRes = await axios.get('https://graph.facebook.com/v22.0/me/accounts', {
-                    params: { access_token: token, fields: 'id,name', limit: 10 }
-                });
-                if (pagesRes.data?.data?.length > 0) resolvedPageId = pagesRes.data.data[0].id;
-            } catch (e) { console.warn('[META-ADS] me/accounts failed:', e.message); }
-
-            // Strategy 2: Business Manager
-            if (!resolvedPageId) {
-                try {
-                    const bizRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
-                        params: { access_token: token, fields: 'id,name', limit: 5 }
-                    });
-                    for (const biz of (bizRes.data?.data || [])) {
-                        if (resolvedPageId) break;
-                        try {
-                            const pr = await axios.get(`https://graph.facebook.com/v22.0/${biz.id}/owned_pages`, {
-                                params: { access_token: token, fields: 'id,name', limit: 5 }
-                            });
-                            if (pr.data?.data?.length > 0) resolvedPageId = pr.data.data[0].id;
-                        } catch (e2) { /* ignore */ }
-                    }
-                } catch (e) { console.warn('[META-ADS] BM page resolution failed:', e.message); }
-            }
-            // Strategy 3: Ad Account business
-            if (!resolvedPageId) {
-                try {
-                    const actRes = await axios.get(`https://graph.facebook.com/v22.0/${fbAdAccountId}`, {
-                        params: { access_token: token, fields: 'id,name,business' }
-                    });
-                    const businessId = actRes.data?.business?.id;
-                    if (businessId) {
-                        const pr = await axios.get(`https://graph.facebook.com/v22.0/${businessId}/owned_pages`, {
-                            params: { access_token: token, fields: 'id,name', limit: 5 }
-                        });
-                        if (pr.data?.data?.length > 0) resolvedPageId = pr.data.data[0].id;
-                    }
-                } catch (e) { console.warn('[META-ADS] Ad Account biz resolution failed:', e.message); }
-            }
-            if (resolvedPageId) {
-                pageId = resolvedPageId;
-                user.metaPageId = pageId;
-                await user.save();
-            } else {
-                throw new Error('No Facebook Page found. Please set your Page ID in Settings → Meta Ads.');
-            }
-        }
-
-        // ── Build geo_locations ──
-        const userLocations = targeting?.locations || [];
-        const locationKeys = targeting?.locationKeys || [];
-        let geoLocations;
-        if (locationKeys.length > 0) {
-            const locObjects = targeting?.locationObjects || [];
-            const countries = locObjects.filter(l => l.type === 'country').map(l => l.countryCode || l.key);
-            const regions = locObjects.filter(l => l.type === 'region').map(l => ({ key: l.key, name: l.name, country: l.countryCode }));
-            const cities = locObjects.filter(l => l.type === 'city').map(l => ({ key: l.key, name: l.name, country: l.countryCode, region: l.region }));
-            const zips = locObjects.filter(l => l.type === 'zip').map(l => ({ key: l.key }));
-            geoLocations = {};
-            if (countries.length > 0) geoLocations.countries = countries;
-            if (regions.length > 0) geoLocations.regions = regions;
-            if (cities.length > 0) geoLocations.cities = cities;
-            if (zips.length > 0) geoLocations.zips = zips;
-            if (Object.keys(geoLocations).length === 0) geoLocations = { countries: ['IN'] };
-        } else if (userLocations.length > 0) {
-            geoLocations = { cities: userLocations.map(loc => ({ name: typeof loc === 'string' ? loc : loc.name })) };
-        } else {
-            geoLocations = { countries: ['IN'] };
-        }
-
-        // Resolve interest names → Meta interest IDs (integers required by API)
-        const userInterests = targeting?.interests || [];
-        let flexibleSpec = undefined;
-        if (userInterests.length > 0) {
-            const resolvedInterests = [];
-            for (const interestName of userInterests) {
-                try {
-                    const searchRes = await axios.get('https://graph.facebook.com/v22.0/search', {
-                        params: {
-                            type: 'adinterest',
-                            q: typeof interestName === 'string' ? interestName : interestName.name,
-                            access_token: token,
-                            limit: 1
-                        },
-                        timeout: 5000
-                    });
-                    const match = searchRes.data?.data?.[0];
-                    if (match && match.id) {
-                        resolvedInterests.push({ id: match.id, name: match.name });
-                    }
-                } catch (e) {
-                    console.warn(`[META-ADS] Interest lookup failed for "${interestName}": ${e.message}`);
-                }
-            }
-            if (resolvedInterests.length > 0) {
-                flexibleSpec = [{ interests: resolvedInterests }];
-                console.log(`[META-ADS] Draft-Publish: Resolved ${resolvedInterests.length}/${userInterests.length} interests`);
-            } else {
-                console.warn('[META-ADS] Draft-Publish: No interests resolved — omitting flexible_spec');
-            }
-        }
-        let gendersArr = undefined;
-        if (targeting?.gender === 'male') gendersArr = [1];
-        if (targeting?.gender === 'female') gendersArr = [2];
-        const LOCALE_MAP = { en: 6, hi: 23, mr: 45, gu: 20, ta: 57, te: 59, kn: 33, ml: 42, bn: 12, ar: 28, pa: 51, ur: 67 };
-        let localesArr = undefined;
-        if (targeting?.targetingLanguage && LOCALE_MAP[targeting.targetingLanguage]) {
-            localesArr = [LOCALE_MAP[targeting.targetingLanguage]];
-        }
-        const placements = targeting?.placements || ['facebook', 'instagram'];
-        let publisherPlatforms = placements.filter(p => ['facebook', 'instagram', 'audience_network', 'messenger'].includes(p));
-
-        // Meta compliance: CTWA (Engagement) does NOT support messenger or audience_network
-        if (storedObjective === 'OUTCOME_ENGAGEMENT') {
-            publisherPlatforms = publisherPlatforms.filter(p => p !== 'messenger' && p !== 'audience_network');
-        }
-
-        // Meta compliance: Audience Network cannot be the sole placement
-        if (publisherPlatforms.includes('audience_network') &&
-            !publisherPlatforms.includes('facebook') &&
-            !publisherPlatforms.includes('instagram')) {
-            publisherPlatforms.push('facebook');
-        }
-
-        const facebookPositions = placements.includes('facebook') ? ['feed', 'facebook_reels'] : undefined;
-        const instagramPositions = placements.includes('instagram') ? ['stream', 'reels'] : undefined;
-        // messenger_home deprecated by Meta Nov 2025 — strip it as safety net
-        const rawMessengerPos2 = (targeting?.messengerPositions || ['messenger_story']).filter(pos => pos !== 'messenger_home');
-        const messengerPositions2 = placements.includes('messenger') && publisherPlatforms.includes('messenger')
-            ? (rawMessengerPos2.length > 0 ? rawMessengerPos2 : ['messenger_story'])
-            : undefined;
-        const targetingSpec = {
-            age_max: targeting?.age_max || 65,
-            age_min: targeting?.age_min || 18,
-            geo_locations: geoLocations,
-            ...(gendersArr && { genders: gendersArr }),
-            ...(localesArr && { locales: localesArr }),
-            ...(flexibleSpec && { flexible_spec: flexibleSpec }),
-            ...(publisherPlatforms.length > 0 && { publisher_platforms: publisherPlatforms }),
-            ...(facebookPositions && { facebook_positions: facebookPositions }),
-            ...(instagramPositions && { instagram_positions: instagramPositions }),
-            ...(messengerPositions2 && { messenger_positions: messengerPositions2 }),
+        const payload = {
+            campaignName: stored.campaignName,
+            objective: stored.objective,
+            dailyBudget: stored.dailyBudget,
+            targeting: stored.targeting,
+            creatives: stored.creatives || {},
+            imageUrl: stored.creatives?.imageUrl || null,
+            automation: stored.creatives?.automation || null,
+            scheduling: stored.creatives?.scheduling || null,
+            budgetType: stored.creatives?.budgetType || 'daily',
+            lifetimeBudget: stored.creatives?.lifetimeBudget || null,
+            fbPageId: null // Let the utility auto-resolve if needed
         };
 
-        // ── 2. Create AdSet — objective-based config ──
-        const isCTWA2 = storedObjective === 'OUTCOME_ENGAGEMENT';
-
-        const OBJECTIVE_CONFIG2 = {
-            OUTCOME_ENGAGEMENT: { optimization_goal: 'CONVERSATIONS', destination_type: 'WHATSAPP', bid_strategy: 'LOWEST_COST_WITHOUT_CAP' },
-            OUTCOME_TRAFFIC:    { optimization_goal: 'LINK_CLICKS' },
-            OUTCOME_LEADS:      { optimization_goal: 'LEAD_GENERATION' },
-            OUTCOME_AWARENESS:  { optimization_goal: 'REACH' },
-        };
-        const objConfig2 = OBJECTIVE_CONFIG2[storedObjective] || OBJECTIVE_CONFIG2.OUTCOME_ENGAGEMENT;
-
-        const adSetParams = {
-            name: `${stored.campaignName} - AdSet`,
-            campaign_id: campaignId,
-            billing_event: 'IMPRESSIONS',
-            optimization_goal: objConfig2.optimization_goal,
-            promoted_object: JSON.stringify({ page_id: pageId }),
-            targeting: JSON.stringify(targetingSpec),
-            status: 'ACTIVE',
-            access_token: token
-        };
-        if (objConfig2.destination_type) adSetParams.destination_type = objConfig2.destination_type;
-        if (objConfig2.bid_strategy) adSetParams.bid_strategy = objConfig2.bid_strategy;
-
-        if (isLifetime) {
-            adSetParams.lifetime_budget = Math.round((Number(lifetimeBudget) || 3000) * 100);
-            const endDate = new Date();
-            endDate.setDate(endDate.getDate() + 30);
-            adSetParams.end_time = Math.floor(endDate.getTime() / 1000);
-        } else {
-            adSetParams.daily_budget = Math.round((Number(dailyBudget) || 500) * 100);
-        }
-
-        const debugParams2 = { ...adSetParams };
-        delete debugParams2.access_token;
-        console.log(`[META-ADS] Draft-Publish AdSet params (${isCTWA2 ? 'CTWA' : 'Standard'}):`, JSON.stringify(debugParams2, null, 2));
-
-        const adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
-            params: adSetParams
-        }).catch(async (e) => {
-            const errData = e.response?.data?.error || {};
-            const errSubcode = errData.error_subcode;
-            console.error('[META-ADS] Draft-Publish AdSet creation failed:', JSON.stringify(errData, null, 2));
-
-            if (isCTWA2 && (errSubcode === 2446886 || errSubcode === 1885264 || (errData.message && errData.message.includes('WhatsApp')))) {
-                console.log('[META-ADS] Page not linked to WABA — retrying as standard engagement ad...');
-                delete adSetParams.destination_type;
-                adSetParams.optimization_goal = 'LINK_CLICKS';
-                delete adSetParams.bid_strategy;
-
-                return axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
-                    params: adSetParams
-                }).catch(e2 => {
-                    console.error('[META-ADS] Standard fallback also failed:', JSON.stringify(e2.response?.data?.error || e2.message, null, 2));
-                    return { data: { id: null } };
-                });
-            }
-
-            return { data: { id: null } };
-        });
-        const adSetId = adSetRes.data.id;
-        console.log(`[META-ADS] AdSet created: ${adSetId}`);
-
-        // ── 3. Upload Image + Create AdCreative + Create Ad ──
-        if (adSetId) {
-            try {
-                let imageHash = null;
-                if (imageUrl && imageUrl.startsWith('data:image')) {
-                    const base64Data = imageUrl.split(',')[1];
-                    if (base64Data) {
-                        const qsLib = require('querystring');
-                        const imgRes = await axios.post(
-                            `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
-                            qsLib.stringify({ bytes: base64Data, access_token: token }),
-                            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, maxBodyLength: Infinity }
-                        ).catch(e => { console.warn('[META-ADS] Image upload:', e.response?.data?.error?.message || e.message); return null; });
-                        if (imgRes?.data?.images) {
-                            const firstKey = Object.keys(imgRes.data.images)[0];
-                            imageHash = imgRes.data.images[firstKey]?.hash;
-                            console.log('[META-ADS] Image hash:', imageHash);
-                        }
-                    }
-                }
-
-                const linkData = {
-                    message: creatives.primary_text || '',
-                    name: creatives.headline || '',
-                    link: `https://www.facebook.com/${pageId}`,
-                    // NOTE: app_destination requires Page fully linked to WABA.
-                    // Omit it to avoid OAuthException code 1 when that link is absent.
-                    call_to_action: { type: 'WHATSAPP_MESSAGE', value: {} }
-                };
-                if (imageHash) linkData.image_hash = imageHash;
-                else if (imageUrl?.startsWith('http')) linkData.picture = imageUrl;
-
-                const objectStorySpec2 = JSON.stringify({ page_id: pageId, link_data: linkData });
-                console.log('[META-ADS] Draft-Publish AdCreative object_story_spec:', objectStorySpec2);
-
-                const qsLib2 = require('querystring');
-                const creativeRes = await axios.post(
-                    `https://graph.facebook.com/v22.0/${fbAdAccountId}/adcreatives`,
-                    qsLib2.stringify({ name: `${stored.campaignName} - Creative`, object_story_spec: objectStorySpec2, access_token: token }),
-                    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-                ).catch(e => { console.warn('[META-ADS] AdCreative:', e.response?.data?.error?.message || e.message); return null; });
-
-                const creativeId = creativeRes?.data?.id;
-                console.log('[META-ADS] AdCreative ID:', creativeId);
-
-                if (creativeId) {
-                    const adRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/ads`, null, {
-                        params: {
-                            name: `${stored.campaignName} - Ad`,
-                            adset_id: adSetId,
-                            creative: JSON.stringify({ creative_id: creativeId }),
-                            status: 'ACTIVE',
-                            access_token: token
-                        }
-                    }).catch(e => { console.warn('[META-ADS] Ad creation:', e.response?.data?.error?.message || e.message); return null; });
-                    console.log('[META-ADS] Ad ID:', adRes?.data?.id);
-                }
-            } catch (creativeErr) {
-                console.warn('[META-ADS] Creative/Ad chain:', creativeErr.response?.data || creativeErr.message);
-            }
+        const result = await publishCampaignToMeta(user, payload);
+        
+        if (result.errorMsg) {
+            campaignRecord.status = 'Error';
+            await campaignRecord.save();
+            return res.status(400).json({ error: result.errorMsg });
         }
 
         // ── Update local record ──
-        campaignRecord.status = adSetId ? 'Active' : 'Error';
-        campaignRecord.metaCampaignId = campaignId;
-        campaignRecord.metaAdsetId = adSetId || null;
+        campaignRecord.status = result.status;
+        campaignRecord.metaCampaignId = result.campaignId;
+        campaignRecord.metaAdsetId = result.adSetId || null;
+        campaignRecord.metaAdId = result.adId || null;
+        campaignRecord.budgetType = payload.budgetType || 'daily';
+        campaignRecord.scheduleStart = payload.scheduling?.startDate ? new Date(payload.scheduling.startDate) : null;
+        campaignRecord.scheduleEnd = payload.scheduling?.endDate ? new Date(payload.scheduling.endDate) : null;
         await campaignRecord.save();
 
         console.log(`[META-ADS] Draft campaign ${req.params.id} published → status: ${campaignRecord.status}`);
@@ -1650,7 +871,7 @@ router.post('/:id/publish', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.patch('/:id', async (req, res) => {
     try {
-        const { campaignName, dailyBudget } = req.body;
+        const { campaignName, dailyBudget, primaryText, headline } = req.body;
         const campaign = await MetaAdCampaign.findOne({ where: { id: req.params.id, userId: req.user.id } });
         if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
 
@@ -1693,6 +914,63 @@ router.patch('/:id', async (req, res) => {
                 }
             }
             updates.dailyBudget = Number(dailyBudget);
+        }
+
+        // Update Ad Copy (primaryText / headline)
+        if ((primaryText && primaryText !== campaign.creatives?.primary_text) || 
+            (headline && headline !== campaign.creatives?.headline)) {
+            
+            const newCreatives = {
+                ...campaign.creatives,
+                primary_text: primaryText || campaign.creatives?.primary_text,
+                headline: headline || campaign.creatives?.headline
+            };
+            
+            if (campaign.metaAdId && user.metaAdsToken && user.metaAdAccountId) {
+                try {
+                    // 1. Fetch existing ad creative's object_story_spec
+                    const adRes = await axios.get(
+                        `https://graph.facebook.com/v22.0/${campaign.metaAdId}`,
+                        { params: { fields: 'creative{object_story_spec}', access_token: user.metaAdsToken } }
+                    );
+                    
+                    const spec = adRes.data?.creative?.object_story_spec;
+                    if (spec && spec.link_data) {
+                        // 2. Mutate spec
+                        spec.link_data.message = newCreatives.primary_text;
+                        spec.link_data.name = newCreatives.headline;
+                        
+                        // 3. Create new AdCreative
+                        const qsCreative = require('querystring');
+                        const creativeRes = await axios.post(
+                            `https://graph.facebook.com/v22.0/${user.metaAdAccountId}/adcreatives`,
+                            qsCreative.stringify({
+                                name: `${campaignName || campaign.campaignName} - Creative (Edited)`,
+                                object_story_spec: JSON.stringify(spec),
+                                access_token: user.metaAdsToken
+                            }),
+                            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+                        );
+                        
+                        const newCreativeId = creativeRes.data.id;
+                        
+                        // 4. Update Ad to use new Creative
+                        await axios.post(
+                            `https://graph.facebook.com/v22.0/${campaign.metaAdId}`,
+                            null,
+                            { params: { creative: JSON.stringify({ creative_id: newCreativeId }), access_token: user.metaAdsToken } }
+                        );
+                        
+                        console.log(`[META-ADS] Successfully updated Ad ${campaign.metaAdId} with new copy (Creative: ${newCreativeId})`);
+                    } else {
+                        console.warn('[META-ADS] Could not fetch existing creative spec to update ad copy.');
+                    }
+                } catch (fbErr) {
+                    console.error('[META-ADS] Ad Copy update failed:', fbErr.response?.data?.error || fbErr.message);
+                }
+            }
+            
+            updates.creatives = newCreatives;
         }
 
         if (Object.keys(updates).length > 0) {

@@ -738,6 +738,22 @@ const AdminLandingPage = () => {
                                             <p className="text-sm text-slate-500 dark:text-slate-400">Configure the Book Free Demo modal and WhatsApp trigger template.</p>
                                         </div>
                                         
+                                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl">
+                                            <div>
+                                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Enable Book Demo Button</h4>
+                                                <p className="text-xs text-slate-500 mt-1">Show the Book Free Demo button on the public homepage</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={config.bookDemo?.enabled !== false}
+                                                    onChange={e => setConfig({ ...config, bookDemo: { ...(config.bookDemo || {}), enabled: e.target.checked } })}
+                                                />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-white/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
+                                            </label>
+                                        </div>
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                                             <div className="col-span-2 md:col-span-1">
                                                 <InputGroup label="Button Text" value={config.bookDemo?.buttonText || 'Book Free Demo'}

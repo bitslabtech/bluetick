@@ -11,6 +11,7 @@ import {
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { io } from 'socket.io-client';
 
 // ── LocationSearchInput: Smart Meta Targeting Geo Search ──────────────────────────
 // Calls /api/meta-ads/location-search (Meta Graph API or curated fallback)
@@ -510,10 +511,11 @@ const steps = [
 ];
 
 export default function MetaAdsWizard() {
-    const navigate = useNavigate();
+const navigate = useNavigate();
     const [creationMode, setCreationMode] = useState('ai'); // 'ai' | 'manual'
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [publishProgress, setPublishProgress] = useState(null);
     const [metaConnected, setMetaConnected] = useState(null); // null = checking
     const [checklistChecks, setChecklistChecks] = useState({ hasMetaToken: false, hasAdAccount: false, hasWhatsApp: false, hasWabaSetup: false, hasPageWabaLink: false, hasValidPaymentMethod: false });
     const [checklistLoading, setChecklistLoading] = useState(false);
@@ -521,6 +523,20 @@ export default function MetaAdsWizard() {
     const [hasAttemptedAutoOpen, setHasAttemptedAutoOpen] = useState(false);
     const [showChecklist, setShowChecklist] = useState(false);   // prereq modal
     const [showPreview, setShowPreview] = useState(false);        // ad preview modal
+    const [successModalOpen, setSuccessModalOpen] = useState(false);
+    const [createdCampaignUrl, setCreatedCampaignUrl] = useState('');
+
+    useEffect(() => {
+        const socket = io(import.meta.env.VITE_API_URL || '', { withCredentials: true });
+        
+        socket.on('campaign_publish_progress', (data) => {
+            setPublishProgress(data.message);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
     const fetchStatus = async (autoOpen = false) => {
         try {
@@ -806,6 +822,7 @@ export default function MetaAdsWizard() {
             toast.error(err.response?.data?.error || 'Failed to publish.');
         } finally {
             setLoading(false);
+            setPublishProgress(null);
         }
     };
 
@@ -889,6 +906,7 @@ export default function MetaAdsWizard() {
             toast.error(err.response?.data?.error || 'Failed to save campaign.');
         } finally {
             setLoading(false);
+            setPublishProgress(null);
         }
     };
 
@@ -2356,7 +2374,12 @@ export default function MetaAdsWizard() {
                                         : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25 text-white'
                                     } disabled:opacity-60 disabled:cursor-not-allowed`}
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Megaphone className="w-5 h-5" />}
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        {publishProgress ? <span className="ml-2 text-sm">{publishProgress}</span> : 'Publishing...'}
+                                    </>
+                                ) : <Megaphone className="w-5 h-5" />}
                                 {metaConnected ? 'Publish Ad Campaign' : 'Save as Draft'}
                             </button>
                         </div>

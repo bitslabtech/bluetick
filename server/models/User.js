@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 const User = sequelize.define('User', {
     id: {
@@ -190,7 +191,14 @@ const User = sequelize.define('User', {
     metaAdsToken: {
         type: DataTypes.TEXT,
         allowNull: true,
-        comment: 'Long-lived User Access Token with ads_read permission'
+        comment: 'Long-lived User Access Token with ads_read permission',
+        get() {
+            const rawValue = this.getDataValue('metaAdsToken');
+            return decrypt(rawValue);
+        },
+        set(val) {
+            this.setDataValue('metaAdsToken', encrypt(val));
+        }
     },
     metaPageId: {
         type: DataTypes.STRING,
