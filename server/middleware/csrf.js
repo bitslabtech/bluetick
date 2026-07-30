@@ -28,8 +28,16 @@ function csrfProtection(req, res, next) {
         });
     }
 
-    // 2. Allow non-mutating requests to pass through
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    // 2. Allow non-mutating requests and excluded paths to pass through
+    const excludedPaths = [
+        '/api/webhooks', 
+        '/api/meta-ads/webhooks', 
+        '/api/payment/webhook',
+        '/api/v1'
+    ];
+    const isExcluded = excludedPaths.some(p => req.path.startsWith(p));
+
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || isExcluded) {
         return next();
     }
 

@@ -21,6 +21,7 @@ const { sequelize, createDbIfNotExists } = require('./config/database');
 const helmet = require('helmet');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
+const csrfProtection = require('./middleware/csrf');
 const { globalLimiter } = require('./middleware/rateLimiter');
 const setupGuard = require('./middleware/setupGuard');
 
@@ -105,7 +106,8 @@ app.use(express.json({
         req.rawBody = buf;
     }
 }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(csrfProtection); // Apply CSRF protection globally (excluded routes are handled inside)
 
 // ── Setup wizard — must be registered BEFORE setupGuard ─────────────────────
 app.use('/api/setup', require('./routes/setup'));

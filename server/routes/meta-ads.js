@@ -9,7 +9,6 @@ const axios = require('axios');
 const { Op } = require('sequelize');
 const multer = require('multer');
 const { publishCampaignToMeta } = require('../utils/metaAdsPublisher');
-const csrfProtection = require('../middleware/csrf');
 const { canTransition } = require('../utils/metaAdsStateMachine');
 
 // Helper to retry axios post requests on 429 errors
@@ -30,8 +29,6 @@ async function axiosPostWithRetry(url, payload, maxRetries = 3) {
 }
 
 router.use(auth);
-// Apply CSRF to all routes (GET will set token, POST/PATCH/DELETE will verify)
-router.use(csrfProtection);
 
 // GET all campaigns (includes cached insights)
 router.get('/', async (req, res) => {
