@@ -421,6 +421,9 @@ router.get('/insights', async (req, res) => {
         });
 
         const hasToken = user.metaAdsToken && user.metaAdAccountId;
+        if (!hasToken) {
+            return res.status(400).json({ error: 'Meta Ads account is not connected. Please connect it in Settings.' });
+        }
         
         // P3: Process in batches of 5 to avoid 504 timeouts on accounts with many campaigns
         const BATCH_SIZE = 5;

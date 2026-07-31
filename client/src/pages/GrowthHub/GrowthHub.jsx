@@ -443,7 +443,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                 toast.success('Insights synced from Meta!');
             }
         } catch (err) {
-            toast.error('Failed to sync insights');
+            toast.error(err.response?.data?.error || 'Failed to sync insights');
         }
     };
 
@@ -1681,7 +1681,7 @@ export default function GrowthHub() {
             }
             toast.success('Analytics refreshed!');
         } catch (err) {
-            toast.error('Failed to refresh data');
+            toast.error(err.response?.data?.error || 'Failed to refresh data');
         } finally {
             setLoading(false);
         }

@@ -8,8 +8,26 @@ if (import.meta.env.VITE_API_URL) {
   axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 }
 axios.defaults.withCredentials = true;
-axios.defaults.xsrfCookieName = 'csrf-token';
-axios.defaults.xsrfHeaderName = 'x-csrf-token';
+
+// CSRF: Manually inject the csrf-token cookie into the x-csrf-token header
+// for every mutating request. The built-in axios xsrfCookieName mechanism
+// only works on same-origin requests, but in production the frontend and
+// backend are cross-origin, so we must do this manually via an interceptor.
+function getCsrfToken() {
+  const match = document.cookie.split('; ').find(row => row.startsWith('csrf-token='));
+  return match ? match.split('=')[1] : null;
+}
+
+axios.interceptors.request.use((config) => {
+  const method = config.method?.toLowerCase();
+  if (['post', 'put', 'patch', 'delete'].includes(method)) {
+    const token = getCsrfToken();
+    if (token) {
+      config.headers['x-csrf-token'] = token;
+    }
+  }
+  return config;
+});
 
 // Global response interceptor: redirect to /checkout if the server blocks an expired plan.
 // This is a last-resort catch-all — ProtectedRoute handles it on navigation,
