@@ -424,6 +424,7 @@ router.get('/insights', async (req, res) => {
         
         // P3: Process in batches of 5 to avoid 504 timeouts on accounts with many campaigns
         const BATCH_SIZE = 5;
+        let tokenExpired = false;
         for (let i = 0; i < campaigns.length; i += BATCH_SIZE) {
             const batch = campaigns.slice(i, i + BATCH_SIZE);
             
@@ -465,6 +466,8 @@ router.get('/insights', async (req, res) => {
                     if (errorObj.code === 100 || msg.toLowerCase().includes('does not exist') || msg.toLowerCase().includes('invalid parameter')) {
                         campaign.status = 'Error';
                         await campaign.save().catch(e => null);
+                    } else if (errorObj.code === 190) {
+                        tokenExpired = true;
                     }
                 }
             }));
@@ -517,7 +520,8 @@ router.get('/insights', async (req, res) => {
                 totalClicks,
                 totalSpend: parseFloat(totalSpend.toFixed(2)),
                 avgCtr,
-                hasLiveConnection: !!hasToken
+                hasLiveConnection: !!hasToken,
+                tokenExpired
             },
             campaigns: results
         });

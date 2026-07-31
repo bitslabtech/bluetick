@@ -23,7 +23,7 @@ function csrfProtection(req, res, next) {
         res.cookie(CSRF_COOKIE_NAME, token, {
             httpOnly: false, // Must be readable by frontend JS
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 1 day
         });
     }
@@ -33,7 +33,8 @@ function csrfProtection(req, res, next) {
         '/api/webhooks', 
         '/api/meta-ads/webhooks', 
         '/api/payment/webhook',
-        '/api/v1'
+        '/api/v1',
+        '/api/auth'
     ];
     const isExcluded = excludedPaths.some(p => req.path.startsWith(p));
 

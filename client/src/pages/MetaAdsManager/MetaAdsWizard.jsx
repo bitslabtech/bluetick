@@ -593,7 +593,7 @@ const navigate = useNavigate();
     const [targetingLanguage, setTargetingLanguage] = useState('');  // Meta locale code e.g. 'hi', 'en'
     const [placements, setPlacements] = useState(['facebook', 'instagram']); // platforms
     const [messengerPositions, setMessengerPositions] = useState(['messenger_story']); // Stories only (messenger_home deprecated Nov 2025)
-    const [schedulingStart, setSchedulingStart] = useState('');  // ISO date string
+    const [schedulingStart, setSchedulingStart] = useState(new Date().toISOString().slice(0, 16));
     const [schedulingEnd, setSchedulingEnd] = useState('');
 
     // Auto-remove messenger/audience_network when switching to CTWA (Engagement)
@@ -687,8 +687,12 @@ const navigate = useNavigate();
         }
         setLoading(true);
         try {
+            let resolvedDesc = businessData.description;
+            if (targetLocations.length > 0) {
+                resolvedDesc = resolvedDesc.replace(/\[City\]/gi, targetLocations[0].name || targetLocations[0]);
+            }
             const res = await axios.post('/api/meta-ads/ai-research', {
-                businessDescription: `Business Name: ${businessData.name}\n${businessData.description}`,
+                businessDescription: `Business Name: ${businessData.name}\n${resolvedDesc}`,
                 targetLocations: targetLocations.length > 0 ? targetLocations.map(l => l.name) : undefined
             }, { withCredentials: true });
 
@@ -724,6 +728,7 @@ const navigate = useNavigate();
 
     // Step 4: Generate Image
     const handleGenerateImage = async () => {
+        if (!window.confirm("Generating an AI image costs ~250 tokens. Do you want to proceed?")) return;
         const selectedCreative = creativeData?.[selectedCreativeIndex];
         const imageContext = selectedCreative
             ? `Business: ${businessData.name}. Ad headline: "${selectedCreative.headline}". Ad copy: "${selectedCreative.primary_text?.slice(0, 150)}"`
@@ -758,10 +763,10 @@ const navigate = useNavigate();
         const META_MIN_DAILY = 100;   // ₹100/day minimum
         const META_MIN_FIXED = 500;   // ₹500 minimum for fixed/lifetime budget
         if (budgetData.budgetType === 'daily' && (budgetData.dailyBudget || 0) < META_MIN_DAILY) {
-            toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
+            return toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
         }
         if (budgetData.budgetType === 'lifetime' && (budgetData.lifetimeBudget || 0) < META_MIN_FIXED) {
-            toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
+            return toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
         }
         if (!schedulingStart) {
             return toast.error('Please select a Start Date for your ad schedule.');
@@ -842,10 +847,10 @@ const navigate = useNavigate();
         const META_MIN_DAILY = 100;
         const META_MIN_FIXED = 500;
         if (manual.budgetType === 'daily' && (manual.dailyBudget || 0) < META_MIN_DAILY) {
-            toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
+            return toast.error(`Daily budget must be at least ₹${META_MIN_DAILY}/day (Meta's minimum requirement).`);
         }
         if (manual.budgetType === 'lifetime' && (manual.lifetimeBudget || 0) < META_MIN_FIXED) {
-            toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
+            return toast.error(`Fixed budget must be at least ₹${META_MIN_FIXED} total (Meta's minimum requirement).`);
         }
         if (!schedulingStart) {
             return toast.error('Please select a Start Date for your ad schedule.');
@@ -917,7 +922,16 @@ const navigate = useNavigate();
         if (!file.type.startsWith('image/')) return toast.error('Please select a valid image file.');
         if (file.size > 4 * 1024 * 1024) return toast.error('Image must be under 4MB.');
         const reader = new FileReader();
-        reader.onload = (ev) => setGeneratedImage(ev.target.result);
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                if (img.width < 600 || img.height < 600) {
+                    return toast.error('Image dimensions must be at least 600x600 pixels (Meta requirement).');
+                }
+                setGeneratedImage(ev.target.result);
+            };
+            img.src = ev.target.result;
+        };
         reader.readAsDataURL(file);
     };
 
@@ -928,12 +942,22 @@ const navigate = useNavigate();
         if (!file.type.startsWith('image/')) return toast.error('Please select a valid image file.');
         if (file.size > 4 * 1024 * 1024) return toast.error('Image must be under 4MB.');
         const reader = new FileReader();
-        reader.onload = (ev) => setManualImage(ev.target.result);
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                if (img.width < 600 || img.height < 600) {
+                    return toast.error('Image dimensions must be at least 600x600 pixels (Meta requirement).');
+                }
+                setManualImage(ev.target.result);
+            };
+            img.src = ev.target.result;
+        };
         reader.readAsDataURL(file);
     };
 
     // ── Manual: AI generate image (uses same backend as AI mode) ──
     const handleManualGenerateImage = async () => {
+        if (!window.confirm("Generating an AI image costs ~250 tokens. Do you want to proceed?")) return;
         const desc = manual.campaignName || manual.primaryText || 'Business advertisement';
         setManualGeneratingImage(true);
         try {

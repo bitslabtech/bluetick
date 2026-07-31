@@ -434,6 +434,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
         try {
             toast('Syncing insights from Meta...', { icon: '🔄' });
             const res = await axios.get('/api/meta-ads/insights', { withCredentials: true });
+            if (res.data?.summary?.tokenExpired) setTokenExpired(true);
             if (res.data?.campaigns) {
                 setCampaigns(prev => prev.map(c => {
                     const updated = res.data.campaigns.find(r => r.id === c.id);
@@ -455,7 +456,10 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
     };
 
     // Aggregate spend summary across all campaigns
-    const totalDailyBudget = campaigns.reduce((s, c) => s + parseFloat(c.dailyBudget || 0), 0);
+    const totalDailyBudget = campaigns.reduce((s, c) => {
+        if (c.creatives?.budgetType === 'lifetime' || c.budgetType === 'lifetime') return s;
+        return s + parseFloat(c.dailyBudget || 0);
+    }, 0);
     const totalSpent       = campaigns.reduce((s, c) => s + parseFloat(c.spend || 0), 0);
     const totalImpressions = campaigns.reduce((s, c) => s + parseInt(c.impressions || 0), 0);
     const totalClicks      = campaigns.reduce((s, c) => s + parseInt(c.clicks || 0), 0);
@@ -1607,6 +1611,7 @@ export default function GrowthHub() {
     const [campaigns, setCampaigns] = useState([]);
     const [ctwaData, setCtwaData] = useState(null);
     const [metaConnected, setMetaConnected] = useState(null);
+    const [tokenExpired, setTokenExpired] = useState(false);
     const [dateRange, setDateRange] = useState('last_30d');
 
     // Phase 4: Retarget modal state
@@ -1667,6 +1672,7 @@ export default function GrowthHub() {
             toast('Refreshing data from Meta...', { icon: '🔄' });
             await fetchCtwaData();
             const res = await axios.get('/api/meta-ads/insights', { withCredentials: true });
+            if (res.data?.summary?.tokenExpired) setTokenExpired(true);
             if (res.data?.campaigns) {
                 setCampaigns(prev => prev.map(c => {
                     const updated = res.data.campaigns.find(r => r.id === c.id);
@@ -1732,6 +1738,19 @@ export default function GrowthHub() {
                         </div>
                         Growth Hub
                     </h1>
+                    
+                    {tokenExpired && (
+                        <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-3">
+                            <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-rose-900">Your Meta Account connection has expired.</p>
+                                <p className="text-xs text-rose-700">Please reconnect your Facebook page to continue syncing insights and publishing ads.</p>
+                            </div>
+                            <Link to="/settings" className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700 transition-colors">
+                                Reconnect Now
+                            </Link>
+                        </div>
+                    )}
                     <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed font-medium">
                         Your AI-powered command center. Create campaigns, track leads, and maximize ROI effortlessly.
                     </p>
