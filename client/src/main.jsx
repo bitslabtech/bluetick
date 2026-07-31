@@ -9,21 +9,35 @@ if (import.meta.env.VITE_API_URL) {
 }
 axios.defaults.withCredentials = true;
 
-// CSRF: Manually inject the csrf-token cookie into the x-csrf-token header
-// for every mutating request. The built-in axios xsrfCookieName mechanism
-// only works on same-origin requests, but in production the frontend and
-// backend are cross-origin, so we must do this manually via an interceptor.
-function getCsrfToken() {
-  const match = document.cookie.split('; ').find(row => row.startsWith('csrf-token='));
-  return match ? match.split('=')[1] : null;
-}
+let csrfToken = null;
 
+// Read CSRF token from response headers if the server provides it (cross-origin fix)
+axios.interceptors.response.use(
+  (response) => {
+    if (response.headers['x-csrf-token']) {
+      csrfToken = response.headers['x-csrf-token'];
+    }
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.headers && error.response.headers['x-csrf-token']) {
+      csrfToken = error.response.headers['x-csrf-token'];
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Inject CSRF token into mutating requests
 axios.interceptors.request.use((config) => {
   const method = config.method?.toLowerCase();
   if (['post', 'put', 'patch', 'delete'].includes(method)) {
-    const token = getCsrfToken();
-    if (token) {
-      config.headers['x-csrf-token'] = token;
+    // Fallback to cookie if memory is empty (e.g. same-origin local dev)
+    if (!csrfToken) {
+      const match = document.cookie.split('; ').find(row => row.startsWith('csrf-token='));
+      if (match) csrfToken = match.split('=')[1];
+    }
+    if (csrfToken) {
+      config.headers['x-csrf-token'] = csrfToken;
     }
   }
   return config;

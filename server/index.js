@@ -90,7 +90,8 @@ app.use(compression());
 
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Restrict CORS in production
-    credentials: true
+    credentials: true,
+    exposedHeaders: ['x-csrf-token']
 }));
 
 // Parse cookies — required for HttpOnly token auth

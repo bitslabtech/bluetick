@@ -751,9 +751,14 @@ const navigate = useNavigate();
     // Step 5: Publish (AI Mode)
     const handlePublish = async () => {
         const c = checklistChecks;
-        if (!c.hasMetaToken || !c.hasAdAccount || !c.hasWhatsApp || !c.hasWabaSetup || !c.hasPageWabaLink || !c.hasValidPaymentMethod) {
+        const isCTWAObjective = (budgetData.objective || 'OUTCOME_ENGAGEMENT') === 'OUTCOME_ENGAGEMENT';
+        const coreChecksOk = c.hasMetaToken && c.hasAdAccount && c.hasValidPaymentMethod;
+        const ctwaChecksOk = c.hasWhatsApp && c.hasWabaSetup && c.hasPageWabaLink;
+        if (!coreChecksOk || (isCTWAObjective && !ctwaChecksOk)) {
             setShowChecklist(true);
-            return toast.error('Please complete all mandatory setup steps in the Checklist before publishing.');
+            return toast.error(isCTWAObjective
+                ? 'Please complete all mandatory setup steps in the Checklist before publishing.'
+                : 'Please connect your Meta Ads account and select an Ad Account before publishing.');
         }
         const selectedCreative = creativeData[selectedCreativeIndex];
         if (!generatedImage) {
@@ -834,9 +839,14 @@ const navigate = useNavigate();
     // ── Manual Publish Handler ──
     const handleManualPublish = async () => {
         const c = checklistChecks;
-        if (!c.hasMetaToken || !c.hasAdAccount || !c.hasWhatsApp || !c.hasWabaSetup || !c.hasPageWabaLink || !c.hasValidPaymentMethod) {
+        const isCTWAObjective = manual.objective === 'OUTCOME_ENGAGEMENT';
+        const coreChecksOk = c.hasMetaToken && c.hasAdAccount && c.hasValidPaymentMethod;
+        const ctwaChecksOk = c.hasWhatsApp && c.hasWabaSetup && c.hasPageWabaLink;
+        if (!coreChecksOk || (isCTWAObjective && !ctwaChecksOk)) {
             setShowChecklist(true);
-            return toast.error('Please complete all mandatory setup steps in the Checklist before publishing.');
+            return toast.error(isCTWAObjective
+                ? 'Please complete all mandatory setup steps in the Checklist before publishing.'
+                : 'Please connect your Meta Ads account and select an Ad Account before publishing.');
         }
         if (!manual.campaignName.trim()) return toast.error('Campaign name is required.');
         if (!manual.primaryText.trim()) return toast.error('Ad primary text is required.');
@@ -1057,20 +1067,24 @@ const navigate = useNavigate();
                             </div>
                         </div>
 
-                        {/* WABA link warning for Engagement/CTWA objective */}
-                        {manual.objective === 'OUTCOME_ENGAGEMENT' && !checklistChecks.hasPageWabaLink && (
-                            <div className="mt-3 flex items-start gap-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-3">
-                                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        {/* CTWA objective → show WhatsApp requirement warning */}
+                        {manual.objective === 'OUTCOME_ENGAGEMENT' && (!checklistChecks.hasWhatsApp || !checklistChecks.hasPageWabaLink) && (
+                            <div className="mt-3 flex items-start gap-2.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-xl px-4 py-3">
+                                <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
                                 <div>
-                                    <p className="text-xs font-bold text-amber-700 dark:text-amber-300">Page not linked to WhatsApp Business</p>
-                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 leading-relaxed">
-                                        Your Facebook Page isn't connected to a WhatsApp Business Account. CTWA ads will auto-fallback to standard engagement.
-                                        To enable Click-to-WhatsApp ads, link your Page in <strong>Meta Business Manager → Settings → WhatsApp Accounts</strong>.
-                                    </p>
-                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                                        Or select <strong>Traffic</strong> objective to create standard ads without WhatsApp.
+                                    <p className="text-xs font-semibold text-rose-700 dark:text-rose-400">⚠️ WhatsApp Business API required for CTWA ads</p>
+                                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
+                                        This ad type sends customers directly to your WhatsApp chat. Connect your WhatsApp Business number in <strong>Settings → WhatsApp Configuration</strong> first,
+                                        or switch to <strong>Traffic</strong>, <strong>Awareness</strong>, or <strong>Lead Gen</strong> to create ads that work without WhatsApp.
                                     </p>
                                 </div>
+                            </div>
+                        )}
+                        {/* Non-CTWA objective → reassure user WhatsApp is NOT needed */}
+                        {manual.objective !== 'OUTCOME_ENGAGEMENT' && (
+                            <div className="mt-3 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl px-4 py-2.5">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                                <p className="text-[11px] text-emerald-700 dark:text-emerald-400">✅ No WhatsApp required — this ad drives traffic to your website or store link.</p>
                             </div>
                         )}
                     </div>
@@ -1631,7 +1645,7 @@ const navigate = useNavigate();
                     <button onClick={() => navigate(-1)} className="px-5 py-3.5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-sm">Cancel</button>
                     <button
                         onClick={handleManualPublish}
-                        disabled={loading || !Object.values(checklistChecks).every(Boolean)}
+                        disabled={loading || !checklistChecks.hasMetaToken || !checklistChecks.hasAdAccount || !checklistChecks.hasValidPaymentMethod || (manual.objective === 'OUTCOME_ENGAGEMENT' && (!checklistChecks.hasWhatsApp || !checklistChecks.hasPageWabaLink))}
                         className={`flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all text-sm ${metaConnected
                                 ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-violet-500/25'
                                 : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-amber-500/25'
@@ -2392,7 +2406,7 @@ const navigate = useNavigate();
                             <button onClick={() => setCurrentStep(3)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium px-4 py-2 border border-slate-200 dark:border-white/10 rounded-xl">Back to Automation</button>
                             <button
                                 onClick={handlePublish}
-                                disabled={loading || !Object.values(checklistChecks).every(Boolean)}
+                                disabled={loading || !checklistChecks.hasMetaToken || !checklistChecks.hasAdAccount || !checklistChecks.hasValidPaymentMethod || ((budgetData.objective || 'OUTCOME_ENGAGEMENT') === 'OUTCOME_ENGAGEMENT' && (!checklistChecks.hasWhatsApp || !checklistChecks.hasPageWabaLink))}
                                 className={`flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold shadow-lg transition-all w-full justify-center ml-4 ${metaConnected
                                         ? 'bg-primary hover:bg-primary/90 shadow-md text-white'
                                         : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25 text-white'
@@ -2422,7 +2436,7 @@ const navigate = useNavigate();
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
-                        onClick={() => { if (Object.values(checklistChecks).every(Boolean)) setShowChecklist(false); }}
+                        onClick={() => { if (checklistChecks.hasMetaToken && checklistChecks.hasAdAccount && checklistChecks.hasValidPaymentMethod) setShowChecklist(false); }}
                     >
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -2439,7 +2453,7 @@ const navigate = useNavigate();
                                         <h2 className="text-white font-bold text-lg">Before You Create an Ad</h2>
                                         <p className="text-blue-200 text-sm mt-0.5">Make sure these are set up in Meta Business Manager</p>
                                     </div>
-                                    {Object.values(checklistChecks).every(Boolean) && (
+                                    {(checklistChecks.hasMetaToken && checklistChecks.hasAdAccount && checklistChecks.hasValidPaymentMethod) && (
                                         <button onClick={() => setShowChecklist(false)} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
                                             <X className="w-4 h-4" />
                                         </button>
@@ -2639,7 +2653,7 @@ const navigate = useNavigate();
                                         💡 <strong>Meta handles all billing.</strong> You add your payment method directly in Meta Ad Account — your ad budget is charged by Meta, not by this platform.
                                     </p>
                                 </div>
-                                {Object.values(checklistChecks).every(Boolean) ? (
+                                {(checklistChecks.hasMetaToken && checklistChecks.hasAdAccount && checklistChecks.hasValidPaymentMethod) ? (
                                     <button
                                         onClick={() => setShowChecklist(false)}
                                         className="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-2xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-500/25"

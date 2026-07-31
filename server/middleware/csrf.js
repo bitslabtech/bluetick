@@ -21,12 +21,15 @@ function csrfProtection(req, res, next) {
     if (!token) {
         token = generateToken();
         res.cookie(CSRF_COOKIE_NAME, token, {
-            httpOnly: false, // Must be readable by frontend JS
+            httpOnly: false, // Must be readable by frontend JS (if same-origin)
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 1 day
         });
     }
+
+    // Always expose token in headers so cross-origin frontends can read it
+    res.setHeader(CSRF_HEADER_NAME, token);
 
     // 2. Allow non-mutating requests and excluded paths to pass through
     const excludedPaths = [
