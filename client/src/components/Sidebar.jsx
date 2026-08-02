@@ -74,7 +74,6 @@ const userNavItems = [
     { icon: Gift, label: 'Refer & Earn', path: '/referrals', perm: 'menu_referrals' },
 
     { icon: Package, label: 'Add-ons Market', path: '/marketplace', perm: 'menu_addons' },
-    { icon: Terminal, label: 'Integrations & API', path: '/integrations', perm: 'menu_integrations', requiresApiAccess: true },
 
     { icon: BarChart3, label: 'Reports', path: '/reports', perm: 'menu_reports' },
 

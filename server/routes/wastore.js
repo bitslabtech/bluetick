@@ -982,6 +982,325 @@ router.delete('/:id', async (req, res) => {
 // PRODUCTS MANAGEMENT
 // ==========================================
 
+// ==========================================
+// PRODUCT IMPORT ROUTES
+// ==========================================
+
+// GET /:storeId/products/import-template — Download CSV template
+router.get('/:storeId/products/import-template', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        // Gather existing categories so template can show them as hints
+        let existingCategories = [];
+        try { existingCategories = typeof store.categories === 'string' ? JSON.parse(store.categories) : (store.categories || []); } catch (e) {}
+
+        const catHint = existingCategories.length > 0 ? existingCategories[0] : 'Electronics';
+
+        const headers = ['name','description','price','compareAtPrice','category','sku','inStock','stockQuantity','trackQuantity','lowStockThreshold','taxRate','imageUrls','metaTitle','metaDescription'];
+        const sample1 = ['Blue T-Shirt','Comfortable cotton t-shirt','499','699', catHint, 'TSHIRT-BLU-M','yes','100','yes','10','18','https://example.com/image1.jpg','Blue T-Shirt | Buy Online','Premium blue t-shirt for everyday wear'];
+        const sample2 = ['Black Jeans','Slim fit denim jeans','1299','1799', catHint, 'JEANS-BLK-32','yes','50','yes','5','18','https://example.com/jeans1.jpg,https://example.com/jeans2.jpg','Black Slim Jeans','Stylish black jeans'];
+        const sample3 = ['Gold Ring','18k gold ring with diamond','4999','','Jewelry','RING-GOLD-18K','yes','20','no','3','3','','Gold Diamond Ring','Premium 18k gold ring'];
+
+        const toCSVRow = (arr) => arr.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+        const csv = [toCSVRow(headers), toCSVRow(sample1), toCSVRow(sample2), toCSVRow(sample3)].join('\r\n');
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="products_import_template.csv"');
+        res.send(csv);
+    } catch (error) {
+        console.error('Import template error:', error);
+        res.status(500).json({ error: 'Failed to generate template' });
+    }
+});
+
+// POST /:storeId/products/import/parse — Parse & validate (NO DB write)
+router.post('/:storeId/products/import/parse', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const { rows: rawRows } = req.body; // array of objects from frontend parser
+        if (!Array.isArray(rawRows) || rawRows.length === 0) {
+            return res.status(400).json({ error: 'No rows provided' });
+        }
+
+        // Gather existing data for validation
+        let existingCategories = [];
+        try { existingCategories = typeof store.categories === 'string' ? JSON.parse(store.categories) : (store.categories || []); } catch (e) {}
+
+        const existingSkus = new Set(
+            (await WaProduct.findAll({ where: { storeId: store.id }, attributes: ['sku'] }))
+                .map(p => p.sku).filter(Boolean).map(s => s.toLowerCase())
+        );
+
+        // Category normalization map: lowercase → original casing
+        const catNormMap = {};
+        existingCategories.forEach(c => { catNormMap[c.toLowerCase().trim()] = c; });
+
+        const seenSkusInFile = new Set();
+        const newCategoriesSet = new Set();
+        const matchedCategories = [];
+        const validatedRows = [];
+
+        rawRows.forEach((row, idx) => {
+            const rowNum = idx + 1;
+            const errors = {};
+            const warnings = {};
+
+            // ── Name ──
+            const name = String(row.name || '').trim();
+            if (!name) errors.name = 'Product name is required';
+            else if (name.length > 200) errors.name = `Name too long (${name.length}/200 chars)`;
+
+            // ── Price ──
+            const price = parseFloat(String(row.price || '').replace(/[^0-9.]/g, ''));
+            if (isNaN(price) || String(row.price || '').trim() === '') errors.price = 'Price is required and must be a number';
+            else if (price < 0) errors.price = 'Price cannot be negative';
+
+            // ── Compare At Price ──
+            let compareAtPrice = null;
+            if (row.compareAtPrice && String(row.compareAtPrice).trim() !== '') {
+                const cap = parseFloat(String(row.compareAtPrice).replace(/[^0-9.]/g, ''));
+                if (isNaN(cap)) errors.compareAtPrice = 'Must be a number';
+                else compareAtPrice = cap;
+            }
+
+            // ── Category (case-insensitive match) ──
+            let resolvedCategory = String(row.category || '').trim();
+            if (resolvedCategory) {
+                const normKey = resolvedCategory.toLowerCase();
+                if (catNormMap[normKey]) {
+                    // Matched existing — preserve original casing
+                    matchedCategories.push({ csv: resolvedCategory, stored: catNormMap[normKey] });
+                    resolvedCategory = catNormMap[normKey];
+                } else {
+                    // New category will be created
+                    newCategoriesSet.add(resolvedCategory);
+                }
+            }
+
+            // ── SKU ──
+            const sku = String(row.sku || '').trim();
+            if (sku) {
+                const skuLower = sku.toLowerCase();
+                if (existingSkus.has(skuLower)) errors.sku = `SKU "${sku}" already exists in your store`;
+                else if (seenSkusInFile.has(skuLower)) errors.sku = `Duplicate SKU "${sku}" in this file`;
+                else seenSkusInFile.add(skuLower);
+            }
+
+            // ── In Stock ──
+            const inStockRaw = String(row.inStock || 'yes').trim().toLowerCase();
+            let inStock = true;
+            if (['no', 'false', '0'].includes(inStockRaw)) inStock = false;
+            else if (!['yes', 'true', '1'].includes(inStockRaw)) warnings.inStock = `"${row.inStock}" interpreted as "yes". Use yes/no.`;
+
+            // ── Stock Quantity ──
+            let stockQuantity = 0;
+            if (row.stockQuantity !== undefined && String(row.stockQuantity).trim() !== '') {
+                const sq = parseInt(String(row.stockQuantity), 10);
+                if (isNaN(sq) || sq < 0) errors.stockQuantity = 'Must be a non-negative integer';
+                else stockQuantity = sq;
+            }
+
+            // ── Track Quantity ──
+            const trackQuantityRaw = String(row.trackQuantity || 'no').trim().toLowerCase();
+            let trackQuantity = false;
+            if (['yes', 'true', '1'].includes(trackQuantityRaw)) trackQuantity = true;
+
+            // ── Low Stock Threshold ──
+            let lowStockThreshold = 5;
+            if (row.lowStockThreshold !== undefined && String(row.lowStockThreshold).trim() !== '') {
+                const lst = parseInt(String(row.lowStockThreshold), 10);
+                if (isNaN(lst) || lst < 0) errors.lowStockThreshold = 'Must be a non-negative integer';
+                else lowStockThreshold = lst;
+            }
+
+            // ── Tax Rate ──
+            let taxRate = null;
+            if (row.taxRate !== undefined && String(row.taxRate).trim() !== '') {
+                const tr = parseFloat(String(row.taxRate));
+                if (isNaN(tr) || tr < 0 || tr > 100) errors.taxRate = 'Must be a number between 0 and 100';
+                else taxRate = tr;
+            }
+
+            // ── Image URLs ──
+            let imageUrls = [];
+            if (row.imageUrls && String(row.imageUrls).trim()) {
+                const urlParts = String(row.imageUrls).split(',').map(u => u.trim()).filter(Boolean);
+                const validUrls = [];
+                const badUrls = [];
+                urlParts.forEach(u => {
+                    try { new URL(u); validUrls.push(u); } catch { badUrls.push(u); }
+                });
+                imageUrls = validUrls;
+                if (badUrls.length > 0) warnings.imageUrls = `${badUrls.length} invalid URL(s) skipped: ${badUrls.join(', ')}`;
+            }
+
+            // ── Meta Title ──
+            const metaTitle = String(row.metaTitle || '').trim();
+            if (metaTitle.length > 160) errors.metaTitle = `Too long (${metaTitle.length}/160 chars)`;
+
+            // ── Description ──
+            const description = String(row.description || '').trim();
+            if (description.length > 5000) errors.description = `Too long (${description.length}/5000 chars)`;
+
+            // ── Meta Description ──
+            const metaDescription = String(row.metaDescription || '').trim();
+
+            const hasErrors = Object.keys(errors).length > 0;
+
+            validatedRows.push({
+                _rowNum: rowNum,
+                _status: hasErrors ? 'error' : Object.keys(warnings).length > 0 ? 'warning' : 'valid',
+                _errors: errors,
+                _warnings: warnings,
+                name,
+                description,
+                price: isNaN(price) ? 0 : price,
+                compareAtPrice,
+                category: resolvedCategory,
+                sku: sku || null,
+                inStock,
+                stockQuantity,
+                trackQuantity,
+                lowStockThreshold,
+                taxRate,
+                imageUrls,
+                metaTitle,
+                metaDescription,
+            });
+        });
+
+        const summary = {
+            total: validatedRows.length,
+            valid: validatedRows.filter(r => r._status === 'valid').length,
+            warnings: validatedRows.filter(r => r._status === 'warning').length,
+            errors: validatedRows.filter(r => r._status === 'error').length,
+        };
+
+        // Deduplicate matched categories
+        const matchedCatsUnique = Object.values(
+            matchedCategories.reduce((acc, m) => {
+                acc[m.csv.toLowerCase()] = m;
+                return acc;
+            }, {})
+        );
+
+        res.json({
+            rows: validatedRows,
+            summary,
+            categories: {
+                new: [...newCategoriesSet],
+                matched: matchedCatsUnique,
+                existing: existingCategories,
+            },
+        });
+    } catch (error) {
+        console.error('Import parse error:', error);
+        res.status(500).json({ error: 'Failed to parse file' });
+    }
+});
+
+// POST /:storeId/products/import/confirm — Write valid rows to DB
+router.post('/:storeId/products/import/confirm', async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const { rows } = req.body;
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return res.status(400).json({ error: 'No rows to import' });
+        }
+
+        // Re-validate on server (never trust frontend-only validation)
+        const existingSkus = new Set(
+            (await WaProduct.findAll({ where: { storeId: store.id }, attributes: ['sku'] }))
+                .map(p => p.sku).filter(Boolean).map(s => s.toLowerCase())
+        );
+        const seenSkus = new Set();
+
+        const toInsert = [];
+        const skipped = [];
+
+        const storeCategories = store.categories || [];
+        
+        for (const row of rows) {
+            const name = String(row.name || '').trim();
+            const price = parseFloat(row.price);
+            if (!name || isNaN(price)) { skipped.push({ row: row._rowNum, reason: 'Missing name or price' }); continue; }
+
+            const sku = row.sku ? String(row.sku).trim() : null;
+            if (sku) {
+                const skuLower = sku.toLowerCase();
+                if (existingSkus.has(skuLower) || seenSkus.has(skuLower)) {
+                    skipped.push({ row: row._rowNum, reason: `Duplicate SKU: ${sku}` });
+                    continue;
+                }
+                seenSkus.add(skuLower);
+            }
+
+            // Standardize category casing
+            let category = row.category ? String(row.category).trim() : null;
+            if (category) {
+                const found = storeCategories.find(c => c.toLowerCase() === category.toLowerCase());
+                if (found) category = found;
+            }
+
+            // Generate slug
+            let baseSlug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').substring(0, 80);
+            let slug = baseSlug;
+            let slugExists = await WaProduct.findOne({ where: { storeId: store.id, slug } });
+            let counter = 1;
+            while (slugExists) { slug = `${baseSlug}-${counter++}`; slugExists = await WaProduct.findOne({ where: { storeId: store.id, slug } }); }
+
+            toInsert.push({
+                storeId: store.id,
+                name,
+                description: row.description || null,
+                price,
+                compareAtPrice: row.compareAtPrice || null,
+                category,
+                sku: sku || null,
+                inStock: row.inStock !== false,
+                stockQuantity: parseInt(row.stockQuantity) || 0,
+                trackQuantity: row.trackQuantity === true,
+                lowStockThreshold: parseInt(row.lowStockThreshold) || 5,
+                taxRate: row.taxRate != null ? parseFloat(row.taxRate) : null,
+                imageUrls: Array.isArray(row.imageUrls) ? row.imageUrls : [],
+                metaTitle: row.metaTitle || null,
+                metaDescription: row.metaDescription || null,
+                slug,
+            });
+        }
+
+        // Batch insert in chunks of 50
+        const CHUNK = 50;
+        for (let i = 0; i < toInsert.length; i += CHUNK) {
+            await WaProduct.bulkCreate(toInsert.slice(i, i + CHUNK));
+        }
+
+        // Auto-merge new categories into store
+        const newCats = [...new Set(toInsert.map(p => p.category).filter(Boolean))];
+        if (newCats.length > 0) {
+            let existingCats = [];
+            try { existingCats = typeof store.categories === 'string' ? JSON.parse(store.categories) : (store.categories || []); } catch (e) {}
+            const existingLower = new Set(existingCats.map(c => c.toLowerCase()));
+            const toAdd = newCats.filter(c => !existingLower.has(c.toLowerCase()));
+            if (toAdd.length > 0) {
+                await store.update({ categories: [...existingCats, ...toAdd] });
+            }
+        }
+
+        res.json({ imported: toInsert.length, skipped: skipped.length, skippedDetails: skipped });
+    } catch (error) {
+        console.error('Import confirm error:', error);
+        res.status(500).json({ error: 'Failed to import products' });
+    }
+});
+
+// ==========================================
 // Get all products for a store
 router.get('/:storeId/products', async (req, res) => {
     try {
@@ -1000,6 +1319,7 @@ router.get('/:storeId/products', async (req, res) => {
 });
 
 // Create product
+
 router.post('/:storeId/products', async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id }});

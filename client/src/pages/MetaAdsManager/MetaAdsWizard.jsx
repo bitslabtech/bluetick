@@ -555,6 +555,13 @@ const navigate = useNavigate();
     // Check Meta connection on mount
     useEffect(() => { fetchStatus(true); }, []);
 
+    useEffect(() => {
+        if (metaConnected === false) {
+            toast.error('Please connect your Meta Ads account first.');
+            navigate('/growth-hub');
+        }
+    }, [metaConnected, navigate]);
+
     // Form State
     const [businessData, setBusinessData] = useState({ name: '', description: '' });
     const [audienceData, setAudienceData] = useState(null); // From AI
@@ -2435,29 +2442,25 @@ const navigate = useNavigate();
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
-                        onClick={() => { if (checklistChecks.hasMetaToken && checklistChecks.hasAdAccount && checklistChecks.hasValidPaymentMethod) setShowChecklist(false); }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowChecklist(false)}
                     >
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
                             transition={{ type: 'spring', damping: 20 }}
-                            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 max-w-lg w-full overflow-hidden cursor-pointer"
+                            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 max-w-lg w-full overflow-hidden"
                             onClick={e => e.stopPropagation()}
                         >
                             {/* Header */}
-                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 py-5">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h2 className="text-white font-bold text-lg">Before You Create an Ad</h2>
-                                        <p className="text-blue-200 text-sm mt-0.5">Make sure these are set up in Meta Business Manager</p>
-                                    </div>
-                                    {(checklistChecks.hasMetaToken && checklistChecks.hasAdAccount && checklistChecks.hasValidPaymentMethod) && (
-                                        <button onClick={() => setShowChecklist(false)} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    )}
+                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-6 py-5 relative">
+                                <button onClick={() => setShowChecklist(false)} className="absolute top-6 right-6 w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                                    <X className="w-4 h-4" />
+                                </button>
+                                <div>
+                                    <h2 className="text-white font-bold text-lg">Before You Create an Ad</h2>
+                                    <p className="text-blue-200 text-sm mt-0.5">Make sure these are set up in Meta Business Manager</p>
                                 </div>
                             </div>
 
@@ -2573,7 +2576,7 @@ const navigate = useNavigate();
                                 ].map((item, i) => {
                                     const isExpanded = expandedCheck === item.id;
                                     return (
-                                        <div key={item.id} className={`flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5'} cursor-pointer`} onClick={() => !item.done && setExpandedCheck(isExpanded ? null : item.id)}>
+                                        <div key={item.id} className={`flex flex-col p-4 rounded-2xl border-2 transition-all cursor-pointer ${item.done ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5' : 'border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5'}`} onClick={() => !item.done && setExpandedCheck(isExpanded ? null : item.id)}>
                                             <div className="flex items-start gap-4">
                                                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${item.done ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-amber-100 dark:bg-amber-500/20 shadow-sm'}`}>
                                                     {item.done ? '✅' : item.icon}

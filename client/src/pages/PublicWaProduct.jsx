@@ -12,8 +12,14 @@ import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyProductSeo, cleanupStoreSeo } from '../utils/storeSeo';
 
 // Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
-const slugifyProduct = (name, id) => {
-    const nameSlug = name
+const slugifyProduct = (productOrName, id) => {
+    let name = productOrName;
+    if (productOrName && typeof productOrName === 'object') {
+        if (productOrName.slug) return productOrName.slug;
+        name = productOrName.name;
+        id = productOrName.id;
+    }
+    const nameSlug = (name || '')
         .toLowerCase()
         .trim()
         .replace(/[^\w\s-]/g, '')
@@ -182,17 +188,27 @@ export default function PublicWaProduct({ customSlug }) {
                 // Support both slug format ("blue-shirt--a1b2c3d4") and raw UUID (backward compat)
                 const shortId = extractShortId(productId);
                 const foundProduct = res.data.products.find(p => {
+                    // Exact custom slug match
+                    if (p.slug && p.slug === productId) return true;
                     // Match by short ID prefix of the UUID
                     const productShortId = p.id.replace(/-/g, '').slice(0, 8);
                     return productShortId === shortId || p.id === productId;
                 });
                 
                 if (foundProduct) {
+                    // Strict URL enforcement: if the requested URL doesn't match the expected slug (or raw ID for compat), reject it
+                    const expectedSlug = slugifyProduct(foundProduct);
+                    if (productId !== expectedSlug && productId !== foundProduct.id) {
+                        setProduct(null);
+                        setLoading(false);
+                        return;
+                    }
+
                     setProduct(foundProduct);
                     // Apply full product SEO (title, og tags, Product schema, BreadcrumbList)
                     applyProductSeo(foundProduct, res.data.store, window.location.origin);
                 } else {
-                    toast.error("Product not found");
+                    // product is null, handled by UI below
                 }
             } catch (error) {
                 toast.error("Failed to load product details");
@@ -282,16 +298,37 @@ export default function PublicWaProduct({ customSlug }) {
     
     if (!store) return <StoreNotFound slug={slug} />;
     
-    if (!product) return (
-        <div className="h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-zinc-950 space-y-4">
-            <ShoppingBag className="w-16 h-16 text-slate-300 dark:text-zinc-700 animate-pulse" />
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-zinc-100">Product Not Found</h1>
-            <p className="text-sm text-slate-500 dark:text-zinc-400">The product you are looking for is unavailable or has been removed.</p>
-            <button onClick={() => navigate(`/store/${slug}`)} className={`${theme?.text || 'text-indigo-600'} font-semibold hover:underline flex items-center gap-2 mt-2`}>
-                <ArrowLeft className="w-4 h-4" /> Back to Store
-            </button>
-        </div>
-    );
+    if (!product) {
+        return (
+            <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-[140px] md:pb-0`} style={{ fontFamily: theme.fontFamily }}>
+                {/* ─── MODERN HEADER ─── */}
+                <WaStoreHeader 
+                    store={store} 
+                    theme={theme} 
+                    slug={slug} 
+                    products={allProducts}
+                    categories={categories} 
+                    cartCount={cartCount} 
+                    setIsCartOpen={setIsCartOpen}
+                />
+                
+                <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 md:px-8 lg:px-12 flex flex-col items-center justify-center min-h-[50vh]">
+                    <div className="flex flex-col items-center justify-center py-32 text-center space-y-5">
+                        <div className="w-20 h-20 rounded-full flex items-center justify-center bg-gray-50 dark:bg-zinc-800 shadow-sm border border-gray-200 dark:border-zinc-700 mb-2">
+                            <ShoppingBag className={`w-10 h-10 ${theme.textMuted} opacity-75`} />
+                        </div>
+                        <h1 className={`text-3xl font-black tracking-tight ${theme.text}`}>Product Not Found</h1>
+                        <p className={`text-base ${theme.textMuted} max-w-sm`}>The product you are looking for is unavailable or has been removed.</p>
+                        <button onClick={() => navigate(`/store/${slug}`)} className={`h-[42px] px-6 text-[11px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 mt-4 bg-black text-white hover:bg-neutral-800 shadow-md transition-all`}>
+                            <ArrowLeft className="w-4 h-4" /> Back to Store
+                        </button>
+                    </div>
+                </main>
+
+                <WaStoreFooter store={store} theme={theme} />
+            </div>
+        );
+    }
 
     const isOutOfStock = product.trackQuantity ? product.stockQuantity <= 0 : !product.inStock;
     const preventAdd = store.inventoryConfig?.preventCartAdd && isOutOfStock;

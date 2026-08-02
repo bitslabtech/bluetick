@@ -392,11 +392,14 @@ export default function MediaPickerModal({
 
                 {/* Toolbar */}
                 <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                        <input type="text" placeholder="Search by filename..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                    </div>
+                    {(files.length > 0 || searchTerm) && (
+                        <div className="relative flex-1">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                            <input type="text" placeholder="Search by filename..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        </div>
+                    )}
+                    {!((files.length > 0 || searchTerm)) && <div className="flex-1" />}
                     <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-white/5 rounded-lg p-1">
                         <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-colors ${viewMode === "grid" ? "bg-white dark:bg-white/10 shadow text-primary" : "text-slate-400 hover:text-slate-600"}`} title="Grid view"><Grid3X3 className="w-3.5 h-3.5" /></button>
                         <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-white/10 shadow text-primary" : "text-slate-400 hover:text-slate-600"}`} title="List view"><List className="w-3.5 h-3.5" /></button>

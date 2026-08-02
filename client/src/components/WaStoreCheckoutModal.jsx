@@ -376,7 +376,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Order Notes / Special Instructions</label>
-                                <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows="2" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" placeholder="E.g. Please wrap it as a gift..."></textarea>
+                                <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows="2" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" placeholder="Add any notes for the seller here..."></textarea>
                             </div>
                         </div>
                     </div>

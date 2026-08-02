@@ -602,6 +602,8 @@ export default function WaStoreCategories() {
                 />
             )}
 
+
+
             {/* ── Media Picker Modal ─────────────────────────────────────── */}
             <MediaPickerModal
                 isOpen={pickerOpen}

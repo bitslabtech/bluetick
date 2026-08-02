@@ -3,6 +3,7 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Contact, ClipboardList, CalendarCheck, Settings, Zap, ShoppingBag, Sparkles, ArrowRight, Image } from 'lucide-react';
 import axios from 'axios';
 import { useUI } from '../../context/UIContext';
+import NfcStoreModal from '../../components/NfcStoreModal';
 
 export default function VcardLayout() {
     const location = useLocation();
@@ -10,6 +11,7 @@ export default function VcardLayout() {
     const [showBanner, setShowBanner] = useState(false); // default hidden until fetched
     const [bannerImage, setBannerImage] = useState(null);
     const [isVerticalImage, setIsVerticalImage] = useState(false);
+    const [isStoreOpen, setIsStoreOpen] = useState(false);
     const { showToast } = useUI();
 
     useEffect(() => {
@@ -49,6 +51,11 @@ export default function VcardLayout() {
                 if (res.data.nfcBannerImage) setBannerImage(res.data.nfcBannerImage);
             })
             .catch(() => setShowBanner(false));
+
+        // Listen for "open-nfc-store" event from sub-pages
+        const handler = () => setIsStoreOpen(true);
+        window.addEventListener('open-nfc-store', handler);
+        return () => window.removeEventListener('open-nfc-store', handler);
     }, []);
 
     const navItems = [
@@ -219,7 +226,7 @@ export default function VcardLayout() {
 
                                 {/* CTA Button */}
                                 <button
-                                    onClick={() => window.dispatchEvent(new CustomEvent('open-nfc-store'))}
+                                    onClick={() => setIsStoreOpen(true)}
                                     className="group relative w-full py-2.5 rounded-xl overflow-hidden font-bold text-xs transition-all duration-300"
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 group-hover:from-indigo-400 group-hover:via-violet-400 group-hover:to-purple-500 transition-all duration-300" />
@@ -245,6 +252,8 @@ export default function VcardLayout() {
             <div className="flex-1">
                 <Outlet />
             </div>
+
+            <NfcStoreModal isOpen={isStoreOpen} onClose={() => setIsStoreOpen(false)} />
         </div>
     );
 }

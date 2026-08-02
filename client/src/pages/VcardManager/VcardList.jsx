@@ -7,7 +7,6 @@ import { useUI } from '../../context/UIContext';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { Nfc } from 'lucide-react';
-import NfcStoreModal from '../../components/NfcStoreModal';
 import NfcLinkModal from '../../components/NfcLinkModal';
 
 export default function VcardList() {
@@ -15,8 +14,6 @@ export default function VcardList() {
     const { showToast } = useUI();
     const [vcards, setVcards] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    const [isStoreOpen, setIsStoreOpen] = useState(false);
     const [isLinkOpen, setIsLinkOpen] = useState(false);
 
     const vcardLimit = user?.planDetails?.vcardLimit || 0;
@@ -107,7 +104,7 @@ export default function VcardList() {
                         <button onClick={() => setIsLinkOpen(true)} className="px-4 md:px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 backdrop-blur-sm">
                             <Nfc className="w-4 h-4" /> Link NFC Device
                         </button>
-                        <button onClick={() => setIsStoreOpen(true)} className="px-4 md:px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        <button onClick={() => window.dispatchEvent(new CustomEvent('open-nfc-store'))} className="px-4 md:px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
                             Open NFC Store
                         </button>
                     </div>
@@ -197,7 +194,6 @@ export default function VcardList() {
                 )}
             </div>
 
-            <NfcStoreModal isOpen={isStoreOpen} onClose={() => setIsStoreOpen(false)} />
             <NfcLinkModal isOpen={isLinkOpen} onClose={() => setIsLinkOpen(false)} vcards={vcards} />
         </div>
     );

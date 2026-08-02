@@ -1,0 +1,491 @@
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import {
+    X, Upload, Download, FileSpreadsheet, CheckCircle2,
+    AlertCircle, Loader2, ArrowRight, ChevronRight,
+    Tag, Sparkles, Info
+} from 'lucide-react';
+import ImportSpreadsheetGrid from './ImportSpreadsheetGrid';
+
+// ─── Parse CSV string into rows ─────────────────────────────────────────────
+function parseCSV(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return [];
+    const parseRow = (line) => {
+        const cols = [];
+        let cur = '', inQ = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+                if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+                else inQ = !inQ;
+            } else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+            else cur += ch;
+        }
+        cols.push(cur);
+        return cols;
+    };
+    const headers = parseRow(lines[0]).map(h => h.trim());
+    return lines.slice(1).map(line => {
+        const vals = parseRow(line);
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = vals[i]?.trim() ?? ''; });
+        return obj;
+    }).filter(r => Object.values(r).some(v => v !== ''));
+}
+
+// ─── Parse XLSX using xlsx npm package ────────────────────────────────────
+async function parseXLSX(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const wb = XLSX.read(e.target.result, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                resolve(rows.map(r => {
+                    const clean = {};
+                    Object.keys(r).forEach(k => { clean[k.trim()] = String(r[k] ?? '').trim(); });
+                    return clean;
+                }));
+            } catch (err) { reject(err); }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// ─── Category Intelligence Sidebar ─────────────────────────────────────────
+function CategorySidebar({ categories }) {
+    if (!categories) return null;
+    const { newCats = [], matched = [] } = categories;
+    if (newCats.length === 0 && matched.length === 0) return null;
+
+    return (
+        <div className="w-56 shrink-0 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-sm">
+            <div className="px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border-b border-slate-200 dark:border-white/10">
+                <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-indigo-500" /> Category Intel
+                </p>
+            </div>
+            <div className="p-3 space-y-3 max-h-[380px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                {newCats.length > 0 && (
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1.5 flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" /> {newCats.length} New
+                        </p>
+                        <div className="space-y-1">
+                            {newCats.map(c => (
+                                <div key={c} className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                    <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300 truncate">{c}</span>
+                                    <span className="text-[9px] text-amber-500 shrink-0 ml-auto">will create</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {matched.length > 0 && (
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-1.5 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> {matched.length} Matched
+                        </p>
+                        <div className="space-y-1">
+                            {matched.map((m, i) => (
+                                <div key={i} className="px-2 py-1 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{m.csv}</span>
+                                        <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
+                                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 truncate">{m.stored}</span>
+                                    </div>
+                                    {m.csv !== m.stored && (
+                                        <p className="text-[9px] text-emerald-500 mt-0.5">Casing fixed automatically</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {newCats.length > 0 && (
+                    <div className="flex items-start gap-1.5 px-2 py-1.5 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <Info className="w-3 h-3 text-blue-500 mt-0.5 shrink-0" />
+                        <p className="text-[9px] text-blue-600 dark:text-blue-400 leading-snug">New categories will be added to your store automatically on import.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── Step indicator ─────────────────────────────────────────────────────────
+function Steps({ current }) {
+    const steps = ['Template', 'Upload', 'Review & Fix', 'Done'];
+    return (
+        <div className="flex items-center gap-0 text-xs">
+            {steps.map((s, i) => {
+                const idx = i + 1;
+                const done = idx < current;
+                const active = idx === current;
+                return (
+                    <React.Fragment key={s}>
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-all ${
+                            done ? 'text-emerald-600 dark:text-emerald-400'
+                            : active ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
+                            : 'text-slate-400'
+                        }`}>
+                            {done ? <CheckCircle2 className="w-3 h-3" /> : <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${active ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500'}`}>{idx}</span>}
+                            {s}
+                        </div>
+                        {i < steps.length - 1 && <div className="w-4 h-px bg-slate-200 dark:bg-white/10" />}
+                    </React.Fragment>
+                );
+            })}
+        </div>
+    );
+}
+
+// ─── Main Modal ─────────────────────────────────────────────────────────────
+export default function ProductImportModal({ storeId, storeCategories = [], onClose, onImported }) {
+    const [step, setStep] = useState(1);
+    const [dragOver, setDragOver] = useState(false);
+    const [file, setFile] = useState(null);
+    const [parsing, setParsing] = useState(false);
+    const [parseResult, setParseResult] = useState(null); // { rows, summary, categories }
+    const [liveRows, setLiveRows] = useState([]); // updated by grid edits
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const [localCategories, setLocalCategories] = useState({ new: [], matched: [] });
+    const fileInputRef = useRef(null);
+
+    // Recompute category intelligence whenever liveRows changes
+    useEffect(() => {
+        if (!liveRows || liveRows.length === 0) return;
+        
+        const matched = [];
+        const newCats = new Set();
+        
+        liveRows.forEach(row => {
+            const cat = typeof row.category === 'string' ? row.category.trim() : '';
+            if (cat) {
+                const found = storeCategories.find(sc => sc.toLowerCase() === cat.toLowerCase());
+                if (found) {
+                    if (!matched.some(m => m.csv === cat && m.stored === found)) {
+                        matched.push({ csv: cat, stored: found });
+                    }
+                } else {
+                    newCats.add(cat);
+                }
+            }
+        });
+        
+        setLocalCategories({
+            new: Array.from(newCats),
+            matched
+        });
+    }, [liveRows, storeCategories]);
+
+    // ── Download template ──────────────────────────────────────────────────
+    const downloadTemplate = async () => {
+        try {
+            const res = await axios.get(
+                `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products/import-template`,
+                { responseType: 'blob' }
+            );
+            const url = URL.createObjectURL(res.data);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'products_import_template.csv'; a.click();
+            URL.revokeObjectURL(url);
+        } catch { toast.error('Failed to download template'); }
+    };
+
+    // ── File parsing ───────────────────────────────────────────────────────
+    const processFile = async (f) => {
+        if (!f) return;
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (!['csv', 'xlsx', 'xls'].includes(ext)) { toast.error('Please upload a CSV or Excel file (.csv, .xlsx, .xls)'); return; }
+        if (f.size > 5 * 1024 * 1024) { toast.error('File too large. Max 5 MB.'); return; }
+        setFile(f);
+        setParsing(true);
+        try {
+            let rawRows;
+            if (ext === 'csv') {
+                const text = await f.text();
+                rawRows = parseCSV(text);
+            } else {
+                rawRows = await parseXLSX(f);
+            }
+            if (rawRows.length === 0) { toast.error('No data rows found in file.'); setParsing(false); return; }
+
+            // Send to server for validation
+            const res = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products/import/parse`,
+                { rows: rawRows }
+            );
+            setParseResult(res.data);
+            setLiveRows(res.data.rows);
+            setStep(3);
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to parse file');
+        } finally {
+            setParsing(false);
+        }
+    };
+
+    // ── Confirm import ─────────────────────────────────────────────────────
+    const handleImport = async () => {
+        const importableRows = liveRows.filter(r => r._status !== 'error' && !r._deleted);
+        if (importableRows.length === 0) { toast.error('No valid rows to import'); return; }
+        setImporting(true);
+        try {
+            const res = await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products/import/confirm`,
+                { rows: importableRows }
+            );
+            setImportResult(res.data);
+            setStep(4);
+            onImported?.();
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Import failed');
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    const validCount = liveRows.filter(r => r._status !== 'error' && !r._deleted).length;
+    const errorCount = liveRows.filter(r => r._status === 'error' && !r._deleted).length;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="w-full max-w-5xl h-[94vh] flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center">
+                            <FileSpreadsheet className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Import Products</h3>
+                            <p className="text-[11px] text-slate-500">Bulk import from CSV or Excel</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <Steps current={step} />
+                        <button onClick={onClose} className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors text-slate-400">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-5">
+
+                    {/* ── STEP 1: Instructions + Template ── */}
+                    {step === 1 && (
+                        <div className="max-w-xl mx-auto space-y-5">
+                            <div className="text-center space-y-1">
+                                <h4 className="text-base font-bold text-slate-900 dark:text-white">Download the template first</h4>
+                                <p className="text-sm text-slate-500">Fill it with your products and upload it back. Takes 2 minutes.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {[
+                                    { step: '1', title: 'Download Template', desc: 'Get our pre-formatted CSV with sample rows and your existing categories.' },
+                                    { step: '2', title: 'Fill Your Products', desc: 'Add products row by row. Image URLs go in imageUrls, comma-separated.' },
+                                    { step: '3', title: 'Upload & Fix', desc: 'Upload it back, review any errors directly in the grid, then import.' },
+                                ].map(s => (
+                                    <div key={s.step} className="border border-slate-200 dark:border-white/10 rounded-xl p-4 space-y-2">
+                                        <div className="w-7 h-7 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-full flex items-center justify-center text-xs font-bold">{s.step}</div>
+                                        <p className="text-sm font-semibold text-slate-800 dark:text-white">{s.title}</p>
+                                        <p className="text-xs text-slate-500">{s.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Column legend */}
+                            <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
+                                <div className="px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 border-b border-slate-200 dark:border-white/10">
+                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Columns in the template</p>
+                                </div>
+                                <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-1.5">
+                                    {[
+                                        { col: 'name', req: true, note: 'Product name (max 200 chars)' },
+                                        { col: 'price', req: true, note: 'Numeric e.g. 499' },
+                                        { col: 'compareAtPrice', req: false, note: 'Original MRP (strike-through)' },
+                                        { col: 'category', req: false, note: 'Case-insensitive match to existing' },
+                                        { col: 'sku', req: false, note: 'Must be unique per store' },
+                                        { col: 'inStock', req: false, note: 'yes / no  (default: yes)' },
+                                        { col: 'stockQuantity', req: false, note: 'Integer (default: 0)' },
+                                        { col: 'imageUrls', req: false, note: 'Comma-separated image URLs' },
+                                        { col: 'taxRate', req: false, note: 'Percentage 0–100 e.g. 18' },
+                                        { col: 'metaTitle', req: false, note: 'SEO title (max 160 chars)' },
+                                    ].map(r => (
+                                        <div key={r.col} className="flex items-start gap-1.5">
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${r.req ? 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400' : 'bg-slate-100 dark:bg-white/10 text-slate-500'}`}>{r.req ? 'req' : 'opt'}</span>
+                                            <div>
+                                                <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 font-mono">{r.col}</span>
+                                                <p className="text-[10px] text-slate-400">{r.note}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={downloadTemplate}
+                                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-sm"
+                            >
+                                <Download className="w-4 h-4" /> Download Template CSV
+                            </button>
+                        </div>
+                    )}
+
+                    {/* ── STEP 2: Upload ── */}
+                    {step === 2 && (
+                        <div className="max-w-lg mx-auto space-y-4">
+                            <div className="text-center">
+                                <h4 className="text-base font-bold text-slate-900 dark:text-white">Upload your file</h4>
+                                <p className="text-sm text-slate-500">CSV, XLSX or XLS · Max 5 MB</p>
+                            </div>
+
+                            <div
+                                className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center gap-4 transition-all cursor-pointer ${
+                                    dragOver
+                                        ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/20'
+                                        : 'border-slate-300 dark:border-white/20 hover:border-indigo-400 hover:bg-slate-50 dark:hover:bg-white/5'
+                                }`}
+                                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                                onDragLeave={() => setDragOver(false)}
+                                onDrop={e => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]); }}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                {parsing ? (
+                                    <><Loader2 className="w-8 h-8 text-indigo-500 animate-spin" /><p className="text-sm text-slate-500">Parsing & validating…</p></>
+                                ) : (
+                                    <>
+                                        <div className="w-14 h-14 bg-slate-100 dark:bg-white/10 rounded-2xl flex items-center justify-center">
+                                            <Upload className="w-6 h-6 text-slate-400" />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{dragOver ? 'Drop it here!' : 'Drag & drop or click to browse'}</p>
+                                            <p className="text-xs text-slate-400 mt-1">Supported: .csv · .xlsx · .xls</p>
+                                        </div>
+                                    </>
+                                )}
+                                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={e => { processFile(e.target.files[0]); e.target.value = ''; }} />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── STEP 3: Review & Fix (spreadsheet + sidebar) ── */}
+                    {step === 3 && parseResult && (
+                        <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">Review &amp; Fix your data</h4>
+                                    <p className="text-xs text-slate-500 mt-0.5">Click any red cell to edit inline. Fix errors, then import.</p>
+                                </div>
+                                <div className="text-xs text-slate-500 shrink-0">
+                                    File: <span className="font-semibold text-slate-700 dark:text-slate-300">{file?.name}</span>
+                                    <span className="ml-2">· {parseResult.summary.total} rows</span>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 items-start">
+                                {/* Grid takes remaining space */}
+                                <div className="flex-1 min-w-0">
+                                    <ImportSpreadsheetGrid
+                                        initialRows={parseResult.rows}
+                                        existingSkus={[]}
+                                        onRowsChange={setLiveRows}
+                                    />
+                                </div>
+                                {/* Category sidebar */}
+                                <CategorySidebar
+                                    categories={{
+                                        newCats: localCategories.new,
+                                        matched: localCategories.matched,
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── STEP 4: Done ── */}
+                    {step === 4 && importResult && (
+                        <div className="max-w-sm mx-auto text-center space-y-5 py-6">
+                            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto">
+                                <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <div>
+                                <h4 className="text-lg font-bold text-slate-900 dark:text-white">Import Complete!</h4>
+                                <p className="text-sm text-slate-500 mt-1">
+                                    <span className="font-semibold text-emerald-600">{importResult.imported} products</span> imported successfully.
+                                </p>
+                                {importResult.skipped > 0 && (
+                                    <p className="text-sm text-amber-500 mt-1">{importResult.skipped} rows skipped due to validation errors.</p>
+                                )}
+                            </div>
+                            <button onClick={onClose} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors">
+                                View Products
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-slate-200 dark:border-white/10 shrink-0 bg-slate-50 dark:bg-zinc-800/50">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white font-semibold text-sm rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                    >
+                        {step === 4 ? 'Close' : 'Cancel'}
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                        {/* Step 1 → 2 */}
+                        {step === 1 && (
+                            <button
+                                onClick={() => setStep(2)}
+                                className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors"
+                            >
+                                Continue to Upload <ArrowRight className="w-4 h-4" />
+                            </button>
+                        )}
+                        {/* Step 2 → back to 1 */}
+                        {step === 2 && (
+                            <button
+                                onClick={() => setStep(1)}
+                                className="px-4 py-2 text-slate-500 font-semibold text-sm rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                            >
+                                ← Back
+                            </button>
+                        )}
+                        {/* Step 3: re-upload or confirm */}
+                        {step === 3 && (
+                            <>
+                                <button
+                                    onClick={() => { setStep(2); setParseResult(null); setLiveRows([]); setFile(null); }}
+                                    className="px-4 py-2 text-slate-500 font-semibold text-sm rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                >
+                                    ← Re-upload
+                                </button>
+                                {errorCount > 0 && (
+                                    <span className="text-xs text-red-500 font-medium">{errorCount} error{errorCount !== 1 ? 's' : ''} will be skipped</span>
+                                )}
+                                <button
+                                    onClick={handleImport}
+                                    disabled={importing || validCount === 0}
+                                    className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-sm transition-colors"
+                                >
+                                    {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> Importing…</> : <>Import {validCount} Product{validCount !== 1 ? 's' : ''} <ArrowRight className="w-4 h-4" /></>}
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+

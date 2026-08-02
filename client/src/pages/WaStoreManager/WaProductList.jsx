@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { Package, Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight, Check, FolderOpen } from 'lucide-react';
+import { Package, Plus, Trash2, Edit3, Eye, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight, Check, FolderOpen, FileSpreadsheet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MediaPickerModal from '../../components/MediaPickerModal';
+import ProductImportModal from './ProductImportModal';
 
 // ─── Allowed MIME types & extensions ─────────────────────────────────────────
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
-const ALLOWED_EXT  = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
-const MAX_SIZE_MB   = 5;
+const ALLOWED_EXT = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
+const MAX_SIZE_MB = 5;
 
 function validateImageFile(file) {
     const ext = '.' + file.name.split('.').pop().toLowerCase();
@@ -20,6 +21,25 @@ function validateImageFile(file) {
     }
     return null;
 }
+
+// Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
+const slugifyProduct = (productOrName, id) => {
+    let name = productOrName;
+    if (productOrName && typeof productOrName === 'object') {
+        if (productOrName.slug) return productOrName.slug;
+        name = productOrName.name;
+        id = productOrName.id;
+    }
+    const nameSlug = (name || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 60);
+    const shortId = id ? id.replace(/-/g, '').slice(0, 8) : '';
+    return shortId ? `${nameSlug}--${shortId}` : nameSlug;
+};
 
 // ─── Multi-Image Uploader Component ─────────────────────────────────────────
 
@@ -132,7 +152,7 @@ function VariantImageUploader({ onOpenPicker }) {
 // ─── Generates every combination of option values (Cartesian product) ─────────
 function generateCombos(options) {
     const groups = (options || []).map(o => {
-        const parsedValues = Array.isArray(o.values) 
+        const parsedValues = Array.isArray(o.values)
             ? o.values.filter(v => typeof v === 'string' && v.trim() !== '')
             : (typeof o.values === 'string' ? o.values.split(',').map(v => v.trim()).filter(Boolean) : []);
         return { ...o, name: (o.name || '').trim(), values: parsedValues };
@@ -158,6 +178,7 @@ export default function WaProductList() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [importModalOpen, setImportModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [generatingAi, setGeneratingAi] = useState(false);
     const [aiKeywords, setAiKeywords] = useState('');
@@ -182,6 +203,17 @@ export default function WaProductList() {
     const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '', ogImage: '', sku: '', trackQuantity: false, stockQuantity: 0, lowStockThreshold: 5 };
     const [form, setForm] = useState(defaultForm);
     const [generatingAiSeo, setGeneratingAiSeo] = useState(false);
+    
+    const openAddModal = () => {
+        let initialTax = '';
+        if (storeTaxConfig?.enabled && storeTaxConfig?.enableGlobalRate) {
+            initialTax = storeTaxConfig.rate || '';
+        }
+        setEditingProduct(null);
+        setForm({ ...defaultForm, taxRate: initialTax });
+        setIsAddingNewCategory(false);
+        setShowModal(true);
+    };
     const [showAiSeoModal, setShowAiSeoModal] = useState(false);
     const [aiSeoStep, setAiSeoStep] = useState(0);
 
@@ -213,11 +245,22 @@ export default function WaProductList() {
         try {
             const payload = { ...form };
             payload.taxRate = payload.taxRate === '' ? null : payload.taxRate;
-            payload.imageUrls = payload.imageUrls.filter(url => url.trim() !== '');
+
+            if (storeTaxConfig?.enabled) {
+                if (payload.taxRate === null) {
+                    toast.error("Please select a Tax Slab for this product.");
+                    return;
+                }
+            }
+            payload.imageUrls = (payload.imageUrls || []).filter(url => url && url.trim() !== '');
+            if (payload.imageUrls.length === 0) {
+                toast.error("Please add at least one product image.");
+                return;
+            }
             payload.options = payload.options.map(opt => ({
                 ...opt,
-                values: Array.isArray(opt.values) 
-                    ? opt.values 
+                values: Array.isArray(opt.values)
+                    ? opt.values
                     : opt.values.split(',').map(v => v.trim()).filter(Boolean)
             }));
             // Only save variant rows that actually have a custom price, stock, or image set
@@ -229,7 +272,7 @@ export default function WaProductList() {
                     stock: v.stock !== '' ? parseInt(v.stock) : null,
                     imageUrl: v.imageUrl || null,
                 }));
-            
+
             if (editingProduct) {
                 await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/products/${editingProduct.id}`, payload);
                 toast.success("Product updated");
@@ -279,7 +322,7 @@ export default function WaProductList() {
             compareAtPrice: product.compareAtPrice || '',
             wholesalePrice: product.wholesalePrice || '',
             minWholesaleQty: product.minWholesaleQty || '',
-            imageUrls: product.imageUrls?.length > 0 ? product.imageUrls : [''],
+            imageUrls: product.imageUrls?.length > 0 ? product.imageUrls.filter(url => url && url.trim() !== '') : [],
             category: product.category || '',
             inStock: product.inStock,
             options: savedOptions,
@@ -294,7 +337,7 @@ export default function WaProductList() {
             stockQuantity: product.stockQuantity ?? 0,
             lowStockThreshold: product.lowStockThreshold ?? 5,
         });
-        
+
         if (product.category && !storeCategories.includes(product.category)) {
             setIsAddingNewCategory(true);
         } else {
@@ -354,11 +397,11 @@ export default function WaProductList() {
             setGeneratingAiSeo(true);
             setAiSeoStep(0);
         }
-        
+
         try {
             if (retryCount === 0) {
-                setTimeout(() => setAiSeoStep(1), 1200); 
-                setTimeout(() => setAiSeoStep(2), 2400); 
+                setTimeout(() => setAiSeoStep(1), 1200);
+                setTimeout(() => setAiSeoStep(2), 2400);
             }
 
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/ai-seo`, {
@@ -367,23 +410,23 @@ export default function WaProductList() {
                 category: form.category,
                 price: form.price
             });
-            
-            setForm(f => ({ 
-                ...f, 
+
+            setForm(f => ({
+                ...f,
                 metaTitle: res.data.seo?.metaTitle || f.metaTitle,
                 metaDescription: res.data.seo?.metaDescription || f.metaDescription,
                 slug: res.data.seo?.slug || f.slug
             }));
-            
+
             setAiSeoStep(3); // Success step
             toast.success(`SEO Generated! (${res.data.tokensDeducted} tokens used)`);
-            
+
             setTimeout(() => {
                 setShowAiSeoModal(false);
                 setGeneratingAiSeo(false);
                 setAiSeoStep(0);
             }, 1000);
-            
+
         } catch (error) {
             if (retryCount < 1) {
                 handleGenerateAiSeo(retryCount + 1);
@@ -406,12 +449,20 @@ export default function WaProductList() {
                     </h2>
                     <p className="text-sm text-slate-500">Manage your store's products.</p>
                 </div>
-                <button 
-                    onClick={() => { setEditingProduct(null); setForm(defaultForm); setIsAddingNewCategory(false); setShowModal(true); }}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors text-sm shadow-sm"
-                >
-                    <Plus className="w-4 h-4" /> Add Product
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={() => setImportModalOpen(true)}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-sm transition-colors shadow-sm"
+                    >
+                        <FileSpreadsheet className="w-4 h-4" /> Import Products
+                    </button>
+                    <button
+                        onClick={openAddModal}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors text-sm shadow-sm"
+                    >
+                        <Plus className="w-4 h-4" /> Add Product
+                    </button>
+                </div>
             </div>
 
             {loading ? (
@@ -479,6 +530,15 @@ export default function WaProductList() {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            <a
+                                                href={`/store/${store?.slug}/product/${slugifyProduct(product)}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex justify-center items-center p-2 bg-transparent text-slate-600 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 rounded transition-colors"
+                                                title="View in Store"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </a>
                                             <button onClick={() => openEdit(product)} className="flex justify-center items-center p-2 bg-transparent text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 rounded transition-colors" title="Edit">
                                                 <Edit3 className="w-4 h-4" />
                                             </button>
@@ -507,539 +567,548 @@ export default function WaProductList() {
                                         {editingProduct ? 'Edit Product' : 'Add New Product'}
                                     </h2>
                                 </div>
-                                
+
                                 <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
                                     {/* Scrollable Body */}
                                     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-                            
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                {/* Left Column: Main Details */}
-                                <div className="lg:col-span-2 space-y-6">
-                                    
-                                    {/* General Box */}
-                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-5">
-                                        <div className="space-y-1.5">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product Name</label>
-                                            <input required type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium shadow-sm" placeholder="e.g. Classic White T-Shirt" />
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                            {/* Left Column: Main Details */}
+                                            <div className="lg:col-span-2 space-y-6">
+
+                                                {/* General Box */}
+                                                <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-5">
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product Name</label>
+                                                        <input required type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium shadow-sm" placeholder="e.g. Classic White T-Shirt" />
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">URL Slug (Product URL)</label>
+                                                        <div className="flex items-center">
+                                                            <span className="px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-r-0 border-slate-200 dark:border-slate-700 rounded-l-lg text-slate-500 text-sm">/products/</span>
+                                                            <input
+                                                                type="text"
+                                                                value={form.slug}
+                                                                onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                                                                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-r-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium shadow-sm"
+                                                                placeholder={form.name ? form.name.toLowerCase().replace(/[^a-z0-9-]/g, '-') : "product-url"}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Description</label>
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Keywords (optional)"
+                                                                    value={aiKeywords}
+                                                                    onChange={e => setAiKeywords(e.target.value)}
+                                                                    className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500 w-32 shadow-sm"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleGenerateAi}
+                                                                    disabled={generatingAi}
+                                                                    className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-md hover:shadow-lg transition-all disabled:opacity-50 font-medium"
+                                                                >
+                                                                    {generatingAi ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                                                                    {generatingAi ? 'Generating...' : 'AI Magic'}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <textarea rows={5} required value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y shadow-sm text-sm" placeholder="Describe your product..."></textarea>
+                                                    </div>
+                                                </div>
+
+                                                {/* Images Box */}
+                                                <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+                                                    <MultiImageUploader
+                                                        imageUrls={form.imageUrls || []}
+                                                        onImagesChange={(urls) => setForm({ ...form, imageUrls: urls })}
+                                                        onOpenPicker={() => openPicker({
+                                                            allowedTypes: 'image',
+                                                            multiple: true,
+                                                            title: 'Select Product Images',
+                                                            onSelect: (urls) => {
+                                                                const arr = Array.isArray(urls) ? urls : [urls];
+                                                                const current = form.imageUrls || [];
+                                                                setForm(f => ({ ...f, imageUrls: [...current, ...arr] }));
+                                                            }
+                                                        })}
+                                                    />
+                                                </div>
+
+
+
+                                            </div>
+
+                                            {/* Right Column: Pricing & Organization */}
+                                            <div className="space-y-6">
+
+                                                {/* Status Box */}
+                                                <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
+                                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Status</h3>
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Inventory Status</label>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" checked={form.inStock} onChange={e => setForm({ ...form, inStock: e.target.checked })} className="sr-only peer" />
+                                                            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500 shadow-inner"></div>
+                                                            <span className="ml-3 text-sm font-semibold text-slate-700 dark:text-slate-300">{form.inStock ? 'In Stock' : 'Out of Stock'}</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                {/* Inventory & Stock — only shown when store inventory management is enabled */}
+                                                {inventoryEnabled && (
+                                                    <div className="bg-emerald-50/60 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-5 space-y-4">
+                                                        <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300 border-b border-emerald-200 dark:border-emerald-800/40 pb-2 flex items-center gap-2">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                                            Inventory & Stock
+                                                        </h3>
+
+                                                        {/* SKU */}
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">SKU (Optional)</label>
+                                                            <input
+                                                                type="text"
+                                                                value={form.sku}
+                                                                onChange={e => setForm({ ...form, sku: e.target.value })}
+                                                                placeholder="e.g. SHIRT-BLK-M"
+                                                                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-mono"
+                                                            />
+                                                        </div>
+
+                                                        {/* Track Quantity toggle */}
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">Track Quantity</label>
+                                                                <span className="text-[11px] text-slate-500">Count stock on every order</span>
+                                                            </div>
+                                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" checked={form.trackQuantity} onChange={e => setForm({ ...form, trackQuantity: e.target.checked })} className="sr-only peer" />
+                                                                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500 shadow-inner"></div>
+                                                            </label>
+                                                        </div>
+
+                                                        {/* Stock Qty + Low Stock Threshold — shown only when Track Qty is on */}
+                                                        {form.trackQuantity && (
+                                                            <div className="grid grid-cols-2 gap-3 pt-1">
+                                                                <div className="space-y-1.5">
+                                                                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Stock Qty</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        value={form.stockQuantity}
+                                                                        onChange={e => setForm({ ...form, stockQuantity: parseInt(e.target.value) || 0 })}
+                                                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-semibold"
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-1.5">
+                                                                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Low Stock Alert</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        value={form.lowStockThreshold}
+                                                                        onChange={e => setForm({ ...form, lowStockThreshold: parseInt(e.target.value) || 0 })}
+                                                                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Pricing Box */}
+                                                <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
+                                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Pricing</h3>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Price</label>
+                                                            <div className="relative">
+                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">{getCurrencySymbol(currency)}</span>
+                                                                <input required type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold shadow-sm" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Compare At</label>
+                                                            <div className="relative">
+                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{getCurrencySymbol(currency)}</span>
+                                                                <input type="number" value={form.compareAtPrice} onChange={e => setForm({ ...form, compareAtPrice: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                                                        <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-3">Wholesale / B2B</h3>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price</label>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">{getCurrencySymbol(currency)}</span>
+                                                                    <input type="number" value={form.wholesalePrice} onChange={e => setForm({ ...form, wholesalePrice: e.target.value })} className="w-full pl-6 pr-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium" />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Min Qty</label>
+                                                                <input type="number" value={form.minWholesaleQty} onChange={e => setForm({ ...form, minWholesaleQty: e.target.value })} className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Organization Box */}
+                                                <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
+                                                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Organization</h3>
+
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Category</label>
+                                                        {!isAddingNewCategory ? (
+                                                            <select
+                                                                value={form.category}
+                                                                onChange={e => {
+                                                                    if (e.target.value === 'ADD_NEW') {
+                                                                        setIsAddingNewCategory(true);
+                                                                        setForm({ ...form, category: '' });
+                                                                    } else {
+                                                                        setForm({ ...form, category: e.target.value });
+                                                                    }
+                                                                }}
+                                                                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium shadow-sm"
+                                                            >
+                                                                <option value="">Select category...</option>
+                                                                {storeCategories.map(cat => (
+                                                                    <option key={cat} value={cat}>{cat}</option>
+                                                                ))}
+                                                                <option value="ADD_NEW" className="font-bold text-indigo-600">+ Add New Category</option>
+                                                            </select>
+                                                        ) : (
+                                                            <div className="flex gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={form.category}
+                                                                    onChange={e => setForm({ ...form, category: e.target.value })}
+                                                                    className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm"
+                                                                    placeholder="New Category Name"
+                                                                    autoFocus
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { setIsAddingNewCategory(false); setForm({ ...form, category: '' }); }}
+                                                                    className="px-2 py-2 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-300 font-medium"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                                                            Tax Slab {storeTaxConfig?.enabled && <span className="text-red-500">*</span>}
+                                                        </label>
+                                                        <select
+                                                            value={form.taxRate === null ? '' : form.taxRate}
+                                                            onChange={e => setForm({ ...form, taxRate: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                                                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm"
+                                                        >
+                                                            <option value="">{storeTaxConfig?.enabled ? 'Select Tax Slab' : `Store Default (${storeTaxConfig?.rate || 0}%)`}</option>
+                                                            {(storeTaxConfig?.slabs || []).map((slab, idx) => (
+                                                                <option key={idx} value={slab.rate}>{slab.name} ({slab.rate}%)</option>
+                                                            ))}
+                                                            <option value="0">No Tax (0%)</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Description</label>
+
+                                        {/* Variations Box (Full Width) */}
+                                        <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden mt-6">
+                                            <div
+                                                className="flex items-center gap-4 p-5 cursor-pointer select-none"
+                                                onClick={() => setIsVariationsOpen(!isVariationsOpen)}
+                                            >
                                                 <div className="flex items-center gap-2">
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="Keywords (optional)" 
-                                                        value={aiKeywords} 
-                                                        onChange={e => setAiKeywords(e.target.value)}
-                                                        className="px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500 w-32 shadow-sm"
-                                                    />
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={handleGenerateAi}
-                                                        disabled={generatingAi}
-                                                        className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-md hover:shadow-lg transition-all disabled:opacity-50 font-medium"
-                                                    >
-                                                        {generatingAi ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-                                                        {generatingAi ? 'Generating...' : 'AI Magic'}
-                                                    </button>
+                                                    {isVariationsOpen ? <ChevronDown className="w-5 h-5 text-slate-500" /> : <ChevronRight className="w-5 h-5 text-slate-500" />}
+                                                    <label className="text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">Product Variations</label>
                                                 </div>
-                                            </div>
-                                            <textarea rows={5} required value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y shadow-sm text-sm" placeholder="Describe your product..."></textarea>
-                                        </div>
-                                    </div>
-
-                                    {/* Images Box */}
-                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-                                        <MultiImageUploader
-                                            imageUrls={form.imageUrls || []}
-                                            onImagesChange={(urls) => setForm({ ...form, imageUrls: urls })}
-                                            onOpenPicker={() => openPicker({
-                                                allowedTypes: 'image',
-                                                multiple: true,
-                                                title: 'Select Product Images',
-                                                onSelect: (urls) => {
-                                                    const arr = Array.isArray(urls) ? urls : [urls];
-                                                    const current = form.imageUrls || [];
-                                                    setForm(f => ({ ...f, imageUrls: [...current, ...arr] }));
-                                                }
-                                            })}
-                                        />
-                                    </div>
-
-
-
-                                </div>
-
-                                {/* Right Column: Pricing & Organization */}
-                                <div className="space-y-6">
-                                    
-                                    {/* Status Box */}
-                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
-                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Status</h3>
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Inventory Status</label>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={form.inStock} onChange={e => setForm({...form, inStock: e.target.checked})} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500 shadow-inner"></div>
-                                                <span className="ml-3 text-sm font-semibold text-slate-700 dark:text-slate-300">{form.inStock ? 'In Stock' : 'Out of Stock'}</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {/* Inventory & Stock — only shown when store inventory management is enabled */}
-                                    {inventoryEnabled && (
-                                        <div className="bg-emerald-50/60 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-5 space-y-4">
-                                            <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300 border-b border-emerald-200 dark:border-emerald-800/40 pb-2 flex items-center gap-2">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                                Inventory & Stock
-                                            </h3>
-
-                                            {/* SKU */}
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">SKU (Optional)</label>
-                                                <input
-                                                    type="text"
-                                                    value={form.sku}
-                                                    onChange={e => setForm({...form, sku: e.target.value})}
-                                                    placeholder="e.g. SHIRT-BLK-M"
-                                                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-mono"
-                                                />
-                                            </div>
-
-                                            {/* Track Quantity toggle */}
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">Track Quantity</label>
-                                                    <span className="text-[11px] text-slate-500">Count stock on every order</span>
-                                                </div>
-                                                <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" checked={form.trackQuantity} onChange={e => setForm({...form, trackQuantity: e.target.checked})} className="sr-only peer" />
-                                                    <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500 shadow-inner"></div>
-                                                </label>
-                                            </div>
-
-                                            {/* Stock Qty + Low Stock Threshold — shown only when Track Qty is on */}
-                                            {form.trackQuantity && (
-                                                <div className="grid grid-cols-2 gap-3 pt-1">
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Stock Qty</label>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            value={form.stockQuantity}
-                                                            onChange={e => setForm({...form, stockQuantity: parseInt(e.target.value) || 0})}
-                                                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-semibold"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Low Stock Alert</label>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            value={form.lowStockThreshold}
-                                                            onChange={e => setForm({...form, lowStockThreshold: parseInt(e.target.value) || 0})}
-                                                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Pricing Box */}
-                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
-                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Pricing</h3>
-                                        
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Price</label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">{getCurrencySymbol(currency)}</span>
-                                                    <input required type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold shadow-sm" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Compare At</label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{getCurrencySymbol(currency)}</span>
-                                                    <input type="number" value={form.compareAtPrice} onChange={e => setForm({...form, compareAtPrice: e.target.value})} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
-                                            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-3">Wholesale / B2B</h3>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price</label>
-                                                    <div className="relative">
-                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">{getCurrencySymbol(currency)}</span>
-                                                        <input type="number" value={form.wholesalePrice} onChange={e => setForm({...form, wholesalePrice: e.target.value})} className="w-full pl-6 pr-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium" />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Min Qty</label>
-                                                    <input type="number" value={form.minWholesaleQty} onChange={e => setForm({...form, minWholesaleQty: e.target.value})} className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Organization Box */}
-                                    <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
-                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Organization</h3>
-                                        
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Category</label>
-                                            {!isAddingNewCategory ? (
-                                                <select 
-                                                    value={form.category} 
-                                                    onChange={e => {
-                                                        if (e.target.value === 'ADD_NEW') {
-                                                            setIsAddingNewCategory(true);
-                                                            setForm({...form, category: ''});
-                                                        } else {
-                                                            setForm({...form, category: e.target.value});
-                                                        }
-                                                    }}
-                                                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium shadow-sm"
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setIsVariationsOpen(true); setForm({ ...form, options: [...(form.options || []), { name: '', values: [] }] }) }}
+                                                    className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-md font-medium transition-colors shadow-sm"
                                                 >
-                                                    <option value="">Select category...</option>
-                                                    {storeCategories.map(cat => (
-                                                        <option key={cat} value={cat}>{cat}</option>
+                                                    <Plus className="w-3.5 h-3.5" /> Add Option
+                                                </button>
+                                            </div>
+
+                                            {isVariationsOpen && (
+                                                <div className="px-5 pb-5 space-y-4 pt-1">
+                                                    {(form.options || []).map((option, optIdx) => (
+                                                        <div key={optIdx} className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
+                                                            <div className="flex items-center justify-between gap-3">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Option Name (e.g. Size, Color)"
+                                                                    value={option.name}
+                                                                    onChange={(e) => {
+                                                                        const newOpts = [...form.options];
+                                                                        newOpts[optIdx].name = e.target.value;
+                                                                        setForm({ ...form, options: newOpts });
+                                                                    }}
+                                                                    className="flex-1 px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500 font-medium"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const newOpts = form.options.filter((_, i) => i !== optIdx);
+                                                                        setForm({ ...form, options: newOpts });
+                                                                    }}
+                                                                    className="text-rose-500 p-1.5 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                            <div>
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Values (comma separated, e.g. S, M, L)"
+                                                                    value={Array.isArray(option.values) ? option.values.join(', ') : option.values}
+                                                                    onChange={(e) => {
+                                                                        const newOpts = [...form.options];
+                                                                        newOpts[optIdx].values = e.target.value;
+                                                                        setForm({ ...form, options: newOpts });
+                                                                    }}
+                                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500"
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     ))}
-                                                    <option value="ADD_NEW" className="font-bold text-indigo-600">+ Add New Category</option>
-                                                </select>
-                                            ) : (
-                                                <div className="flex gap-2">
-                                                    <input 
-                                                        type="text" 
-                                                        value={form.category} 
-                                                        onChange={e => setForm({...form, category: e.target.value})} 
-                                                        className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm" 
-                                                        placeholder="New Category Name" 
-                                                        autoFocus
-                                                    />
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => { setIsAddingNewCategory(false); setForm({...form, category: ''}); }}
-                                                        className="px-2 py-2 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-300 font-medium"
-                                                    >
-                                                        Cancel
-                                                    </button>
+
+                                                    {/* Variant Pricing & Stock (Only show if options exist) */}
+                                                    {(form.options || []).some(o => o.values?.length > 0) && (
+                                                        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                                                            <div className="flex items-center gap-4">
+                                                                <div>
+                                                                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                                                        Different Prices/Stock per Variant <span className="text-slate-400 font-normal text-xs">(Optional)</span>
+                                                                    </p>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={generateVariantTable}
+                                                                    className="shrink-0 text-xs flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg font-medium transition-colors border border-indigo-100 dark:border-indigo-500/20"
+                                                                >
+                                                                    <Layers className="w-3.5 h-3.5" /> Generate Variation
+                                                                </button>
+                                                            </div>
+
+                                                            {(form.variants || []).length > 0 ? (
+                                                                <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                                                                    <div className="overflow-x-auto">
+                                                                        <table className="w-full text-sm">
+                                                                            <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                                                                                <tr>
+                                                                                    <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Variant</th>
+                                                                                    <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price (opt)</th>
+                                                                                    <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stock</th>
+                                                                                    <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Image (opt)</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                                                                {form.variants.map((v, idx) => (
+                                                                                    <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                                                                                        <td className="px-4 py-2.5">
+                                                                                            <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs">
+                                                                                                {Object.values(v.combo).join(' / ')}
+                                                                                            </span>
+                                                                                        </td>
+                                                                                        <td className="px-4 py-2.5">
+                                                                                            <input
+                                                                                                type="number"
+                                                                                                min="0"
+                                                                                                placeholder={form.price ? `Base: ${form.price}` : 'Base'}
+                                                                                                value={v.price}
+                                                                                                onChange={e => {
+                                                                                                    const updated = [...form.variants];
+                                                                                                    updated[idx] = { ...updated[idx], price: e.target.value };
+                                                                                                    setForm({ ...form, variants: updated });
+                                                                                                }}
+                                                                                                className="w-24 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium"
+                                                                                            />
+                                                                                        </td>
+                                                                                        <td className="px-4 py-2.5">
+                                                                                            <input
+                                                                                                type="number"
+                                                                                                min="0"
+                                                                                                placeholder="—"
+                                                                                                value={v.stock}
+                                                                                                onChange={e => {
+                                                                                                    const updated = [...form.variants];
+                                                                                                    updated[idx] = { ...updated[idx], stock: e.target.value };
+                                                                                                    setForm({ ...form, variants: updated });
+                                                                                                }}
+                                                                                                className="w-16 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium"
+                                                                                            />
+                                                                                        </td>
+                                                                                        <td className="px-4 py-2.5">
+                                                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                                                {(() => {
+                                                                                                    const allUrls = [...(form.imageUrls || [])].filter(u => u && u.trim());
+                                                                                                    if (v.imageUrl && !allUrls.includes(v.imageUrl)) {
+                                                                                                        allUrls.push(v.imageUrl);
+                                                                                                    }
+
+                                                                                                    return allUrls.map((imgUrl, imgIdx) => {
+                                                                                                        const resolvedSrc = imgUrl.startsWith('http') ? imgUrl : `${import.meta.env.VITE_API_URL}${imgUrl.startsWith('/') ? '' : '/'}${imgUrl}`;
+                                                                                                        const isSelected = v.imageUrl === imgUrl;
+                                                                                                        return (
+                                                                                                            <button
+                                                                                                                key={imgIdx}
+                                                                                                                type="button"
+                                                                                                                title={isSelected ? 'Click to remove image link' : `Use image ${imgIdx + 1} for this variant`}
+                                                                                                                onClick={() => {
+                                                                                                                    const updated = [...form.variants];
+                                                                                                                    updated[idx] = { ...updated[idx], imageUrl: isSelected ? '' : imgUrl };
+                                                                                                                    setForm({ ...form, variants: updated });
+                                                                                                                }}
+                                                                                                                className={`relative w-10 h-10 rounded-md border-2 transition-all overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 ${isSelected
+                                                                                                                        ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-700 shadow-sm'
+                                                                                                                        : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300'
+                                                                                                                    }`}
+                                                                                                            >
+                                                                                                                <img src={resolvedSrc} alt="" className="w-full h-full object-contain" />
+                                                                                                                {isSelected && (
+                                                                                                                    <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
+                                                                                                                        <Check className="w-5 h-5 text-indigo-600 bg-white rounded-full p-0.5 shadow-sm" />
+                                                                                                                    </div>
+                                                                                                                )}
+                                                                                                            </button>
+                                                                                                        );
+                                                                                                    });
+                                                                                                })()}
+
+                                                                                                <VariantImageUploader
+                                                                                                    onOpenPicker={() => setPickerConfig({
+                                                                                                        isOpen: true,
+                                                                                                        allowedTypes: 'image',
+                                                                                                        multiple: false,
+                                                                                                        onSelect: (url) => {
+                                                                                                            const updated = [...form.variants];
+                                                                                                            updated[idx] = { ...updated[idx], imageUrl: url };
+
+                                                                                                            const nextUrls = [...(form.imageUrls || [])];
+                                                                                                            if (!nextUrls.includes(url)) {
+                                                                                                                nextUrls.push(url);
+                                                                                                            }
+
+                                                                                                            setForm({ ...form, variants: updated, imageUrls: nextUrls });
+                                                                                                        }
+                                                                                                    })}
+                                                                                                />
+                                                                                            </div>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-center py-5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
+                                                                    <p className="text-xs text-slate-500">Click <span className="font-semibold text-indigo-500">Generate Variation</span> to set variations.</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Tax Slab</label>
-                                            <select 
-                                                value={form.taxRate === null ? '' : form.taxRate} 
-                                                onChange={e => setForm({...form, taxRate: e.target.value === '' ? '' : parseFloat(e.target.value)})}
-                                                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm"
+                                        {/* SEO Meta Details Box (Full Width) */}
+                                        <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden mt-6 mb-6">
+                                            <div
+                                                className="flex items-center justify-between p-5 cursor-pointer select-none"
+                                                onClick={() => setIsSeoOpen(!isSeoOpen)}
                                             >
-                                                <option value="">Store Default ({storeTaxConfig?.rate || 0}%)</option>
-                                                {(storeTaxConfig?.slabs || []).map((slab, idx) => (
-                                                    <option key={idx} value={slab.rate}>{slab.name} ({slab.rate}%)</option>
-                                                ))}
-                                                <option value="0">No Tax (0%)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Variations Box (Full Width) */}
-                            <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden mt-6">
-                                <div 
-                                    className="flex items-center justify-between p-5 cursor-pointer select-none"
-                                    onClick={() => setIsVariationsOpen(!isVariationsOpen)}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {isVariationsOpen ? <ChevronDown className="w-5 h-5 text-slate-500" /> : <ChevronRight className="w-5 h-5 text-slate-500" />}
-                                        <label className="text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">Product Variations</label>
-                                    </div>
-                                    <button 
-                                        type="button" 
-                                        onClick={(e) => { e.stopPropagation(); setIsVariationsOpen(true); setForm({...form, options: [...(form.options || []), { name: '', values: [] }]}) }}
-                                        className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-md font-medium transition-colors shadow-sm"
-                                    >
-                                        <Plus className="w-3.5 h-3.5" /> Add Option
-                                    </button>
-                                </div>
-                                
-                                {isVariationsOpen && (
-                                    <div className="px-5 pb-5 space-y-4 pt-1">
-                                        {(form.options || []).map((option, optIdx) => (
-                                            <div key={optIdx} className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="Option Name (e.g. Size, Color)" 
-                                                        value={option.name}
-                                                        onChange={(e) => {
-                                                            const newOpts = [...form.options];
-                                                            newOpts[optIdx].name = e.target.value;
-                                                            setForm({...form, options: newOpts});
-                                                        }}
-                                                        className="flex-1 px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500 font-medium"
-                                                    />
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newOpts = form.options.filter((_, i) => i !== optIdx);
-                                                            setForm({...form, options: newOpts});
-                                                        }}
-                                                        className="text-rose-500 p-1.5 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                                <div>
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="Values (comma separated, e.g. S, M, L)" 
-                                                        value={Array.isArray(option.values) ? option.values.join(', ') : option.values}
-                                                        onChange={(e) => {
-                                                            const newOpts = [...form.options];
-                                                            newOpts[optIdx].values = e.target.value;
-                                                            setForm({...form, options: newOpts});
-                                                        }}
-                                                        className="w-full px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:border-indigo-500"
-                                                    />
+                                                <div className="flex items-center gap-2">
+                                                    {isSeoOpen ? <ChevronDown className="w-5 h-5 text-slate-500" /> : <ChevronRight className="w-5 h-5 text-slate-500" />}
+                                                    <label className="text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">SEO Meta Details</label>
                                                 </div>
                                             </div>
-                                        ))}
 
-                                        {/* Variant Pricing & Stock (Only show if options exist) */}
-                                        {(form.options || []).some(o => o.values?.length > 0) && (
-                                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                                            Different Prices/Stock per Variant <span className="text-slate-400 font-normal text-xs">(Optional)</span>
-                                                        </p>
+                                            {isSeoOpen && (
+                                                <div className="px-5 pb-5 space-y-4 pt-1">
+                                                    <div className="flex justify-end">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleGenerateAiSeo(0)}
+                                                            disabled={generatingAiSeo}
+                                                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                                                        >
+                                                            {generatingAiSeo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                                                            ✨ AI SEO Expert
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={generateVariantTable}
-                                                        className="shrink-0 text-xs flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg font-medium transition-colors border border-indigo-100 dark:border-indigo-500/20"
-                                                    >
-                                                        <Layers className="w-3.5 h-3.5" /> Generate Variation
-                                                    </button>
-                                                </div>
-
-                                                {(form.variants || []).length > 0 ? (
-                                                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-                                                        <div className="overflow-x-auto">
-                                                            <table className="w-full text-sm">
-                                                                <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                                                    <tr>
-                                                                        <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Variant</th>
-                                                                        <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price (opt)</th>
-                                                                        <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stock</th>
-                                                                        <th className="px-4 py-2.5 text-left text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Image (opt)</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                                                                    {form.variants.map((v, idx) => (
-                                                                        <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
-                                                                            <td className="px-4 py-2.5">
-                                                                                <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs">
-                                                                                    {Object.values(v.combo).join(' / ')}
-                                                                                </span>
-                                                                            </td>
-                                                                            <td className="px-4 py-2.5">
-                                                                                <input
-                                                                                    type="number"
-                                                                                    min="0"
-                                                                                    placeholder={form.price ? `Base: ${form.price}` : 'Base'}
-                                                                                    value={v.price}
-                                                                                    onChange={e => {
-                                                                                        const updated = [...form.variants];
-                                                                                        updated[idx] = { ...updated[idx], price: e.target.value };
-                                                                                        setForm({ ...form, variants: updated });
-                                                                                    }}
-                                                                                    className="w-24 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium"
-                                                                                />
-                                                                            </td>
-                                                                            <td className="px-4 py-2.5">
-                                                                                <input
-                                                                                    type="number"
-                                                                                    min="0"
-                                                                                    placeholder="—"
-                                                                                    value={v.stock}
-                                                                                    onChange={e => {
-                                                                                        const updated = [...form.variants];
-                                                                                        updated[idx] = { ...updated[idx], stock: e.target.value };
-                                                                                        setForm({ ...form, variants: updated });
-                                                                                    }}
-                                                                                    className="w-16 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-medium"
-                                                                                />
-                                                                            </td>
-                                                                            <td className="px-4 py-2.5">
-                                                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                                                    {(() => {
-                                                                                        const allUrls = [...(form.imageUrls || [])].filter(u => u && u.trim());
-                                                                                        if (v.imageUrl && !allUrls.includes(v.imageUrl)) {
-                                                                                            allUrls.push(v.imageUrl);
-                                                                                        }
-                                                                                        
-                                                                                        return allUrls.map((imgUrl, imgIdx) => {
-                                                                                            const resolvedSrc = imgUrl.startsWith('http') ? imgUrl : `${import.meta.env.VITE_API_URL}${imgUrl.startsWith('/') ? '' : '/'}${imgUrl}`;
-                                                                                            const isSelected = v.imageUrl === imgUrl;
-                                                                                            return (
-                                                                                                    <button
-                                                                                                        key={imgIdx}
-                                                                                                        type="button"
-                                                                                                        title={isSelected ? 'Click to remove image link' : `Use image ${imgIdx + 1} for this variant`}
-                                                                                                        onClick={() => {
-                                                                                                            const updated = [...form.variants];
-                                                                                                            updated[idx] = { ...updated[idx], imageUrl: isSelected ? '' : imgUrl };
-                                                                                                            setForm({ ...form, variants: updated });
-                                                                                                        }}
-                                                                                                        className={`relative w-10 h-10 rounded-md border-2 transition-all overflow-hidden flex items-center justify-center bg-white dark:bg-slate-800 ${
-                                                                                                            isSelected
-                                                                                                                ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-700 shadow-sm'
-                                                                                                                : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300'
-                                                                                                        }`}
-                                                                                                    >
-                                                                                                        <img src={resolvedSrc} alt="" className="w-full h-full object-contain" />
-                                                                                                        {isSelected && (
-                                                                                                            <div className="absolute inset-0 bg-indigo-500/20 flex items-center justify-center">
-                                                                                                                <Check className="w-5 h-5 text-indigo-600 bg-white rounded-full p-0.5 shadow-sm" />
-                                                                                                            </div>
-                                                                                                        )}
-                                                                                                    </button>
-                                                                                            );
-                                                                                        });
-                                                                                    })()}
-                                                                                    
-                                                                                    <VariantImageUploader 
-                                                                                        onOpenPicker={() => setPickerConfig({
-                                                                                            isOpen: true,
-                                                                                            allowedTypes: 'image',
-                                                                                            multiple: false,
-                                                                                            onSelect: (url) => {
-                                                                                                const updated = [...form.variants];
-                                                                                                updated[idx] = { ...updated[idx], imageUrl: url };
-                                                                                                
-                                                                                                const nextUrls = [...(form.imageUrls || [])];
-                                                                                                if (!nextUrls.includes(url)) {
-                                                                                                    nextUrls.push(url);
-                                                                                                }
-                                                                                                
-                                                                                                setForm({ ...form, variants: updated, imageUrls: nextUrls });
-                                                                                            }
-                                                                                        })}
-                                                                                    />
-                                                                                </div>
-                                                                            </td>
-                                                                        </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Meta Title</label>
+                                                            <span className="text-xs font-medium text-slate-500">{(form.metaTitle || '').length}/60</span>
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            value={form.metaTitle}
+                                                            onChange={e => setForm({ ...form, metaTitle: e.target.value })}
+                                                            maxLength={60}
+                                                            className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium shadow-sm"
+                                                            placeholder={form.name || "Product Name"}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Meta Description</label>
+                                                            <span className="text-xs font-medium text-slate-500">{(form.metaDescription || '').length}/160</span>
+                                                        </div>
+                                                        <textarea
+                                                            rows={3}
+                                                            value={form.metaDescription}
+                                                            onChange={e => setForm({ ...form, metaDescription: e.target.value })}
+                                                            maxLength={160}
+                                                            className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y shadow-sm text-sm"
+                                                            placeholder={form.description ? form.description.substring(0, 160) : "Brief summary for search engines..."}
+                                                        ></textarea>
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Social Sharing Image (OG Image)</label>
+                                                        <div className="flex items-center gap-3">
+                                                            {form.ogImage ? (
+                                                                <div className="relative group w-20 h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-white flex-shrink-0">
+                                                                    <img src={resolveUrl(form.ogImage)} alt="Social preview" className="w-full h-full object-contain" />
+                                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                        <button type="button" onClick={() => setForm({ ...form, ogImage: '' })} className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full"><X className="w-3 h-3" /></button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openPicker({ allowedTypes: 'image', multiple: false, title: 'Select Social Image', onSelect: (url) => setForm({ ...form, ogImage: url }) })}
+                                                                    className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 flex flex-col items-center justify-center text-slate-400 hover:text-indigo-500 transition-colors"
+                                                                >
+                                                                    <ImageIcon className="w-5 h-5 mb-1" />
+                                                                    <span className="text-[10px] font-medium">Upload</span>
+                                                                </button>
+                                                            )}
+                                                            <p className="text-xs text-slate-500">Recommended size: 1200 x 630 pixels. This image appears when the product is shared on WhatsApp, Facebook, or Twitter.</p>
                                                         </div>
                                                     </div>
-                                                ) : (
-                                                    <div className="text-center py-5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
-                                                        <p className="text-xs text-slate-500">Click <span className="font-semibold text-indigo-500">Generate Variation</span> to set variations.</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            
-                            {/* SEO Meta Details Box (Full Width) */}
-                            <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden mt-6 mb-6">
-                                <div 
-                                    className="flex items-center justify-between p-5 cursor-pointer select-none"
-                                    onClick={() => setIsSeoOpen(!isSeoOpen)}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {isSeoOpen ? <ChevronDown className="w-5 h-5 text-slate-500" /> : <ChevronRight className="w-5 h-5 text-slate-500" />}
-                                        <label className="text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer">SEO Meta Details</label>
-                                    </div>
-                                </div>
-                                
-                                {isSeoOpen && (
-                                    <div className="px-5 pb-5 space-y-4 pt-1">
-                                        <div className="flex justify-end">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleGenerateAiSeo(0)}
-                                                disabled={generatingAiSeo}
-                                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50"
-                                            >
-                                                {generatingAiSeo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                                                ✨ AI SEO Expert
-                                            </button>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Meta Title</label>
-                                            <input 
-                                                type="text" 
-                                                value={form.metaTitle} 
-                                                onChange={e => setForm({...form, metaTitle: e.target.value})} 
-                                                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium shadow-sm" 
-                                                placeholder={form.name || "Product Name"} 
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Meta Description</label>
-                                            <textarea 
-                                                rows={3} 
-                                                value={form.metaDescription} 
-                                                onChange={e => setForm({...form, metaDescription: e.target.value})} 
-                                                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y shadow-sm text-sm" 
-                                                placeholder="Brief summary for search engines..."
-                                            ></textarea>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">URL Slug</label>
-                                            <div className="flex items-center">
-                                                <span className="px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-r-0 border-slate-200 dark:border-slate-700 rounded-l-lg text-slate-500 text-sm">/products/</span>
-                                                <input 
-                                                    type="text" 
-                                                    value={form.slug} 
-                                                    onChange={e => setForm({...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')})} 
-                                                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-r-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium shadow-sm" 
-                                                    placeholder={form.name ? form.name.toLowerCase().replace(/[^a-z0-9-]/g, '-') : "product-url"} 
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Social Sharing Image (OG Image)</label>
-                                            <div className="flex items-center gap-3">
-                                                {form.ogImage ? (
-                                                    <div className="relative group w-20 h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-white flex-shrink-0">
-                                                        <img src={resolveUrl(form.ogImage)} alt="Social preview" className="w-full h-full object-contain" />
-                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                            <button type="button" onClick={() => setForm({...form, ogImage: ''})} className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full"><X className="w-3 h-3" /></button>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openPicker({ allowedTypes: 'image', multiple: false, title: 'Select Social Image', onSelect: (url) => setForm({...form, ogImage: url}) })}
-                                                        className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 flex flex-col items-center justify-center text-slate-400 hover:text-indigo-500 transition-colors"
-                                                    >
-                                                        <ImageIcon className="w-5 h-5 mb-1" />
-                                                        <span className="text-[10px] font-medium">Upload</span>
-                                                    </button>
-                                                )}
-                                                <p className="text-xs text-slate-500">Recommended size: 1200 x 630 pixels. This image appears when the product is shared on WhatsApp, Facebook, or Twitter.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
 
                                     </div> {/* End Scrollable Body */}
-                                    
+
                                     {/* Sticky Footer */}
                                     <div className="px-4 md:px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-surface-dark shrink-0 flex flex-col sm:flex-row gap-3 justify-end z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-none">
                                         <button type="button" onClick={() => setShowModal(false)} className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors">Cancel</button>
@@ -1048,7 +1117,7 @@ export default function WaProductList() {
                                         </button>
                                     </div>
                                 </form>
-                    </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1059,7 +1128,7 @@ export default function WaProductList() {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
                     <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 overflow-hidden border border-slate-200 dark:border-slate-800">
-                        
+
                         {/* Background Decoration */}
                         <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl" />
                         <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-purple-500/10 rounded-full blur-xl" />
@@ -1072,11 +1141,11 @@ export default function WaProductList() {
                                     <Wand2 className="w-8 h-8 text-indigo-500 animate-pulse" />
                                 )}
                             </div>
-                            
+
                             <h3 className="text-lg font-bold text-slate-800 dark:text-white">
                                 {aiSeoStep === 3 ? 'SEO Optimized!' : 'AI SEO Expert'}
                             </h3>
-                            
+
                             <div className="w-full space-y-3">
                                 {/* Step 1 */}
                                 <div className={`flex items-center gap-3 text-sm transition-all duration-300 ${aiSeoStep >= 0 ? 'opacity-100' : 'opacity-40'}`}>
@@ -1096,14 +1165,27 @@ export default function WaProductList() {
                             </div>
 
                             <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-4 overflow-hidden">
-                                <div 
-                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500 ease-out" 
+                                <div
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500 ease-out"
                                     style={{ width: `${(aiSeoStep / 3) * 100}%` }}
                                 />
                             </div>
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* ── Product Import Modal ──────────────────────────────────────── */}
+            {importModalOpen && (
+                <ProductImportModal
+                    storeId={storeId}
+                    storeCategories={storeCategories}
+                    onClose={() => setImportModalOpen(false)}
+                    onImported={() => {
+                        setImportModalOpen(false);
+                        fetchProducts();
+                    }}
+                />
             )}
 
             {/* ── Media Picker Modal ─────────────────────────────────────────── */}

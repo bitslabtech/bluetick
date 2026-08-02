@@ -185,16 +185,16 @@ const Referrals = () => {
                                 </div>
                             </div>
 
-                            <div className="relative z-10 flex flex-col sm:flex-row gap-3">
-                                <div className="flex-1 bg-black/30 border border-white/20 rounded-xl px-4 py-3 font-mono text-sm truncate flex items-center">
+                            <div className="relative z-10 flex items-center bg-black/30 border border-white/20 rounded-xl pl-4 pr-1 py-1 font-mono text-sm">
+                                <div className="flex-1 truncate text-white mr-3">
                                     {refLink}
                                 </div>
                                 <button
                                     onClick={() => handleCopy(refLink)}
-                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-indigo-600 hover:bg-slate-50 font-bold px-4 md:px-6 py-3 rounded-xl transition-all shadow-lg min-w-[120px] max-w-full whitespace-nowrap"
+                                    title="Copy Link"
+                                    className="flex-shrink-0 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-lg w-10 h-10 transition-colors shadow-sm"
                                 >
-                                    {copying ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
-                                    {copying ? 'Copied' : 'Copy Link'}
+                                    {copying ? <CheckCircle className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
                                 </button>
                             </div>
                         </div>

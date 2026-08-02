@@ -4,6 +4,63 @@ import axios from 'axios';
 import { Settings, Trash2, AlertTriangle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText, ClipboardList, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const INDIAN_STATES = [
+    { code: "01", name: "Jammu and Kashmir" },
+    { code: "02", name: "Himachal Pradesh" },
+    { code: "03", name: "Punjab" },
+    { code: "04", name: "Chandigarh" },
+    { code: "05", name: "Uttarakhand" },
+    { code: "06", name: "Haryana" },
+    { code: "07", name: "Delhi" },
+    { code: "08", name: "Rajasthan" },
+    { code: "09", name: "Uttar Pradesh" },
+    { code: "10", name: "Bihar" },
+    { code: "11", name: "Sikkim" },
+    { code: "12", name: "Arunachal Pradesh" },
+    { code: "13", name: "Nagaland" },
+    { code: "14", name: "Manipur" },
+    { code: "15", name: "Mizoram" },
+    { code: "16", name: "Tripura" },
+    { code: "17", name: "Meghalaya" },
+    { code: "18", name: "Assam" },
+    { code: "19", name: "West Bengal" },
+    { code: "20", name: "Jharkhand" },
+    { code: "21", name: "Odisha" },
+    { code: "22", name: "Chhattisgarh" },
+    { code: "23", name: "Madhya Pradesh" },
+    { code: "24", name: "Gujarat" },
+    { code: "25", name: "Daman and Diu" },
+    { code: "26", name: "Dadra and Nagar Haveli and Daman and Diu" },
+    { code: "27", name: "Maharashtra" },
+    { code: "29", name: "Karnataka" },
+    { code: "30", name: "Goa" },
+    { code: "31", name: "Lakshadweep" },
+    { code: "32", name: "Kerala" },
+    { code: "33", name: "Tamil Nadu" },
+    { code: "34", name: "Puducherry" },
+    { code: "35", name: "Andaman and Nicobar Islands" },
+    { code: "36", name: "Telangana" },
+    { code: "37", name: "Andhra Pradesh" },
+    { code: "38", name: "Ladakh" }
+];
+
+function validateGSTIN(gstin) {
+    if (!gstin || gstin.length !== 15) return false;
+    const regex = /^[0-3][0-9][A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!regex.test(gstin)) return false;
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let sum = 0;
+    for (let i = 0; i < 14; i++) {
+        let codePoint = chars.indexOf(gstin[i]);
+        let product = codePoint * ((i % 2 === 0) ? 1 : 2);
+        sum += Math.floor(product / 36) + (product % 36);
+    }
+    let checkCode = 36 - (sum % 36);
+    if (checkCode === 36) checkCode = 0;
+    return chars[checkCode] === gstin[14];
+}
+
+
 export default function WaStoreSettings() {
     const { storeId } = useOutletContext();
     const navigate = useNavigate();
@@ -36,9 +93,10 @@ export default function WaStoreSettings() {
 
     const [taxConfig, setTaxConfig] = useState({
         enabled: false, type: 'gst', taxInclusive: false, slabs: [], rate: 0,
+        enableGlobalRate: false,
         autoGenerateBill: false, autoSendWhatsApp: false,
         // Seller/Business GST registration details
-        sellerLegalName: '', sellerGstin: '', sellerPan: '',
+        sellerLegalName: '', sellerGstin: '',
         sellerAddress: '', sellerState: '', sellerStateCode: ''
     });
     const [savingTax, setSavingTax] = useState(false);
@@ -166,6 +224,34 @@ export default function WaStoreSettings() {
     };
 
     const handleSaveTax = async () => {
+        if (taxConfig.enabled) {
+            if (!taxConfig.slabs || taxConfig.slabs.length === 0 || taxConfig.slabs.some(s => !s.name || s.name.trim() === '')) {
+                toast.error("Please add and name at least one tax slab.");
+                return;
+            }
+            if (taxConfig.enableGlobalRate) {
+                const validRate = (taxConfig.slabs || []).some(s => s.rate === taxConfig.rate);
+                if (!validRate) {
+                    toast.error("Please select a valid global default tax slab.");
+                    return;
+                }
+            }
+        }
+
+        if (taxConfig.enabled && taxConfig.type === 'gst') {
+            if (!taxConfig.sellerLegalName || !taxConfig.sellerGstin || !taxConfig.sellerState || !taxConfig.sellerAddress) {
+                toast.error("Please fill all mandatory Seller GST Details");
+                return;
+            }
+            if (!validateGSTIN(taxConfig.sellerGstin)) {
+                toast.error("Invalid GSTIN format or checksum!");
+                return;
+            }
+            if (taxConfig.sellerGstin.substring(0, 2) !== taxConfig.sellerStateCode) {
+                toast.error("GSTIN state code does not match selected State!");
+                return;
+            }
+        }
         setSavingTax(true);
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
@@ -921,21 +1007,38 @@ export default function WaStoreSettings() {
                                         + Add Tax Slab
                                     </button>
                                 </div>
-                                <p className="text-xs text-slate-500 mt-1">If no slabs are defined, a global default rate of {taxConfig.rate}% is applied.</p>
                             </div>
 
-                            {/* Legacy Global Rate (kept as fallback) */}
-                            {(!taxConfig.slabs || taxConfig.slabs.length === 0) && (
-                                <div className="col-span-1 md:col-span-2">
-                                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Global Default Tax Rate (%)</label>
+                            {/* Global Default Rate */}
+                            <div className="col-span-1 md:col-span-2 mt-4 bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                                <label className="flex items-center gap-3 cursor-pointer">
                                     <input
-                                        type="number"
-                                        value={taxConfig.rate}
-                                        onChange={e => setTaxConfig({ ...taxConfig, rate: parseFloat(e.target.value) || 0 })}
-                                        className="w-full md:w-1/2 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+                                        type="checkbox"
+                                        checked={taxConfig.enableGlobalRate || false}
+                                        onChange={e => setTaxConfig({ ...taxConfig, enableGlobalRate: e.target.checked })}
+                                        className="w-4 h-4 text-indigo-600 bg-white border-slate-300 rounded focus:ring-indigo-500"
                                     />
-                                </div>
-                            )}
+                                    <div>
+                                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">Enable Global Default Tax Rate</span>
+                                        <span className="text-xs text-slate-500">Automatically apply a fallback rate to products without a specific tax slab.</span>
+                                    </div>
+                                </label>
+                                
+                                {taxConfig.enableGlobalRate && (
+                                    <div className="mt-4 ml-7 border-l-2 border-indigo-100 dark:border-indigo-900/50 pl-4">
+                                        <select
+                                            value={taxConfig.rate === 0 && !(taxConfig.slabs || []).some(s => s.rate === 0) ? '' : taxConfig.rate}
+                                            onChange={e => setTaxConfig({ ...taxConfig, rate: parseFloat(e.target.value) || 0 })}
+                                            className="w-full md:w-1/2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        >
+                                            <option value="">Select Tax Slab...</option>
+                                            {(taxConfig.slabs || []).filter(s => s.name).map((slab, index) => (
+                                                <option key={index} value={slab.rate}>{slab.name} ({slab.rate}%)</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Seller / Business GST Registration Details */}
                             {taxConfig.type === 'gst' && (
@@ -946,27 +1049,36 @@ export default function WaStoreSettings() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Legal Business Name</label>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Legal Business Name <span className="text-red-500">*</span></label>
                                             <input type="text" value={taxConfig.sellerLegalName || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerLegalName: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="As registered with GST" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">GSTIN</label>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">GSTIN <span className="text-red-500">*</span></label>
                                             <input type="text" value={taxConfig.sellerGstin || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerGstin: e.target.value.toUpperCase() })} maxLength={15} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono uppercase" placeholder="22AABCC1234F1Z5" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">PAN</label>
-                                            <input type="text" value={taxConfig.sellerPan || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerPan: e.target.value.toUpperCase() })} maxLength={10} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono uppercase" placeholder="AABCC1234F" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
-                                            <input type="text" value={taxConfig.sellerState || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerState: e.target.value })} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="e.g. Maharashtra" />
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">State <span className="text-red-500">*</span></label>
+                                            <select 
+                                                value={taxConfig.sellerState || ''} 
+                                                onChange={e => {
+                                                    const stName = e.target.value;
+                                                    const stCode = INDIAN_STATES.find(s => s.name === stName)?.code || '';
+                                                    setTaxConfig({ ...taxConfig, sellerState: stName, sellerStateCode: stCode });
+                                                }}
+                                                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
+                                            >
+                                                <option value="">Select State</option>
+                                                {INDIAN_STATES.map(s => (
+                                                    <option key={s.code} value={s.name}>{s.name}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">State Code</label>
-                                            <input type="text" value={taxConfig.sellerStateCode || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerStateCode: e.target.value })} maxLength={2} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="27" />
+                                            <input type="text" value={taxConfig.sellerStateCode || ''} readOnly className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm cursor-not-allowed" placeholder="Select state first" />
                                         </div>
                                         <div className="md:col-span-2">
-                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Registered Address</label>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Registered Address <span className="text-red-500">*</span></label>
                                             <textarea value={taxConfig.sellerAddress || ''} onChange={e => setTaxConfig({ ...taxConfig, sellerAddress: e.target.value })} rows={2} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" placeholder="Full registered address" />
                                         </div>
                                     </div>

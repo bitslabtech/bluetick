@@ -308,8 +308,8 @@ export function applyProductSeo(product, store, baseUrl) {
         return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
     };
 
-    const title = `${product.name} | ${store.name}`;
-    const description = (product.description || `Buy ${product.name} from ${store.name}.`).slice(0, 160);
+    const title = product.metaTitle || `${product.name} | ${store.name}`;
+    const description = (product.metaDescription || product.description || `Buy ${product.name} from ${store.name}.`).slice(0, 160);
     const image = resolveImgUrl(product.imageUrls?.[0] || seo.ogImage || store.logo || '');
     const price = parseFloat(product.price).toFixed(2);
     const currency = store.currency || 'USD';

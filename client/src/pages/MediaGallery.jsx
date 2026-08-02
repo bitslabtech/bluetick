@@ -314,16 +314,19 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 {/* Search */}
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Search by filename..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    />
-                </div>
+                {(files.length > 0 || searchTerm) && (
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search by filename..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                    </div>
+                )}
+                {!((files.length > 0 || searchTerm)) && <div className="flex-1" />}
                 {/* View toggle */}
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-surface-dark rounded-lg p-1">
                     <button

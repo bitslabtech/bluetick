@@ -38,7 +38,7 @@ const fmtCurrency = (n, currency = '₹') => {
 const TABS = [
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
     { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
-    { id: 'leads', label: 'Smart Leads', icon: UserCheck },
+    { id: 'leads', label: 'CTWA Leads', icon: UserCheck },
     { id: 'analytics', label: 'Ad Analytics', icon: BarChart3 },
     { id: 'ad-settings', label: 'Ad Settings', icon: Settings },
 ];
@@ -48,23 +48,23 @@ const FunnelCard = ({ icon: Icon, label, value, subLabel, delay = 0 }) => (
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ delay, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-        className="relative overflow-hidden bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 group"
+        className="relative overflow-hidden bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 group"
     >
         {/* Subtle accent line on top */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/40 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        <div className="relative z-10 flex flex-col h-full justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+        <div className="relative z-10 flex flex-col h-full justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                    <Icon className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-[11px] sm:text-[13px] font-bold text-slate-500 dark:text-slate-400 tracking-wide uppercase">{label}</p>
+                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wide uppercase">{label}</p>
             </div>
             
             <div>
-                <p className="text-xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight truncate">{value}</p>
+                <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate">{value}</p>
                 {subLabel && (
-                    <div className="mt-1 sm:mt-2 text-[10px] sm:text-xs font-medium text-slate-400 dark:text-slate-500 truncate">
+                    <div className="mt-1 text-[10px] sm:text-xs font-medium text-slate-400 dark:text-slate-500 truncate">
                         {subLabel}
                     </div>
                 )}
@@ -74,7 +74,7 @@ const FunnelCard = ({ icon: Icon, label, value, subLabel, delay = 0 }) => (
 );
 
 // ── Overview Tab ─────────────────────────────────────────────────────
-const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected, onSwitchTab }) => {
+const OverviewTab = ({ campaigns, ctwaData, loading, navigate, handleCreateCampaign, metaConnected, onSwitchTab }) => {
     const activeCampaigns = campaigns.filter(c => c.status === 'Active' || c.status === 'Published');
     const totalLeads = ctwaData?.totalLeads || 0;
     const totalSpend = ctwaData?.totalSpend || 0;
@@ -183,7 +183,7 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected, on
                             </p>
                         </div>
                         <button
-                            onClick={() => navigate('/meta-ads/wizard')}
+                            onClick={handleCreateCampaign}
                             className="w-full bg-white text-indigo-600 hover:bg-slate-50 font-black py-4 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl group-hover:scale-[1.02]"
                         >
                             <Plus className="w-5 h-5" /> Launch Wizard
@@ -225,7 +225,7 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected, on
                             <h4 className="font-bold text-slate-900 dark:text-white mb-1">No campaigns yet</h4>
                             <p className="text-sm text-slate-500 mb-4">Create your first AI-powered campaign to start generating leads.</p>
                             <button
-                                onClick={() => navigate('/meta-ads/wizard')}
+                                onClick={handleCreateCampaign}
                                 className="inline-flex items-center gap-2 text-primary font-bold hover:text-secondary transition-colors text-sm"
                             >
                                 Create first campaign <ArrowRight className="w-4 h-4" />
@@ -314,7 +314,7 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, metaConnected, on
 };
 
 // ── Campaigns Tab ─────────────────────────────────────────────────────
-const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMode }) => {
+const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, handleCreateCampaign, isDarkMode }) => {
     const [campaigns, setCampaigns] = useState(initialCampaigns);
     const [actionLoading, setActionLoading] = useState({}); // { [campaignId]: 'pause'|'resume'|'delete'|'duplicate' }
     const [openMenu, setOpenMenu] = useState(null); // campaign id with open dropdown
@@ -494,7 +494,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                             <RefreshCw className="w-3.5 h-3.5" /> Sync
                         </button>
                         <button
-                            onClick={() => navigate('/meta-ads/wizard')}
+                            onClick={handleCreateCampaign}
                             className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-bold shadow-md shadow-primary/20 transition-all text-sm"
                         >
                             <Plus className="w-4 h-4" /> New Campaign
@@ -504,23 +504,23 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
 
                 {/* Budget Overview Strip */}
                 {campaigns.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Daily Budget</p>
-                            <p className="text-xl font-black text-slate-900 dark:text-white">₹{fmt(totalDailyBudget)}<span className="text-xs font-medium text-slate-400">/day</span></p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-xl p-3">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Daily Budget</p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white">₹{fmt(totalDailyBudget)}<span className="text-xs font-medium text-slate-400">/day</span></p>
                         </div>
-                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Spent</p>
-                            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{totalSpent > 0 ? `₹${fmt(totalSpent)}` : '—'}</p>
+                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-xl p-3">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Spent</p>
+                            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{totalSpent > 0 ? `₹${fmt(totalSpent)}` : '—'}</p>
                             {totalSpent > 0 && <p className="text-[10px] text-slate-400 mt-0.5">across all campaigns</p>}
                         </div>
-                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Impressions</p>
-                            <p className="text-xl font-black text-slate-900 dark:text-white">{totalImpressions > 0 ? fmt(totalImpressions) : '—'}</p>
+                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-xl p-3">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Impressions</p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white">{totalImpressions > 0 ? fmt(totalImpressions) : '—'}</p>
                         </div>
-                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl p-4">
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Active</p>
-                            <p className="text-xl font-black text-slate-900 dark:text-white">{activeCampaigns} <span className="text-xs font-medium text-slate-400">/ {campaigns.length}</span></p>
+                        <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-xl p-3">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Active</p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white">{activeCampaigns} <span className="text-xs font-medium text-slate-400">/ {campaigns.length}</span></p>
                             {activeCampaigns > 0 && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>Live now</span>}
                         </div>
                     </div>
@@ -572,7 +572,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No campaigns yet</h3>
                                     <p className="text-slate-500 max-w-sm mx-auto mb-6 text-sm">Use our wizard to create your first high-converting WhatsApp ad campaign.</p>
                                     <button
-                                        onClick={() => navigate('/meta-ads/wizard')}
+                                        onClick={handleCreateCampaign}
                                         className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-md transition-all"
                                     >
                                         <Sparkles className="w-5 h-5" /> Create Your First Campaign
@@ -600,7 +600,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                 const hasInsights = spent > 0 || impressions > 0;
 
                                 return (
-                                    <div key={campaign.id} className="p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors group cursor-pointer" onClick={() => navigate('/meta-ads/campaigns/' + campaign.id)}>
+                                    <div key={campaign.id} className="p-3 sm:p-4 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors group cursor-pointer" onClick={() => navigate('/meta-ads/campaigns/' + campaign.id)}>
                                         {/* Row top: name + status + budget */}
                                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                                             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -639,45 +639,45 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, isDarkMo
                                             </div>
                                         </div>
                                         {/* Budget + Spend Row */}
-                                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                                             {/* Budget */}
-                                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                            <div className="bg-slate-50 dark:bg-white/5 rounded-lg p-2.5">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{isLifetime ? 'Lifetime Budget' : 'Daily Budget'}</p>
-                                                <p className="text-base font-black text-slate-900 dark:text-white mt-1">₹{fmt(budgetToDisplay)}</p>
+                                                <p className="text-sm font-black text-slate-900 dark:text-white mt-0.5">₹{fmt(budgetToDisplay)}</p>
                                                 <p className="text-[10px] text-slate-400">{isLifetime ? 'total budget' : 'per day'}</p>
                                             </div>
 
                                             {/* Total Spent */}
-                                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                            <div className="bg-slate-50 dark:bg-white/5 rounded-lg p-2.5">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Spent</p>
                                                 {hasInsights ? (
                                                     <>
-                                                        <p className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-1">₹{fmt(spent, 2)}</p>
+                                                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">₹{fmt(spent, 2)}</p>
                                                         <p className="text-[10px] text-slate-400">{campaign.insightsUpdatedAt ? `as of ${formatDistanceToNow(new Date(campaign.insightsUpdatedAt), {addSuffix:true})}` : 'from Meta'}</p>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <p className="text-base font-black text-slate-400 mt-1">—</p>
+                                                        <p className="text-sm font-black text-slate-400 mt-0.5">—</p>
                                                         <p className="text-[10px] text-slate-400">{campaign.status === 'Draft' ? 'Not yet published' : 'Connect Meta to sync'}</p>
                                                     </>
                                                 )}
                                             </div>
 
                                             {/* Impressions */}
-                                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                            <div className="bg-slate-50 dark:bg-white/5 rounded-lg p-2.5">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Impressions</p>
-                                                <p className={`text-base font-black mt-1 ${impressions > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                                                <p className={`text-sm font-black mt-0.5 ${impressions > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
                                                     {impressions > 0 ? fmt(impressions) : '—'}
                                                 </p>
                                                 {clicks > 0 && <p className="text-[10px] text-slate-400">{fmt(clicks)} clicks</p>}
                                             </div>
 
                                             {/* CTR */}
-                                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3">
+                                            <div className="bg-slate-50 dark:bg-white/5 rounded-lg p-2.5">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CTR</p>
                                                 {ctr !== null ? (
                                                     <>
-                                                        <p className={`text-base font-black mt-1 ${ctr >= 1 ? 'text-emerald-600 dark:text-emerald-400' : ctr >= 0.5 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>
+                                                        <p className={`text-sm font-black mt-0.5 ${ctr >= 1 ? 'text-emerald-600 dark:text-emerald-400' : ctr >= 0.5 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>
                                                             {ctr.toFixed(2)}%
                                                         </p>
                                                         <p className="text-[10px] text-slate-400">{ctr >= 1 ? '🔥 Great' : ctr >= 0.5 ? '⚡ Average' : '⚠️ Low'}</p>
@@ -1165,7 +1165,7 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <UserCheck className="w-5 h-5 text-primary" /> Smart Lead Manager
+                        <UserCheck className="w-5 h-5 text-primary" /> CTWA Lead Manager
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
                         {totalCount} total CTWA leads · {activeLeads > 0 ? `${activeLeads} with active window` : 'No active windows'}
@@ -1614,6 +1614,15 @@ export default function GrowthHub() {
     const [tokenExpired, setTokenExpired] = useState(false);
     const [dateRange, setDateRange] = useState('last_30d');
 
+    const handleCreateCampaign = () => {
+        if (metaConnected === false) {
+            toast.error('Please connect your Meta Ads account first to create a campaign.');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+        navigate('/meta-ads/wizard');
+    };
+
     // Phase 4: Retarget modal state
     const [retargetAd, setRetargetAd] = useState(null);
     const [retargetTemplates, setRetargetTemplates] = useState([]);
@@ -1757,7 +1766,7 @@ export default function GrowthHub() {
                 </div>
 
                 <button
-                    onClick={() => navigate('/meta-ads/wizard')}
+                    onClick={handleCreateCampaign}
                     className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-4 rounded-xl font-black shadow-md shadow-primary/20 hover:-translate-y-0.5 transition-all text-sm group"
                 >
                     <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
@@ -1828,6 +1837,7 @@ export default function GrowthHub() {
                             ctwaData={ctwaData}
                             loading={loading}
                             navigate={navigate}
+                            handleCreateCampaign={handleCreateCampaign}
                             metaConnected={metaConnected}
                             onSwitchTab={setActiveTab}
                         />
@@ -1837,6 +1847,7 @@ export default function GrowthHub() {
                             campaigns={campaigns}
                             loading={loading}
                             navigate={navigate}
+                            handleCreateCampaign={handleCreateCampaign}
                             isDarkMode={isDarkMode}
                         />
                     )}

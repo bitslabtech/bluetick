@@ -24,6 +24,7 @@ const Templates = () => {
     const [filter, setFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [templateLimit, setTemplateLimit] = useState(-1);
+    const [isConfigured, setIsConfigured] = useState(null);
 
     const [showConfigError, setShowConfigError] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -47,14 +48,20 @@ const Templates = () => {
         content: ''
     });
 
-    // Fetch Templates (sorted oldest first so first N = plan-active)
     const fetchTemplates = async () => {
         try {
             setLoading(true);
-            const [tmplRes, billingRes] = await Promise.all([
+            const [tmplRes, billingRes, settingsRes] = await Promise.all([
                 axios.get(`${import.meta.env.VITE_API_URL}/api/templates`),
-                axios.get(`${import.meta.env.VITE_API_URL}/api/billing`)
+                axios.get(`${import.meta.env.VITE_API_URL}/api/billing`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/settings`).catch(() => ({ data: {} }))
             ]);
+            
+            const s = settingsRes.data;
+            const embeddedConfigured = !!(s?.metaBusinessAccountId);
+            const manualConfigured = !!(s?.metaPhoneNumberId && s?.metaAccessToken);
+            setIsConfigured(embeddedConfigured || manualConfigured);
+
             // Sort oldest first so the first N are always the "active" ones
             const sorted = [...tmplRes.data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
             setTemplates(sorted);
@@ -76,13 +83,13 @@ const Templates = () => {
             if (!silent) {
                 showToast({ type: 'success', title: 'Sync Complete', message: res.data.message });
             }
-            fetchTemplates();
         } catch (err) {
             console.error("Sync Error:", err);
             if (!silent) {
                 showToast({ type: 'error', title: 'Sync Failed', message: err.response?.data?.error || err.message });
             }
         } finally {
+            fetchTemplates();
             setSyncing(false);
         }
     };
@@ -316,7 +323,7 @@ const Templates = () => {
                         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
                             <button
                                 onClick={handleSyncTemplates}
-                                disabled={syncing}
+                                disabled={syncing || isConfigured === false}
                                 className="flex-1 sm:flex-none justify-center bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50 shadow-sm"
                                 title="Sync Templates"
                             >
@@ -326,10 +333,17 @@ const Templates = () => {
                             </button>
                             <button
                                 onClick={() => setShowAiDraftModal(true)}
-                                className="flex-1 sm:flex-none justify-center bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md shadow-indigo-500/20 active:scale-95 relative overflow-hidden group"
+                                disabled={isConfigured === false}
+                                className={`flex-1 sm:flex-none justify-center px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 relative overflow-hidden group ${
+                                    isConfigured === false 
+                                    ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed opacity-70 shadow-none' 
+                                    : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-indigo-500/20'
+                                }`}
                             >
-                                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-100" />
+                                {isConfigured !== false && (
+                                    <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                                )}
+                                <Sparkles className={`w-4 h-4 sm:w-5 sm:h-5 ${isConfigured === false ? 'text-slate-500' : 'text-indigo-100'}`} />
                                 <span className="hidden sm:inline">Create with AI</span>
                                 <span className="sm:hidden">Create with AI</span>
                             </button>
@@ -433,6 +447,22 @@ const Templates = () => {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    ) : isConfigured === false ? (
+                        <div className="flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-slate-300 dark:border-white/10 rounded-2xl bg-white/50 dark:bg-surface-dark/50 min-h-[400px]">
+                            <div className="size-20 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center border border-indigo-100 dark:border-indigo-800 mb-4 shadow-sm">
+                                <AlertTriangle className="w-10 h-10 text-indigo-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">WhatsApp Not Configured</h3>
+                            <p className="text-slate-500 dark:text-text-secondary max-w-md mb-6 leading-relaxed">
+                                You need to configure your WhatsApp API credentials before you can sync or create message templates.
+                            </p>
+                            <button
+                                onClick={() => navigate('/settings', { state: { initialTab: 'whatsapp_gateway' } })}
+                                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                Configure WhatsApp
+                            </button>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-8">

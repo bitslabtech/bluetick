@@ -31,7 +31,7 @@ const Campaigns = () => {
         retargetLogIds: null
     });
     const { user } = useAuth();
-    const [isConfigured, setIsConfigured] = useState(true); // Default true until fetched
+    const [isConfigured, setIsConfigured] = useState(null); // null means loading
 
     useEffect(() => {
         if (user?.id) {
@@ -129,7 +129,11 @@ const Campaigns = () => {
             {/* Scrollable Content Area */}
             <div id="campaign-scroll-container" className="flex-1 overflow-y-auto custom-scrollbar">
                 <div className="p-4 md:p-4 md:p-8 w-full max-w-[1600px] mx-auto">
-                    {!isConfigured ? (
+                    {isConfigured === null ? (
+                        <div className="flex items-center justify-center h-full py-20">
+                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    ) : isConfigured === false ? (
                         <div className="flex flex-col items-center justify-center h-full py-20 text-center animate-in fade-in slide-in-from-bottom-4">
                             <div className="w-24 h-24 bg-white dark:bg-surface-dark rounded-full flex items-center justify-center shadow-xl mb-6 border border-slate-100 dark:border-white/5">
                                 <Settings className="w-12 h-12 text-blue-500" />

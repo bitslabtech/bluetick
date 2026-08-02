@@ -6,8 +6,14 @@ import WaStoreMobileBottomMenu from './WaStoreMobileBottomMenu';
 import { cdnImg } from '../utils/cdnImage';
 
 // Helper to slugify product names for URLs
-const slugifyProduct = (name, id) => {
-    const nameSlug = name
+const slugifyProduct = (productOrName, id) => {
+    let name = productOrName;
+    if (productOrName && typeof productOrName === 'object') {
+        if (productOrName.slug) return productOrName.slug;
+        name = productOrName.name;
+        id = productOrName.id;
+    }
+    const nameSlug = (name || '')
         .toLowerCase()
         .trim()
         .replace(/[^\w\s-]/g, '')
@@ -72,7 +78,7 @@ export default function WaStoreHeader({
                             onClick={() => {
                                 setIsSearchOpen(false);
                                 setSearchQuery('');
-                                navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`);
+                                navigate(`/store/${slug}/product/${slugifyProduct(product)}`);
                             }}
                             className="w-full flex items-center gap-4 p-3 sm:p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 text-left"
                         >

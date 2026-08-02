@@ -11,8 +11,14 @@ import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
 
-const slugifyProduct = (name, id) => {
-    const nameSlug = name
+const slugifyProduct = (productOrName, id) => {
+    let name = productOrName;
+    if (productOrName && typeof productOrName === 'object') {
+        if (productOrName.slug) return productOrName.slug;
+        name = productOrName.name;
+        id = productOrName.id;
+    }
+    const nameSlug = (name || '')
         .toLowerCase()
         .trim()
         .replace(/[^\w\s-]/g, '')
@@ -118,7 +124,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
 
     const addToCart = (product, qty = 1) => {
         if (product.options && Array.isArray(product.options) && product.options.length > 0) {
-            navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`);
+            navigate(`/store/${slug}/product/${slugifyProduct(product)}`);
             return;
         }
         
@@ -241,7 +247,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                                 const showLowStock = store.inventoryConfig?.showLowStock && product.trackQuantity && product.stockQuantity > 0 && product.stockQuantity <= product.lowStockThreshold;
 
                                 return (
-                                    <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`)}>
+                                    <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product)}`)}>
                                         <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                             {product.imageUrls && product.imageUrls[0] ? (
                                                 <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />

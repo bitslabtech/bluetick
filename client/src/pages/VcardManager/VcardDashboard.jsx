@@ -3,14 +3,12 @@ import axios from 'axios';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Eye, Contact, TrendingUp, Users, Nfc } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import NfcStoreModal from '../../components/NfcStoreModal';
 import NfcLinkModal from '../../components/NfcLinkModal';
 
 export default function VcardDashboard() {
     const { user } = useAuth();
     const [vcards, setVcards] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isStoreOpen, setIsStoreOpen] = useState(false);
     const [isLinkOpen, setIsLinkOpen] = useState(false);
     const [linkedNfcCount, setLinkedNfcCount] = useState(0);
 
@@ -31,12 +29,6 @@ export default function VcardDashboard() {
         axios.get(`${import.meta.env.VITE_API_URL}/api/nfc/my-cards`).then(res => setLinkedNfcCount(res.data?.length || 0)).catch(() => { });
     }, []);
 
-    // Listen for sidebar banner "Shop Now" click from any vCard sub-page
-    useEffect(() => {
-        const handler = () => setIsStoreOpen(true);
-        window.addEventListener('open-nfc-store', handler);
-        return () => window.removeEventListener('open-nfc-store', handler);
-    }, []);
 
     const totalViews = vcards.reduce((sum, v) => sum + (v.views || 0), 0);
     const activeCards = vcards.filter(v => v.status === 'active').length;
@@ -82,7 +74,7 @@ export default function VcardDashboard() {
                         <button onClick={() => setIsLinkOpen(true)} className="px-4 md:px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 backdrop-blur-sm">
                             <Nfc className="w-4 h-4" /> Link NFC Device
                         </button>
-                        <button onClick={() => setIsStoreOpen(true)} className="px-4 md:px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        <button onClick={() => window.dispatchEvent(new CustomEvent('open-nfc-store'))} className="px-4 md:px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
                             Buy NFC Products
                         </button>
                     </div>
@@ -218,7 +210,6 @@ export default function VcardDashboard() {
                 </div>
             </div>
 
-            <NfcStoreModal isOpen={isStoreOpen} onClose={() => setIsStoreOpen(false)} />
             <NfcLinkModal isOpen={isLinkOpen} onClose={() => setIsLinkOpen(false)} vcards={vcards} />
         </div>
     );

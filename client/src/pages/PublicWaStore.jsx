@@ -59,8 +59,14 @@ function StoreInnerWithAuth({ store, theme, slug, products, categories, cartCoun
     );
 }
 
-const slugifyProduct = (name, id) => {
-    const nameSlug = name
+const slugifyProduct = (productOrName, id) => {
+    let name = productOrName;
+    if (productOrName && typeof productOrName === 'object') {
+        if (productOrName.slug) return productOrName.slug;
+        name = productOrName.name;
+        id = productOrName.id;
+    }
+    const nameSlug = (name || '')
         .toLowerCase()
         .trim()
         .replace(/[^\w\s-]/g, '')
@@ -311,7 +317,7 @@ export default function PublicWaStore({ customSlug }) {
 
     const addToCart = (product, qty = 1) => {
         if (product.options && Array.isArray(product.options) && product.options.length > 0) {
-            navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`);
+            navigate(`/store/${slug}/product/${slugifyProduct(product)}`);
             return;
         }
 
@@ -430,7 +436,7 @@ export default function PublicWaStore({ customSlug }) {
                                                 } else if (slide.ctaTargetType === 'product' && slide.ctaTargetId) {
                                                     const targetProduct = products.find(p => p.id === slide.ctaTargetId);
                                                     if (targetProduct) {
-                                                        navigate(`/store/${slug}/product/${slugifyProduct(targetProduct.name, targetProduct.id)}`);
+                                                        navigate(`/store/${slug}/product/${slugifyProduct(targetProduct)}`);
                                                     }
                                                 } else {
                                                     document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
@@ -507,8 +513,11 @@ export default function PublicWaStore({ customSlug }) {
                         {theme.id === 'vogue' ? (
                             <div
                                 ref={categoryScrollRef}
-                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 px-4 -mx-4 snap-x md:justify-center"
+                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8 snap-x md:justify-center"
                             >
+                                {/* Left Spacer to ensure first item doesn't stick to edge */}
+                                <div className="w-1 shrink-0 md:hidden"></div>
+
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -552,8 +561,11 @@ export default function PublicWaStore({ customSlug }) {
                         ) : (
                             <div
                                 ref={categoryScrollRef}
-                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 px-4 -mx-4 md:justify-center"
+                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8 md:justify-center"
                             >
+                                {/* Left Spacer to ensure first item doesn't stick to edge */}
+                                <div className="w-1 shrink-0 md:hidden"></div>
+
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -651,7 +663,7 @@ export default function PublicWaStore({ customSlug }) {
                                     const qtyInCart = cartItem ? cartItem.qty : 0;
 
                                     return (
-                                        <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product.name, product.id)}`)}>
+                                        <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product)}`)}>
                                             {/* Image Box */}
                                             <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                                 {product.imageUrls && product.imageUrls[0] ? (
