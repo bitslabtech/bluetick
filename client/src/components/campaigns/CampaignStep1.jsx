@@ -475,16 +475,16 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                                     {exclusionCounts.total.toLocaleString()} contacts will be automatically excluded
                                                 </p>
                                                 <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 mt-0.5 leading-snug">
-                                                    These contacts are silently skipped — no message charges, no failed counts.
+                                                    These contacts are automatically ignored to protect your WhatsApp quality rating. You will not be charged, and they will not count towards your failure rate.
                                                 </p>
 
                                                 {/* Breakdown pills */}
                                                 <div className="flex flex-wrap gap-2 mt-3">
                                                     {exclusionCounts.optedOut > 0 && (
-                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/60 border border-amber-200 dark:border-amber-700/40 rounded-lg px-2.5 py-1.5 shadow-sm">
+                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/60 border border-amber-200 dark:border-amber-700/40 rounded-lg px-2.5 py-1.5 shadow-sm" title="Users who asked to stop receiving messages">
                                                             <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
                                                             <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300">
-                                                                {exclusionCounts.optedOut.toLocaleString()} Opted Out
+                                                                {exclusionCounts.optedOut.toLocaleString()} Unsubscribed (Opted Out)
                                                             </span>
                                                         </div>
                                                     )}
