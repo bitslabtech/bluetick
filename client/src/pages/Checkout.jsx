@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X, Receipt } from 'lucide-react';
@@ -32,6 +32,12 @@ const Checkout = () => {
     const [billingProfile, setBillingProfile] = useState(null);
     const [showGstModal, setShowGstModal] = useState(false);
     const [proceedWithoutGst, setProceedWithoutGst] = useState(false);
+
+    // Ref to the inline GST collapsible — used to expand + scroll to it
+    // when user clicks "Add GST Details First" in the modal (avoids navigating
+    // away from /checkout which would lose the applied coupon state).
+    const [forceExpandGst, setForceExpandGst] = useState(false);
+    const gstSectionRef = useRef(null);
 
     // Effect 1: On mount only — initialise plan from router state (preferred) or localStorage fallback
     // Using router state avoids localStorage race conditions when navigating from /billing
@@ -218,7 +224,13 @@ const Checkout = () => {
                             <button
                                 onClick={() => {
                                     setShowGstModal(false);
-                                    navigate('/settings?tab=profile');
+                                    // Expand the inline GST form and scroll to it.
+                                    // We do NOT navigate away — that would unmount the
+                                    // component and lose the applied coupon state.
+                                    setForceExpandGst(true);
+                                    setTimeout(() => {
+                                        gstSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }, 100);
                                 }}
                                 className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20"
                             >
@@ -266,6 +278,10 @@ const Checkout = () => {
                                             const newPlan = { ...plan, interval: int };
                                             setPlan(newPlan);
                                             localStorage.setItem('pendingPlan', JSON.stringify(newPlan));
+                                            
+                                            // FIX: Clear coupon state so UI pricing does not desync
+                                            setAppliedCoupon(null);
+                                            setCouponCode('');
                                         }}
                                         className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${plan.interval === int ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                                     >
@@ -460,8 +476,18 @@ const Checkout = () => {
                             </div>
 
                             {/* GST Details Collapsible */}
-                            <div className="mb-4">
-                                <BillingProfileComp compact={true} />
+                            {/* ref + forceExpand: when user clicks "Add GST First" in the modal,
+                                we scroll here and force the collapsible open — no page navigation
+                                needed, so the applied coupon is never lost. */}
+                            <div className="mb-4" ref={gstSectionRef}>
+                                <BillingProfileComp
+                                    compact={true}
+                                    forceExpand={forceExpandGst}
+                                    onSaved={(savedProfile) => {
+                                        setBillingProfile(savedProfile);
+                                        setForceExpandGst(false);
+                                    }}
+                                />
                             </div>
 
                             {/* Razorpay CTA */}

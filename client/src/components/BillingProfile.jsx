@@ -51,10 +51,13 @@ const INDIAN_STATES = [
 
 /**
  * @param {object}   props
- * @param {boolean}  props.compact   — If true: render a compact collapsible card (for checkout)
- * @param {function} props.onSaved   — Optional callback after save
+ * @param {boolean}  props.compact      — If true: render a compact collapsible card (for checkout)
+ * @param {boolean}  props.forceExpand  — If true: programmatically open the collapsible (used by
+ *                                        Checkout when user clicks "Add GST Details First" so we
+ *                                        don't navigate away and lose the applied coupon state).
+ * @param {function} props.onSaved      — Optional callback after save; receives the saved profile
  */
-export default function BillingProfile({ compact = false, onSaved }) {
+export default function BillingProfile({ compact = false, forceExpand = false, onSaved }) {
     const API_BASE = import.meta.env.VITE_API_URL || '';
     const [form, setForm] = useState({
         company: '',
@@ -83,6 +86,12 @@ export default function BillingProfile({ compact = false, onSaved }) {
             })
             .catch(() => setLoading(false));
     }, []);
+
+    // When parent sets forceExpand=true (e.g. Checkout's "Add GST Details First" button),
+    // automatically open the collapsible so user can fill details without leaving the page.
+    useEffect(() => {
+        if (forceExpand) setCollapsed(false);
+    }, [forceExpand]);
 
     const update = (key, val) => {
         setForm(f => ({ ...f, [key]: val }));

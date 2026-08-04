@@ -740,7 +740,8 @@ router.post('/users/:id/grant-trial', async (req, res) => {
         await targetUser.update({
             plan: reqPlan.name,
             planStatus: 'Trial',
-            planExpiry: expiry
+            planExpiry: expiry,
+            hasUsedTrial: true  // mark so self-service /start-trial stays blocked; admin override is always allowed
         });
 
         // Log Activity

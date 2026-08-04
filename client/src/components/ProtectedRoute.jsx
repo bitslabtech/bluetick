@@ -23,17 +23,20 @@ const ProtectedRoute = () => {
         } else {
             let pendingPlan = localStorage.getItem('pendingPlan');
 
-            // Check if user has an active PAID plan (Trial does NOT count — trial users
-            // can freely navigate between /billing and /checkout without losing their pendingPlan)
-            const hasActivePaidPlan = user.plan !== 'Free'
+            // Check if user has a currently-valid plan (Active OR Trial with a future expiry).
+            // This is used to clear any stale pendingPlan that may have been written to
+            // localStorage during the brief window when the cached user had old/expired data
+            // (e.g., right after a superadmin grants a trial — the server DB is updated but
+            // the browser still holds the old planStatus/planExpiry until /auth/me refreshes).
+            const hasValidActivePlan = user.plan !== 'Free'
                 && user.planExpiry
                 && new Date(user.planExpiry) >= new Date()
-                && user.planStatus === 'Active'; // <-- Trial excluded intentionally
+                && (user.planStatus === 'Active' || user.planStatus === 'Trial');
 
-            // Clear out stale pending checkouts ONLY for active paid users who navigate
-            // away from both /billing and /checkout (e.g., went back to /dashboard by accident).
-            // Trial users are NEVER subject to this cleanup.
-            if (hasActivePaidPlan && pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
+            // Clear stale pendingPlan for any user whose plan is currently valid.
+            // Without this, a stale pendingPlan written during the expired-state window
+            // would keep trapping Trial users in /checkout even after fetchUser() refreshes.
+            if (hasValidActivePlan && pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
                 localStorage.removeItem('pendingPlan');
                 pendingPlan = null;
             }

@@ -369,40 +369,54 @@ function initScheduler() {
                     // Media Storage Quota (MB)
                     const storageUsedMB = parseFloat(((user.mediaStorageUsed || 0) / (1024 * 1024)).toFixed(2));
                     await checkThresholds(storageUsedMB, planDetails.storageLimitMb, 'Storage (MB)');
-                    
-                    // AI Tokens Quota (Special handling, it depletes, doesn't grow)
-                    // If balance < 20% of last topup? We don't have total bought. We just alert when balance < 50, 10, 0
-                    const aiBalance = user.aiTokenBalance || 0;
-                    
-                    // Only check AI tokens if they have a balance, their plan includes it, or they previously triggered an alert
-                    const shouldCheckAi = (aiBalance > 0) || (planDetails.aiTokensAllowance > 0) || (userLastQuotaAlerts['AITokens']);
-                    
-                    if (shouldCheckAi) {
-                        let aiTrigger = null;
-                        if (aiBalance <= 0) aiTrigger = '0';
-                        else if (aiBalance <= 50) aiTrigger = '50';
-                        else if (aiBalance <= 200) aiTrigger = '200';
 
-                        if (aiTrigger && userLastQuotaAlerts['AITokens'] !== aiTrigger) {
-                            await sendSystemMessage(userPhone, 'template', {
-                                templateName: quotaTpl.templateName,
-                                languageCode: quotaTpl.languageCode || 'en_US',
-                                components: [{
-                                    type: 'body',
-                                    parameters: [
-                                        { type: 'text', text: user.name || 'User' },
-                                        { type: 'text', text: 'AI Tokens' },
-                                        { type: 'text', text: aiBalance.toString() },
-                                        { type: 'text', text: 'Depleted' }
-                                    ]
-                                }]
-                            });
-                            userLastQuotaAlerts['AITokens'] = aiTrigger;
-                            alertsUpdated = true;
-                            console.log(`[ALERTS] Sent quota alert to ${userPhone} for AI Tokens at ${aiTrigger}.`);
-                        } else if (aiBalance > 200 && userLastQuotaAlerts['AITokens']) {
+                    // ── AI Tokens Quota ──────────────────────────────────────────────────
+                    // ONLY alert users whose plan explicitly grants AI tokens (aiTokensAllowance > 0).
+                    // Trial users and Free plans have aiTokensAllowance = 0 and must NEVER receive
+                    // token depletion messages, even if their aiTokenBalance > 0 (all new accounts
+                    // get a 100-token DB default regardless of plan — that is NOT a plan entitlement).
+                    const aiBalance = user.aiTokenBalance || 0;
+                    const planAiAllowance = planDetails.aiTokensAllowance || 0;
+
+                    if (planAiAllowance <= 0) {
+                        // Plan has no AI token allowance — silently clear any stale alert
+                        if (userLastQuotaAlerts['AITokens']) {
                             delete userLastQuotaAlerts['AITokens'];
                             alertsUpdated = true;
+                        }
+                    } else {
+                        // Plan grants AI tokens — alert on low balance thresholds.
+                        // Only fire if user has previously used/received AI tokens on this plan.
+                        const hasEverHadPlanTokens = aiBalance > 0 || userLastQuotaAlerts['AITokens'];
+
+                        if (hasEverHadPlanTokens) {
+                            let aiTrigger = null;
+                            if (aiBalance <= 0) aiTrigger = '0';
+                            else if (aiBalance <= 50) aiTrigger = '50';
+                            else if (aiBalance <= 200) aiTrigger = '200';
+
+                            if (aiTrigger && userLastQuotaAlerts['AITokens'] !== aiTrigger) {
+                                await sendSystemMessage(userPhone, 'template', {
+                                    templateName: quotaTpl.templateName,
+                                    languageCode: quotaTpl.languageCode || 'en_US',
+                                    components: [{
+                                        type: 'body',
+                                        parameters: [
+                                            { type: 'text', text: user.name || 'User' },
+                                            { type: 'text', text: 'AI Tokens' },
+                                            { type: 'text', text: aiBalance.toString() },
+                                            { type: 'text', text: 'Depleted' }
+                                        ]
+                                    }]
+                                });
+                                userLastQuotaAlerts['AITokens'] = aiTrigger;
+                                alertsUpdated = true;
+                                console.log(`[ALERTS] Sent AI token alert to ${userPhone} (balance: ${aiBalance}).`);
+                            } else if (aiBalance > 200 && userLastQuotaAlerts['AITokens']) {
+                                // Balance topped up — reset so alert can fire again on next depletion
+                                delete userLastQuotaAlerts['AITokens'];
+                                alertsUpdated = true;
+                            }
                         }
                     }
                 }
@@ -413,7 +427,7 @@ function initScheduler() {
                     await user.save();
                 }
             }
-            
+
             // (Plan expiry is now handled above, unconditionally before the linkedAdminId gate)
 
 
