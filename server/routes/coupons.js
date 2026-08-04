@@ -107,11 +107,24 @@ router.post('/validate', async (req, res) => {
 
         // 1. Check Dates
         const now = new Date();
-        if (coupon.startDate && new Date(coupon.startDate) > now) {
-            return res.status(400).json({ error: 'This coupon is not yet valid.' });
+        if (coupon.startDate) {
+            const startDate = new Date(coupon.startDate);
+            // Ignore time portion by comparing only dates (allows timezone leniency up to 24h)
+            startDate.setHours(0, 0, 0, 0);
+            const today = new Date(now);
+            today.setHours(0, 0, 0, 0);
+            
+            if (startDate > today) {
+                return res.status(400).json({ error: 'This coupon is not yet valid.' });
+            }
         }
-        if (coupon.expiryDate && new Date(coupon.expiryDate) < now) {
-            return res.status(400).json({ error: 'This coupon has expired.' });
+        if (coupon.expiryDate) {
+            const expiryDate = new Date(coupon.expiryDate);
+            // End of day for expiry
+            expiryDate.setHours(23, 59, 59, 999);
+            if (expiryDate < now) {
+                return res.status(400).json({ error: 'This coupon has expired.' });
+            }
         }
 
         // 2. Check Global Max Uses
