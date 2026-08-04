@@ -35,7 +35,7 @@ module.exports = async function (req, res, next) {
             // Admins and impersonated sessions are never blocked by subscription checks.
             if (!dbUser.isAdmin && !req.cookies?.bt_admin_token && !req.header('x-admin-token')) {
                 // Allow billing, auth, and public endpoints even if expired
-                const allowedPaths = ['/api/auth', '/api/billing', '/api/plans', '/api/system', '/api/webhook'];
+                const allowedPaths = ['/api/auth', '/api/billing', '/api/plans', '/api/system', '/api/webhook', '/api/coupons'];
                 const isAllowedPath = allowedPaths.some(p => req.originalUrl.startsWith(p));
 
                 if (!isAllowedPath) {
