@@ -173,6 +173,11 @@ const WhatsAppAdminNotifPanel = () => {
                 console.error(`Failed to generate ${evt.templateName}:`, err);
                 failed++;
             }
+            
+            // Add a 6-second delay between AI generations to respect Gemini/OpenAI rate limits (e.g., 15 RPM for Gemini free tier)
+            if (i < missingEvents.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 6000));
+            }
         }
 
         setAutoCreating(false);
@@ -216,6 +221,11 @@ const WhatsAppAdminNotifPanel = () => {
             } catch (err) {
                 console.error(`Failed to submit ${tpl.name}:`, err);
                 failCount++;
+            }
+
+            // Small delay to prevent hitting Meta's WhatsApp Cloud API rate limits for template creation
+            if (i < generatedTemplates.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
 
