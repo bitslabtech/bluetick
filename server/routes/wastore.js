@@ -690,6 +690,49 @@ router.post('/public/:slug/phonepe-callback', async (req, res) => {
 
 
 
+// Public Endpoint: Validate Coupon
+router.post('/public/:slug/validate-coupon', async (req, res) => {
+    try {
+        const { code, cartTotal } = req.body;
+        const store = await WaStore.findOne({ where: { slug: req.params.slug.toLowerCase(), isActive: true } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const WaStoreCoupon = require('../models/WaStoreCoupon');
+
+        // First check if coupon exists at all (ignoring isActive)
+        const couponAny = await WaStoreCoupon.findOne({
+            where: { storeId: store.id, code: code.toUpperCase().trim() }
+        });
+
+        if (!couponAny) {
+            return res.status(400).json({ error: 'Invalid coupon code. Please check and try again.' });
+        }
+        if (!couponAny.isActive) {
+            return res.status(400).json({ error: 'This coupon is currently inactive.' });
+        }
+
+        // Expiry check
+        if (couponAny.expiresAt && new Date() > new Date(couponAny.expiresAt)) {
+            return res.status(400).json({ error: 'This coupon has expired.' });
+        }
+
+        // Minimum order value check — fix: use cartTotal != null (not truthy check, so 0 is handled)
+        const minOrder = parseFloat(couponAny.minOrderValue) || 0;
+        if (minOrder > 0 && cartTotal != null && parseFloat(cartTotal) < minOrder) {
+            const currSymbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AED: 'د.إ', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
+            const sym = currSymbols[store.currency] || store.currency || '';
+            return res.status(400).json({
+                error: `Minimum order value of ${sym}${minOrder.toFixed(2)} required for this coupon.`
+            });
+        }
+
+        res.json(couponAny);
+    } catch (error) {
+        console.error('Validate coupon error:', error);
+        res.status(500).json({ error: 'Failed to validate coupon' });
+    }
+});
+
 // ==========================================
 // PROTECTED USER ROUTES
 // ==========================================
@@ -1749,49 +1792,6 @@ router.delete('/:storeId/coupons/:couponId', async (req, res) => {
     }
 });
 
-// Public Endpoint: Validate Coupon
-router.post('/public/:slug/validate-coupon', async (req, res) => {
-    try {
-        const { code, cartTotal } = req.body;
-        const store = await WaStore.findOne({ where: { slug: req.params.slug.toLowerCase(), isActive: true } });
-        if (!store) return res.status(404).json({ error: 'Store not found' });
-
-        const WaStoreCoupon = require('../models/WaStoreCoupon');
-
-        // First check if coupon exists at all (ignoring isActive)
-        const couponAny = await WaStoreCoupon.findOne({
-            where: { storeId: store.id, code: code.toUpperCase().trim() }
-        });
-
-        if (!couponAny) {
-            return res.status(400).json({ error: 'Invalid coupon code. Please check and try again.' });
-        }
-        if (!couponAny.isActive) {
-            return res.status(400).json({ error: 'This coupon is currently inactive.' });
-        }
-
-        // Expiry check
-        if (couponAny.expiresAt && new Date() > new Date(couponAny.expiresAt)) {
-            return res.status(400).json({ error: 'This coupon has expired.' });
-        }
-
-        // Minimum order value check — fix: use cartTotal != null (not truthy check, so 0 is handled)
-        const minOrder = parseFloat(couponAny.minOrderValue) || 0;
-        if (minOrder > 0 && cartTotal != null && parseFloat(cartTotal) < minOrder) {
-            const currSymbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AED: 'د.إ', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
-            const sym = currSymbols[store.currency] || store.currency || '';
-            return res.status(400).json({
-                error: `Minimum order value of ${sym}${minOrder.toFixed(2)} required for this coupon.`
-            });
-        }
-
-        res.json(couponAny);
-    } catch (error) {
-        console.error('Validate coupon error:', error);
-        res.status(500).json({ error: 'Failed to validate coupon' });
-    }
-
-});
 
 // ==========================================
 // STORE ANALYTICS

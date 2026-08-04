@@ -4,6 +4,16 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useStoreCustomerOptional } from '../context/StoreCustomerContext';
 
+const INDIAN_STATES = [
+    "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", 
+    "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", 
+    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", 
+    "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", 
+    "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", 
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", 
+    "Uttarakhand", "West Bengal"
+];
+
 export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippingCost, cartTotal, onClose, onCheckoutSuccess }) {
     // Returns null gracefully if not inside StoreCustomerProvider
     const storeCustomerCtx = useStoreCustomerOptional();
@@ -48,7 +58,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const getCurrencySymbol = (code) => {
-        const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
+        const symbols = { USD: '$', EUR: '\u20AC', GBP: '\u00A3', INR: '\u20B9' };
         return symbols[code] || code;
     };
 
@@ -97,7 +107,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         setCouponCode('');
     };
 
-    const calculateFinalTotal = () => {
+    const getDiscountedSubtotal = () => {
         if (!appliedCoupon) return cartSubtotal;
         if (appliedCoupon.discountType === 'percentage') {
             return cartSubtotal - (cartSubtotal * (parseFloat(appliedCoupon.discountValue) / 100));
@@ -107,7 +117,15 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
     };
 
     const calculateDiscountAmount = () => {
-        return cartSubtotal - calculateFinalTotal();
+        return cartSubtotal - getDiscountedSubtotal();
+    };
+
+    const calculateFinalTotal = () => {
+        let baseTotal = getDiscountedSubtotal();
+        if (taxEnabled && !store?.taxConfig?.taxInclusive) {
+            baseTotal += calculateTaxAmount();
+        }
+        return baseTotal;
     };
 
     const taxEnabled = store?.taxConfig?.enabled || false;
@@ -166,6 +184,14 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         if (!formData.name || !formData.phone || !formData.address) {
             toast.error("Please fill in the required fields (Name, Phone, Address).");
             return;
+        }
+
+        if (showGstSection && gstDetails.gstin) {
+            const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+            if (gstDetails.gstin.length !== 15 || !gstinRegex.test(gstDetails.gstin)) {
+                toast.error("Please enter a valid 15-character GSTIN (e.g., 22AAAAA0000A1Z5).");
+                return;
+            }
         }
 
         setIsSubmitting(true);
@@ -256,14 +282,16 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             }
 
             // WhatsApp Flow
-            let message = `🛒 *New Order from ${store.name}*\n\n`;
-            message += `👤 *Customer Details:*\n`;
+            let message = `*New Order Request*\n`;
+            message += `-----------------------------------\n\n`;
+            
+            message += `*Customer Details:*\n`;
             message += `Name: ${formData.name}\n`;
             message += `Phone: ${formData.phone}\n`;
             if (formData.email) message += `Email: ${formData.email}\n`;
             message += `Address: ${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}\n\n`;
             
-            message += `📦 *Order Items:*\n`;
+            message += `*Order Items:*\n`;
             cart.forEach((item, i) => {
                 // Include variant text if present (e.g. "T-Shirt - Size: L")
                 let variantText = '';
@@ -280,10 +308,11 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                     priceText = `~${getCurrencySymbol(store.currency)}${parseFloat(item.price).toFixed(2)}~ *${getCurrencySymbol(store.currency)}${currentItemPrice.toFixed(2)}* (Wholesale)`;
                 }
 
-                message += `${i+1}. ${item.name}${variantText}\n   ${item.qty} x ${priceText}\n`;
+                message += `${i+1}. *${item.name}*${variantText}\n   └ ${item.qty} x ${priceText}\n\n`;
             });
 
-            message += `\n*Subtotal:* ${getCurrencySymbol(store.currency)} ${cartSubtotal.toFixed(2)}\n`;
+            message += `-----------------------------------\n`;
+            message += `*Subtotal:* ${getCurrencySymbol(store.currency)} ${cartSubtotal.toFixed(2)}\n`;
             if (appliedCoupon) {
                 message += `*Discount (${appliedCoupon.code}):* -${getCurrencySymbol(store.currency)} ${calculateDiscountAmount().toFixed(2)}\n`;
             }
@@ -291,12 +320,16 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                 message += `*Shipping:* ${getCurrencySymbol(store.currency)} ${shippingCost.toFixed(2)}\n`;
             }
             if (taxEnabled) {
-                message += `*(Includes Tax: ${getCurrencySymbol(store.currency)} ${calculateTaxAmount().toFixed(2)})*\n`;
+                if (store.taxConfig.taxInclusive) {
+                    message += `*(Includes Tax: ${getCurrencySymbol(store.currency)} ${calculateTaxAmount().toFixed(2)})*\n`;
+                } else {
+                    message += `*Tax:* ${getCurrencySymbol(store.currency)} ${calculateTaxAmount().toFixed(2)}\n`;
+                }
             }
-            message += `*Final Total:* ${getCurrencySymbol(store.currency)} ${(finalTotal + shippingCost).toFixed(2)}\n\n`;
+            message += `*Final Total:* ${getCurrencySymbol(store.currency)} ${(calculateFinalTotal() + shippingCost).toFixed(2)}\n`;
+            message += `-----------------------------------\n\n`;
             
-            if (formData.notes) message += `📝 *Note:* ${formData.notes}\n\n`;
-            message += `_Please confirm my order. Thank you!_`;
+            if (formData.notes) message += `*Note:* ${formData.notes}\n\n`;
 
             const encodedMsg = encodeURIComponent(message);
             const phone = store.whatsappNumber.replace(/[^0-9]/g, '');
@@ -361,16 +394,19 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                                    <select required name="state" value={formData.state} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none bg-white">
+                                        <option value="" disabled>Select State</option>
+                                        {INDIAN_STATES.map(st => <option key={st} value={st}>{st}</option>)}
+                                    </select>
+                                </div>
+                                <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
                                     <input required type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                                    <input type="text" name="state" value={formData.state} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
-                                </div>
-                                <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
-                                    <input required type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
+                                    <input required type="text" pattern="[0-9]{6}" maxLength="6" minLength="6" title="Please enter a valid 6-digit Pincode" name="pincode" value={formData.pincode} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
                                 </div>
                             </div>
 
@@ -412,11 +448,13 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                                             value={gstDetails.gstin}
                                             onChange={e => setGstDetails(d => ({ ...d, gstin: e.target.value.toUpperCase() }))}
                                             maxLength={15}
+                                            pattern="^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$"
+                                            title="Please enter a valid GSTIN (e.g., 22AAAAA0000A1Z5)"
                                             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none uppercase"
-                                            placeholder="22AABCC1234F1Z5"
+                                            placeholder="22AAAAA0000A1Z5"
                                         />
-                                        {gstDetails.gstin && gstDetails.gstin.length !== 15 && (
-                                            <p className="text-xs text-red-500 mt-1">GSTIN must be exactly 15 characters</p>
+                                        {gstDetails.gstin && (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstDetails.gstin)) && (
+                                            <p className="text-xs text-red-500 mt-1">Please enter a valid GSTIN</p>
                                         )}
                                     </div>
                                 </div>
@@ -481,7 +519,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                         )}
                         {taxEnabled && (
                             <div className="flex justify-between text-gray-400 text-xs mt-1">
-                                <span>Includes Tax</span>
+                                <span>{store.taxConfig.taxInclusive ? 'Includes Tax' : 'Tax'}</span>
                                 <span>{getCurrencySymbol(store.currency)}{calculateTaxAmount().toFixed(2)}</span>
                             </div>
                         )}

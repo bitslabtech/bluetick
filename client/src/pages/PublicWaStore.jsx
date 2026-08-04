@@ -247,12 +247,7 @@ export default function PublicWaStore({ customSlug }) {
     }, [products, store]);
 
     const getDisplayPrice = useCallback((priceVal, product) => {
-        let p = parseFloat(priceVal) || 0;
-        if (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false) {
-            let taxRate = product.taxRate !== null && product.taxRate !== undefined ? parseFloat(product.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
-            p = p + (p * taxRate / 100);
-        }
-        return p;
+        return parseFloat(priceVal) || 0;
     }, [store]);
 
     // Advanced SEO: Dynamic Title and Meta Tags based on category
@@ -349,13 +344,26 @@ export default function PublicWaStore({ customSlug }) {
     const flatShippingRate = checkoutConfig.flatShippingRate || 0;
     const freeShippingThreshold = checkoutConfig.freeShippingThreshold || 0;
 
-    const cartSubtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.qty), 0);
+    const getItemPrice = useCallback((item) => {
+        if (item.minWholesaleQty && item.wholesalePrice && item.qty >= parseInt(item.minWholesaleQty)) {
+            return parseFloat(item.wholesalePrice);
+        }
+        return parseFloat(item.price);
+    }, []);
+
+    const cartSubtotal = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.qty), 0);
     const shippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || cartSubtotal < freeShippingThreshold)) ? flatShippingRate : 0;
-    const cartTotal = cartSubtotal + shippingCost;
+    const estimatedTax = (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false)
+        ? cart.reduce((sum, item) => {
+            const taxRate = item.taxRate !== null && item.taxRate !== undefined ? parseFloat(item.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
+            return sum + (getItemPrice(item) * (taxRate / 100) * item.qty);
+          }, 0)
+        : 0;
+    const cartTotal = cartSubtotal + shippingCost + estimatedTax;
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
     const getCurrencySymbol = (code) => {
-        const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
+        const symbols = { USD: '$', EUR: '\u20AC', GBP: '\u00A3', INR: '\u20B9' };
         return symbols[code] || code;
     };
 
@@ -712,6 +720,11 @@ export default function PublicWaStore({ customSlug }) {
                                                             <>
                                                                 <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>
                                                                     {hasVariantPricing ? 'from ' : ''}{getCurrencySymbol(store.currency)}{getDisplayPrice(minPrice, product).toFixed(2)}
+                                                                    {store?.taxConfig?.enabled && (
+                                                                        <span className="text-[10px] font-normal opacity-70 ml-1">
+                                                                            {store.taxConfig.taxInclusive ? '(incl. tax)' : '(excl. tax)'}
+                                                                        </span>
+                                                                    )}
                                                                 </span>
                                                                 {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
                                                                     <>
@@ -858,7 +871,7 @@ export default function PublicWaStore({ customSlug }) {
                                                             {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(' | ')}
                                                         </div>
                                                     )}
-                                                    <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{getDisplayPrice(item.price, item).toFixed(2)}</div>
+                                                    <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{getDisplayPrice(getItemPrice(item), item).toFixed(2)}</div>
 
                                                     <div className="flex items-center justify-between gap-3 mt-3">
                                                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -866,11 +879,9 @@ export default function PublicWaStore({ customSlug }) {
                                                             <span className="w-8 text-center text-xs font-semibold text-gray-900">{item.qty}</span>
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
                                                         </div>
-                                                        {item.qty > 1 && (
-                                                            <div className={`font-bold text-sm ${theme.text}`}>
-                                                                {getCurrencySymbol(store.currency)}{(getDisplayPrice(item.price, item) * item.qty).toFixed(2)}
-                                                            </div>
-                                                        )}
+                                                        <div className={`font-bold text-sm ${theme.text}`}>
+                                                            {getCurrencySymbol(store.currency)}{(getDisplayPrice(getItemPrice(item), item) * item.qty).toFixed(2)}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -889,6 +900,12 @@ export default function PublicWaStore({ customSlug }) {
                                         <div className="flex justify-between items-center mb-2">
                                             <span className={theme.textMuted}>Shipping</span>
                                             <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{shippingCost.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    {store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false && estimatedTax > 0 && (
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className={theme.textMuted}>Estimated Tax</span>
+                                            <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{estimatedTax.toFixed(2)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center mb-6 pt-2 border-t border-black/5 dark:border-white/10">

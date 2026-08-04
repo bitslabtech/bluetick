@@ -123,12 +123,7 @@ export default function WaStoreSEO() {
         }
     };
 
-    if (loading) return (
-        <div className="space-y-4 animate-pulse max-w-4xl">
-            <div className="h-32 rounded-2xl bg-slate-100 dark:bg-slate-800" />
-            <div className="h-64 rounded-2xl bg-slate-100 dark:bg-slate-800" />
-        </div>
-    );
+
 
     return (
         <div className="max-w-4xl space-y-6 pb-7 sm:pb-20">
@@ -142,6 +137,26 @@ export default function WaStoreSEO() {
                 </p>
             </div>
 
+            {loading ? (
+                <div className="space-y-6 animate-pulse">
+                    {[1, 2].map(i => (
+                        <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 space-y-5">
+                            <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded mb-4" />
+                            <div className="h-32 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700" />
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
+                                    <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                                </div>
+                                <div>
+                                    <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
+                                    <div className="h-24 w-full bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
             <form onSubmit={handleSave} className="space-y-6">
                 {/* Search Engine Optimization */}
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
@@ -277,6 +292,7 @@ export default function WaStoreSEO() {
                     </button>
                 </div>
             </form>
+            )}
         </div>
     );
 }

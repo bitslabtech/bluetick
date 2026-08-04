@@ -225,12 +225,6 @@ export default function WaStoreBasicDetails() {
     const storeUrl = store ? `${window.location.origin}/store/${store.slug}` : '';
     const copySlug = () => { navigator.clipboard.writeText(storeUrl); toast.success('Store URL copied!'); };
 
-    if (loading || !store) return (
-        <div className="space-y-4 animate-pulse">
-            {[1, 2, 3].map(i => <div key={i} className="h-40 rounded-2xl bg-slate-100 dark:bg-slate-800" />)}
-        </div>
-    );
-
     return (
         <div className="space-y-6 pb-7 sm:pb-20">
             <div>
@@ -243,6 +237,21 @@ export default function WaStoreBasicDetails() {
                 </p>
             </div>
 
+            {loading || !store ? (
+                <div className="space-y-6 animate-pulse">
+                    {[1, 2].map(i => (
+                        <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-6 space-y-6">
+                            <div className="w-48 h-6 bg-slate-200 dark:bg-slate-700 rounded mb-4" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                                <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                                <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                                <div className="h-12 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
             <form onSubmit={handleSave} className="space-y-6">
 
                 {/* ── Store Identity ────────────────────────────────────── */}
@@ -564,6 +573,8 @@ export default function WaStoreBasicDetails() {
                     </button>
                 </div>
             </form>
+            )}
+
 
             {/* ── Media Picker Modal ─────────────────────────────────────── */}
             <MediaPickerModal

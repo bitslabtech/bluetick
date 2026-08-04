@@ -126,7 +126,7 @@ export default function PublicWaStore() {
     }, [selectedProduct, products, store?.showCrossSells]);
 
     const getCurrencySymbol = (code) => {
-        const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
+        const symbols = { USD: '$', EUR: '\u20AC', GBP: '\u00A3', INR: '\u20B9' };
         return symbols[code] || code;
     };
 

@@ -392,9 +392,39 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
             </div>
             {/* File Grid / List */}
             {loading ? (
-                <div className="flex items-center justify-center py-16">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
+                viewMode === "grid" ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => (
+                            <div key={i} className="rounded-xl overflow-hidden border-2 border-transparent bg-white dark:bg-surface-dark animate-pulse">
+                                <div className="aspect-square bg-slate-100 dark:bg-slate-800" />
+                                <div className="p-2 border-t border-slate-100 dark:border-white/5 space-y-2">
+                                    <div className="h-2 w-3/4 bg-slate-200 dark:bg-slate-700 rounded mt-1" />
+                                    <div className="flex justify-between items-center mt-1">
+                                        <div className="h-2 w-8 bg-slate-200 dark:bg-slate-700 rounded" />
+                                        <div className="h-3 w-12 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-2">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/10 animate-pulse">
+                                <div className="w-10 h-10 rounded bg-slate-200 dark:bg-slate-700 shrink-0" />
+                                <div className="flex-1 flex flex-col justify-center gap-1.5">
+                                    <div className="h-3 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
+                                    <div className="h-2 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+                                </div>
+                                <div className="w-16 h-5 rounded-full bg-slate-200 dark:bg-slate-700 shrink-0 mx-4" />
+                                <div className="flex gap-1.5 mr-2">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 shrink-0" />
+                                    <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 shrink-0" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )
                         ) : filteredFiles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
                     <Image className="w-12 h-12 opacity-30" />

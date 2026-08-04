@@ -134,7 +134,7 @@ export default function WaStoreThemes() {
         }
     };
 
-    if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500 flex justify-center items-center h-64">Loading premium themes...</div>;
+
 
     return (
         <div className="space-y-6 md:space-y-8 max-w-7xl mx-auto pb-7 sm:pb-12">
@@ -149,7 +149,23 @@ export default function WaStoreThemes() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-8">
-                {themes.map(theme => {
+                {loading ? (
+                    [1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="bg-white dark:bg-surface-dark border-2 border-slate-200 dark:border-white/10 rounded-[2rem] overflow-hidden animate-pulse flex flex-col">
+                            <div className="h-64 w-full bg-slate-100 dark:bg-slate-800" />
+                            <div className="p-6 md:p-8 flex-1 flex flex-col justify-between space-y-6">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800" />
+                                        <div className="h-5 w-24 bg-slate-100 dark:bg-slate-800 rounded-full" />
+                                    </div>
+                                    <div className="h-4 w-3/4 bg-slate-100 dark:bg-slate-800 rounded" />
+                                </div>
+                                <div className="h-12 w-full bg-slate-100 dark:bg-slate-800 rounded-[1.25rem]" />
+                            </div>
+                        </div>
+                    ))
+                ) : themes.map(theme => {
                     const isActive = store?.themeId === theme.id;
                     
                     return (

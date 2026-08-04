@@ -521,11 +521,7 @@ export default function WaStoreNotifications() {
         }
     };
 
-    if (loading) return (
-        <div className="space-y-4 animate-pulse">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-20 rounded-2xl bg-slate-100 dark:bg-slate-800" />)}
-        </div>
-    );
+
 
     const enabledCount = Object.values(configs).filter(c => c?.enabled && c?.templateId).length;
 
@@ -560,7 +556,26 @@ export default function WaStoreNotifications() {
 
                 {/* Trigger cards */}
                 <div className="space-y-3">
-                    {TRIGGERS.map(trigger => (
+                    {loading ? (
+                        [1, 2, 3, 4].map(i => (
+                            <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 animate-pulse">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 shrink-0" />
+                                    <div className="space-y-2 mt-1">
+                                        <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                                        <div className="h-3 w-48 bg-slate-100 dark:bg-slate-800 rounded" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2 shrink-0 w-full sm:w-64">
+                                    <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                                    <div className="flex gap-2">
+                                        <div className="h-8 w-1/2 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                                        <div className="h-8 w-1/2 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    ) : TRIGGERS.map(trigger => (
                         <TriggerCard
                             key={trigger.key}
                             trigger={trigger}

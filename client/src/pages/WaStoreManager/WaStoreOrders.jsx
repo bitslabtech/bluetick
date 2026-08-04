@@ -227,9 +227,21 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
                                             <span>− {sym(order.currency)} {Number(order.discountAmount).toFixed(2)}</span>
                                         </div>
                                     )}
+                                    {Number(order.taxAmount) > 0 && (
+                                        <div className="flex justify-between items-center text-sm text-slate-500">
+                                            <span>Tax ({order.taxName || 'Estimated'}):</span>
+                                            <span>{sym(order.currency)} {Number(order.taxAmount).toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    {(Number(order.total) || Number(order.subtotal)) > Number(order.subtotal) && (
+                                        <div className="flex justify-between items-center text-sm text-slate-500">
+                                            <span>Shipping:</span>
+                                            <span>{sym(order.currency)} {((Number(order.total) || Number(order.subtotal)) - Number(order.subtotal)).toFixed(2)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-200 dark:border-white/10">
                                         <span className="font-bold text-slate-700 dark:text-slate-300">Order Total:</span>
-                                        <span className="font-black text-xl text-indigo-600 dark:text-indigo-400">{sym(order.currency)} {Number(order.subtotal).toFixed(2)}</span>
+                                        <span className="font-black text-xl text-indigo-600 dark:text-indigo-400">{sym(order.currency)} {Number(order.total || order.subtotal).toFixed(2)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -403,7 +415,7 @@ export default function WaStoreOrders() {
         total: orders.length,
         pending: orders.filter(o => o.status === 'pending').length,
         delivered: orders.filter(o => o.status === 'delivered').length,
-        revenue: orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.subtotal), 0)
+        revenue: orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total || o.subtotal), 0)
     };
     const currency = store?.currency || orders[0]?.currency || 'USD';
 
@@ -467,8 +479,31 @@ export default function WaStoreOrders() {
 
             {/* Orders Table */}
             {loading ? (
-                <div className="space-y-3">
-                    {[1,2,3,4].map(i => <div key={i} className="h-20 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />)}
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                    <div className="divide-y divide-slate-100 dark:divide-white/5">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 px-4 md:px-6 py-4 animate-pulse">
+                                {/* Order # and Date skeleton */}
+                                <div className="min-w-[100px]">
+                                    <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded mb-1" />
+                                    <div className="h-3 w-24 bg-slate-100 dark:bg-slate-800 rounded" />
+                                </div>
+                                {/* Customer Info skeleton */}
+                                <div className="flex-1 min-w-0 flex flex-col mt-1 md:mt-0">
+                                    <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded mb-1" />
+                                    <div className="h-3 w-48 bg-slate-100 dark:bg-slate-800 rounded" />
+                                </div>
+                                {/* Status skeleton */}
+                                <div className="hidden md:block w-32">
+                                    <div className="h-6 w-24 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                                </div>
+                                {/* Amount skeleton */}
+                                <div className="text-right min-w-[90px] max-w-full">
+                                    <div className="h-5 w-20 bg-slate-200 dark:bg-slate-700 rounded ml-auto" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="text-center py-20 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-3xl">
@@ -524,7 +559,7 @@ export default function WaStoreOrders() {
                                     {/* Amount */}
                                     <div className="text-right min-w-[90px] max-w-full">
                                         <p className="font-black text-base text-slate-900 dark:text-white">
-                                            {sym(order.currency)} {Number(order.subtotal).toFixed(2)}
+                                            {sym(order.currency)} {Number(order.total || order.subtotal).toFixed(2)}
                                         </p>
                                     </div>
 

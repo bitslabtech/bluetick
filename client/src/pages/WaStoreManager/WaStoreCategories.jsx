@@ -386,12 +386,6 @@ export default function WaStoreCategories() {
         ? (url.startsWith('http') ? url : `${import.meta.env.VITE_API_URL}${url.startsWith('/') ? '' : '/'}${url}`)
         : null;
 
-    if (loading) return (
-        <div className="space-y-4 animate-pulse">
-            {[1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl bg-slate-100 dark:bg-slate-800" />)}
-        </div>
-    );
-
     return (
         <div className="space-y-6 pb-7 sm:pb-20 w-full max-w-5xl">
             {/* Header */}
@@ -451,7 +445,30 @@ export default function WaStoreCategories() {
                     {saving && <span className="text-xs text-indigo-500 animate-pulse font-medium">Saving…</span>}
                 </div>
 
-                {categories.length === 0 ? (
+                {loading ? (
+                    <div className="divide-y divide-slate-100 dark:divide-white/5">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="flex flex-wrap sm:flex-nowrap items-center gap-3 px-4 py-3 animate-pulse">
+                                {/* Up/down arrows skeleton */}
+                                <div className="w-4 h-8 bg-slate-200 dark:bg-slate-700 rounded-sm shrink-0" />
+                                {/* Image skeleton */}
+                                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-xl shrink-0" />
+                                {/* Title and text skeleton */}
+                                <div className="flex-1 space-y-2 py-1">
+                                    <div className="w-32 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+                                    <div className="w-48 h-3 bg-slate-100 dark:bg-slate-800 rounded" />
+                                </div>
+                                {/* Status toggle skeleton */}
+                                <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0" />
+                                {/* Buttons skeleton */}
+                                <div className="flex gap-2">
+                                    <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg shrink-0" />
+                                    <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg shrink-0" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : categories.length === 0 ? (
                     <div className="text-center py-16 px-4 md:px-6">
                         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                             <Tag className="w-8 h-8 text-slate-300 dark:text-slate-600" />

@@ -466,7 +466,46 @@ export default function WaProductList() {
             </div>
 
             {loading ? (
-                <div className="p-4 md:p-8 animate-pulse text-slate-500 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/10">Loading inventory...</div>
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden overflow-x-auto">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
+                            <tr>
+                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Product</th>
+                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Price</th>
+                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Category</th>
+                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Status</th>
+                                <th className="px-6 py-4 text-right font-medium text-slate-500 dark:text-slate-400">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-white/5">
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <tr key={i} className="animate-pulse">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+                                            <div className="flex flex-col gap-2">
+                                                <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                                                <div className="h-3 w-48 bg-slate-100 dark:bg-slate-800 rounded" />
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-lg inline-block" />
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             ) : products.length === 0 ? (
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-12 text-center">
                     <Package className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />

@@ -78,12 +78,7 @@ export default function WaStorePOS() {
     };
 
     const getDisplayPrice = (priceVal, prod) => {
-        let p = parseFloat(priceVal) || 0;
-        if (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false) {
-            let tRate = prod.taxRate !== null && prod.taxRate !== undefined ? parseFloat(prod.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
-            p = p + (p * tRate / 100);
-        }
-        return p;
+        return parseFloat(priceVal) || 0;
     };
 
     const subtotal = cart.reduce((sum, item) => sum + (getDisplayPrice(item.price, item) * item.qty), 0);

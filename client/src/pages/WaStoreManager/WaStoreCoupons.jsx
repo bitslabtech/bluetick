@@ -89,7 +89,7 @@ export default function WaStoreCoupons() {
         }
     };
 
-    if (loading) return <div className="animate-pulse h-32 bg-slate-100 rounded-xl"></div>;
+
 
     return (
         <div className="space-y-6 max-w-5xl">
@@ -108,7 +108,53 @@ export default function WaStoreCoupons() {
                 </button>
             </div>
 
-            {coupons.length === 0 ? (
+            {loading ? (
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left text-sm hidden md:table">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Code</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Discount</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Min Order</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Status</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Expiry</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {[1, 2, 3].map(i => (
+                                <tr key={i} className="animate-pulse">
+                                    <td className="px-6 py-4"><div className="h-6 w-24 bg-slate-100 rounded" /></td>
+                                    <td className="px-6 py-4"><div className="h-5 w-16 bg-slate-100 rounded" /></td>
+                                    <td className="px-6 py-4"><div className="h-5 w-16 bg-slate-100 rounded" /></td>
+                                    <td className="px-6 py-4"><div className="h-6 w-20 bg-slate-100 rounded-full" /></td>
+                                    <td className="px-6 py-4"><div className="h-5 w-24 bg-slate-100 rounded" /></td>
+                                    <td className="px-6 py-4 text-right"><div className="h-8 w-16 bg-slate-100 rounded ml-auto" /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    
+                    {/* Mobile skeleton */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="p-4 animate-pulse space-y-4">
+                                <div className="flex justify-between">
+                                    <div className="h-6 w-24 bg-slate-100 rounded" />
+                                    <div className="h-6 w-20 bg-slate-100 rounded-full" />
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="h-4 w-32 bg-slate-100 rounded" />
+                                    <div className="h-4 w-40 bg-slate-100 rounded" />
+                                </div>
+                                <div className="pt-2 flex justify-end">
+                                    <div className="h-8 w-20 bg-slate-100 rounded" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : coupons.length === 0 ? (
                 <div className="text-center py-16 bg-white border border-slate-200 rounded-2xl">
                     <Ticket className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                     <h3 className="text-lg font-semibold text-slate-900">No active promo codes</h3>

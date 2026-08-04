@@ -77,12 +77,7 @@ export default function PublicWaProduct({ customSlug }) {
     };
 
     const getDisplayPrice = React.useCallback((priceVal, prod) => {
-        let p = parseFloat(priceVal) || 0;
-        if (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false) {
-            let taxRate = prod.taxRate !== null && prod.taxRate !== undefined ? parseFloat(prod.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
-            p = p + (p * taxRate / 100);
-        }
-        return p;
+        return parseFloat(priceVal) || 0;
     }, [store]);
 
     // Resolves the correct price for the currently selected variant combo.
@@ -112,7 +107,14 @@ export default function PublicWaProduct({ customSlug }) {
     }, []);
 
     // Note: this cartTotal is mostly unused in PublicWaProduct, but updated for consistency
-    const cartTotal = cart.reduce((sum, item) => sum + (getDisplayPrice(getItemPrice(item), item) * item.qty), 0);
+    const cartSubtotal = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.qty), 0);
+    const estimatedTax = (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false)
+        ? cart.reduce((sum, item) => {
+            const taxRate = item.taxRate !== null && item.taxRate !== undefined ? parseFloat(item.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
+            return sum + (getItemPrice(item) * (taxRate / 100) * item.qty);
+          }, 0)
+        : 0;
+    const cartTotal = cartSubtotal + estimatedTax;
 
     const updateQty = (cartItemId, delta) => {
         setCart(prev => {
@@ -225,7 +227,7 @@ export default function PublicWaProduct({ customSlug }) {
     }, [slug, productId]);
 
     const getCurrencySymbol = (code) => {
-        const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
+        const symbols = { USD: '$', EUR: '\u20AC', GBP: '\u00A3', INR: '\u20B9' };
         return symbols[code] || code;
     };
 
@@ -589,6 +591,11 @@ export default function PublicWaProduct({ customSlug }) {
                             <div className="flex flex-wrap items-center gap-4">
                                 <span className={`text-2xl font-semibold ${theme.text}`}>
                                     {getCurrencySymbol(store.currency)}{getDisplayPrice(currentVariantPrice, product).toFixed(2)}
+                                    {store?.taxConfig?.enabled && (
+                                        <span className="text-sm font-medium text-gray-500 ml-2 opacity-80">
+                                            {store.taxConfig.taxInclusive ? '(incl. taxes)' : '(excl. taxes)'}
+                                        </span>
+                                    )}
                                 </span>
                                 {product.compareAtPrice && (
                                     <>
@@ -870,7 +877,7 @@ export default function PublicWaProduct({ customSlug }) {
                                                     <div className={`font-medium text-sm ${theme.textMuted} mt-1 flex flex-wrap items-center gap-2`}>
                                                         {item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty) ? (
                                                             <>
-                                                                <span className="line-through opacity-60 text-xs">{getCurrencySymbol(store.currency)}{getDisplayPrice(item.price, item).toFixed(2)}</span>
+                                                                <span className="line-through opacity-60 text-xs">{getCurrencySymbol(store.currency)}{getDisplayPrice(getItemPrice(item), item).toFixed(2)}</span>
                                                                 <span className="text-emerald-600 font-bold">{getCurrencySymbol(store.currency)}{getDisplayPrice(getItemPrice(item), item).toFixed(2)}</span>
                                                                 <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Wholesale Rate Applied</span>
                                                             </>
@@ -885,11 +892,9 @@ export default function PublicWaProduct({ customSlug }) {
                                                             <span className="w-8 text-center text-xs font-semibold text-gray-900">{item.qty}</span>
                                                             <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
                                                         </div>
-                                                        {item.qty > 1 && (
-                                                            <div className={`font-bold text-sm ${theme.text}`}>
-                                                                {getCurrencySymbol(store.currency)}{(getDisplayPrice(getItemPrice(item), item) * item.qty).toFixed(2)}
-                                                            </div>
-                                                        )}
+                                                        <div className={`font-bold text-sm ${theme.text}`}>
+                                                            {getCurrencySymbol(store.currency)}{(getDisplayPrice(getItemPrice(item), item) * item.qty).toFixed(2)}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -900,8 +905,18 @@ export default function PublicWaProduct({ customSlug }) {
 
                             {cart.length > 0 && (
                                 <div className={`p-6 ${theme.pageBg} border-t border-black/5 dark:border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]`}>
-                                    <div className="flex justify-between items-center mb-6 pt-2 border-t border-black/5 dark:border-white/10">
+                                    <div className="flex justify-between items-center mb-2">
                                         <span className={theme.textMuted}>Subtotal</span>
+                                        <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartSubtotal.toFixed(2)}</span>
+                                    </div>
+                                    {store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false && estimatedTax > 0 && (
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className={theme.textMuted}>Estimated Tax</span>
+                                            <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{estimatedTax.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between items-center mb-6 pt-2 border-t border-black/5 dark:border-white/10">
+                                        <span className={theme.textMuted}>Total</span>
                                         <span className={`text-xl font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
                                     </div>
                                     <button 

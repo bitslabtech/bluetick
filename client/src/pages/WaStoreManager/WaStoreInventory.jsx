@@ -126,9 +126,7 @@ export default function WaStoreInventory() {
         }
     };
 
-    if (loading) {
-        return <div className="p-8 animate-pulse text-slate-500">Loading inventory...</div>;
-    }
+
 
     // Show a friendly disabled state with inline enable toggle
     if (!store?.inventoryConfig?.enabled) {
@@ -246,7 +244,33 @@ export default function WaStoreInventory() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                        {filteredProducts.length === 0 ? (
+                        {loading ? (
+                            [1, 2, 3, 4, 5].map(i => (
+                                <tr key={i} className="animate-pulse">
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+                                            <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="h-7 w-28 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="h-5 w-8 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto" />
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="h-7 w-20 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="h-7 w-20 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                                    </td>
+                                </tr>
+                            ))
+                        ) : filteredProducts.length === 0 ? (
                             <tr>
                                 <td colSpan="6" className="px-4 py-8 text-center text-slate-500">
                                     No products found matching your search.

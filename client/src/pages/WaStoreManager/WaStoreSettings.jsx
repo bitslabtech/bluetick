@@ -293,12 +293,7 @@ export default function WaStoreSettings() {
         }
     };
 
-    if (loading || !store) return (
-        <div className="space-y-4 animate-pulse">
-            <div className="h-32 rounded-2xl bg-slate-100 dark:bg-slate-800" />
-            <div className="h-48 rounded-2xl bg-slate-100 dark:bg-slate-800" />
-        </div>
-    );
+
     return (
         <div className="max-w-4xl pb-7 sm:pb-20">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
@@ -309,7 +304,11 @@ export default function WaStoreSettings() {
             {/* Tabs Navigation */}
             <div className="sticky top-[-16px] md:top-[-24px] z-40 bg-slate-50 dark:bg-slate-900 py-3 border-b border-slate-200 dark:border-slate-800 mb-6 -mx-4 px-4 md:-mx-8 md:px-8">
                 <div className="flex overflow-x-auto hide-scrollbar gap-2">
-                    {tabs.map(tab => (
+                    {loading || !store ? (
+                        [1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="h-10 w-28 bg-slate-200 dark:bg-slate-700 rounded-xl shrink-0 animate-pulse" />
+                        ))
+                    ) : tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
@@ -324,6 +323,19 @@ export default function WaStoreSettings() {
 
             {/* Tab Contents */}
             <div className="space-y-6">
+
+            {loading || !store ? (
+                <div className="space-y-6 animate-pulse mt-4">
+                    {[1, 2].map(i => (
+                        <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm space-y-4">
+                            <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded mb-4" />
+                            <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                            <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <>
 
             {activeTab === 'domain' && (
             <>
@@ -979,7 +991,7 @@ export default function WaStoreSettings() {
                                                     value={slab.rate}
                                                     onChange={e => {
                                                         const newSlabs = [...(taxConfig.slabs || [])];
-                                                        newSlabs[index].rate = parseFloat(e.target.value) || 0;
+                                                        newSlabs[index].rate = e.target.value === '' ? '' : e.target.value;
                                                         setTaxConfig({ ...taxConfig, slabs: newSlabs });
                                                     }}
                                                     className="w-full px-3 py-2 pr-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
@@ -1308,6 +1320,8 @@ export default function WaStoreSettings() {
                     {savingAuth ? 'Saving…' : 'Save Account Settings'}
                 </button>
             </div>
+            </>
+            )}
             </>
             )}
             </div>

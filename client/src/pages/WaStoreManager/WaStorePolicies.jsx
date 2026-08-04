@@ -49,13 +49,7 @@ export default function WaStorePolicies() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center p-4 md:p-12">
-                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-            </div>
-        );
-    }
+
 
     return (
         <div className="space-y-6 pb-7 sm:pb-20">
@@ -85,6 +79,17 @@ export default function WaStorePolicies() {
                 </div>
             </div>
 
+            {loading ? (
+                <div className="space-y-6 animate-pulse">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
+                            <div className="h-5 w-40 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
+                            <div className="h-4 w-64 bg-slate-100 dark:bg-slate-800 rounded mb-4" />
+                            <div className="h-32 w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl" />
+                        </div>
+                    ))}
+                </div>
+            ) : (
             <form onSubmit={handleSave} className="space-y-6">
                 
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-6 shadow-sm">
@@ -124,6 +129,7 @@ export default function WaStorePolicies() {
                 </div>
 
             </form>
+            )}
         </div>
     );
 }
