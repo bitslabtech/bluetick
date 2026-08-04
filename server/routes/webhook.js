@@ -493,31 +493,42 @@ router.post('/:userId', (req, res, next) => {
                             const META_OPTOUT_BUTTON = 'stop promotions'; // Meta's built-in marketing opt-out
 
                             const normalizedBody = (messageBody || '').trim().toLowerCase();
-                            const isOptOut = OPT_OUT_KEYWORDS.includes(normalizedBody) || normalizedBody === META_OPTOUT_BUTTON;
-                            const isOptIn  = OPT_IN_KEYWORDS.includes(normalizedBody);
+                            // Strip punctuation to catch "Stop." or "Unsubscribe!"
+                            const cleanBody = normalizedBody.replace(/[.,!?]/g, '').trim();
+                            
+                            const isOptOut = OPT_OUT_KEYWORDS.includes(cleanBody) || cleanBody === META_OPTOUT_BUTTON;
+                            const isOptIn  = OPT_IN_KEYWORDS.includes(cleanBody);
 
                             const optSettings = foundSettings || (await Settings.findOne({ where: { userId } }));
                             const optOutEnabled = optSettings?.whatsappAutomations?.optOutEnabled !== false; // default true
 
                             // ── Custom multilingual opt-out keywords (e.g. "रुको", "arret") ──────────
-                            // MUST be resolved BEFORE the main gate so they are first-class opt-outs
                             const customOptOutKw = (optSettings?.whatsappAutomations?.customOptOutKeywords || [])
-                                .map(k => (k || '').trim().toLowerCase())
+                                .map(k => (k || '').trim().toLowerCase().replace(/[.,!?]/g, ''))
                                 .filter(Boolean);
-                            const isCustomOptOut = !isOptOut && !isOptIn && customOptOutKw.includes(normalizedBody);
+                            const isCustomOptOut = !isOptOut && !isOptIn && customOptOutKw.includes(cleanBody);
                             // ────────────────────────────────────────────────────────────────────────
 
                             if (optOutEnabled && (isOptOut || isOptIn || isCustomOptOut)) {
                                 try {
-                                    const contactToUpdate = await Contact.findOne({ where: { phone: contactWaId, userId } });
+                                    let contactToUpdate = await Contact.findOne({ where: { phone: contactWaId, userId } });
                                     const effectiveIsOptOut = isOptOut || isCustomOptOut;
                                     const newStatus = effectiveIsOptOut ? 'Opted Out' : 'Active';
 
                                     if (contactToUpdate) {
                                         await contactToUpdate.update({ status: newStatus });
-                                        console.log(`[WEBHOOK][OPT] Contact ${contactWaId} → '${newStatus}' (keyword: "${normalizedBody}"${isCustomOptOut ? ' [custom]' : ''})`);
+                                        console.log(`[WEBHOOK][OPT] Contact ${contactWaId} → '${newStatus}' (keyword: "${cleanBody}"${isCustomOptOut ? ' [custom]' : ''})`);
+                                    } else {
+                                        contactToUpdate = await Contact.create({
+                                            phone: contactWaId,
+                                            name: value.contacts?.[0]?.profile?.name || 'Unknown',
+                                            userId,
+                                            status: newStatus
+                                        });
+                                        console.log(`[WEBHOOK][OPT] New Contact ${contactWaId} created as '${newStatus}'`);
+                                    }
 
-                                        // TRACK CAMPAIGN OPT-OUTS
+                                    // TRACK CAMPAIGN OPT-OUTS
                                         if (effectiveIsOptOut) {
                                             const outboundContextId = message.context?.id;
                                             if (outboundContextId) {
@@ -534,7 +545,6 @@ router.post('/:userId', (req, res, next) => {
                                                 }
                                             }
                                         }
-                                    }
 
                                     // Send acknowledgement reply using the free 24h conversation window (no template credits used)
                                     if (optSettings?.metaAccessToken && optSettings?.metaPhoneNumberId) {
@@ -717,9 +727,10 @@ router.post('/:userId', (req, res, next) => {
                                                 // CTWA: stamp the ad source on the contact's first touch
                                                 ctwaSource: referralData || null
                                             });
-                                        } else if (contact.status !== 'Active') {
+                                        } else if (contact.status !== 'Active' && contact.status !== 'Opted Out') {
                                             // Existing contact who messaged us — upgrade to 'Active'
                                             // (e.g., was 'New' or even 'Not on WhatsApp' but now proving they are on WA)
+                                            // NOTE: 'Opted Out' contacts stay opted out unless they explicitly send an opt-in keyword.
                                             try {
                                                 await contact.update({ status: 'Active' });
                                             } catch (statusErr) {
