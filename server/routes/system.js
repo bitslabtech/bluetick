@@ -637,24 +637,24 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                 
                 const { runAi } = require('../utils/aiRunner');
 
-                const varList = variables.map((v, i) =>
-                    `{{${i + 1}}} = ${variableDesc[i]}`
-                ).join(', ');
+                const varList = variables.length > 0 
+                    ? variables.map((v, i) => `{{${i + 1}}} (representing ${variableDesc[i]})`).join(', ')
+                    : 'None';
 
-                const prompt =
-                    `You are writing a WhatsApp Business message template body for an admin notification system. ` +
-                    `Event: "${eventDescription}". ` +
-                    `Variables available (use these exact placeholders): ${varList}. ` +
-                    `Rules: ` +
-                    `1. Write ONLY the message body text (no header, no footer, no buttons). ` +
-                    `2. Keep it under 160 characters. ` +
-                    `3. Use an appropriate emoji at the start. ` +
-                    `4. Use ALL the provided variable placeholders ({{1}}, {{2}}, etc.) in order. ` +
-                    `5. Be concise and professional. ` +
-                    `6. Do NOT include any explanation or code — just the template body text.`;
+                const prompt = 
+                    `You are an expert system writing a strict WhatsApp Business message template body for an admin notification.\n` +
+                    `Event Context: "${eventDescription}"\n` +
+                    `Required Variables: ${varList}\n\n` +
+                    `STRICT RULES:\n` +
+                    `1. You MUST include exactly the variables listed above in the format {{1}}, {{2}}, etc. If 'None' is listed, do NOT use any {{x}} variables.\n` +
+                    `2. Do NOT invent new variables or change the numbers. You must use ALL provided variables exactly once.\n` +
+                    `3. Write ONLY the message body text. No greetings, headers, footers, buttons, or explanations.\n` +
+                    `4. Start with a single relevant emoji.\n` +
+                    `5. Keep it concise, professional, and under 160 characters.`;
 
-                const { text: aiText, modelUsed: aiModelUsed } = await runAi(config, null, prompt, { temperature: 0.7, maxOutputTokens: 256 });
-                console.log(`[GenerateTemplate] Used model: ${aiModelUsed}`);
+                // Lowering temperature to 0.2 for strict compliance with variables
+                const { text: aiText, modelUsed: aiModelUsed } = await runAi(config, null, prompt, { temperature: 0.2, maxOutputTokens: 256 });
+                console.log(`[GenerateTemplate] Used model: ${aiModelUsed} | Event: ${eventDescription}`);
                 
                 return res.json({ success: true, text: aiText.trim() });
             }
