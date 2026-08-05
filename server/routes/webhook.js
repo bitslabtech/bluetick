@@ -54,6 +54,7 @@ router.get('/:userId', async (req, res) => {
 
 // POST /api/webhook/:userId - Receive Messages and Status Updates
 router.post('/:userId', (req, res, next) => {
+    try { require('fs').appendFileSync('webhook_debug.log', new Date().toISOString() + ' | SIGNATURE_CHECK | ' + (req.headers['x-hub-signature-256'] || 'NO_SIG') + '\n'); } catch(e) {}
     // HMAC signature verification
     const signature = req.headers['x-hub-signature-256'];
     if (!signature) {
@@ -83,6 +84,9 @@ router.post('/:userId', (req, res, next) => {
         console.log(`[WEBHOOK] POST /api/webhook/${req.params.userId}`);
         console.log('[WEBHOOK] RAW BODY:', JSON.stringify(req.body, null, 2));
         console.log('==========================================');
+        try {
+            require('fs').appendFileSync('webhook_debug.log', new Date().toISOString() + ' | ' + req.params.userId + ' | ' + JSON.stringify(req.body) + '\n');
+        } catch(e) {}
 
         const body = req.body;
 

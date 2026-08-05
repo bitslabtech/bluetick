@@ -33,7 +33,8 @@ function csrfProtection(req, res, next) {
 
     // 2. Allow non-mutating requests and excluded paths to pass through
     const excludedPaths = [
-        '/api/webhooks', 
+        '/api/webhooks',
+        '/api/webhook', 
         '/api/meta-ads/webhooks', 
         '/api/payment/webhook',
         '/api/v1',
