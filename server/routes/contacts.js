@@ -202,11 +202,24 @@ router.get('/campaign-summary', async (req, res) => {
             raw: true
         });
 
+        const optedOutContacts = await Contact.findAll({
+            attributes: ['tags'],
+            where: { userId: ownerId, status: 'Opted Out' },
+            raw: true
+        });
+
         // 1. Calculate tag counts from contacts
         const allTags = contacts.flatMap(c => c.tags || []);
         const tagCounts = {};
         for (const tag of allTags) {
             tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        }
+
+        const optedOutTagCounts = {};
+        for (const c of optedOutContacts) {
+            for (const tag of (c.tags || [])) {
+                optedOutTagCounts[tag] = (optedOutTagCounts[tag] || 0) + 1;
+            }
         }
 
         // 2. Fetch all defined groups for this user
@@ -222,6 +235,7 @@ router.get('/campaign-summary', async (req, res) => {
                 id: g.name,
                 name: g.name,
                 count: (tagCounts[g.name] || 0).toString(),
+                optedOutCount: optedOutTagCounts[g.name] || 0,
                 updated: 'Just now'
             };
         }
@@ -231,6 +245,18 @@ router.get('/campaign-summary', async (req, res) => {
                     id: tag,
                     name: tag,
                     count: tagCounts[tag].toString(),
+                    optedOutCount: optedOutTagCounts[tag] || 0,
+                    updated: 'Just now'
+                };
+            }
+        }
+        for (const tag of Object.keys(optedOutTagCounts)) {
+            if (!mergedGroupsMap[tag]) {
+                mergedGroupsMap[tag] = {
+                    id: tag,
+                    name: tag,
+                    count: "0",
+                    optedOutCount: optedOutTagCounts[tag],
                     updated: 'Just now'
                 };
             }

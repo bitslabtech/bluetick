@@ -79,7 +79,7 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                 });
 
                 setRecipientGroups([
-                    { id: 'all', name: 'All Contacts', count: totalContacts, updated: 'Just now' },
+                    { id: 'all', name: 'All Contacts', count: totalContacts, updated: 'Just now', optedOutCount: optedOutCount || 0 },
                     ...(groups || [])
                 ]);
 
@@ -432,6 +432,21 @@ const CampaignStep1 = ({ data, updateData, onNext }) => {
                                                     <span className="text-[10px] font-bold bg-white dark:bg-surface-dark text-slate-500 dark:text-text-secondary px-2 py-1 rounded-md border border-slate-200 dark:border-white/5">{group.count}</span>
                                                 </div>
                                                 <span className="text-xs text-slate-500 dark:text-text-secondary mt-1">Updated: {group.updated}</span>
+                                                
+                                                {/* Per-Group Exclusion Banner */}
+                                                {data.recipients?.includes(group.id) && group.optedOutCount > 0 && (
+                                                    <div className="mt-3 flex items-start gap-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/40 rounded-lg p-2 transition-all animate-fade-in">
+                                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                                                        <div className="flex-1">
+                                                            <p className="text-[10px] sm:text-[11px] font-semibold text-amber-800 dark:text-amber-300 leading-tight">
+                                                                {group.optedOutCount.toLocaleString()} opted out
+                                                            </p>
+                                                            <p className="text-[9px] sm:text-[10px] text-amber-700/80 dark:text-amber-400/70 mt-0.5 leading-snug">
+                                                                These contacts will be automatically excluded.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </label>
                                     ))}

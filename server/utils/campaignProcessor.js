@@ -304,12 +304,27 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                         const metaErrorMsg = data.error?.message || 'Meta API Error';
                         const metaErrorCode = data.error?.code;
 
+                        // Map Meta error codes to clear, user-friendly messages
+                        const getFriendlyError = (code, rawMsg) => {
+                            switch (code) {
+                                case 131026: return 'Number is not on WhatsApp';
+                                case 131009: return 'Invalid WhatsApp number';
+                                case 131021: return 'Recipient opted out of messages';
+                                case 131051: return 'Message type not supported for this recipient';
+                                case 131008: return 'Required parameter missing';
+                                case 131047: return 'Message failed — recipient not reachable';
+                                case 131031: return 'Business account restricted by Meta';
+                                case 130472: return 'Recipient is in a Meta A/B test — message not sent';
+                                default:     return rawMsg || 'Message delivery failed';
+                            }
+                        };
+
                         await MessageLog.create({
                             campaignId: message.id,
                             contactId: contact.isTemp ? null : contact.id,
                             phone: contact.phone,
                             status: 'FAILED',
-                            error: metaErrorMsg
+                            error: getFriendlyError(metaErrorCode, metaErrorMsg)
                         });
 
                         // 1a. If the error indicates the number is not on WhatsApp (131026) or invalid (131009),

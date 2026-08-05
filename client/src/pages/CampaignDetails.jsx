@@ -21,7 +21,8 @@ import {
     ChevronDown,
     Trash2,
     Tag,
-    Tags
+    Tags,
+    RefreshCcw
 } from 'lucide-react';
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, 
@@ -146,6 +147,7 @@ export default function CampaignDetails() {
                 const readCount = normalizedLogs.filter(l => ['READ', 'CLICKED'].includes(l.status)).length;
                 const clickedCount = normalizedLogs.filter(l => l.status === 'CLICKED').length;
                 const failedCount = normalizedLogs.filter(l => l.status === 'FAILED').length;
+                const retryPendingCount = normalizedLogs.filter(l => l.status === 'RETRY_PENDING').length;
 
                 setCampaign({
                     ...msg,
@@ -156,6 +158,7 @@ export default function CampaignDetails() {
                         read: readCount,
                         clicked: clickedCount,
                         failed: failedCount,
+                        retryPending: retryPendingCount,
                         total: msg.recipientCount
                     }
                 });
@@ -191,6 +194,7 @@ export default function CampaignDetails() {
             case 'DELIVERED': return <CheckCheck className="w-4 h-4 text-gray-400" />;
             case 'SENT': return <Check className="w-4 h-4 text-gray-400" />;
             case 'FAILED': return <X className="w-4 h-4 text-red-500" />;
+            case 'RETRY_PENDING': return <RefreshCcw className="w-4 h-4 text-amber-500 animate-spin" style={{ animationDuration: '3s' }} />;
             default: return <Clock className="w-4 h-4 text-yellow-500" />;
         }
     };
@@ -203,6 +207,7 @@ export default function CampaignDetails() {
             SENT: "bg-gray-500/10 text-gray-500 border-gray-500/20",
             FAILED: "bg-red-500/10 text-red-500 border-red-500/20",
             PENDING: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+            RETRY_PENDING: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
             COMPLETED: "bg-green-500/10 text-green-500 border-green-500/20"
         };
         return styles[status] || styles[status.toUpperCase()] || styles.PENDING;
@@ -242,7 +247,8 @@ export default function CampaignDetails() {
             { id: 'all', label: 'All Recipients', icon: Users, count: campaign.stats.total || 0, color: 'text-slate-600' },
             { id: 'DELIVERED', label: 'Delivered', icon: CheckCheck, count: campaign.stats.delivered || 0, color: 'text-green-500' },
             { id: 'READ', label: 'Read', icon: CheckCheck, count: campaign.stats.read || 0, color: 'text-blue-500' },
-            { id: 'FAILED', label: 'Failed', icon: X, count: campaign.stats.failed || 0, color: 'text-red-500' }
+            { id: 'FAILED', label: 'Failed', icon: X, count: campaign.stats.failed || 0, color: 'text-red-500' },
+            ...(campaign.stats.retryPending > 0 ? [{ id: 'RETRY_PENDING', label: 'Retry Pending', icon: RefreshCcw, count: campaign.stats.retryPending, color: 'text-amber-500' }] : [])
         ];
 
         // Compute unique clicked buttons
@@ -627,6 +633,14 @@ export default function CampaignDetails() {
                                                     <span className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
                                                         <AlertCircle className="w-3 h-3" />
                                                         {log.error || 'Unknown Error'}
+                                                    </span>
+                                                ) : log.status === 'RETRY_PENDING' ? (
+                                                    <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                                        <RefreshCcw className="w-3 h-3" />
+                                                        {log.retryAfter
+                                                            ? `Retry at ${new Date(log.retryAfter).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${new Date(log.retryAfter).toLocaleDateString()}`
+                                                            : 'Retry scheduled'
+                                                        }
                                                     </span>
                                                 ) : (
                                                     <span className="text-xs text-slate-300 dark:text-text-secondary">-</span>

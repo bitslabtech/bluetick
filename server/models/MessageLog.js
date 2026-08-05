@@ -40,6 +40,23 @@ const MessageLog = sequelize.define('MessageLog', {
     clickedButton: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    // ── 131049 Retry System ───────────────────────────────────────────────────
+    // retryCount: how many retry attempts have been made (0 = never retried)
+    retryCount: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        allowNull: false
+    },
+    // retryAfter: the earliest timestamp this log is eligible for its next retry
+    retryAfter: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    // errorCode: the numeric Meta error code that caused failure (e.g. 131049)
+    errorCode: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     }
 }, {
     timestamps: true,

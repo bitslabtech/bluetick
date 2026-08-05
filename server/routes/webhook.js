@@ -301,7 +301,25 @@ router.post('/:userId', (req, res, next) => {
                                 console.log(`[WEBHOOK] Found MessageLog (campaign): ${log.id} | Updating status: ${log.status} → ${upperStatus}`);
                                 log.status = upperStatus;
                                 if (statusUpdate.timestamp) log.metaTimestamp = statusUpdate.timestamp;
-                                if (rawStatus === 'failed') log.error = statusUpdate.errors?.[0]?.title || 'Meta Error';
+                                if (rawStatus === 'failed') {
+                                    const errCode = statusUpdate.errors?.[0]?.code;
+                                    const errTitle = statusUpdate.errors?.[0]?.title || 'Meta Error';
+                                    // Map Meta error codes to clear, user-friendly messages
+                                    const webhookFriendlyError = (code, raw) => {
+                                        switch (code) {
+                                            case 131026: return 'Number is not on WhatsApp';
+                                            case 131009: return 'Invalid WhatsApp number';
+                                            case 131021: return 'Recipient opted out of messages';
+                                            case 131051: return 'Message type not supported for this recipient';
+                                            case 131008: return 'Required parameter missing';
+                                            case 131047: return 'Message failed — recipient not reachable';
+                                            case 131031: return 'Business account restricted by Meta';
+                                            case 130472: return 'Recipient is in a Meta A/B test — message not sent';
+                                            default:     return raw || 'Message delivery failed';
+                                        }
+                                    };
+                                    log.error = webhookFriendlyError(errCode, errTitle);
+                                }
                                 await log.save();
                                 console.log(`[WEBHOOK] MessageLog updated OK`);
                             } else {
@@ -338,8 +356,49 @@ router.post('/:userId', (req, res, next) => {
                         }
 
                         // --- Auto-mark Contact as 'Not on WhatsApp' on Meta error 131026 ---
+                        // --- Handle 131049 (frequency cap) with progressive retries ---
                         if (rawStatus === 'failed' && statusUpdate.errors && statusUpdate.errors.length > 0) {
                             const errCode = statusUpdate.errors[0].code;
+
+                            // 131049 = Per-user marketing frequency cap. Schedule a retry instead of hard-failing.
+                            if (errCode === 131049) {
+                                try {
+                                    const log131049 = await MessageLog.findOne({ where: { messageId: metaMessageId } });
+                                    if (log131049) {
+                                        const currentRetryCount = log131049.retryCount || 0;
+                                        const MAX_RETRIES = 3;
+
+                                        // Progressive delay: Retry 1=8h, Retry 2=16h, Retry 3=24h
+                                        const RETRY_DELAYS_HOURS = [8, 16, 24];
+
+                                        if (currentRetryCount < MAX_RETRIES) {
+                                            const delayHours = RETRY_DELAYS_HOURS[currentRetryCount]; // 0-indexed: 8h, 16h, 24h
+                                            const retryAfter = new Date(Date.now() + delayHours * 60 * 60 * 1000);
+                                            const nextRetryCount = currentRetryCount + 1;
+
+                                            await log131049.update({
+                                                status: 'RETRY_PENDING',
+                                                retryCount: nextRetryCount,
+                                                retryAfter: retryAfter,
+                                                errorCode: 131049,
+                                                error: `Frequency cap hit (131049). Retry ${nextRetryCount}/${MAX_RETRIES} scheduled in ${delayHours}h.`
+                                            });
+                                            console.log(`[WEBHOOK 131049] Scheduled retry ${nextRetryCount}/${MAX_RETRIES} for msgId ${metaMessageId} at ${retryAfter.toISOString()} (+${delayHours}h)`);
+                                        } else {
+                                            // All retries exhausted — permanently fail
+                                            await log131049.update({
+                                                status: 'FAILED',
+                                                errorCode: 131049,
+                                                error: `Frequency cap hit (131049). All ${MAX_RETRIES} retries exhausted.`
+                                            });
+                                            console.log(`[WEBHOOK 131049] All retries exhausted for msgId ${metaMessageId}. Marking FAILED permanently.`);
+                                        }
+                                    }
+                                } catch (retryErr) {
+                                    console.error('[WEBHOOK 131049] Failed to schedule retry:', retryErr.message);
+                                }
+                            }
+
                             // 131026 = Message undeliverable - recipient is not a WhatsApp user
                             if (errCode === 131026) {
                                 try {

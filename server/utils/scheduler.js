@@ -8,6 +8,7 @@ const Vcard = require('../models/Vcard');
 const WaStore = require('../models/WaStore');
 const User = require('../models/User');
 const processCampaign = require('./campaignProcessor');
+const { processRetries } = require('./retryProcessor');
 
 /**
  * Prune expired tags from contacts.
@@ -544,6 +545,20 @@ function initScheduler() {
             console.error('[TRIAL EXPIRY] Scheduler error:', err.message);
         }
     }, 12 * 60 * 60 * 1000); // Check every 12 hours
+
+    // ==========================================
+    // 🔄 131049 RETRY PROCESSOR (Runs every 30 minutes)
+    // Finds MessageLog entries with status=RETRY_PENDING whose retryAfter
+    // timestamp has elapsed and re-fires them to Meta API.
+    // Progressive schedule: 8h → 16h → 24h (3 retries max, 48h total window)
+    // ==========================================
+    setInterval(async () => {
+        try {
+            await processRetries();
+        } catch (err) {
+            console.error('[SCHEDULER] Retry processor error:', err.message);
+        }
+    }, 30 * 60 * 1000); // Every 30 minutes
 }
 
 module.exports = { initScheduler };

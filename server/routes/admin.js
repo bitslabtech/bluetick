@@ -345,6 +345,10 @@ router.delete('/users/:id', async (req, res) => {
         if (user.id === req.user.id) {
             return res.status(400).json({ error: 'Cannot delete yourself' });
         }
+        // 🔴 CRITICAL: Block deleting any superadmin account
+        if (user.isAdmin) {
+            return res.status(403).json({ error: 'Superadmin accounts cannot be deleted.' });
+        }
 
         const crypto = require('crypto');
         const { Op } = require('sequelize');
@@ -506,36 +510,36 @@ router.post('/users', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Set plan expiry based on plan interval from DB
+        // Create User — always a regular user (no isAdmin). Plan is trial-only.
+        // Validate trial plan if one was specified
+        let assignedPlan = 'Free';
         let planExpiry = null;
+        let planStatus = 'Active';
+
         if (plan && plan !== 'Free') {
             const Plan = require('../models/Plan');
             const planDetails = await Plan.findOne({ where: { name: plan } });
-            if (planDetails?.interval === 'month') {
-                planExpiry = new Date();
-                planExpiry.setMonth(planExpiry.getMonth() + 1);
-            } else if (planDetails?.interval === 'year') {
-                planExpiry = new Date();
-                planExpiry.setFullYear(planExpiry.getFullYear() + 1);
+            if (!planDetails) {
+                return res.status(400).json({ error: `Plan '${plan}' not found.` });
             }
-            // lifetime → planExpiry stays null
+            if (!planDetails.trialDays || planDetails.trialDays <= 0) {
+                return res.status(400).json({ error: `Only trial plans can be assigned at user creation. '${plan}' has no trial period configured.` });
+            }
+            assignedPlan = planDetails.name;
+            planStatus = 'Trial';
+            planExpiry = new Date();
+            planExpiry.setDate(planExpiry.getDate() + planDetails.trialDays);
         }
 
-        // Create User
         user = await User.create({
             name,
             email,
             password: hashedPassword,
-            isAdmin: role === 'Admin',
-            plan: plan || 'Free',
-            planExpiry
-        });
-
-        // Log Activity
-        await ActivityLog.create({
-            userId: req.user.id,
-            action: 'User Created',
-            details: `Admin created user: ${user.email} (${user.id})`
+            isAdmin: false, // 🔴 Never allow creating admins through this form
+            plan: assignedPlan,
+            planStatus,
+            planExpiry,
+            hasUsedTrial: assignedPlan !== 'Free' // Mark trial used if a trial plan was assigned
         });
 
         // Log Activity
@@ -547,6 +551,8 @@ router.post('/users', async (req, res) => {
             email: user.email,
             isAdmin: user.isAdmin,
             plan: user.plan,
+            planStatus: user.planStatus,
+            planExpiry: user.planExpiry,
             createdAt: user.createdAt
         });
 
@@ -564,6 +570,16 @@ router.put('/users/:id', async (req, res) => {
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
+        }
+
+        // 🔴 CRITICAL: Block editing any superadmin account
+        if (user.isAdmin) {
+            return res.status(403).json({ error: 'Superadmin accounts cannot be edited through this panel.' });
+        }
+
+        // 🔴 CRITICAL: Block self-editing role or plan
+        if (req.params.id == req.user.id && (req.body.role !== undefined || req.body.plan !== undefined)) {
+            return res.status(403).json({ error: 'You cannot change your own role or plan.' });
         }
 
         // Check Unique Email (if changing)
@@ -624,11 +640,17 @@ router.put('/users/:id', async (req, res) => {
             changes.push(`Status: -> Active, Expiry recalculated`);
         }
 
-        // Password Update
+        // Password Update — requires explicit confirmation (logged separately)
         if (password && password.trim() !== "") {
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(password, salt);
-            changes.push("Password updated");
+            changes.push('Password updated');
+            // Log password change explicitly
+            await ActivityLog.create({
+                userId: req.user.id,
+                action: 'Password Reset',
+                details: `Admin reset password for user ${user.email} (ID: ${user.id})`
+            });
         }
 
         await user.save();
