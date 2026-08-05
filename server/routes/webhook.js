@@ -643,16 +643,18 @@ router.post('/:userId', (req, res, next) => {
                             console.log(`[WEBHOOK] Message saved. Emitting new_message to owner room: ${userId} and team room: team_${userId}`);
                             try {
                                 const io = getIo();
+                                const convJson = conversation.toJSON ? conversation.toJSON() : conversation;
+                                const msgJson = chatMessage.toJSON ? chatMessage.toJSON() : chatMessage;
                                 // Emit to the owner's personal room (joined via join_waba / join_personal)
                                 io.to(userId).emit('new_message', {
-                                    conversation,
-                                    message: chatMessage
+                                    conversation: convJson,
+                                    message: msgJson
                                 });
                                 // Also emit to the team room so sub-members using join_waba with their own userId
                                 // can still receive the event (they join team_${parentId} via user_connected)
                                 io.to(`team_${userId}`).emit('new_message', {
-                                    conversation,
-                                    message: chatMessage
+                                    conversation: convJson,
+                                    message: msgJson
                                 });
                             } catch (e) {
                                 console.error('[WEBHOOK ERROR] Socket emit failed:', e.message);

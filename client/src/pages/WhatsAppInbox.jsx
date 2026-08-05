@@ -259,13 +259,19 @@ const WhatsAppInbox = () => {
             // 1. Update conversation list (sort by latest)
             setConversations(prev => {
                 const existing = prev.find(c => c.id === conversation.id);
-                if (!existing) { fetchConversations(); return prev; }
-                const updated = prev.map(c => c.id === conversation.id ? { ...c, ...conversation } : c);
-                return updated.sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+                let updated;
+                if (!existing) {
+                    // New conversation — prepend it directly so the inbox updates instantly.
+                    // Also kick off a background fetch to get fully-enriched data (inFlow, etc.)
+                    fetchConversations();
+                    updated = [conversation, ...prev];
+                } else {
+                    updated = prev.map(c => c.id === conversation.id ? { ...c, ...conversation } : c);
+                }
+                const sorted = updated.sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+                conversationsRef.current = sorted;
+                return sorted;
             });
-            conversationsRef.current = conversationsRef.current.map(c =>
-                c.id === conversation.id ? { ...c, ...conversation } : c
-            );
 
             // 2. Append message to currently open chat (use ref — no stale closure)
             const currentChat = selectedChatRef.current;
