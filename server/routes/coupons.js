@@ -109,20 +109,15 @@ router.post('/validate', async (req, res) => {
         const now = new Date();
         if (coupon.startDate) {
             const startDate = new Date(coupon.startDate);
-            // Ignore time portion by comparing only dates (allows timezone leniency up to 24h)
-            startDate.setHours(0, 0, 0, 0);
-            const today = new Date(now);
-            today.setHours(0, 0, 0, 0);
-            
-            if (startDate > today) {
+            // Allow up to 24 hours of timezone leniency
+            if (startDate.getTime() > now.getTime() + (24 * 60 * 60 * 1000)) {
                 return res.status(400).json({ error: 'This coupon is not yet valid.' });
             }
         }
         if (coupon.expiryDate) {
             const expiryDate = new Date(coupon.expiryDate);
-            // End of day for expiry
-            expiryDate.setHours(23, 59, 59, 999);
-            if (expiryDate < now) {
+            // Add 24 hours to cover the expiry day, plus 24 hours of timezone leeway (Total 48h)
+            if (expiryDate.getTime() + (48 * 60 * 60 * 1000) < now.getTime()) {
                 return res.status(400).json({ error: 'This coupon has expired.' });
             }
         }
