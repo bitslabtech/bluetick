@@ -2809,7 +2809,7 @@ const Contacts = () => {
                                                 {availableGroups
                                                     .filter(g => g.name.toLowerCase().includes(groupSearchTerm.toLowerCase()))
                                                     .map(group => {
-                                                        const memberCount = contacts.filter(c => c.tags && c.tags.includes(group.name)).length;
+                                                        const memberCount = group.memberCount || 0;
                                                         return (
                                                             <li key={group.id} className="flex items-center justify-between p-3 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group">
                                                                 <div className="flex items-start gap-3">

@@ -200,7 +200,7 @@ export default function WaProductList() {
         return symbols[code] || code;
     };
 
-    const defaultForm = { name: '', description: '', price: '', compareAtPrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '', ogImage: '', sku: '', trackQuantity: false, stockQuantity: 0, lowStockThreshold: 5 };
+    const defaultForm = { name: '', description: '', regularPrice: '', salePrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '', ogImage: '', sku: '', trackQuantity: false, stockQuantity: 0, lowStockThreshold: 5 };
     const [form, setForm] = useState(defaultForm);
     const [generatingAiSeo, setGeneratingAiSeo] = useState(false);
     
@@ -245,6 +245,23 @@ export default function WaProductList() {
         try {
             const payload = { ...form };
             payload.taxRate = payload.taxRate === '' ? null : payload.taxRate;
+
+            // WooCommerce-style price mapping:
+            // regularPrice = MRP shown to customer
+            // salePrice = optional discounted price customer actually pays
+            const regularPriceVal = parseFloat(payload.regularPrice);
+            const salePriceVal = payload.salePrice !== '' && payload.salePrice !== null && payload.salePrice !== undefined
+                ? parseFloat(payload.salePrice)
+                : null;
+            if (isNaN(regularPriceVal) || regularPriceVal <= 0) {
+                toast.error('Please enter a valid Regular Price.');
+                return;
+            }
+            // Map to DB columns
+            payload.price = salePriceVal !== null ? salePriceVal : regularPriceVal;
+            payload.compareAtPrice = salePriceVal !== null ? regularPriceVal : null;
+            delete payload.regularPrice;
+            delete payload.salePrice;
 
             if (storeTaxConfig?.enabled) {
                 if (payload.taxRate === null) {
@@ -318,8 +335,8 @@ export default function WaProductList() {
         setForm({
             name: product.name,
             description: product.description || '',
-            price: product.price,
-            compareAtPrice: product.compareAtPrice || '',
+            regularPrice: product.compareAtPrice ? String(product.compareAtPrice) : String(product.price),
+            salePrice: product.compareAtPrice ? String(product.price) : '',
             wholesalePrice: product.wholesalePrice || '',
             minWholesaleQty: product.minWholesaleQty || '',
             imageUrls: product.imageUrls?.length > 0 ? product.imageUrls.filter(url => url && url.trim() !== '') : [],
@@ -408,7 +425,7 @@ export default function WaProductList() {
                 productName: form.name,
                 description: form.description,
                 category: form.category,
-                price: form.price
+                price: form.regularPrice
             });
 
             setForm(f => ({
@@ -765,18 +782,21 @@ export default function WaProductList() {
 
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-1.5">
-                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Price</label>
+                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Regular Price <span className="text-red-400">*</span></label>
                                                             <div className="relative">
                                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">{getCurrencySymbol(currency)}</span>
-                                                                <input required type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold shadow-sm" />
+                                                                <input required type="number" value={form.regularPrice} onChange={e => setForm({ ...form, regularPrice: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold shadow-sm" placeholder="e.g. 699" />
                                                             </div>
                                                         </div>
                                                         <div className="space-y-1.5">
-                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Compare At</label>
+                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Sale Price <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
                                                             <div className="relative">
                                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{getCurrencySymbol(currency)}</span>
-                                                                <input type="number" value={form.compareAtPrice} onChange={e => setForm({ ...form, compareAtPrice: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm" />
+                                                                <input type="number" value={form.salePrice} onChange={e => setForm({ ...form, salePrice: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm" placeholder="e.g. 499" />
                                                             </div>
+                                                            {form.salePrice && form.regularPrice && parseFloat(form.salePrice) >= parseFloat(form.regularPrice) && (
+                                                                <p className="text-[10px] text-amber-500 font-medium">⚠ Sale price should be less than regular price</p>
+                                                            )}
                                                         </div>
                                                     </div>
 

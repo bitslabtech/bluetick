@@ -11,11 +11,34 @@ router.use(auth);
 router.get('/', async (req, res) => {
     try {
         const ownerId = req.user.parentUserId || req.user.id;
+        // Fetch all defined groups
         const groups = await Group.findAll({
             where: { userId: ownerId },
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            raw: true
         });
-        res.json(groups);
+
+        // Calculate actual member counts from Contacts
+        const Contact = require('../models/Contact');
+        const contacts = await Contact.findAll({
+            attributes: ['tags'],
+            where: { userId: ownerId },
+            raw: true
+        });
+
+        const tagCounts = {};
+        for (const c of contacts) {
+            for (const tag of (c.tags || [])) {
+                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+            }
+        }
+
+        const groupsWithCounts = groups.map(g => ({
+            ...g,
+            memberCount: tagCounts[g.name] || 0
+        }));
+
+        res.json(groupsWithCounts);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

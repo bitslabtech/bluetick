@@ -310,8 +310,8 @@ export default function ProductImportModal({ storeId, storeCategories = [], onCl
                                 <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-1.5">
                                     {[
                                         { col: 'name', req: true, note: 'Product name (max 200 chars)' },
-                                        { col: 'price', req: true, note: 'Numeric e.g. 499' },
-                                        { col: 'compareAtPrice', req: false, note: 'Original MRP (strike-through)' },
+                                        { col: 'price', req: true, note: 'Regular price e.g. 699' },
+                                        { col: 'salePrice', req: false, note: 'Discounted price (shows regular as strikethrough)' },
                                         { col: 'category', req: false, note: 'Case-insensitive match to existing' },
                                         { col: 'sku', req: false, note: 'Must be unique per store' },
                                         { col: 'inStock', req: false, note: 'yes / no  (default: yes)' },

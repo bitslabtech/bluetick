@@ -16,8 +16,8 @@ function validateRow(row, existingSkuSet, fileSkuMap, rowId) {
     else if (isNaN(price)) errors.price = 'Must be a number';
     else if (price < 0) errors.price = 'Cannot be negative';
 
-    const capRaw = String(row.compareAtPrice ?? '').trim();
-    if (capRaw !== '') { const cap = parseFloat(capRaw); if (isNaN(cap)) errors.compareAtPrice = 'Must be a number'; }
+    const capRaw = String(row.salePrice ?? '').trim();
+    if (capRaw !== '') { const cap = parseFloat(capRaw); if (isNaN(cap)) errors.salePrice = 'Must be a number'; }
 
     const sku = String(row.sku || '').trim();
     if (sku) {
@@ -55,7 +55,7 @@ function validateRow(row, existingSkuSet, fileSkuMap, rowId) {
 const COLUMNS = [
     { key: 'name',            label: 'Name *',       width: 180 },
     { key: 'price',           label: 'Price *',      width: 88 },
-    { key: 'compareAtPrice',  label: 'MRP',          width: 88 },
+    { key: 'salePrice',       label: 'Sale Price',   width: 100 },
     { key: 'category',        label: 'Category',     width: 130 },
     { key: 'sku',             label: 'SKU',          width: 120 },
     { key: 'inStock',         label: 'In Stock',     width: 80 },

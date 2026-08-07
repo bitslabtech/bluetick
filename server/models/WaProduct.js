@@ -31,7 +31,7 @@ const WaProduct = sequelize.define('WaProduct', {
     compareAtPrice: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true,
-        comment: 'Used for showing discounts'
+        comment: 'Regular/MRP price shown with strikethrough when a sale price is set. Null when product has no discount.'
     },
     taxRate: {
         type: DataTypes.DECIMAL(10, 2),

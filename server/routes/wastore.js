@@ -1092,9 +1092,9 @@ router.get('/:storeId/products/import-template', async (req, res) => {
 
         const catHint = existingCategories.length > 0 ? existingCategories[0] : 'Electronics';
 
-        const headers = ['name','description','price','compareAtPrice','category','sku','inStock','stockQuantity','trackQuantity','lowStockThreshold','taxRate','imageUrls','metaTitle','metaDescription'];
-        const sample1 = ['Blue T-Shirt','Comfortable cotton t-shirt','499','699', catHint, 'TSHIRT-BLU-M','yes','100','yes','10','18','https://example.com/image1.jpg','Blue T-Shirt | Buy Online','Premium blue t-shirt for everyday wear'];
-        const sample2 = ['Black Jeans','Slim fit denim jeans','1299','1799', catHint, 'JEANS-BLK-32','yes','50','yes','5','18','https://example.com/jeans1.jpg,https://example.com/jeans2.jpg','Black Slim Jeans','Stylish black jeans'];
+        const headers = ['name','description','price','salePrice','category','sku','inStock','stockQuantity','trackQuantity','lowStockThreshold','taxRate','imageUrls','metaTitle','metaDescription'];
+        const sample1 = ['Blue T-Shirt','Comfortable cotton t-shirt','699','499', catHint, 'TSHIRT-BLU-M','yes','100','yes','10','18','https://example.com/image1.jpg','Blue T-Shirt | Buy Online','Premium blue t-shirt for everyday wear'];
+        const sample2 = ['Black Jeans','Slim fit denim jeans','1799','1299', catHint, 'JEANS-BLK-32','yes','50','yes','5','18','https://example.com/jeans1.jpg,https://example.com/jeans2.jpg','Black Slim Jeans','Stylish black jeans'];
         const sample3 = ['Gold Ring','18k gold ring with diamond','4999','','Jewelry','RING-GOLD-18K','yes','20','no','3','3','','Gold Diamond Ring','Premium 18k gold ring'];
 
         const toCSVRow = (arr) => arr.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
@@ -1153,12 +1153,12 @@ router.post('/:storeId/products/import/parse', async (req, res) => {
             if (isNaN(price) || String(row.price || '').trim() === '') errors.price = 'Price is required and must be a number';
             else if (price < 0) errors.price = 'Price cannot be negative';
 
-            // ── Compare At Price ──
-            let compareAtPrice = null;
-            if (row.compareAtPrice && String(row.compareAtPrice).trim() !== '') {
-                const cap = parseFloat(String(row.compareAtPrice).replace(/[^0-9.]/g, ''));
-                if (isNaN(cap)) errors.compareAtPrice = 'Must be a number';
-                else compareAtPrice = cap;
+            // ── Sale Price (optional — if set, price is discounted; regular price shows strikethrough) ──
+            let salePrice = null;
+            if (row.salePrice && String(row.salePrice).trim() !== '') {
+                const sp = parseFloat(String(row.salePrice).replace(/[^0-9.]/g, ''));
+                if (isNaN(sp)) errors.salePrice = 'Must be a number';
+                else salePrice = sp;
             }
 
             // ── Category (case-insensitive match) ──
@@ -1252,8 +1252,9 @@ router.post('/:storeId/products/import/parse', async (req, res) => {
                 _warnings: warnings,
                 name,
                 description,
-                price: isNaN(price) ? 0 : price,
-                compareAtPrice,
+                // WooCommerce mapping: if salePrice set → price=salePrice, compareAtPrice=regularPrice
+                price: salePrice !== null ? salePrice : (isNaN(price) ? 0 : price),
+                compareAtPrice: salePrice !== null ? (isNaN(price) ? 0 : price) : null,
                 category: resolvedCategory,
                 sku: sku || null,
                 inStock,
