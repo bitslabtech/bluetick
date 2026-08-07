@@ -164,7 +164,8 @@ const Contacts = () => {
             if (teamPolicy.phonePrivacy === 'blurred') return <span className="blur-sm select-none">{phone || name}</span>;
             if (teamPolicy.phonePrivacy === 'masked') return `****${(phone || name)?.slice(-4)}`;
         }
-        return name || phone;
+        const displayName = name || phone || '';
+        return displayName.length > 35 ? displayName.substring(0, 35) + '...' : displayName;
     };
     // Mock Data matching the design
     const [contacts, setContacts] = useState([]);
@@ -901,10 +902,10 @@ const Contacts = () => {
                     </div>
 
                     {/* Filters & Search */}
-                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm transition-colors duration-300">
+                    <div className="flex flex-wrap gap-3 justify-between items-center bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm transition-colors duration-300">
                         {/* Search Bar & View Mode */}
-                        <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <div className="flex-1 sm:w-64 flex items-center rounded-lg bg-slate-100 dark:bg-background-dark h-10 px-3 border border-transparent focus-within:border-primary transition-colors">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 flex items-center rounded-lg bg-slate-100 dark:bg-background-dark h-10 px-3 border border-transparent focus-within:border-primary transition-colors">
                                 <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary shrink-0" />
                                 <input
                                     value={tempSearch}
@@ -930,13 +931,13 @@ const Contacts = () => {
                             </div>
                         </div>
 
-                        <div className="flex gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
+                        <div className="flex gap-3 shrink-0 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
                             <div className="relative shrink-0">
                                 <Filter className="absolute left-3 top-2.5 text-slate-400 dark:text-text-secondary w-4 h-4 pointer-events-none" />
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-0 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
+                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-10 pr-8 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
                                 >
                                     <option value="All">All Status</option>
                                     <option value="New">🟠 New</option>
@@ -951,7 +952,7 @@ const Contacts = () => {
                                 <select
                                     value={groupFilter}
                                     onChange={(e) => setGroupFilter(e.target.value)}
-                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-0 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
+                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-10 pr-8 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
                                 >
                                     <option value="All">All Groups</option>
                                     {availableGroups.map(g => (
@@ -965,7 +966,7 @@ const Contacts = () => {
                                 <select
                                     value={labelFilter}
                                     onChange={(e) => setLabelFilter(e.target.value)}
-                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-9 pr-0 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
+                                    className="appearance-none bg-slate-100 dark:bg-background-dark text-slate-700 dark:text-white text-sm font-medium pl-10 pr-8 py-2 rounded-lg border border-transparent hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-primary focus:ring-0 cursor-pointer transition-colors"
                                 >
                                     <option value="All">All Tags</option>
                                     {availableLabels.map(l => (
