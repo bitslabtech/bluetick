@@ -72,7 +72,7 @@ export default function CampaignDetails() {
             }
             const bucket = timeseriesMap.get(label);
             
-            if (['DELIVERED', 'READ', 'CLICKED'].includes(log.status)) bucket.delivered++;
+            if (log.status === 'DELIVERED') bucket.delivered++;
             if (['READ', 'CLICKED'].includes(log.status)) bucket.read++;
             if (log.status === 'CLICKED') bucket.clicked++;
             if (log.status === 'FAILED') bucket.failed++;
@@ -143,7 +143,7 @@ export default function CampaignDetails() {
                 }));
 
                 const sentCount = normalizedLogs.filter(l => ['SENT', 'DELIVERED', 'READ', 'CLICKED'].includes(l.status)).length;
-                const deliveredCount = normalizedLogs.filter(l => ['DELIVERED', 'READ', 'CLICKED'].includes(l.status)).length;
+                const deliveredCount = normalizedLogs.filter(l => l.status === 'DELIVERED').length;
                 const readCount = normalizedLogs.filter(l => ['READ', 'CLICKED'].includes(l.status)).length;
                 const clickedCount = normalizedLogs.filter(l => l.status === 'CLICKED').length;
                 const failedCount = normalizedLogs.filter(l => l.status === 'FAILED').length;
@@ -236,7 +236,7 @@ export default function CampaignDetails() {
         if (statusFilter === 'all') matchesStatus = true;
         else if (statusFilter.startsWith('btn_')) matchesStatus = log.clickedButton === statusFilter.substring(4);
         // Hierarchical matching: DELIVERED includes READ & CLICKED; READ includes CLICKED
-        else if (statusFilter === 'DELIVERED') matchesStatus = ['DELIVERED', 'READ', 'CLICKED'].includes(log.status);
+        else if (statusFilter === 'DELIVERED') matchesStatus = log.status === 'DELIVERED';
         else if (statusFilter === 'READ') matchesStatus = ['READ', 'CLICKED'].includes(log.status);
         else matchesStatus = log.status === statusFilter;
         return matchesSearch && matchesStatus;

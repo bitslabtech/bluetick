@@ -446,6 +446,18 @@ router.post('/import', async (req, res) => {
         const CHUNK_SIZE = 1000;
         let totalCreated = 0;
 
+        // Sync tags to groups
+        const allTags = contactsWithUser.flatMap(c => c.tags || []);
+        const uniqueGroups = [...new Set(allTags)].filter(t => t && t.trim());
+        
+        if (uniqueGroups.length > 0) {
+            const groupRecords = uniqueGroups.map(name => ({
+                name: name.trim(),
+                userId: req.user.id
+            }));
+            await Group.bulkCreate(groupRecords, { ignoreDuplicates: true });
+        }
+
         for (let i = 0; i < contactsWithUser.length; i += CHUNK_SIZE) {
             const chunk = contactsWithUser.slice(i, i + CHUNK_SIZE);
             const created = await Contact.bulkCreate(chunk, {
@@ -519,6 +531,17 @@ router.post('/', async (req, res) => {
             status: 'New' // New contacts always start as 'New'
         });
 
+        // Sync tags to groups
+        if (tags && tags.length > 0) {
+            const groupRecords = tags.filter(t => t && t.trim()).map(name => ({
+                name: name.trim(),
+                userId: req.user.id
+            }));
+            if (groupRecords.length > 0) {
+                await Group.bulkCreate(groupRecords, { ignoreDuplicates: true });
+            }
+        }
+
         // Log Activity
         await logActivity(req, 'Contact Created', `Added contact ${name} (${cleanPhone})`);
 
@@ -571,6 +594,17 @@ router.put('/:id', async (req, res) => {
             tags: tags !== undefined ? tags : contact.tags,
             labels: labels !== undefined ? labels : contact.labels
         });
+
+        // Sync tags to groups
+        if (tags && tags.length > 0) {
+            const groupRecords = tags.filter(t => t && t.trim()).map(tagName => ({
+                name: tagName.trim(),
+                userId: req.user.id
+            }));
+            if (groupRecords.length > 0) {
+                await Group.bulkCreate(groupRecords, { ignoreDuplicates: true });
+            }
+        }
 
         // Log Activity
         await logActivity(req, 'Contact Updated', `Updated contact ID: ${contact.id}`);
