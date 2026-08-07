@@ -73,8 +73,9 @@ router.post('/init/:sessionId', async (req, res) => {
                     quantity: 1,
                 }],
                 mode: 'payment',
-                success_url: `http://localhost:5173/f/${session.formId}?session_id={CHECKOUT_SESSION_ID}&success=true`,
-                cancel_url: `http://localhost:5173/f/${session.formId}?canceled=true`,
+                // #9 — Was hardcoded to localhost:5173, now uses FRONTEND_URL env var for production
+                success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/f/${session.formId}?session_id={CHECKOUT_SESSION_ID}&success=true`,
+                cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/f/${session.formId}?canceled=true`,
                 client_reference_id: session.id
             });
 

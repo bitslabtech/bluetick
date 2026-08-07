@@ -37,6 +37,12 @@ const WaStoreCoupon = sequelize.define('WaStoreCoupon', {
         type: DataTypes.BOOLEAN,
         defaultValue: true
     },
+    // #7 — startsAt: coupon is inactive before this date/time
+    startsAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null
+    },
     expiresAt: {
         type: DataTypes.DATE,
         allowNull: true

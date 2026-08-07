@@ -17,6 +17,8 @@ export default function WaStoreCoupons() {
         discountValue: '',
         minOrderValue: '',
         isActive: true,
+        // #7 — startsAt: schedule coupon activation
+        startsAt: '',
         expiresAt: ''
     });
 
@@ -55,11 +57,13 @@ export default function WaStoreCoupons() {
                 discountValue: parseFloat(form.discountValue),
                 minOrderValue: form.minOrderValue !== '' ? parseFloat(form.minOrderValue) : 0,
                 isActive: form.isActive,
+                // #7 — send startsAt so server-side start-date gating works
+                startsAt: form.startsAt || null,
                 expiresAt: form.expiresAt || null
             });
             toast.success('Coupon created successfully');
             setShowModal(false);
-            setForm({ code: '', discountType: 'percentage', discountValue: '', minOrderValue: '', isActive: true, expiresAt: '' });
+            setForm({ code: '', discountType: 'percentage', discountValue: '', minOrderValue: '', isActive: true, startsAt: '', expiresAt: '' });
             fetchCoupons();
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to create coupon');
@@ -265,9 +269,16 @@ export default function WaStoreCoupons() {
                                 <label className="block text-sm font-medium mb-1 text-slate-700">Min Order Value (Optional)</label>
                                 <input type="number" step="0.01" value={form.minOrderValue} onChange={e => setForm({...form, minOrderValue: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1 text-slate-700">Expiry Date (Optional)</label>
-                                <input type="date" value={form.expiresAt} onChange={e => setForm({...form, expiresAt: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 text-slate-700">Active From (Optional)</label>
+                                    <input type="date" value={form.startsAt} onChange={e => setForm({...form, startsAt: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" />
+                                    <p className="text-xs text-slate-400 mt-1">Leave blank to activate immediately</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 text-slate-700">Expiry Date (Optional)</label>
+                                    <input type="date" value={form.expiresAt} onChange={e => setForm({...form, expiresAt: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" />
+                                </div>
                             </div>
                             <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-3 mt-auto">
                                 <button type="button" onClick={() => setShowModal(false)} className="w-full sm:w-auto px-5 py-3 sm:py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold">Cancel</button>

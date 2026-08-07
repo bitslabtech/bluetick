@@ -114,7 +114,11 @@ export default function PublicWaProduct({ customSlug }) {
             return sum + (getItemPrice(item) * (taxRate / 100) * item.qty);
           }, 0)
         : 0;
-    const cartTotal = cartSubtotal + estimatedTax;
+    const drawerCheckoutConfig = store?.checkoutConfig || {};
+    const drawerFlatShippingRate = drawerCheckoutConfig.flatShippingRate || 0;
+    const drawerFreeShippingThreshold = drawerCheckoutConfig.freeShippingThreshold || 0;
+    const shippingCost = (drawerFlatShippingRate > 0 && (drawerFreeShippingThreshold === 0 || (cartSubtotal + estimatedTax) < drawerFreeShippingThreshold)) ? drawerFlatShippingRate : 0;
+    const cartTotal = cartSubtotal + shippingCost + estimatedTax;
 
     const updateQty = (cartItemId, delta) => {
         setCart(prev => {
@@ -339,10 +343,17 @@ export default function PublicWaProduct({ customSlug }) {
     const checkoutConfig = store.checkoutConfig || {};
     const flatShippingRate = checkoutConfig.flatShippingRate || 0;
     const freeShippingThreshold = checkoutConfig.freeShippingThreshold || 0;
+    const minOrderValue = checkoutConfig.minOrderValue || 0;
 
     const currentCart = cart.length > 0 ? cart : [{ ...product, cartItemId: product.id, qty, selectedVariants }];
     const checkoutSubtotal = currentCart.reduce((sum, item) => sum + (getDisplayPrice(getItemPrice(item), item) * item.qty), 0);
-    const checkoutShippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || checkoutSubtotal < freeShippingThreshold)) ? flatShippingRate : 0;
+    const checkoutEstimatedTax = (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false)
+        ? currentCart.reduce((sum, item) => {
+            const taxRate = item.taxRate !== null && item.taxRate !== undefined ? parseFloat(item.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
+            return sum + (getDisplayPrice(getItemPrice(item), item) * (taxRate / 100) * item.qty);
+          }, 0)
+        : 0;
+    const checkoutShippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || (checkoutSubtotal + checkoutEstimatedTax) < freeShippingThreshold)) ? flatShippingRate : 0;
     const checkoutTotal = checkoutSubtotal + checkoutShippingCost;
 
     return (
@@ -862,10 +873,28 @@ export default function PublicWaProduct({ customSlug }) {
                                     <div className="space-y-6">
                                         {cart.map(item => (
                                             <div key={item.cartItemId || item.id} className="flex gap-4 items-start">
-                                                <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
-                                                    {item.imageUrls && item.imageUrls[0] && (
-                                                        <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-contain" />
-                                                    )}
+                                                <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
+                                                    {(() => {
+                                                        let rawUrl = null;
+                                                        if (Array.isArray(item.imageUrls) && item.imageUrls.length > 0) rawUrl = item.imageUrls[0];
+                                                        else if (typeof item.imageUrls === 'string') {
+                                                            try { const p = JSON.parse(item.imageUrls); if (Array.isArray(p)) rawUrl = p[0]; }
+                                                            catch (e) { rawUrl = item.imageUrls; }
+                                                        }
+                                                        else if (item.imageUrl) rawUrl = item.imageUrl;
+
+                                                        if (!rawUrl) return <ShoppingBag className="w-6 h-6 text-gray-300" />;
+                                                        const cleanUrl = imgUrl(encodeURI(rawUrl.replace(/\\/g, '/')));
+                                                        return (
+                                                            <img 
+                                                                src={cleanUrl} 
+                                                                alt={item.name} 
+                                                                className="w-full h-full object-contain"
+                                                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                                                            />
+                                                        );
+                                                    })()}
+                                                    <ShoppingBag className="w-6 h-6 text-gray-300 hidden" />
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-1">
                                                     <h4 className={`font-semibold text-sm ${theme.text} truncate`}>{item.name}</h4>
@@ -909,6 +938,14 @@ export default function PublicWaProduct({ customSlug }) {
                                         <span className={theme.textMuted}>Subtotal</span>
                                         <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartSubtotal.toFixed(2)}</span>
                                     </div>
+                                    {(drawerFlatShippingRate > 0 || shippingCost > 0) && (
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className={theme.textMuted}>Shipping</span>
+                                            <span className={`text-lg font-bold ${shippingCost === 0 ? 'text-emerald-500' : theme.text}`}>
+                                                {shippingCost === 0 ? 'Free' : `${getCurrencySymbol(store.currency)}${shippingCost.toFixed(2)}`}
+                                            </span>
+                                        </div>
+                                    )}
                                     {store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false && estimatedTax > 0 && (
                                         <div className="flex justify-between items-center mb-2">
                                             <span className={theme.textMuted}>Estimated Tax</span>
@@ -919,12 +956,18 @@ export default function PublicWaProduct({ customSlug }) {
                                         <span className={theme.textMuted}>Total</span>
                                         <span className={`text-xl font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
                                     </div>
-                                    <button 
-                                        onClick={() => setIsCheckoutModalOpen(true)}
-                                        className={`w-full py-4 ${theme.buttonStyle} !text-base !font-bold flex items-center justify-center gap-2 shadow-lg`}
-                                    >
-                                        <ShoppingBag className="w-5 h-5" /> Proceed to Checkout
-                                    </button>
+                                    {(cartSubtotal + estimatedTax) < minOrderValue ? (
+                                        <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl mb-4 text-sm font-medium">
+                                            Minimum order value is {getCurrencySymbol(store.currency)}{minOrderValue}. Add {getCurrencySymbol(store.currency)}{(minOrderValue - (cartSubtotal + estimatedTax)).toFixed(2)} more to checkout.
+                                        </div>
+                                    ) : (
+                                        <button 
+                                            onClick={() => setIsCheckoutModalOpen(true)}
+                                            className={`w-full py-4 ${theme.buttonStyle} !text-base !font-bold flex items-center justify-center gap-2 shadow-lg`}
+                                        >
+                                            <ShoppingBag className="w-5 h-5" /> Proceed to Checkout
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </motion.div>

@@ -51,6 +51,8 @@ export default function WaStoreHeader({
     const [expandedMobileSections, setExpandedMobileSections] = useState({ categories: true, policies: false, contact: false });
     const [activePolicy, setActivePolicy] = useState(null); // 'privacy', 'terms', 'return'
 
+    if (!store) return null;
+
     const getCurrencySymbol = (code) => {
         const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
         return symbols[code] || code;
@@ -289,7 +291,11 @@ export default function WaStoreHeader({
                                                         navigate(`/store/${slug}/category/${encodeURIComponent(menuItem.link.split('=')[1])}`);
                                                     } else if (menuItem.link.startsWith('/')) {
                                                         e.preventDefault();
-                                                        navigate(menuItem.link);
+                                                        let target = menuItem.link;
+                                                        if (!target.startsWith('/store/')) {
+                                                            target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                        }
+                                                        navigate(target);
                                                     }
                                                 }}
                                                 className="flex items-center text-[13px] font-bold tracking-[0.1em] hover:opacity-70 transition-opacity uppercase"
@@ -314,7 +320,11 @@ export default function WaStoreHeader({
                                                                             navigate(`/store/${slug}/category/${encodeURIComponent(child.link.split('=')[1])}`);
                                                                         } else if (child.link.startsWith('/')) {
                                                                             e.preventDefault();
-                                                                            navigate(child.link);
+                                                                            let target = child.link;
+                                                                            if (!target.startsWith('/store/')) {
+                                                                                target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                                            }
+                                                                            navigate(target);
                                                                         }
                                                                     }}
                                                                     className="block px-5 py-2.5 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -525,7 +535,11 @@ export default function WaStoreHeader({
                                                     navigate(`/store/${slug}/category/${encodeURIComponent(menuItem.link.split('=')[1])}`);
                                                 } else if (menuItem.link.startsWith('/')) {
                                                     e.preventDefault();
-                                                    navigate(menuItem.link);
+                                                    let target = menuItem.link;
+                                                    if (!target.startsWith('/store/')) {
+                                                        target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                    }
+                                                    navigate(target);
                                                 }
                                             }}
                                             className="flex items-center h-full text-sm font-semibold tracking-wide hover:opacity-70 transition-opacity uppercase"
@@ -551,7 +565,11 @@ export default function WaStoreHeader({
                                                                         navigate(`/store/${slug}/category/${encodeURIComponent(child.link.split('=')[1])}`);
                                                                     } else if (child.link.startsWith('/')) {
                                                                         e.preventDefault();
-                                                                        navigate(child.link);
+                                                                        let target = child.link;
+                                                                        if (!target.startsWith('/store/')) {
+                                                                            target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                                        }
+                                                                        navigate(target);
                                                                     }
                                                                 }}
                                                                 className="block px-5 py-2.5 text-[13px] font-medium text-gray-700 hover:text-black hover:bg-gray-50 transition-colors"

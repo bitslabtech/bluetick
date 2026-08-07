@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingBag, ShoppingCart, X, Plus, Minus, Search, ArrowRight, MapPin, Mail, Phone, MessageCircle, ChevronLeft, ChevronRight, Filter, Check } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, X, Plus, Minus, Trash2, Search, ArrowRight, MapPin, Mail, Phone, MessageCircle, ChevronLeft, ChevronRight, Filter, Check, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import StoreNotFound from '../../components/StoreNotFound';
@@ -20,12 +20,19 @@ export default function PublicWaStore() {
     const [loading, setLoading] = useState(true);
     const [cart, setCart] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
+
+    // Coupon state for WhatsApp checkout
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [couponLoading, setCouponLoading] = useState(false);
     
     // Search, Filter, Sort
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [sortBy, setSortBy] = useState('newest');
     const [selectedProduct, setSelectedProduct] = useState(null);
+    // Image gallery index for product modal
+    const [modalImageIdx, setModalImageIdx] = useState(0);
 
     // Hero Slider
     const [activeSlide, setActiveSlide] = useState(0);
@@ -54,6 +61,12 @@ export default function PublicWaStore() {
                 setStore(res.data.store);
                 setProducts(res.data.products);
                 document.title = `${res.data.store.name} | Store`;
+                // #18 — Session-dedup view counting: only fire once per session per store slug
+                const viewKey = `store_view_${slug}`;
+                if (!sessionStorage.getItem(viewKey)) {
+                    sessionStorage.setItem(viewKey, '1');
+                    axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}/view`).catch(() => {});
+                }
             } catch (error) {
                 toast.error("Failed to load store");
             } finally {
@@ -63,16 +76,19 @@ export default function PublicWaStore() {
         fetchStore();
     }, [slug]);
 
+    // #21 — hiddenCategories: filter out categories the store owner has hidden
     const categories = useMemo(() => {
         const fromProducts = products.map(p => p.category).filter(Boolean);
         const adminCats = Array.isArray(store?.categories) ? store.categories : [];
-        const merged = [...new Set([...adminCats, ...fromProducts])];
+        const hidden = Array.isArray(store?.hiddenCategories) ? store.hiddenCategories.map(c => c.toLowerCase()) : [];
+        const merged = [...new Set([...adminCats, ...fromProducts])].filter(c => !hidden.includes(c.toLowerCase()));
         return ['All', ...merged];
     }, [products, store]);
 
     const filteredAndSortedProducts = useMemo(() => {
         let result = products.filter(p => {
-            const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
+            // #12 — Case-insensitive category comparison
+            const matchesCat = selectedCategory === 'All' || (p.category || '').toLowerCase() === selectedCategory.toLowerCase();
             const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                   (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
             return matchesCat && matchesSearch;
@@ -86,6 +102,12 @@ export default function PublicWaStore() {
     }, [products, selectedCategory, searchQuery, sortBy]);
 
     const addToCart = (product, qty = 1) => {
+        // #3 — preventCartAdd: block adding OOS products if store has the setting enabled
+        const preventAdd = store?.inventoryConfig?.preventCartAdd === true;
+        if (preventAdd && product.trackQuantity && (product.stockQuantity || 0) <= 0) {
+            toast.error(`${product.name} is out of stock.`);
+            return;
+        }
         setCart(prev => {
             const existing = prev.find(item => item.id === product.id);
             if (existing) {
@@ -97,14 +119,17 @@ export default function PublicWaStore() {
         if (selectedProduct) setSelectedProduct(null);
     };
 
+    // #11 — updateQty: when delta makes qty <= 0, remove item from cart entirely
     const updateQty = (id, delta) => {
-        setCart(prev => prev.map(item => {
-            if (item.id === id) {
-                const newQty = item.qty + delta;
-                return newQty > 0 ? { ...item, qty: newQty } : item;
-            }
-            return item;
-        }));
+        setCart(prev => prev
+            .map(item => item.id === id ? { ...item, qty: item.qty + delta } : item)
+            .filter(item => item.qty > 0)
+        );
+    };
+
+    // #2 — removeFromCart: remove a specific item from cart completely
+    const removeFromCart = (id) => {
+        setCart(prev => prev.filter(item => item.id !== id));
     };
 
     const getItemPrice = (item) => {
@@ -116,6 +141,32 @@ export default function PublicWaStore() {
 
     const cartTotal = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.qty), 0);
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
+
+    // #19 — Coupon apply logic for WhatsApp checkout
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setCouponLoading(true);
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/public/${store.slug}/validate-coupon`, {
+                code: couponCode.trim().toUpperCase(),
+                cartTotal
+            });
+            setAppliedCoupon(res.data);
+            toast.success(`Coupon applied! Discount: ${res.data.discountType === 'percentage' ? res.data.discountValue + '%' : getCurrencySymbol(store.currency) + parseFloat(res.data.discountValue).toFixed(2)}`);
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Invalid coupon');
+            setAppliedCoupon(null);
+        } finally {
+            setCouponLoading(false);
+        }
+    };
+
+    const discountAmount = appliedCoupon
+        ? appliedCoupon.discountType === 'percentage'
+            ? parseFloat((cartTotal * appliedCoupon.discountValue / 100).toFixed(2))
+            : parseFloat(appliedCoupon.discountValue)
+        : 0;
+    const finalTotal = Math.max(0, cartTotal - discountAmount);
 
     // Cross-sells: products from the same category, excluding the currently viewed product
     const crossSellProducts = useMemo(() => {
@@ -130,8 +181,20 @@ export default function PublicWaStore() {
         return symbols[code] || code;
     };
 
+    // Derived: whether the store has the "Show Low Stock" badge enabled
+    const showLowStockBadge = store?.inventoryConfig?.showLowStock === true;
+
+    // Helper: returns true when a product should show the low-stock badge
+    const isLowStock = (product) =>
+        showLowStockBadge &&
+        product.trackQuantity === true &&
+        typeof product.stockQuantity === 'number' &&
+        product.stockQuantity > 0 &&
+        product.stockQuantity <= (product.lowStockThreshold || 5);
+
     const handleWhatsAppCheckout = async (customerDetails = {}) => {
         if (cart.length === 0) return;
+        // #19 — include coupon data in the order record
         try {
             await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/orders`, {
                 storeId: store.id,
@@ -141,7 +204,11 @@ export default function PublicWaStore() {
                 items: cart.map(item => ({
                     id: item.id, name: item.name, price: getItemPrice(item), qty: item.qty, imageUrls: item.imageUrls
                 })),
-                subtotal: cartTotal,
+                subtotal: finalTotal,
+                originalTotal: cartTotal,
+                discountAmount: discountAmount || 0,
+                couponCode: appliedCoupon?.code || null,
+                total: finalTotal,
                 currency: store.currency
             });
         } catch (e) { console.warn('Order recording failed:', e.message); }
@@ -154,7 +221,10 @@ export default function PublicWaStore() {
             const finalPrice = getItemPrice(item);
             message += `${i+1}. ${item.name}\n   ${item.qty} x ${getCurrencySymbol(store.currency)} ${finalPrice.toFixed(2)}\n`;
         });
-        message += `\n*Total:* ${getCurrencySymbol(store.currency)} ${cartTotal.toFixed(2)}\n\n`;
+        if (appliedCoupon) {
+            message += `\n🏷️ *Coupon (${appliedCoupon.code}):* -${getCurrencySymbol(store.currency)}${discountAmount.toFixed(2)}\n`;
+        }
+        message += `\n*Total:* ${getCurrencySymbol(store.currency)} ${finalTotal.toFixed(2)}\n\n`;
         if (customerDetails.note) message += `📝 *Note:* ${customerDetails.note}\n\n`;
         message += `_Please confirm my order. Thank you!_`;
 
@@ -162,6 +232,8 @@ export default function PublicWaStore() {
         const phone = store.whatsappNumber.replace(/[^0-9]/g, '');
         window.open(`https://wa.me/${phone}?text=${encodedMsg}`, '_blank');
         setCart([]);
+        setAppliedCoupon(null);
+        setCouponCode('');
         setIsCartOpen(false);
     };
 
@@ -331,9 +403,16 @@ export default function PublicWaStore() {
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-gray-50"><ShoppingBag className="w-8 h-8 text-gray-300" /></div>
                                         )}
-                                        {product.oldPrice && (
+                                        {/* #1 — Sale badge uses compareAtPrice */}
+                                        {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
                                             <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wide">
                                                 Sale
+                                            </div>
+                                        )}
+                                        {/* Low Stock Badge — shown only when store owner has enabled showLowStock */}
+                                        {isLowStock(product) && (
+                                            <div className="absolute bottom-3 left-3 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-md tracking-wide flex items-center gap-1">
+                                                <span>⚡</span> Only {product.stockQuantity} left!
                                             </div>
                                         )}
                                     </div>
@@ -347,13 +426,14 @@ export default function PublicWaStore() {
                                         
                                         <div className="flex items-baseline flex-wrap gap-2 mb-5">
                                             <span className="text-lg font-bold text-black">{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
-                                            {product.oldPrice && parseFloat(product.oldPrice) > parseFloat(product.price) && (
+                                            {/* #1 — compareAtPrice is the correct field (was incorrectly using product.oldPrice) */}
+                                            {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
                                                 <>
                                                     <span className="text-sm text-gray-400 line-through font-normal">
-                                                        {getCurrencySymbol(store.currency)}{parseFloat(product.oldPrice).toFixed(2)}
+                                                        {getCurrencySymbol(store.currency)}{parseFloat(product.compareAtPrice).toFixed(2)}
                                                     </span>
                                                     <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-100/50">
-                                                        {Math.round(((parseFloat(product.oldPrice) - parseFloat(product.price)) / parseFloat(product.oldPrice)) * 100)}% OFF
+                                                        {Math.round(((parseFloat(product.compareAtPrice) - parseFloat(product.price)) / parseFloat(product.compareAtPrice)) * 100)}% OFF
                                                     </span>
                                                 </>
                                             )}
@@ -429,7 +509,8 @@ export default function PublicWaStore() {
             {/* ─── PRODUCT MODAL ─── */}
             {selectedProduct && (
                 <>
-                    {console.log('DEBUG selectedProduct:', selectedProduct)}
+                    {/* Reset gallery index when selected product changes */}
+                    {modalImageIdx !== 0 && selectedProduct && (() => { if (!selectedProduct.imageUrls?.[modalImageIdx]) setModalImageIdx(0); })()}
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedProduct(null)} />
                     <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row relative z-10 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh]">
@@ -437,9 +518,34 @@ export default function PublicWaStore() {
                             <X className="w-5 h-5 text-gray-500" />
                         </button>
                         
-                        <div className="md:w-1/2 bg-gray-50 relative">
-                            {selectedProduct.imageUrls && selectedProduct.imageUrls[0] ? (
-                                <img src={imgUrl(selectedProduct.imageUrls[0])} alt={selectedProduct.name} className="w-full h-full object-contain min-h-[300px]" onError={e => e.target.style.display = 'none'} />
+                        {/* #17 — Image Gallery with thumbnail strip */}
+                        <div className="md:w-1/2 bg-gray-50 relative flex flex-col">
+                            {selectedProduct.imageUrls && selectedProduct.imageUrls.length > 0 ? (
+                                <>
+                                    <div className="flex-1 min-h-[300px] flex items-center justify-center overflow-hidden">
+                                        <img
+                                            src={imgUrl(selectedProduct.imageUrls[modalImageIdx] || selectedProduct.imageUrls[0])}
+                                            alt={selectedProduct.name}
+                                            className="w-full h-full object-contain"
+                                            onError={e => e.target.style.display = 'none'}
+                                        />
+                                    </div>
+                                    {selectedProduct.imageUrls.length > 1 && (
+                                        <div className="flex gap-2 p-3 overflow-x-auto border-t border-gray-100 bg-white">
+                                            {selectedProduct.imageUrls.map((url, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => setModalImageIdx(idx)}
+                                                    className={`w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+                                                        modalImageIdx === idx ? 'border-black' : 'border-transparent opacity-60 hover:opacity-100'
+                                                    }`}
+                                                >
+                                                    <img src={imgUrl(url)} alt={`${selectedProduct.name} view ${idx + 1}`} className="w-full h-full object-contain bg-gray-50" onError={e => e.target.style.display = 'none'} />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 <div className="w-full h-full min-h-[300px] flex items-center justify-center"><ShoppingBag className="w-16 h-16 text-gray-200" /></div>
                             )}
@@ -450,8 +556,17 @@ export default function PublicWaStore() {
                             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 leading-tight">{selectedProduct.name}</h2>
                             <div className="flex items-center gap-3 mb-2">
                                 <span className="text-2xl font-semibold text-black">{getCurrencySymbol(store.currency)}{parseFloat(selectedProduct.price).toFixed(2)}</span>
-                                {selectedProduct.oldPrice && <span className="text-lg text-gray-400 line-through">{getCurrencySymbol(store.currency)}{parseFloat(selectedProduct.oldPrice).toFixed(2)}</span>}
+                                {/* #1 — compareAtPrice fix in modal */}
+                                {selectedProduct.compareAtPrice && parseFloat(selectedProduct.compareAtPrice) > parseFloat(selectedProduct.price) && (
+                                    <span className="text-lg text-gray-400 line-through">{getCurrencySymbol(store.currency)}{parseFloat(selectedProduct.compareAtPrice).toFixed(2)}</span>
+                                )}
                             </div>
+                            {/* Low Stock badge in modal */}
+                            {isLowStock(selectedProduct) && (
+                                <div className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold rounded-full">
+                                    <span>⚡</span> Only {selectedProduct.stockQuantity} left in stock!
+                                </div>
+                            )}
                             {selectedProduct.wholesalePrice && selectedProduct.minWholesaleQty && (
                                 <div className="mb-6 pb-6 border-b border-gray-100">
                                     <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-bold rounded-full">
@@ -554,7 +669,13 @@ export default function PublicWaStore() {
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-1">
-                                                    <h4 className="font-semibold text-sm text-gray-900 truncate">{item.name}</h4>
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <h4 className="font-semibold text-sm text-gray-900 truncate">{item.name}</h4>
+                                                        {/* #2 — Remove item button */}
+                                                        <button onClick={() => removeFromCart(item.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors shrink-0" title="Remove item">
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
                                                     <div className="font-medium text-sm text-gray-500 mt-1 flex flex-wrap items-center gap-2">
                                                         {item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty) ? (
                                                             <>
@@ -583,9 +704,45 @@ export default function PublicWaStore() {
 
                             {cart.length > 0 && (
                                 <div className="p-4 md:p-6 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] max-w-full">
+                                    {/* #19 — Coupon input for WhatsApp checkout */}
+                                    {!appliedCoupon ? (
+                                        <div className="flex gap-2 mb-4">
+                                            <div className="flex-1 flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 gap-2">
+                                                <Tag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Coupon code"
+                                                    value={couponCode}
+                                                    onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                                                    className="flex-1 bg-transparent py-2 text-sm outline-none"
+                                                    onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                                                />
+                                            </div>
+                                            <button onClick={handleApplyCoupon} disabled={couponLoading || !couponCode.trim()} className="px-4 py-2 bg-black text-white text-xs font-bold rounded-xl disabled:opacity-50">
+                                                {couponLoading ? '...' : 'Apply'}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between mb-4 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl">
+                                            <div className="flex items-center gap-2 text-emerald-700">
+                                                <Tag className="w-3.5 h-3.5" />
+                                                <span className="text-xs font-bold">{appliedCoupon.code}</span>
+                                                <span className="text-xs">(-{getCurrencySymbol(store.currency)}{discountAmount.toFixed(2)})</span>
+                                            </div>
+                                            <button onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} className="text-gray-400 hover:text-red-500">
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
+                                    {appliedCoupon && (
+                                        <div className="flex justify-between text-sm text-gray-500 mb-1">
+                                            <span>Subtotal</span>
+                                            <span>{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between items-center mb-6">
-                                        <span className="text-gray-500">Subtotal</span>
-                                        <span className="text-xl font-bold text-gray-900">{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
+                                        <span className="text-gray-500">{appliedCoupon ? 'Total' : 'Subtotal'}</span>
+                                        <span className="text-xl font-bold text-gray-900">{getCurrencySymbol(store.currency)}{finalTotal.toFixed(2)}</span>
                                     </div>
                                     <button 
                                         onClick={() => handleWhatsAppCheckout()}

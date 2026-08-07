@@ -355,8 +355,43 @@ router.post('/forgot-password', async (req, res) => {
 
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/store/${storeSlug}/account/reset-password?token=${resetToken}`;
 
-        // TODO: Send via nodemailer. For now log to console in dev.
-        console.log(`[StoreCustomerAuth] Password reset link for ${email}: ${resetUrl}`);
+        // #8 — Send actual password reset email via store owner's SMTP config
+        try {
+            const Settings = require('../models/Settings');
+            const storeOwner = await User.findByPk(store.userId);
+            const userSettings = storeOwner ? await Settings.findOne({ where: { userId: storeOwner.id } }) : null;
+            const smtpConfig = userSettings?.smtpConfig;
+
+            if (smtpConfig && smtpConfig.host && smtpConfig.user && smtpConfig.pass) {
+                const nodemailer = require('nodemailer');
+                const transporter = nodemailer.createTransport({
+                    host: smtpConfig.host,
+                    port: Number(smtpConfig.port || 587),
+                    secure: smtpConfig.secure || false,
+                    auth: { user: smtpConfig.user, pass: smtpConfig.pass }
+                });
+                await transporter.sendMail({
+                    from: smtpConfig.fromEmail || smtpConfig.user,
+                    to: email,
+                    subject: `Reset your password — ${store.name}`,
+                    html: `
+                        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e2e8f0;border-radius:8px">
+                            <h2 style="color:#4f46e5">Password Reset Request</h2>
+                            <p>You requested a password reset for your account at <strong>${store.name}</strong>.</p>
+                            <p>Click the button below to reset your password. This link expires in 1 hour.</p>
+                            <a href="${resetUrl}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#4f46e5;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold">Reset Password</a>
+                            <p style="color:#64748b;font-size:12px">If you didn't request this, please ignore this email.</p>
+                        </div>
+                    `
+                });
+            } else {
+                // Fallback: log to console if SMTP not configured
+                console.warn(`[StoreCustomerAuth] SMTP not configured for store ${storeSlug}. Reset URL: ${resetUrl}`);
+            }
+        } catch (emailErr) {
+            // Don't fail the request if email sending fails
+            console.error('[StoreCustomerAuth] Failed to send password reset email:', emailErr.message);
+        }
 
         return res.json({ message: 'If this email is registered, you will receive a reset link.' });
     } catch (err) {
@@ -508,7 +543,11 @@ router.post('/addresses', storeCustomerAuth, async (req, res) => {
         const customer = req.storeCustomer;
         const addresses = [...(customer.savedAddresses || [])];
 
-        const newAddress = { label: label || 'Home', name, phone, address, city, state, pincode, isDefault: !!isDefault };
+        // #23 — Assign a stable UUID so updates/deletes use uuid, not fragile array index
+        const newAddress = {
+            id: crypto.randomUUID ? crypto.randomUUID() : require('crypto').randomUUID(),
+            label: label || 'Home', name, phone, address, city, state, pincode, isDefault: !!isDefault
+        };
 
         // If marked as default, unset all others
         if (newAddress.isDefault) {
@@ -524,13 +563,16 @@ router.post('/addresses', storeCustomerAuth, async (req, res) => {
     }
 });
 
-// ── PUT /addresses/:idx ───────────────────────────────────────────────────────
-router.put('/addresses/:idx', storeCustomerAuth, async (req, res) => {
+// ── PUT /addresses/:id — Update address by stable UUID (not array index)
+router.put('/addresses/:id', storeCustomerAuth, async (req, res) => {
     try {
-        const idx = parseInt(req.params.idx);
+        const { id } = req.params;
         const customer = req.storeCustomer;
         const addresses = [...(customer.savedAddresses || [])];
 
+        // #23 — Find by uuid if address has id field; fallback to numeric index for legacy addresses
+        const targetIdx = addresses.findIndex(a => a.id === id);
+        const idx = targetIdx !== -1 ? targetIdx : parseInt(id);
         if (idx < 0 || idx >= addresses.length) return res.status(404).json({ error: 'Address not found.' });
 
         const updated = { ...addresses[idx], ...req.body };
@@ -545,13 +587,16 @@ router.put('/addresses/:idx', storeCustomerAuth, async (req, res) => {
     }
 });
 
-// ── DELETE /addresses/:idx ────────────────────────────────────────────────────
-router.delete('/addresses/:idx', storeCustomerAuth, async (req, res) => {
+// ── DELETE /addresses/:id — Delete address by stable UUID (not array index)
+router.delete('/addresses/:id', storeCustomerAuth, async (req, res) => {
     try {
-        const idx = parseInt(req.params.idx);
+        const { id } = req.params;
         const customer = req.storeCustomer;
         const addresses = [...(customer.savedAddresses || [])];
 
+        // #23 — Find by uuid; fallback to index for legacy addresses without id
+        const targetIdx = addresses.findIndex(a => a.id === id);
+        const idx = targetIdx !== -1 ? targetIdx : parseInt(id);
         if (idx < 0 || idx >= addresses.length) return res.status(404).json({ error: 'Address not found.' });
 
         addresses.splice(idx, 1);

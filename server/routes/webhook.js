@@ -508,7 +508,7 @@ router.post('/:userId', (req, res, next) => {
 
                         switch (messageType) {
                             case 'text':
-                                messageBody = message.text.body;
+                                messageBody = message.text?.body || '';
                                 break;
                             case 'image':
                                 messageBody = downloadedMediaUrl ? '📸 Image Received' : '📸 Image Attachment';
@@ -526,7 +526,7 @@ router.post('/:userId', (req, res, next) => {
                                 messageBody = downloadedMediaUrl ? '🖼️ Sticker Received' : '🖼️ Sticker Attachment';
                                 break;
                             case 'button':
-                                messageBody = message.button.text;
+                                messageBody = message.button?.text || '';
                                 break;
                             case 'location':
                                 const loc = message.location || {};
@@ -538,7 +538,26 @@ router.post('/:userId', (req, res, next) => {
                                     messageBody = interactive.button_reply?.title || '';
                                 } else if (interactive.type === 'list_reply') {
                                     messageBody = interactive.list_reply?.title || '';
+                                } else {
+                                    messageBody = `[Interactive: ${interactive.type}]`;
                                 }
+                                break;
+                            case 'reaction':
+                                messageBody = `[Reaction: ${message.reaction?.emoji || '👍'}]`;
+                                break;
+                            case 'contacts':
+                                const contactName = message.contacts?.[0]?.name?.formatted_name || 'Contact';
+                                messageBody = `👤 Shared Contact: ${contactName}`;
+                                break;
+                            case 'order':
+                                messageBody = `🛒 Order Inquiry received`;
+                                break;
+                            case 'system':
+                                messageBody = `[System Message: ${message.system?.body || ''}]`;
+                                break;
+                            case 'unsupported':
+                                const errorTitle = message.errors?.[0]?.title || 'Unknown unsupported feature';
+                                messageBody = `[Unsupported Message: ${errorTitle}]`;
                                 break;
                             default:
                                 messageBody = `[${messageType}]`;
@@ -547,96 +566,6 @@ router.post('/:userId', (req, res, next) => {
 
                         console.log(`[WEBHOOK] Incoming message from ${contactWaId}: "${messageBody}"`);
 
-                        // ─── OPT-OUT / OPT-IN DETECTION ─────────────────────────────────────────
-                        // Industry-standard keywords (STOP/UNSUBSCRIBE/CANCEL/END/QUIT)
-                        // Also catches Meta's mandatory "Stop promotions" marketing opt-out button
-                        {
-                            const OPT_OUT_KEYWORDS = ['stop', 'unsubscribe', 'cancel', 'end', 'quit'];
-                            const OPT_IN_KEYWORDS  = ['start', 'subscribe'];
-                            const META_OPTOUT_BUTTON = 'stop promotions'; // Meta's built-in marketing opt-out
-
-                            const normalizedBody = (messageBody || '').trim().toLowerCase();
-                            // Strip punctuation to catch "Stop." or "Unsubscribe!"
-                            const cleanBody = normalizedBody.replace(/[.,!?]/g, '').trim();
-                            
-                            const isOptOut = OPT_OUT_KEYWORDS.includes(cleanBody) || cleanBody === META_OPTOUT_BUTTON;
-                            const isOptIn  = OPT_IN_KEYWORDS.includes(cleanBody);
-
-                            const optSettings = foundSettings || (await Settings.findOne({ where: { userId } }));
-                            const optOutEnabled = optSettings?.whatsappAutomations?.optOutEnabled !== false; // default true
-
-                            // ── Custom multilingual opt-out keywords (e.g. "रुको", "arret") ──────────
-                            const customOptOutKw = (optSettings?.whatsappAutomations?.customOptOutKeywords || [])
-                                .map(k => (k || '').trim().toLowerCase().replace(/[.,!?]/g, ''))
-                                .filter(Boolean);
-                            const isCustomOptOut = !isOptOut && !isOptIn && customOptOutKw.includes(cleanBody);
-                            // ────────────────────────────────────────────────────────────────────────
-
-                            if (optOutEnabled && (isOptOut || isOptIn || isCustomOptOut)) {
-                                try {
-                                    let contactToUpdate = await Contact.findOne({ where: { phone: contactWaId, userId } });
-                                    const effectiveIsOptOut = isOptOut || isCustomOptOut;
-                                    const newStatus = effectiveIsOptOut ? 'Opted Out' : 'Active';
-
-                                    if (contactToUpdate) {
-                                        await contactToUpdate.update({ status: newStatus });
-                                        console.log(`[WEBHOOK][OPT] Contact ${contactWaId} → '${newStatus}' (keyword: "${cleanBody}"${isCustomOptOut ? ' [custom]' : ''})`);
-                                    } else {
-                                        contactToUpdate = await Contact.create({
-                                            phone: contactWaId,
-                                            name: value.contacts?.[0]?.profile?.name || 'Unknown',
-                                            userId,
-                                            status: newStatus
-                                        });
-                                        console.log(`[WEBHOOK][OPT] New Contact ${contactWaId} created as '${newStatus}'`);
-                                    }
-
-                                    // TRACK CAMPAIGN OPT-OUTS
-                                        if (effectiveIsOptOut) {
-                                            const outboundContextId = message.context?.id;
-                                            if (outboundContextId) {
-                                                try {
-                                                    const MessageLog = require('../models/MessageLog');
-                                                    const outboundLog = await MessageLog.findOne({ where: { messageId: outboundContextId } });
-                                                    if (outboundLog && outboundLog.campaignId) {
-                                                        const Message = require('../models/Message');
-                                                        await Message.increment('optOutCount', { by: 1, where: { id: outboundLog.campaignId } });
-                                                        console.log(`[WEBHOOK][OPT] Incremented optOutCount for campaign ${outboundLog.campaignId}`);
-                                                    }
-                                                } catch (trackErr) {
-                                                    console.error('[WEBHOOK][OPT] Failed to track campaign opt-out count:', trackErr.message);
-                                                }
-                                            }
-                                        }
-
-                                    // Send acknowledgement reply using the free 24h conversation window (no template credits used)
-                                    if (optSettings?.metaAccessToken && optSettings?.metaPhoneNumberId) {
-                                        const automations = optSettings.whatsappAutomations || {};
-                                        const defaultOptOutAck = "You've been unsubscribed from our messages. Reply START to re-subscribe at any time.";
-                                        const defaultOptInAck  = "You've been re-subscribed! You'll receive our messages again. Reply STOP at any time to opt out.";
-                                        const ackText = effectiveIsOptOut
-                                            ? (automations.optOutAck || defaultOptOutAck)
-                                            : (automations.optInAck  || defaultOptInAck);
-
-                                        await axios.post(
-                                            `https://graph.facebook.com/v22.0/${optSettings.metaPhoneNumberId}/messages`,
-                                            {
-                                                messaging_product: 'whatsapp',
-                                                to: contactWaId,
-                                                type: 'text',
-                                                text: { body: ackText }
-                                            },
-                                            { headers: { Authorization: `Bearer ${optSettings.metaAccessToken}`, 'Content-Type': 'application/json' } }
-                                        );
-                                        console.log(`[WEBHOOK][OPT] Ack sent to ${contactWaId}: "${ackText.substring(0, 60)}..."`);
-                                    }
-                                } catch (optErr) {
-                                    console.error('[WEBHOOK][OPT] Opt-out/in handling failed (non-fatal):', optErr.message);
-                                }
-                                // Skip ALL further processing (FlowBot, auto-reply, etc.) for opt-out/opt-in messages
-                                continue;
-                            }
-                        }
                         // --- TRACK CAMPAIGN BUTTON CLICKS ---
                         const outboundContextId = message.context?.id || null;
                         if (outboundContextId && (messageType === 'button' || messageType === 'interactive')) {
@@ -702,46 +631,169 @@ router.post('/:userId', (req, res, next) => {
                             }
                         });
 
-                        if (created) {
-                            console.log(`[WEBHOOK] Message saved. Emitting new_message to owner room: ${userId} and team room: team_${userId}`);
-                            try {
-                                const io = getIo();
-                                const convJson = conversation.toJSON ? conversation.toJSON() : conversation;
-                                const msgJson = chatMessage.toJSON ? chatMessage.toJSON() : chatMessage;
-                                // Emit to the owner's personal room (joined via join_waba / join_personal)
-                                io.to(userId).emit('new_message', {
-                                    conversation: convJson,
-                                    message: msgJson
-                                });
-                                // Also emit to the team room so sub-members using join_waba with their own userId
-                                // can still receive the event (they join team_${parentId} via user_connected)
-                                io.to(`team_${userId}`).emit('new_message', {
-                                    conversation: convJson,
-                                    message: msgJson
-                                });
-                            } catch (e) {
-                                console.error('[WEBHOOK ERROR] Socket emit failed:', e.message);
-                            }
+                        if (!created) {
+                            console.log(`[WEBHOOK] Duplicate message ignored: ${messageId}`);
+                            continue;
+                        }
 
-                            // ------ CHECK MONTHLY LIMITS ------
-                            let isLimitHit = false;
-                            try {
-                                const limits = await getUserPlanLimits(userId);
-                                if (limits.messageLimit !== -1) {
-                                    const user = await User.findByPk(userId);
-                                    // Add topup messages if they exist
-                                    const totalLimit = limits.messageLimit + (user?.extraTopupMessages || 0);
-                                    const sentThisMonth = await getMonthlyMessageCount(userId);
-                                    if (sentThisMonth >= totalLimit) {
-                                        isLimitHit = true;
-                                        console.log(`[WEBHOOK] User ${userId} hit message limit (${sentThisMonth}/${totalLimit}). Bot actions blocked.`);
-                                        // Optional: Notify the user they hit the limit (throttle this so we don't spam them per-message)
-                                        // A real impl might check if a notification was sent recently
-                                    }
+                        console.log(`[WEBHOOK] Message saved. Emitting new_message to owner room: ${userId} and team room: team_${userId}`);
+                        try {
+                            const io = getIo();
+                            const convJson = conversation.toJSON ? conversation.toJSON() : conversation;
+                            const msgJson = chatMessage.toJSON ? chatMessage.toJSON() : chatMessage;
+                            // Emit to the owner's personal room (joined via join_waba / join_personal)
+                            io.to(userId).emit('new_message', {
+                                conversation: convJson,
+                                message: msgJson
+                            });
+                            // Also emit to the team room so sub-members using join_waba with their own userId
+                            // can still receive the event (they join team_${parentId} via user_connected)
+                            io.to(`team_${userId}`).emit('new_message', {
+                                conversation: convJson,
+                                message: msgJson
+                            });
+                        } catch (e) {
+                            console.error('[WEBHOOK ERROR] Socket emit failed:', e.message);
+                        }
+
+                        // ------ CHECK MONTHLY LIMITS ------
+                        let isLimitHit = false;
+                        try {
+                            const limits = await getUserPlanLimits(userId);
+                            if (limits.messageLimit !== -1) {
+                                const user = await User.findByPk(userId);
+                                // Add topup messages if they exist
+                                const totalLimit = limits.messageLimit + (user?.extraTopupMessages || 0);
+                                const sentThisMonth = await getMonthlyMessageCount(userId);
+                                if (sentThisMonth >= totalLimit) {
+                                    isLimitHit = true;
+                                    console.log(`[WEBHOOK] User ${userId} hit message limit (${sentThisMonth}/${totalLimit}). Bot actions blocked.`);
+                                    // Optional: Notify the user they hit the limit (throttle this so we don't spam them per-message)
+                                    // A real impl might check if a notification was sent recently
                                 }
-                            } catch (limErr) {
-                                console.error('[WEBHOOK ERROR] Failed to check limits:', limErr);
                             }
+                        } catch (limErr) {
+                            console.error('[WEBHOOK ERROR] Failed to check limits:', limErr);
+                        }
+
+                        // ─── OPT-OUT / OPT-IN DETECTION ─────────────────────────────────────────
+                        // Industry-standard keywords (STOP/UNSUBSCRIBE/CANCEL/END/QUIT)
+                        // Also catches Meta's mandatory "Stop promotions" marketing opt-out button
+                        {
+                            const OPT_OUT_KEYWORDS = ['stop', 'unsubscribe', 'cancel', 'end', 'quit'];
+                            const OPT_IN_KEYWORDS  = ['start', 'subscribe'];
+                            const META_OPTOUT_BUTTON = 'stop promotions'; // Meta's built-in marketing opt-out
+
+                            const normalizedBody = (messageBody || '').trim().toLowerCase();
+                            // Strip punctuation to catch "Stop." or "Unsubscribe!"
+                            const cleanBody = normalizedBody.replace(/[.,!?]/g, '').trim();
+                            
+                            const isOptOut = OPT_OUT_KEYWORDS.includes(cleanBody) || cleanBody === META_OPTOUT_BUTTON;
+                            const isOptIn  = OPT_IN_KEYWORDS.includes(cleanBody);
+
+                            const optSettings = foundSettings || (await Settings.findOne({ where: { userId } }));
+                            const optOutEnabled = optSettings?.whatsappAutomations?.optOutEnabled !== false; // default true
+
+                            // ── Custom multilingual opt-out keywords (e.g. "रुको", "arret") ──────────
+                            const customOptOutKw = (optSettings?.whatsappAutomations?.customOptOutKeywords || [])
+                                .map(k => (k || '').trim().toLowerCase().replace(/[.,!?]/g, ''))
+                                .filter(Boolean);
+                            const isCustomOptOut = !isOptOut && !isOptIn && customOptOutKw.includes(cleanBody);
+                            // ────────────────────────────────────────────────────────────────────────
+
+                            if (optOutEnabled && (isOptOut || isOptIn || isCustomOptOut)) {
+                                try {
+                                    let contactToUpdate = await Contact.findOne({ where: { phone: contactWaId, userId } });
+                                    const effectiveIsOptOut = isOptOut || isCustomOptOut;
+                                    const newStatus = effectiveIsOptOut ? 'Opted Out' : 'Active';
+
+                                    if (contactToUpdate) {
+                                        await contactToUpdate.update({ status: newStatus });
+                                        console.log(`[WEBHOOK][OPT] Contact ${contactWaId} → '${newStatus}' (keyword: "${cleanBody}"${isCustomOptOut ? ' [custom]' : ''})`);
+                                    } else {
+                                        contactToUpdate = await Contact.create({
+                                            phone: contactWaId,
+                                            name: value.contacts?.[0]?.profile?.name || 'Unknown',
+                                            userId,
+                                            status: newStatus
+                                        });
+                                        console.log(`[WEBHOOK][OPT] New Contact ${contactWaId} created as '${newStatus}'`);
+                                    }
+
+                                    // TRACK CAMPAIGN OPT-OUTS
+                                    if (effectiveIsOptOut) {
+                                        if (outboundContextId) {
+                                            try {
+                                                const MessageLog = require('../models/MessageLog');
+                                                const outboundLog = await MessageLog.findOne({ where: { messageId: outboundContextId } });
+                                                if (outboundLog && outboundLog.campaignId) {
+                                                    const Message = require('../models/Message');
+                                                    await Message.increment('optOutCount', { by: 1, where: { id: outboundLog.campaignId } });
+                                                    console.log(`[WEBHOOK][OPT] Incremented optOutCount for campaign ${outboundLog.campaignId}`);
+                                                }
+                                            } catch (trackErr) {
+                                                console.error('[WEBHOOK][OPT] Failed to track campaign opt-out count:', trackErr.message);
+                                            }
+                                        }
+                                    }
+
+                                    // Send acknowledgement reply using the free 24h conversation window (no template credits used)
+                                    if (optSettings?.metaAccessToken && optSettings?.metaPhoneNumberId) {
+                                        const automations = optSettings.whatsappAutomations || {};
+                                        const defaultOptOutAck = "You've been unsubscribed from our messages. Reply START to re-subscribe at any time.";
+                                        const defaultOptInAck  = "You've been re-subscribed! You'll receive our messages again. Reply STOP at any time to opt out.";
+                                        const ackText = effectiveIsOptOut
+                                            ? (automations.optOutAck || defaultOptOutAck)
+                                            : (automations.optInAck  || defaultOptInAck);
+
+                                        await axios.post(
+                                            `https://graph.facebook.com/v22.0/${optSettings.metaPhoneNumberId}/messages`,
+                                            {
+                                                messaging_product: 'whatsapp',
+                                                to: contactWaId,
+                                                type: 'text',
+                                                text: { body: ackText }
+                                            },
+                                            { headers: { Authorization: `Bearer ${optSettings.metaAccessToken}`, 'Content-Type': 'application/json' } }
+                                        );
+                                        console.log(`[WEBHOOK][OPT] Ack sent to ${contactWaId}: "${ackText.substring(0, 60)}..."`);
+                                        
+                                        // Save ack text to Live Inbox
+                                        if (conversation) {
+                                            const ackMessageId = 'sys_ack_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                                            const ackChatMsg = await ChatMessage.create({
+                                                conversationId: conversation.id,
+                                                messageId: ackMessageId,
+                                                direction: 'OUTBOUND',
+                                                type: 'text',
+                                                body: ackText,
+                                                status: 'sent',
+                                                timestamp: new Date()
+                                            });
+                                            
+                                            // Update conversation last message
+                                            conversation.lastMessageAt = new Date();
+                                            conversation.lastMessage = ackText;
+                                            await conversation.save();
+
+                                            try {
+                                                const io = getIo();
+                                                const convJson = conversation.toJSON ? conversation.toJSON() : conversation;
+                                                const msgJson = ackChatMsg.toJSON ? ackChatMsg.toJSON() : ackChatMsg;
+                                                io.to(userId).emit('new_message', { conversation: convJson, message: msgJson });
+                                                io.to(`team_${userId}`).emit('new_message', { conversation: convJson, message: msgJson });
+                                            } catch(e) {
+                                                console.error('[WEBHOOK ERROR] Socket emit failed for ack msg:', e.message);
+                                            }
+                                        }
+                                    }
+                                } catch (optErr) {
+                                    console.error('[WEBHOOK][OPT] Opt-out/in handling failed (non-fatal):', optErr.message);
+                                }
+                                // Skip ALL further processing (FlowBot, auto-reply, etc.) for opt-out/opt-in messages
+                                continue;
+                            }
+                        }
 
                             // ------ FLOWBOT EXECUTION LOGIC START ------
                             let flowHandled = false;
@@ -1210,13 +1262,10 @@ router.post('/:userId', (req, res, next) => {
                                 console.error('[WEBHOOK ERROR] AI Bot Add-on Hook failed:', aiErr);
                             }
                             // ----------------------------------------
-                        } else {
-                            console.log(`[WEBHOOK] Duplicate message ignored: ${messageId}`);
                         }
                     }
                 }
             }
-        }
 
         res.sendStatus(200);
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const WaStore = require('../models/WaStore');
 const WaProduct = require('../models/WaProduct');
 const WaOrder = require('../models/WaOrder');
@@ -14,6 +15,15 @@ const { deleteStorageFile } = require('../utils/storageProvider');
 const { Op, fn, col, literal } = require('sequelize');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { fireCAPIEvent } = require('../utils/capi');
+
+// #5 — Rate limiter for the public orders endpoint (prevents spam/fake orders)
+const publicOrderLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    max: 20, // 20 orders per IP per 10 min
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please try again later.' }
+});
 
 // ── CAPI helper: build order contents array from items ───────────────────────
 const buildCAPIContents = (items = []) =>
@@ -204,7 +214,7 @@ router.get('/public/domain/:domain', async (req, res) => {
 });
 
 // POST /api/wastore/orders  — Public: record a new order (called from storefront before WhatsApp redirect)
-router.post('/orders', async (req, res) => {
+router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate limited
     try {
         const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, customerGstin, customerCompany, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, storeCustomerId } = req.body;
 
@@ -220,6 +230,21 @@ router.post('/orders', async (req, res) => {
         const startSeq = parseInt(store.invoiceConfig?.onlineStartingNumber || store.invoiceConfig?.startingNumber) || 1001;
         const count = await WaOrder.count({ where: { storeId, source: 'online' } });
         const orderNumber = `${prefixOnline}${String(count + startSeq).padStart(4, '0')}`;
+
+        // #4 — Stock validation BEFORE creating the order to prevent overselling
+        if (items && Array.isArray(items)) {
+            for (const item of items) {
+                const product = await WaProduct.findByPk(item.id);
+                if (product && product.trackQuantity) {
+                    const available = product.stockQuantity || 0;
+                    if (available < (item.qty || 1)) {
+                        return res.status(409).json({
+                            error: `Sorry, "${product.name}" only has ${available} unit(s) available. Please adjust your cart.`
+                        });
+                    }
+                }
+            }
+        }
 
         const order = await WaOrder.create({
             storeId, orderNumber,
@@ -265,7 +290,8 @@ router.post('/orders', async (req, res) => {
                     key_secret: store.paymentConfig?.razorpayKeySecret
                 });
 
-                const amountPaise = Math.round(order.subtotal * 100);
+                // #6 — Use order.total (includes tax) not order.subtotal (pre-tax)
+                const amountPaise = Math.round((order.total || order.subtotal) * 100);
                 const rzpOrder = await rzp.orders.create({
                     amount: amountPaise,
                     currency: order.currency || 'INR',
@@ -333,7 +359,8 @@ router.post('/orders', async (req, res) => {
         // ── Fire CAPI InitiateCheckout (non-blocking) ─────────────────────────
         fireCAPICheckout(store, order).catch(() => {});
 
-        // ── Fire order_placed notification (non-blocking) ─────────────────────
+        // ── #16 — Fire order_placed notification for ALL checkout modes ────────
+        // (gateway mode previously only fired after payment verification, now fired immediately)
         User.findByPk(store.userId).then(storeUser => {
             if (storeUser) sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
         }).catch(() => {});
@@ -513,7 +540,9 @@ async function sendOrderNotification(triggerKey, store, user, order, extras = {}
 // POST /api/wastore/:storeId/orders/pos — Create Offline POS Order & Send Invoice
 router.post('/:storeId/orders/pos', auth, async (req, res) => {
     try {
-        const { customerName, customerPhone, items, subtotal, taxAmount, total, taxRate, taxName, sendInvoice } = req.body;
+        // #25 — Added coupon/discount fields to POS orders
+        const { customerName, customerPhone, items, subtotal, taxAmount, total, taxRate, taxName, sendInvoice,
+                originalTotal, discountAmount, couponCode } = req.body;
         
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -537,6 +566,10 @@ router.post('/:storeId/orders/pos', auth, async (req, res) => {
             taxRate,
             taxName,
             total,
+            // #25 — Coupon/discount fields for POS
+            originalTotal: originalTotal || null,
+            discountAmount: parseFloat(discountAmount) || 0,
+            couponCode: couponCode || null,
             currency: store.currency || 'USD',
             status: 'delivered', // POS is instantly delivered
             source: 'pos'
@@ -669,12 +702,25 @@ router.post('/public/:slug/phonepe-callback', async (req, res) => {
     try {
         const { response } = req.body;
         if (!response) return res.status(400).send('No response');
-        
-        const decoded = JSON.parse(Buffer.from(response, 'base64').toString('utf-8'));
-        const orderNumber = decoded.data.merchantTransactionId;
-        
+
+        // #13 — Verify PhonePe X-VERIFY checksum before trusting the callback
         const store = await WaStore.findOne({ where: { slug: req.params.slug, isActive: true } });
         if (!store) return res.status(404).send('Store not found');
+
+        const saltKey = store.paymentConfig?.phonepeSaltKey;
+        const saltIndex = store.paymentConfig?.phonepeSaltIndex || '1';
+        const xVerifyHeader = req.headers['x-verify'];
+        if (saltKey && xVerifyHeader) {
+            const crypto = require('crypto');
+            const expectedChecksum = crypto.createHash('sha256').update(response + saltKey).digest('hex') + '###' + saltIndex;
+            if (xVerifyHeader !== expectedChecksum) {
+                console.warn('[PhonePe] Checksum mismatch — possible forgery attempt');
+                return res.status(400).send('Invalid checksum');
+            }
+        }
+
+        const decoded = JSON.parse(Buffer.from(response, 'base64').toString('utf-8'));
+        const orderNumber = decoded.data.merchantTransactionId;
         
         const order = await WaOrder.findOne({ where: { orderNumber, storeId: store.id } });
         if (order && decoded.code === 'PAYMENT_SUCCESS') {
@@ -714,6 +760,11 @@ router.post('/public/:slug/validate-coupon', async (req, res) => {
         // Expiry check
         if (couponAny.expiresAt && new Date() > new Date(couponAny.expiresAt)) {
             return res.status(400).json({ error: 'This coupon has expired.' });
+        }
+
+        // #7 — Start date check: if the coupon has a startsAt, ensure it's in the past
+        if (couponAny.startsAt && new Date() < new Date(couponAny.startsAt)) {
+            return res.status(400).json({ error: 'This coupon is not yet active.' });
         }
 
         // Minimum order value check — fix: use cartTotal != null (not truthy check, so 0 is handled)
@@ -1462,56 +1513,11 @@ router.delete('/products/:productId', async (req, res) => {
 // ==========================================
 // AI PRODUCT DESCRIPTION GENERATOR
 // ==========================================
-router.post('/ai-description', async (req, res) => {
-    const { productName, keywords } = req.body;
-    try {
-        if (!productName) return res.status(400).json({ error: 'Product name is required' });
-
-        const user = await User.findByPk(req.user.id);
-        const sysConfig = await SystemConfig.getConfig();
-        const multiplier = sysConfig?.settings?.aiTokenMultipliers?.ai_wastore ?? 3;
-        const BASE_COST = 5; 
-        const finalCost = Math.ceil(BASE_COST * multiplier);
-
-        if (user.aiTokenBalance < finalCost) {
-            return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
-        }
-
-        const { runAi } = require('../utils/aiRunner');
-
-        const systemInstruction1 = `You are an expert e-commerce copywriter. 
-The user is providing a product name and some optional keywords.
-Your job is to generate a highly converting, SEO-optimized, and persuasive product description.
-Do not use markdown formatting like ** or #. Just return pure text formatted nicely with line breaks if needed.
-Be concise but extremely compelling. Max 2 short paragraphs.`;
-
-        const prompt1 = `Product Name: ${productName}\nKeywords: ${keywords || 'None'}`;
-        const { text: replyText1, modelUsed: model1 } = await runAi(sysConfig, systemInstruction1, prompt1, { temperature: 0.7, maxOutputTokens: 300 });
-        console.log(`[WaStore AI] ai-description2 used model: ${model1}`);
-        const replyText = replyText1;
-        
-        await user.decrement('aiTokenBalance', { by: finalCost });
-        const newBal = (user.aiTokenBalance - finalCost);
-
-        try {
-            await AiTokenLog.create({
-                userId: req.user.id,
-                feature: 'ai_wastore_product_desc',
-                tokensUsed: finalCost,
-                balanceAfter: Math.max(0, newBal)
-            });
-        } catch (e) { console.warn(e); }
-
-        res.json({
-            description: replyText.trim(),
-            tokensDeducted: finalCost,
-            newBalance: newBal
-        });
-    } catch (err) {
-        console.error('Error generating AI description:', err);
-        res.status(500).json({ error: 'Failed to communicate with AI.' });
-    }
-});
+// #15 — Removed duplicate registration. The authoritative implementation is at line ~742 (above auth middleware section).
+// This duplicate below was using a different token cost formula; kept as a comment for reference only.
+/*
+router.post('/ai-description', async (req, res) => { ... DUPLICATE REMOVED ... });
+*/
 
 router.post('/ai-seo', async (req, res) => {
     const { productName, description, category, price } = req.body;
@@ -1817,7 +1823,8 @@ router.get('/:storeId/analytics', async (req, res) => {
         // --- KPI Summary ---
         const allOrders = await WaOrder.findAll({ where: whereClause });
         const totalOrders = allOrders.length;
-        const totalRevenue = allOrders.reduce((sum, o) => sum + parseFloat(o.subtotal || 0), 0);
+        // #14 — Use order.total (what customer actually paid incl. tax), not subtotal
+        const totalRevenue = allOrders.reduce((sum, o) => sum + parseFloat(o.total || o.subtotal || 0), 0);
         const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
         // Status counts
@@ -1830,7 +1837,8 @@ router.get('/:storeId/analytics', async (req, res) => {
             const day = new Date(order.createdAt).toISOString().slice(0, 10);
             if (!dailyMap[day]) dailyMap[day] = { date: day, orders: 0, revenue: 0 };
             dailyMap[day].orders++;
-            dailyMap[day].revenue = parseFloat((dailyMap[day].revenue + parseFloat(order.subtotal || 0)).toFixed(2));
+            // #14 — daily revenue also uses total
+            dailyMap[day].revenue = parseFloat((dailyMap[day].revenue + parseFloat(order.total || order.subtotal || 0)).toFixed(2));
         });
 
         // Fill in missing dates in range

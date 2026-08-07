@@ -35,22 +35,31 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
     const [showGstSection, setShowGstSection] = useState(false);
     const isGstStore = store?.taxConfig?.enabled && store?.taxConfig?.type === 'gst';
 
-    // Pre-fill form when logged-in customer is available
+    const savedAddresses = storeCustomer?.savedAddresses || [];
+    const defaultIdx = savedAddresses.length > 0 ? (savedAddresses.findIndex(a => a.isDefault) > -1 ? savedAddresses.findIndex(a => a.isDefault) : 0) : -1;
+    const [selectedAddressIdx, setSelectedAddressIdx] = useState(defaultIdx);
+    const [saveNewAddress, setSaveNewAddress] = useState(false);
+    const [newAddressLabel, setNewAddressLabel] = useState('Home');
+
+    // Pre-fill form when logged-in customer or selected address changes
     useEffect(() => {
         if (storeCustomer) {
-            const defaultAddr = (storeCustomer.savedAddresses || []).find(a => a.isDefault) || storeCustomer.savedAddresses?.[0];
+            let addr = null;
+            if (selectedAddressIdx >= 0 && savedAddresses[selectedAddressIdx]) {
+                addr = savedAddresses[selectedAddressIdx];
+            }
             setFormData(prev => ({
                 ...prev,
                 name: storeCustomer.name || prev.name,
                 phone: storeCustomer.phone || prev.phone,
                 email: storeCustomer.email || prev.email,
-                address: defaultAddr?.address || prev.address,
-                city: defaultAddr?.city || prev.city,
-                state: defaultAddr?.state || prev.state,
-                pincode: defaultAddr?.pincode || prev.pincode,
+                address: addr ? addr.address : (selectedAddressIdx === -1 ? '' : prev.address),
+                city: addr ? addr.city : (selectedAddressIdx === -1 ? '' : prev.city),
+                state: addr ? addr.state : (selectedAddressIdx === -1 ? '' : prev.state),
+                pincode: addr ? addr.pincode : (selectedAddressIdx === -1 ? '' : prev.pincode),
             }));
         }
-    }, [storeCustomer]);
+    }, [storeCustomer, selectedAddressIdx]);
 
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -181,8 +190,26 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
 
     const handleCheckout = async (e) => {
         e.preventDefault();
-        if (!formData.name || !formData.phone || !formData.address) {
-            toast.error("Please fill in the required fields (Name, Phone, Address).");
+        
+        if (storeCustomerCtx && storeCustomer && selectedAddressIdx === -1 && saveNewAddress) {
+            try {
+                await storeCustomerCtx.addAddress({
+                    label: newAddressLabel,
+                    name: formData.name,
+                    phone: formData.phone,
+                    address: formData.address,
+                    city: formData.city,
+                    state: formData.state,
+                    pincode: formData.pincode,
+                    isDefault: savedAddresses.length === 0
+                });
+            } catch (err) {
+                console.error('Failed to save address:', err);
+            }
+        }
+
+        if (!formData.name?.trim() || !formData.phone?.trim() || !formData.address?.trim() || !formData.city?.trim() || !formData.state?.trim() || !formData.pincode?.trim()) {
+            toast.error("Please fill in all the required delivery fields.");
             return;
         }
 
@@ -387,28 +414,91 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                                 <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Delivery Address *</label>
-                                <textarea required name="address" value={formData.address} onChange={handleInputChange} rows="2" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none"></textarea>
-                            </div>
+                            {/* Saved Addresses List */}
+                            {savedAddresses.length > 0 && (
+                                <div className="mt-4 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Shipping Address</label>
+                                    <div className="space-y-2">
+                                        {savedAddresses.map((addr, idx) => (
+                                            <div 
+                                                key={idx} 
+                                                onClick={() => setSelectedAddressIdx(idx)}
+                                                className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedAddressIdx === idx ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}
+                                            >
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                                                        {addr.label || 'Home'}
+                                                    </span>
+                                                    {selectedAddressIdx === idx && <Check className="w-4 h-4 text-black" />}
+                                                </div>
+                                                <p className="text-sm text-gray-600 mt-1">{addr.address}, {addr.city}, {addr.state} {addr.pincode}</p>
+                                            </div>
+                                        ))}
+                                        <div 
+                                            onClick={() => setSelectedAddressIdx(-1)}
+                                            className={`p-3 border rounded-lg cursor-pointer transition-colors flex items-center justify-between ${selectedAddressIdx === -1 ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}
+                                        >
+                                            <span className="text-sm font-medium text-gray-800">Use a new address</span>
+                                            {selectedAddressIdx === -1 && <Check className="w-4 h-4 text-black" />}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-                                    <select required name="state" value={formData.state} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none bg-white">
-                                        <option value="" disabled>Select State</option>
-                                        {INDIAN_STATES.map(st => <option key={st} value={st}>{st}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-                                    <input required type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
-                                    <input required type="text" pattern="[0-9]{6}" maxLength="6" minLength="6" title="Please enter a valid 6-digit Pincode" name="pincode" value={formData.pincode} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
-                                </div>
-                            </div>
+                            {/* Address Form (Shown if New Address or No Saved Addresses) */}
+                            {selectedAddressIdx === -1 && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Delivery Address *</label>
+                                        <textarea required name="address" value={formData.address} onChange={handleInputChange} rows="2" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none"></textarea>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                                            <select required name="state" value={formData.state} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none bg-white">
+                                                <option value="" disabled>Select State</option>
+                                                {INDIAN_STATES.map(st => <option key={st} value={st}>{st}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                                            <input required type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
+                                            <input required type="text" pattern="[0-9]{6}" maxLength="6" minLength="6" title="Please enter a valid 6-digit Pincode" name="pincode" value={formData.pincode} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
+                                        </div>
+                                    </div>
+
+                                    {/* Save Address Option for Logged-in Users */}
+                                    {storeCustomer && (
+                                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                            <label className="flex items-center cursor-pointer mb-2">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={saveNewAddress} 
+                                                    onChange={(e) => setSaveNewAddress(e.target.checked)}
+                                                    className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                                />
+                                                <span className="ml-2 text-sm text-gray-700 font-medium">Save this address to my account for next time</span>
+                                            </label>
+                                            
+                                            {saveNewAddress && (
+                                                <div className="pl-6 mt-2">
+                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Address Label (e.g. Home, Office)</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={newAddressLabel} 
+                                                        onChange={(e) => setNewAddressLabel(e.target.value)} 
+                                                        className="w-full sm:w-1/2 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Order Notes / Special Instructions</label>

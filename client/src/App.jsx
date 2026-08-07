@@ -285,19 +285,23 @@ class ErrorBoundary extends React.Component {
 function StoreAuthRoute({ page }) {
     const { slug } = useParams();
     const [store, setStore] = useState(null);
+    const [products, setProducts] = useState([]);
 
     useEffect(() => {
         axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}`)
-            .then(res => setStore(res.data.store))
+            .then(res => {
+                setStore(res.data.store);
+                setProducts(res.data.products || []);
+            })
             .catch(() => {});
     }, [slug]);
 
     const pageMap = {
-        login:    <StoreLoginPage store={store} />,
-        register: <StoreRegisterPage store={store} />,
-        account:  <StoreAccountPage store={store} />,
-        forgot:   <StoreForgotPasswordPage store={store} />,
-        reset:    <StoreResetPasswordPage store={store} />,
+        login:    <StoreLoginPage store={store} products={products} />,
+        register: <StoreRegisterPage store={store} products={products} />,
+        account:  <StoreAccountPage store={store} products={products} />,
+        forgot:   <StoreForgotPasswordPage store={store} products={products} />,
+        reset:    <StoreResetPasswordPage store={store} products={products} />,
     };
 
     return (

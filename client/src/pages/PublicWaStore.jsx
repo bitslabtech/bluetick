@@ -134,6 +134,13 @@ export default function PublicWaStore({ customSlug }) {
         return () => clearInterval(sliderTimer.current);
     }, [slides.length, sliderPaused, nextSlide]);
 
+    useEffect(() => {
+        if (window.location.search.includes('cart=open')) {
+            setIsCartOpen(true);
+            window.history.replaceState({}, '', `/store/${slug}`);
+        }
+    }, [slug]);
+
     // Category autoplay — mobile only, 3.5s scroll loop
     useEffect(() => {
         const el = categoryScrollRef.current;
@@ -352,13 +359,13 @@ export default function PublicWaStore({ customSlug }) {
     }, []);
 
     const cartSubtotal = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.qty), 0);
-    const shippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || cartSubtotal < freeShippingThreshold)) ? flatShippingRate : 0;
     const estimatedTax = (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false)
         ? cart.reduce((sum, item) => {
             const taxRate = item.taxRate !== null && item.taxRate !== undefined ? parseFloat(item.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
             return sum + (getItemPrice(item) * (taxRate / 100) * item.qty);
           }, 0)
         : 0;
+    const shippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || (cartSubtotal + estimatedTax) < freeShippingThreshold)) ? flatShippingRate : 0;
     const cartTotal = cartSubtotal + shippingCost + estimatedTax;
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -896,10 +903,12 @@ export default function PublicWaStore({ customSlug }) {
                                         <span className={theme.textMuted}>Subtotal</span>
                                         <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartSubtotal.toFixed(2)}</span>
                                     </div>
-                                    {shippingCost > 0 && (
+                                    {(flatShippingRate > 0 || shippingCost > 0) && (
                                         <div className="flex justify-between items-center mb-2">
                                             <span className={theme.textMuted}>Shipping</span>
-                                            <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{shippingCost.toFixed(2)}</span>
+                                            <span className={`text-lg font-bold ${shippingCost === 0 ? 'text-emerald-500' : theme.text}`}>
+                                                {shippingCost === 0 ? 'Free' : `${getCurrencySymbol(store.currency)}${shippingCost.toFixed(2)}`}
+                                            </span>
                                         </div>
                                     )}
                                     {store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false && estimatedTax > 0 && (
@@ -913,9 +922,9 @@ export default function PublicWaStore({ customSlug }) {
                                         <span className={`text-xl font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{cartTotal.toFixed(2)}</span>
                                     </div>
 
-                                    {cartSubtotal < minOrderValue ? (
+                                    {(cartSubtotal + estimatedTax) < minOrderValue ? (
                                         <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl mb-4 text-sm font-medium">
-                                            Minimum order value is {getCurrencySymbol(store.currency)}{minOrderValue}. Add {getCurrencySymbol(store.currency)}{(minOrderValue - cartSubtotal).toFixed(2)} more to checkout.
+                                            Minimum order value is {getCurrencySymbol(store.currency)}{minOrderValue}. Add {getCurrencySymbol(store.currency)}{(minOrderValue - (cartSubtotal + estimatedTax)).toFixed(2)} more to checkout.
                                         </div>
                                     ) : (
                                         <>
