@@ -158,7 +158,7 @@ const Dashboard = () => {
                 }
             });
         };
-        initFBSDK()
+        initFBSDK().catch(err => console.warn('[FB DEBUG] initFBSDK promise rejected:', err.message));
     }, []);
 
     const handleRefreshWaStatus = async () => {
