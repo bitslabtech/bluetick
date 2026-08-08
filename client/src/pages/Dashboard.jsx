@@ -158,7 +158,7 @@ const Dashboard = () => {
                 }
             });
         };
-
+        initFBSDK()
     }, []);
 
     const handleRefreshWaStatus = async () => {
@@ -439,7 +439,7 @@ const Dashboard = () => {
 
     const getUpgradeCriteria = (threshold, isVerified) => {
         if (threshold <= 250) {
-            return isVerified 
+            return isVerified
                 ? "Your Meta Business Page is verified. To reach the 1K limit, simply continue sending messages. Meta will automatically upgrade your limit based on quality and volume."
                 : "To increase your limit to 1K, you MUST complete Meta Business Verification in your Facebook Business Manager. Until then, you are restricted to 250 messages per 24 hours.";
         }
@@ -482,8 +482,8 @@ const Dashboard = () => {
                                     </div>
                                     <div className="px-5 py-3 md:py-0 md:pl-0 border-t md:border-t-0 border-indigo-100 dark:border-indigo-500/30 w-full md:w-auto flex flex-col md:flex-row items-center justify-end gap-3">
                                         {fbLoading && (
-                                            <button 
-                                                onClick={() => setFbLoading(false)} 
+                                            <button
+                                                onClick={() => setFbLoading(false)}
                                                 className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline underline-offset-2 transition-colors"
                                             >
                                                 Cancel Setup
@@ -792,7 +792,7 @@ const Dashboard = () => {
                             <div className="flex flex-col gap-3">
                                 <div className="flex items-center justify-between w-full">
                                     <h3 className="text-slate-900 dark:text-white text-lg font-bold">WhatsApp Stats</h3>
-                                    <button 
+                                    <button
                                         onClick={handleRefreshWaStatus}
                                         disabled={refreshingStatus}
                                         className="text-primary hover:text-blue-600 bg-primary/10 hover:bg-primary/20 p-1.5 px-2 rounded-lg transition-colors flex items-center gap-1.5 text-[11px] font-bold"
@@ -920,13 +920,12 @@ const Dashboard = () => {
                                                 </div>
                                                 <div className="w-full bg-slate-200 dark:bg-[#2f455a] h-1.5 rounded-full overflow-hidden">
                                                     <div
-                                                        className={`h-full rounded-full transition-all duration-1000 ${
-                                                            stats.waMessagingThreshold > 0 && (stats.waMessagingProgress / stats.waMessagingThreshold) >= 0.85
-                                                                ? 'bg-red-500'
-                                                                : stats.waMessagingThreshold > 0 && (stats.waMessagingProgress / stats.waMessagingThreshold) >= 0.6
-                                                                    ? 'bg-yellow-500'
-                                                                    : 'bg-primary'
-                                                        }`}
+                                                        className={`h-full rounded-full transition-all duration-1000 ${stats.waMessagingThreshold > 0 && (stats.waMessagingProgress / stats.waMessagingThreshold) >= 0.85
+                                                            ? 'bg-red-500'
+                                                            : stats.waMessagingThreshold > 0 && (stats.waMessagingProgress / stats.waMessagingThreshold) >= 0.6
+                                                                ? 'bg-yellow-500'
+                                                                : 'bg-primary'
+                                                            }`}
                                                         style={{ width: `${stats.waMessagingThreshold > 0 ? Math.min((stats.waMessagingProgress / stats.waMessagingThreshold) * 100, 100) : 0}%` }}
                                                     ></div>
                                                 </div>
@@ -1062,8 +1061,8 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
-            <EmbeddedSignupChecklist 
-                isOpen={showChecklistModal} 
+            <EmbeddedSignupChecklist
+                isOpen={showChecklistModal}
                 onClose={() => setShowChecklistModal(false)}
                 onProceed={() => {
                     setShowChecklistModal(false);
@@ -1092,16 +1091,14 @@ const Dashboard = () => {
                             {/* Modal Header */}
                             <div className="sticky top-0 flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1e3048] bg-white dark:bg-[#0f1923] rounded-t-2xl z-10">
                                 <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-xl ${
-                                        qualityInsights?.score === 'RED' ? 'bg-red-100 dark:bg-red-500/10' :
+                                    <div className={`p-2 rounded-xl ${qualityInsights?.score === 'RED' ? 'bg-red-100 dark:bg-red-500/10' :
                                         qualityInsights?.score === 'YELLOW' ? 'bg-yellow-100 dark:bg-yellow-500/10' :
-                                        'bg-slate-100 dark:bg-white/5'
-                                    }`}>
-                                        <Activity className={`w-5 h-5 ${
-                                            qualityInsights?.score === 'RED' ? 'text-red-500' :
+                                            'bg-slate-100 dark:bg-white/5'
+                                        }`}>
+                                        <Activity className={`w-5 h-5 ${qualityInsights?.score === 'RED' ? 'text-red-500' :
                                             qualityInsights?.score === 'YELLOW' ? 'text-yellow-500' :
-                                            'text-slate-400'
-                                        }`} />
+                                                'text-slate-400'
+                                            }`} />
                                     </div>
                                     <div>
                                         <h2 className="font-bold text-slate-900 dark:text-white text-base">Quality Rating Insights</h2>
@@ -1135,18 +1132,17 @@ const Dashboard = () => {
                                         {/* Current Score */}
                                         <div className="flex flex-col items-center p-6 mb-6 rounded-2xl border border-slate-100 dark:border-[#1e3048] bg-slate-50 dark:bg-[#0a1520] w-full max-w-sm mx-auto">
                                             <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 font-medium">Current Score</p>
-                                            <div className={`text-4xl font-black ${
-                                                qualityInsights.score === 'RED' ? 'text-red-500' :
+                                            <div className={`text-4xl font-black ${qualityInsights.score === 'RED' ? 'text-red-500' :
                                                 qualityInsights.score === 'YELLOW' ? 'text-yellow-500' :
-                                                qualityInsights.score === 'GREEN' ? 'text-emerald-500' :
-                                                'text-slate-400'
-                                            }`}>
+                                                    qualityInsights.score === 'GREEN' ? 'text-emerald-500' :
+                                                        'text-slate-400'
+                                                }`}>
                                                 {qualityInsights.score === 'RED' ? 'Low' :
-                                                 qualityInsights.score === 'YELLOW' ? 'Medium' :
-                                                 qualityInsights.score === 'GREEN' ? 'High' : 'Unknown'}
+                                                    qualityInsights.score === 'YELLOW' ? 'Medium' :
+                                                        qualityInsights.score === 'GREEN' ? 'High' : 'Unknown'}
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 text-center">
-                                                Last checked:<br/>
+                                                Last checked:<br />
                                                 {qualityInsights.fetchedAt ? new Date(qualityInsights.fetchedAt).toLocaleString() : '—'}
                                             </p>
                                         </div>
@@ -1162,11 +1158,10 @@ const Dashboard = () => {
                                                     {qualityInsights.reasons.map((reason, idx) => (
                                                         <div key={idx} className="flex flex-col p-5 rounded-2xl bg-white dark:bg-[#152330] border border-slate-200 dark:border-[#1e3048] shadow-sm hover:shadow-md transition-shadow">
                                                             <div className="flex items-center gap-2 mb-3">
-                                                                <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${
-                                                                    reason.severity === 'high' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' :
+                                                                <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${reason.severity === 'high' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' :
                                                                     reason.severity === 'medium' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
-                                                                    'bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300'
-                                                                }`}>
+                                                                        'bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300'
+                                                                    }`}>
                                                                     {idx + 1}. {reason.severity?.toUpperCase()}
                                                                 </span>
                                                                 <span className="font-bold text-lg text-slate-900 dark:text-white" title={reason.label}>
@@ -1228,7 +1223,7 @@ const Dashboard = () => {
 
                                         {/* Expandable Recovery Section */}
                                         <div className="mt-6 border border-primary/20 rounded-2xl bg-primary/5 dark:bg-primary/10 overflow-hidden">
-                                            <button 
+                                            <button
                                                 onClick={() => setShowRecoverySection(!showRecoverySection)}
                                                 className="w-full p-5 flex items-center justify-between text-left hover:bg-primary/10 transition-colors"
                                             >

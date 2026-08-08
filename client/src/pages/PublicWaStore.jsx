@@ -106,6 +106,7 @@ export default function PublicWaStore({ customSlug }) {
 
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [sortBy, setSortBy] = useState('newest');
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Theme
     const theme = useMemo(() => getThemeConfig(store?.themeId), [store?.themeId]);
@@ -316,6 +317,39 @@ export default function PublicWaStore({ customSlug }) {
             return new Date(b.createdAt) - new Date(a.createdAt);
         });
     }, [products, sortBy]);
+
+    const paginatedProducts = useMemo(() => {
+        const mode = store?.paginationConfig?.mode || 'none';
+        if (mode === 'none') return filteredAndSortedProducts;
+
+        const isMobile = window.innerWidth < 768;
+        const limit = isMobile ? 12 : 16;
+        
+        if (mode === 'load_more') {
+            return filteredAndSortedProducts.slice(0, currentPage * limit);
+        }
+        
+        if (mode === 'pagination') {
+            const start = (currentPage - 1) * limit;
+            return filteredAndSortedProducts.slice(start, start + limit);
+        }
+
+        return filteredAndSortedProducts;
+    }, [filteredAndSortedProducts, store?.paginationConfig, currentPage]);
+    
+    const hasMoreProducts = useMemo(() => {
+        const mode = store?.paginationConfig?.mode || 'none';
+        if (mode === 'none') return false;
+        const isMobile = window.innerWidth < 768;
+        const limit = isMobile ? 12 : 16;
+        return currentPage * limit < filteredAndSortedProducts.length;
+    }, [filteredAndSortedProducts.length, store?.paginationConfig, currentPage]);
+    
+    const totalPages = useMemo(() => {
+        const isMobile = window.innerWidth < 768;
+        const limit = isMobile ? 12 : 16;
+        return Math.ceil(filteredAndSortedProducts.length / limit);
+    }, [filteredAndSortedProducts.length]);
 
     const addToCart = (product, qty = 1) => {
         if (product.options && Array.isArray(product.options) && product.options.length > 0) {
@@ -670,7 +704,7 @@ export default function PublicWaStore({ customSlug }) {
                                 }
                             `}</style>
                             <div className="grid gap-4 sm:gap-6 dynamic-product-grid">
-                                {filteredAndSortedProducts.map(product => {
+                                {paginatedProducts.map(product => {
                                     const isOutOfStock = product.trackQuantity ? product.stockQuantity <= 0 : !product.inStock;
                                     const preventAdd = store.inventoryConfig?.preventCartAdd && isOutOfStock;
                                     const showLowStock = store.inventoryConfig?.showLowStock && product.trackQuantity && product.stockQuantity > 0 && product.stockQuantity <= product.lowStockThreshold;
@@ -802,6 +836,62 @@ export default function PublicWaStore({ customSlug }) {
                                     );
                                 })}
                             </div>
+
+                            {/* Pagination / Load More UI */}
+                            {store?.paginationConfig?.mode === 'load_more' && hasMoreProducts && (
+                                <div className="flex justify-center mt-12">
+                                    <button 
+                                        onClick={() => setCurrentPage(p => p + 1)}
+                                        className={`px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${theme.buttonStyle}`}
+                                    >
+                                        Load More Products
+                                        <ChevronDown className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            )}
+
+                            {store?.paginationConfig?.mode === 'pagination' && totalPages > 1 && (
+                                <div className="flex justify-center items-center gap-2 mt-12 overflow-x-auto pb-4">
+                                    <button 
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className={`p-2 rounded-lg transition-all ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-white/10'} ${theme.text}`}
+                                    >
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    
+                                    {[...Array(totalPages)].map((_, i) => {
+                                        const page = i + 1;
+                                        // Show max 5 page numbers (current, 2 before, 2 after)
+                                        if (page !== 1 && page !== totalPages && Math.abs(currentPage - page) > 2) {
+                                            if (Math.abs(currentPage - page) === 3) return <span key={page} className={theme.textMuted}>...</span>;
+                                            return null;
+                                        }
+                                        
+                                        return (
+                                            <button
+                                                key={page}
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`w-10 h-10 rounded-xl font-bold transition-all flex items-center justify-center ${
+                                                    currentPage === page 
+                                                        ? theme.buttonStyle 
+                                                        : `bg-transparent hover:bg-slate-100 dark:hover:bg-white/10 ${theme.text}`
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        );
+                                    })}
+                                    
+                                    <button 
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className={`p-2 rounded-lg transition-all ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-white/10'} ${theme.text}`}
+                                    >
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            )}
                         </>
                     );
                 })() : (
@@ -809,7 +899,7 @@ export default function PublicWaStore({ customSlug }) {
                         <ShoppingBag className={`w-12 h-12 ${theme.textMuted} mx-auto mb-4`} />
                         <h2 className={`text-lg font-semibold ${theme.text} mb-2`}>No products found</h2>
                         <p className={`text-sm ${theme.textMuted}`}>Try adjusting your filters or search query.</p>
-                        <button onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }} className={`mt-6 px-6 py-2 ${theme.buttonStyle}`}>Clear Filters</button>
+                        <button onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setCurrentPage(1); }} className={`mt-6 px-6 py-2 ${theme.buttonStyle}`}>Clear Filters</button>
                     </div>
                 )}
             </main>

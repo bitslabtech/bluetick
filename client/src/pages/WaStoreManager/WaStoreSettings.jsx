@@ -72,6 +72,7 @@ export default function WaStoreSettings() {
     const [customDomain, setCustomDomain] = useState('');
     const [showDnsInstructions, setShowDnsInstructions] = useState(false);
     const [gridColumns, setGridColumns] = useState({ desktop: 4, mobile: 2 });
+    const [paginationConfig, setPaginationConfig] = useState({ mode: 'none' });
     const [showCrossSells, setShowCrossSells] = useState(true);
     const [mobileBottomMenu, setMobileBottomMenu] = useState([
         { id: 'home', enabled: true },
@@ -133,6 +134,7 @@ export default function WaStoreSettings() {
                 setStore(myStore);
                 if (myStore?.customDomain) setCustomDomain(myStore.customDomain);
                 if (myStore?.gridColumns) setGridColumns(myStore.gridColumns);
+                if (myStore?.paginationConfig) setPaginationConfig(myStore.paginationConfig);
                 if (myStore?.showCrossSells !== undefined) setShowCrossSells(myStore.showCrossSells);
                 if (myStore?.mobileBottomMenu) setMobileBottomMenu(myStore.mobileBottomMenu);
                 if (myStore?.checkoutMode) setCheckoutMode(myStore.checkoutMode);
@@ -198,6 +200,7 @@ export default function WaStoreSettings() {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
                 gridColumns,
+                paginationConfig,
                 showCrossSells,
                 mobileBottomMenu
             });
@@ -485,6 +488,52 @@ export default function WaStoreSettings() {
                                     <span className={`text-xs font-bold ${gridColumns.mobile === n ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>{n} col</span>
                                 </button>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Pagination Options */}
+                    <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                            <LayoutGrid className="w-4 h-4 text-indigo-400" /> Pagination & Loading
+                        </label>
+                        <p className="text-xs text-slate-500 mb-4">Choose how multiple products are loaded. We recommend Load More or Pagination for stores with many products.</p>
+                        
+                        <div className="grid sm:grid-cols-3 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setPaginationConfig({ mode: 'none' })}
+                                className={`p-4 rounded-xl border-2 text-left transition-all ${paginationConfig.mode === 'none'
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                                    }`}
+                            >
+                                <span className={`block font-bold text-sm ${paginationConfig.mode === 'none' ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>Show All</span>
+                                <span className="block text-xs text-slate-500 mt-1">Loads all products at once.</span>
+                            </button>
+                            
+                            <button
+                                type="button"
+                                onClick={() => setPaginationConfig({ mode: 'pagination' })}
+                                className={`p-4 rounded-xl border-2 text-left transition-all ${paginationConfig.mode === 'pagination'
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                                    }`}
+                            >
+                                <span className={`block font-bold text-sm ${paginationConfig.mode === 'pagination' ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>Numbered Pages</span>
+                                <span className="block text-xs text-slate-500 mt-1">Standard 1, 2, 3... page buttons.</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setPaginationConfig({ mode: 'load_more' })}
+                                className={`p-4 rounded-xl border-2 text-left transition-all ${paginationConfig.mode === 'load_more'
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                                    }`}
+                            >
+                                <span className={`block font-bold text-sm ${paginationConfig.mode === 'load_more' ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>Load More Button</span>
+                                <span className="block text-xs text-slate-500 mt-1">Appends products on click.</span>
+                            </button>
                         </div>
                     </div>
 

@@ -232,6 +232,11 @@ const WaStore = sequelize.define('WaStore', {
             padding: 'sm',
         },
         comment: 'Announcement bar config: enabled, messages, colors, marquee, sizing'
+    },
+    paginationConfig: {
+        type: DataTypes.JSON,
+        defaultValue: { mode: 'none' },
+        comment: 'Store product listing pagination mode: none, pagination, load_more'
     }
 }, {
     timestamps: true

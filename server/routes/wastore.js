@@ -130,16 +130,27 @@ router.get('/public/:slug', async (req, res) => {
         // Fetch products — if showOutOfStock is enabled, include out-of-stock products
         // so the frontend shows them with an "Out of Stock" badge; otherwise only return in-stock
         const showOutOfStock = store.inventoryConfig?.showOutOfStock === true;
-        const products = await WaProduct.findAll({
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit);
+        
+        const queryOptions = {
             where: showOutOfStock
                 ? { storeId: store.id }
-                : { storeId: store.id, inStock: true }
-        });
+                : { storeId: store.id, inStock: true },
+            order: [['createdAt', 'DESC']] // Show newest first
+        };
+
+        if (limit) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+        }
+
+        const { count, rows: products } = await WaProduct.findAndCountAll(queryOptions);
 
         const responseData = store.toJSON();
         delete responseData.User; // Hide user obj
 
-        res.json({ store: responseData, products });
+        res.json({ store: responseData, products, totalProducts: count });
     } catch (error) {
         console.error("Fetch Public Store error:", error);
         res.status(500).json({ error: 'Server error fetching store' });
@@ -197,16 +208,27 @@ router.get('/public/domain/:domain', async (req, res) => {
         // Fetch products — if showOutOfStock is enabled, include out-of-stock products
         // so the frontend shows them with an "Out of Stock" badge; otherwise only return in-stock
         const showOutOfStock = store.inventoryConfig?.showOutOfStock === true;
-        const products = await WaProduct.findAll({
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit);
+
+        const queryOptions = {
             where: showOutOfStock
                 ? { storeId: store.id }
-                : { storeId: store.id, inStock: true }
-        });
+                : { storeId: store.id, inStock: true },
+            order: [['createdAt', 'DESC']]
+        };
+
+        if (limit) {
+            queryOptions.limit = limit;
+            queryOptions.offset = (page - 1) * limit;
+        }
+
+        const { count, rows: products } = await WaProduct.findAndCountAll(queryOptions);
 
         const responseData = store.toJSON();
         delete responseData.User; // Hide user obj
 
-        res.json({ store: responseData, products });
+        res.json({ store: responseData, products, totalProducts: count });
     } catch (error) {
         console.error("Fetch Public Store Domain error:", error);
         res.status(500).json({ error: 'Server error fetching store by domain' });

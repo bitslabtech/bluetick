@@ -296,8 +296,8 @@ if (fs.existsSync(distIndex)) {
                 // warmCache() fires a background resize so that by the time the browser
                 // receives the HTML and fires the <link rel="preload"> request, the image
                 // is already in L1/L2 cache and responds in <5ms instead of ~1100ms.
-                const [products] = await Promise.all([
-                    WaProduct.findAll({
+                const [{ count: totalProducts, rows: products }] = await Promise.all([
+                    WaProduct.findAndCountAll({
                         where: { storeId: store.id },
                         order: [['createdAt', 'DESC']],
                         limit: 24
@@ -426,7 +426,7 @@ img{display:block;vertical-align:middle}
                 const productsJson = products.map(p => p.toJSON());
 
                 // Safely encode to prevent XSS via </script> in store content
-                const safeJson = JSON.stringify({ store: storeJson, products: productsJson })
+                const safeJson = JSON.stringify({ store: storeJson, products: productsJson, totalProducts })
                     .replace(/</g, '\\u003c')
                     .replace(/>/g, '\\u003e')
                     .replace(/&/g, '\\u0026');
